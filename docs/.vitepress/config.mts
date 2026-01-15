@@ -3,11 +3,11 @@ import {defineConfig} from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     base:'/CoreFront-EndConcepts/',
-    title: "前端核心概念",
+    title: "vitePress",
     description: "个人博客",
     cleanUrls:true,         //生成简洁的url
     themeConfig: {
-        astUpdated:{
+        lastUpdated:{
             text: '最后更新于',      //自定义名称
             formatOptions: {
                 dateStyle: 'full',
