@@ -77,7 +77,7 @@
 
   - **`组件化 (Component-Based Architecture)`:** 将 UI 拆分成独立的、可复用的组件，是现代前端开发的基石。
 
-  - **`状态管理 (State Management)`:** 在大型应用中，集中管理和共享组件之间的状态（如 Vuex, Pinia, Redux）。
+  - **`状态管理 (State Management)`:** 在大型应用中，集中管理和共享组件之间的状态（如 [Vuex](https://vuex.vuejs.org/zh/), [Pinia](https://pinia.vuejs.org/), [Redux](https://redux.js.org/)）。
 
   - **`虚拟 DOM (Virtual DOM)`:** 框架通过在内存中维护一个轻量级的 DOM 副本，来最小化对真实 DOM 的操作，从而提升性能。
 
@@ -97,7 +97,7 @@
 
       - **模块化 (Modularity):** 使用 `ES Modules (import/export)` 将代码拆分成独立的文件，便于维护和复用。
 
-      - **代码检查与格式化 (Linting & Formatting):** ESLint 用于检查代码中的潜在错误和风格问题，Prettier 用于自动格式化代码，保证团队风格统一。
+      - **代码检查与格式化 (Linting & Formatting):** `ESLint` 用于检查代码中的潜在错误和风格问题，`Prettier` 用于自动格式化代码，保证团队风格统一。
 
 ## 性能、安全与体验
 这是衡量一个前端应用是否“优秀”的关键标准。

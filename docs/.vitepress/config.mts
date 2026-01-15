@@ -41,8 +41,11 @@ export default defineConfig({
         darkModeSwitchTitle:'切换到黑夜主题',     //用于自定义悬停时显示的深色模式开关标题。
         langMenuLabel:'切换语言',
         i18nRouting:true,           //i18n
-        //目录导航标题
-        outlineTitle:'页面导航',
+        //目录导航标题和层级
+        outline:{
+            level:[2,3],
+            label:'页面导航'
+        },
         // 修改页面底部导航链接的文本
         docFooter: {
             prev: '上一页：', // 修改“上一篇”按钮的引导文本
@@ -56,8 +59,8 @@ export default defineConfig({
                     {
                         // 该部分的标题
                         items: [
-                            { text: '简体中文', link:'javascript:;',activeMatch: '^/CoreFront-EndConcepts/' },
-                        ]
+                            { text: '简体中文', link:(PageData)=>{return false},activeMatch: `^/` },
+                        ],
                     }
                 ]
             },
@@ -66,12 +69,16 @@ export default defineConfig({
         sidebar: [
             {
                 text: '简介',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: false, // 初始状态为“展开”
                 items: [
                     {text: '前端知识体系介绍', link: '/intro'},
                 ]
             },
             {
                 text: 'html',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: false, // 初始状态为“展开”
                 items: [
                     {text: 'html5新特性', link: '/html/html5NewFeatures'},
                 ]

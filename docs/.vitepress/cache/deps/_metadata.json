@@ -1,52 +1,52 @@
 {
-  "hash": "4d3e01fc",
-  "configHash": "e64a2ad6",
-  "lockfileHash": "63e76eef",
-  "browserHash": "cac50ab9",
+  "hash": "a4d67b10",
+  "configHash": "73549796",
+  "lockfileHash": "979139f8",
+  "browserHash": "32a47348",
   "optimized": {
     "vue": {
       "src": "../../../../node_modules/vue/dist/vue.runtime.esm-bundler.js",
       "file": "vue.js",
-      "fileHash": "db023f0a",
+      "fileHash": "909a5bed",
       "needsInterop": false
     },
     "vitepress > @vue/devtools-api": {
       "src": "../../../../node_modules/@vue/devtools-api/dist/index.js",
       "file": "vitepress___@vue_devtools-api.js",
-      "fileHash": "80b1bb74",
+      "fileHash": "62c104ad",
       "needsInterop": false
     },
     "vitepress > @vueuse/core": {
-      "src": "../../../../node_modules/@vueuse/core/index.mjs",
+      "src": "../../../../node_modules/@vueuse/core/dist/index.js",
       "file": "vitepress___@vueuse_core.js",
-      "fileHash": "d8bcd089",
+      "fileHash": "a869110a",
       "needsInterop": false
     },
     "vitepress > @vueuse/integrations/useFocusTrap": {
-      "src": "../../../../node_modules/@vueuse/integrations/useFocusTrap.mjs",
+      "src": "../../../../node_modules/@vueuse/integrations/dist/useFocusTrap.js",
       "file": "vitepress___@vueuse_integrations_useFocusTrap.js",
-      "fileHash": "cca20c38",
+      "fileHash": "fcc6f430",
       "needsInterop": false
     },
     "vitepress > mark.js/src/vanilla.js": {
       "src": "../../../../node_modules/mark.js/src/vanilla.js",
       "file": "vitepress___mark__js_src_vanilla__js.js",
-      "fileHash": "e27203af",
+      "fileHash": "4ec92323",
       "needsInterop": false
     },
     "vitepress > minisearch": {
       "src": "../../../../node_modules/minisearch/dist/es/index.js",
       "file": "vitepress___minisearch.js",
-      "fileHash": "a3734a97",
+      "fileHash": "3072d9ff",
       "needsInterop": false
     }
   },
   "chunks": {
-    "chunk-2CLQ7TTZ": {
-      "file": "chunk-2CLQ7TTZ.js"
+    "chunk-2762AXES": {
+      "file": "chunk-2762AXES.js"
     },
-    "chunk-LE5NDSFD": {
-      "file": "chunk-LE5NDSFD.js"
+    "chunk-ADVWCYKY": {
+      "file": "chunk-ADVWCYKY.js"
     }
   }
 }

@@ -1,0 +1,1 @@
+import{_ as e,c as t,o as a}from"./chunks/framework.db377_VU.js";const _=JSON.parse('{"title":"","description":"","frontmatter":{},"headers":[],"relativePath":"html/html5NewFeatures.md","filePath":"html/html5NewFeatures.md"}'),r={name:"html/html5NewFeatures.md"};function s(o,m,c,n,l,h){return a(),t("div")}const d=e(r,[["render",s]]);export{_ as __pageData,d as default};
