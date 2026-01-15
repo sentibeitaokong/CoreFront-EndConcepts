@@ -3,9 +3,9 @@
 layout: home
 
 hero:
-  name: "CoreFront-EndConcepts"
-  text: "A VitePress Site"
-  tagline: My great project tagline
+  name: "前端核心概念"
+  text: "个人博客"
+  tagline: 快速浏览前端核心概念，只需几分钟
   actions:
     - theme: brand
       text: Markdown Examples
