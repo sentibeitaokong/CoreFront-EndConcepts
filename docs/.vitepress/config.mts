@@ -50,17 +50,17 @@ export default defineConfig({
         },
         nav: [
             {text: '简介', link: '/intro'},
-            /*{
+            {
                 text: '切换语言',
                 items: [
                     {
                         // 该部分的标题
                         items: [
-                            { text: '简体中文', link:'javascript:void(0)',activeMatch: '^/CoreFront-EndConcepts/' },
+                            { text: '简体中文', link:'javascript:;',activeMatch: '^/CoreFront-EndConcepts/' },
                         ]
                     }
                 ]
-            },*/
+            },
         ],
 
         sidebar: [
@@ -77,5 +77,8 @@ export default defineConfig({
                 ]
             }
         ],
+        socialLinks: [
+            { icon: 'github', link: 'https://github.com/sentibeitaokong/CoreFront-EndConcepts' }
+        ]
     }
 })
