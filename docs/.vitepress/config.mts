@@ -3,7 +3,7 @@ import {defineConfig} from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     base:'/CoreFront-EndConcepts/',
-    title: "vitePress",
+    title: "个人博客",
     description: "个人博客",
     cleanUrls:true,         //生成简洁的url
     themeConfig: {
