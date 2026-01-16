@@ -43,7 +43,7 @@ export default defineConfig({
         i18nRouting:true,           //i18n
         //目录导航标题和层级
         outline:{
-            level:[2,3],
+            level:[2,4],
             label:'页面导航'
         },
         // 修改页面底部导航链接的文本
@@ -81,6 +81,18 @@ export default defineConfig({
                 collapsed: false, // 初始状态为“展开”
                 items: [
                     {text: 'html5新特性', link: '/html/html5NewFeatures'},
+                ]
+            },
+            {
+                text: 'css',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: false, // 初始状态为“展开”
+                items: [
+                    {text: '选择器', link: '/css/selectors'},
+                    {text: '盒模型', link: '/css/boxModel'},
+                    {text: '继承', link: '/css/inheritance'},
+                    {text: 'Flex弹性布局', link: '/css/flexibleBox'},
+                    {text: 'Grid栅格布局', link: '/css/grid'},
                 ]
             }
         ],

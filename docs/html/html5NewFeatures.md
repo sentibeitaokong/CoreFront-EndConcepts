@@ -92,7 +92,7 @@ HTML5 为 Web 开发带来了革命性的变革，使得网页更加语义化、
 ## 增强的表单特性 (Enhanced Form Features)
 **特性概述:** 引入了新的输入类型和属性，改善了用户体验，并提供了客户端数据验证。
 
-**新属性:** `placeholder`, `required`, `autofocus`, `pattern`, `min`, `max`, `step`, `novalidate(对form表单数据不验证)`。
+**新属性:** `placeholder`, `required`, `autofocus`, `pattern`, `min`, `max`, `step`, `formnovalidate(对form表单数据不验证)`。
 ```html
 <!DOCTYPE html>
 <html lang="zh-CN">

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .triangle {
+            width: 0;
+            height: 0;
+            /* 四个边框都很粗，但内容区是 0 */
+            border-top: 50px solid transparent;    /* 上边框透明 */
+            border-right: 50px solid transparent;  /* 右边框透明 */
+            border-bottom: 50px solid red;         /* 下边框红色 -> 形成向上的三角形 */
+            border-left: 50px solid transparent;   /* 左边框透明 */
+        }
+    </style>
+</head>
+<body>
+    <div class="triangle "></div>
+</body>
+</html>
