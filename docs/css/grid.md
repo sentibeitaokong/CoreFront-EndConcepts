@@ -41,6 +41,8 @@ Grid 布局与 **Flex 布局** 有一定的相似性，都可以指定容器内�
 
 容器里面的水平区域称为**"行"（row）**，垂直区域称为**"列"（column）**。
 
+![Logo](../assets/images/gridContainer.png)
+
 上图中，水平的深色区域就是"行"，垂直的深色区域就是"列"。
 
 ### 2.3 单元格
@@ -57,7 +59,7 @@ Grid 布局与 **Flex 布局** 有一定的相似性，都可以指定容器内�
 
 上图是一个 4 x 4 的网格，共有5根水平网格线和5根垂直网格线。
 
----
+![Logo](../assets/images/gridLine.png)
 
 ## 三、容器属性
 
@@ -72,7 +74,7 @@ div {
   display: grid;
 }
 ```
-
+![Logo](../assets/images/grid.png)
 默认情况下，容器元素都是块级元素，但也可以设成行内元素。
 
 ```css
@@ -80,8 +82,7 @@ div {
   display: inline-grid;
 }
 ```
-
-上面代码指定`div`是一个行内元素，该元素内部采用网格布局。
+![Logo](../assets/images/inlineGrid.png)
 
 > **注意**：设为网格布局以后，容器子元素（项目）的`float`、`display: inline-block`、`display: table-cell`、`vertical-align`和`column-*`等设置都将失效。
 
@@ -98,7 +99,7 @@ div {
   grid-template-rows: 100px 100px 100px;
 }
 ```
-
+![Logo](../assets/images/gridTemplate.png)
 上面代码指定了一个三行三列的网格，列宽和行高都是`100px`。
 
 除了使用绝对单位，也可以使用百分比。
@@ -133,6 +134,8 @@ grid-template-columns: repeat(2, 100px 20px 80px);
 
 上面代码定义了6列，第一列和第四列的宽度为`100px`，第二列和第五列为`20px`，第三列和第六列为`80px`。
 
+![Logo](../assets/images/repeat.png)
+
 **（2）auto-fill 关键字**
 
 有时，单元格的大小是固定的，但是容器的大小不确定。如果希望每一行（或每一列）容纳尽可能多的单元格，这时可以使用`auto-fill`关键字表示自动填充。
@@ -145,6 +148,8 @@ grid-template-columns: repeat(2, 100px 20px 80px);
 ```
 
 上面代码表示每列宽度`100px`，然后自动填充，直到容器不能放置更多的列。
+
+![Logo](../assets/images/autofill.png)
 
 > 除了`auto-fill`，还有一个关键字`auto-fit`，两者的行为基本是相同的。差异在于：`auto-fill`会用空格子填满剩余宽度，`auto-fit`则会尽量扩大单元格的宽度。
 
@@ -161,6 +166,8 @@ grid-template-columns: repeat(2, 100px 20px 80px);
 
 上面代码表示两个相同宽度的列。
 
+![Logo](../assets/images/fr.png)
+
 `fr`可以与绝对长度的单位结合使用，这时会非常方便。
 
 ```css
@@ -171,6 +178,8 @@ grid-template-columns: repeat(2, 100px 20px 80px);
 ```
 
 上面代码表示，第一列的宽度为150像素，第二列的宽度是第三列的一半。
+
+![Logo](../assets/images/frSecond.png)
 
 **（4）minmax()**
 
@@ -233,7 +242,7 @@ grid-template-columns: repeat(12, 1fr);
   column-gap: 20px;
 }
 ```
-
+![Logo](../assets/images/gridGap.png)
 `gap`属性是`column-gap`和`row-gap`的合并简写形式。
 
 ```css
@@ -283,16 +292,30 @@ grid-template-areas: 'a . c'
 
 ### 3.5 grid-auto-flow 属性
 
-划分网格以后，容器的子元素会按照顺序，自动放置在每一个网格。默认的放置顺序是"先行后列"。这个顺序由`grid-auto-flow`属性决定，默认值是`row`。
+划分网格以后，容器的子元素会按照顺序，自动放置在每一个网格。默认的放置顺序是"先行后列"。
+![Logo](../assets/images/gridAutoFlow.png)
 
-也可以将它设成`column`，变成"先列后行"。
+这个顺序由`grid-auto-flow`属性决定，默认值是`row`。 也可以将它设成`column`，变成"先列后行"。
 
 ```css
 grid-auto-flow: column;
 ```
 
+![Logo](../assets/images/gridAutoFlowColumn.png)
+
 `grid-auto-flow`属性还可以设成`row dense`和`column dense`。这两个值主要用于，某些项目指定位置以后，剩下的项目怎么自动放置，表示"尽可能紧密填满，尽量不出现空格"。
 
+```css
+grid-auto-flow: row dense;
+```
+
+![Logo](../assets/images/gridAutoFlowRowDense.png)
+
+```css
+grid-auto-flow: column dense;
+```
+
+![Logo](../assets/images/gridAutoFlowColumnDense.png)
 ### 3.6 justify-items 属性， align-items 属性， place-items 属性
 
 `justify-items`属性设置单元格内容的水平位置（左中右），`align-items`属性设置单元格内容的垂直位置（上中下）。
@@ -308,12 +331,26 @@ grid-auto-flow: column;
 *   `end`：对齐单元格的结束边缘。
 *   `center`：单元格内部居中。
 *   `stretch`：拉伸，占满单元格的整个宽度（默认值）。
+```css
+.container {
+    justify-items: start;
+}
+```
+![Logo](../assets/images/justifyItemsStart.png)
 
+```css
+.container {
+    align-items: start;
+}
+```
+![Logo](../assets/images/alignItemsStart.png)
 `place-items`属性是`align-items`属性和`justify-items`属性的合并简写形式。
 
 ```css
 place-items: <align-items> <justify-items>;
 ```
+
+如果省略第二个值，则浏览器认为与第一个值相等。
 
 ### 3.7 justify-content 属性， align-content 属性， place-content 属性
 
@@ -333,12 +370,19 @@ place-items: <align-items> <justify-items>;
 *   `space-between` - 项目与项目的间隔相等，项目与容器边框之间没有间隔。
 *   `space-evenly` - 项目与项目的间隔相等，项目与容器边框之间也是同样长度的间隔。
 
+```css
+.container {
+  justify-content: start;
+}
+```
+![Logo](../assets/images/justifyContentStart.png)
 `place-content`属性是`align-content`属性和`justify-content`属性的合并简写形式。
 
 ```css
 place-content: <align-content> <justify-content>
 ```
 
+如果省略第二个值，浏览器就会假定第二个值等于第一个值。
 ### 3.8 grid-auto-columns 属性， grid-auto-rows 属性
 
 有时候，一些项目的指定位置，在现有网格的外部。这时，浏览器会自动生成多余的网格。
@@ -354,9 +398,7 @@ place-content: <align-content> <justify-content>
 }
 ```
 
-上面代码指定新增的行高统一为50px。
 
----
 
 ## 四、项目属性
 
@@ -377,7 +419,7 @@ place-content: <align-content> <justify-content>
   grid-column-end: 4;
 }
 ```
-
+![Logo](../assets/images/gridColumnFirst.png)
 这四个属性的值还可以使用`span`关键字，表示"跨越"，即左右边框（上下边框）之间跨越多少个网格。
 
 ```css
@@ -385,7 +427,7 @@ place-content: <align-content> <justify-content>
   grid-column-start: span 2;
 }
 ```
-
+![Logo](../assets/images/gridColumnSecond.png)
 ### 4.2 grid-column 属性， grid-row 属性
 
 `grid-column`属性是`grid-column-start`和`grid-column-end`的合并简写形式，`grid-row`属性是`grid-row-start`属性和`grid-row-end`的合并简写形式。
@@ -417,6 +459,8 @@ place-content: <align-content> <justify-content>
   grid-area: e;
 }
 ```
+1号项目位于e区域，效果如下图。
+![Logo](../assets/images/gridArea.png)
 
 `grid-area`属性还可用作`grid-row-start`、`grid-column-start`、`grid-row-end`、`grid-column-end`的合并简写形式。
 

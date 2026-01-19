@@ -28,9 +28,9 @@
 
   * **布局 (Layout):**
 
-    - [Flexbox:](https://www.ruanyifeng.com/blog/2015/07/flex-grammar.html) 现代一维布局的黄金标准，非常适合对齐组件内的元素。
+    - [Flexbox:](/css/flexibleBox) 现代一维布局的黄金标准，非常适合对齐组件内的元素。
 
-    - [Grid:](https://ruanyifeng.com/blog/2019/03/grid-layout-tutorial.html) 现代二维布局的利器，非常适合构建页面级的宏观布局。
+    - [Grid:](/css/grid) 现代二维布局的利器，非常适合构建页面级的宏观布局。
 
     - **响应式设计 (Responsive Web Design):** 使用`媒体查询（Media Queries）`等技术，让网站能够在不同尺寸的设备上都提供良好的浏览体验。
 

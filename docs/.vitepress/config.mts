@@ -2,12 +2,12 @@ import {defineConfig} from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-    base:'/CoreFront-EndConcepts/',
+    base: '/CoreFront-EndConcepts/',
     title: "个人博客",
     description: "个人博客",
-    cleanUrls:true,         //生成简洁的url
+    cleanUrls: true,         //生成简洁的url
     themeConfig: {
-        lastUpdated:{
+        lastUpdated: {
             text: '最后更新于',      //自定义名称
             formatOptions: {
                 dateStyle: 'full',
@@ -37,14 +37,14 @@ export default defineConfig({
                  }*!/
              }
          },*/   //支持使用 Algolia DocSearch 搜索站点文档
-        lightModeSwitchTitle:'切换到白天主题',    //用于自定义悬停时显示的浅色模式开关标题。
-        darkModeSwitchTitle:'切换到黑夜主题',     //用于自定义悬停时显示的深色模式开关标题。
-        langMenuLabel:'切换语言',
-        i18nRouting:true,           //i18n
+        lightModeSwitchTitle: '切换到白天主题',    //用于自定义悬停时显示的浅色模式开关标题。
+        darkModeSwitchTitle: '切换到黑夜主题',     //用于自定义悬停时显示的深色模式开关标题。
+        langMenuLabel: '切换语言',
+        i18nRouting: true,           //i18n
         //目录导航标题和层级
-        outline:{
-            level:[2,4],
-            label:'页面导航'
+        outline: {
+            level: [2, 4],
+            label: '页面导航'
         },
         // 修改页面底部导航链接的文本
         docFooter: {
@@ -59,7 +59,11 @@ export default defineConfig({
                     {
                         // 该部分的标题
                         items: [
-                            { text: '简体中文', link:(PageData)=>{return false},activeMatch: `^/` },
+                            {
+                                text: '简体中文', link: (PageData) => {
+                                    return false
+                                }, activeMatch: `^/`
+                            },
                         ],
                     }
                 ]
@@ -85,19 +89,55 @@ export default defineConfig({
             },
             {
                 text: 'css',
-                collapsible: true, // 允许折叠 (默认true，可省略)
-                collapsed: false, // 初始状态为“展开”
+                // collapsible: true, // 允许折叠 (默认true，可省略)
+                // collapsed: false, // 初始状态为“展开”
                 items: [
-                    {text: '选择器', link: '/css/selectors'},
-                    {text: '盒模型', link: '/css/boxModel'},
-                    {text: '继承', link: '/css/inheritance'},
-                    {text: 'Flex弹性布局', link: '/css/flexibleBox'},
-                    {text: 'Grid栅格布局', link: '/css/grid'},
+                    {
+                        text: '基础',
+                        collapsible: true, // 允许折叠 (默认true，可省略)
+                        collapsed: false, // 初始状态为“展开”
+                        items: [
+                            {text: '选择器', link: '/css/selectors'},
+                            {text: '继承', link: '/css/inheritance'},
+                            {text: '盒模型', link: '/css/boxModel'},
+                            {text: '文档流', link: '/css/documentFlow'},
+                            {text: '定位布局', link: '/css/position'},
+                            {text: '浮动布局', link: '/css/float'},
+                        ]
+                    },
+                    {
+                        text: '进阶',
+                        collapsible: true, // 允许折叠 (默认true，可省略)
+                        collapsed: false, // 初始状态为“展开”
+                        items: [
+                            {
+                                text: '视觉装饰',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: false, // 初始状态为“展开”
+                                items:[
+                                    {text: '圆角', link: '/css/borderRadius'},
+                                    {text: '阴影', link: '/css/boxShadow'},
+                                    {text: '渐变', link: '/css/gradients'},
+                                ]
+                            },
+                            {
+                                text: '现代布局系统',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: false, // 初始状态为“展开”
+                                items:[
+                                    {text: '多列布局', link: '/css/multiColumn'},
+                                    {text: 'Table表格布局', link: '/css/tableLayout'},
+                                    {text: 'Flex弹性布局', link: '/css/flexibleBox'},
+                                    {text: 'Grid栅格布局', link: '/css/grid'},
+                                ]
+                            }
+                        ]
+                    }
                 ]
             }
         ],
         socialLinks: [
-            { icon: 'github', link: 'https://github.com/sentibeitaokong/CoreFront-EndConcepts' }
+            {icon: 'github', link: 'https://github.com/sentibeitaokong/CoreFront-EndConcepts'}
         ]
     }
 })
