@@ -149,7 +149,7 @@ grid-template-columns: repeat(2, 100px 20px 80px);
 
 上面代码表示每列宽度`100px`，然后自动填充，直到容器不能放置更多的列。
 
-![Logo](../assets/images/autofill.png)
+![Logo](../assets/images/autoFill.png)
 
 > 除了`auto-fill`，还有一个关键字`auto-fit`，两者的行为基本是相同的。差异在于：`auto-fill`会用空格子填满剩余宽度，`auto-fit`则会尽量扩大单元格的宽度。
 
