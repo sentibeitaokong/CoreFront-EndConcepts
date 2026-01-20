@@ -1,4 +1,4 @@
-# HTML 多媒体元素 (`MultimediaElements`)
+# HTML 多媒体元素 (MultimediaElements)
 
 在 Web 早期，播放视频音频需要依赖 Flash 等插件。HTML5 引入了原生多媒体标签，彻底改变了这一局面。
 

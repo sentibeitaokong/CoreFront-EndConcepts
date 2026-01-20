@@ -98,6 +98,14 @@ export default defineConfig({
                         items: [
                             {text: '语义化标签', link: '/html/semanticHtml'},
                             {text: '多媒体元素', link: '/html/multimediaElements'},
+                            {text: '增强表单', link: '/html/enhancedForms'},
+                            {text: 'Canvas和Svg', link: '/html/canvasAndsvg'},
+                            {text: '地理位置', link: '/html/geolocation'},
+                            {text: 'Web存储', link: '/html/webStorage'},
+                            {text: 'WebWorkers', link: '/html/webWorkers'},
+                            {text: 'WebSockets', link: '/html/webSockets'},
+                            {text: 'history路由', link: '/html/history'},
+                            {text: '拖放', link: '/html/dragAndDrop'},
                         ]
                     },
                 ]
