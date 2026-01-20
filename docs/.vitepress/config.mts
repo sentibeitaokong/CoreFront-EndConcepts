@@ -3,8 +3,8 @@ import {defineConfig} from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     base: '/CoreFront-EndConcepts/',
-    title: "个人博客",
-    description: "个人博客",
+    title: "vitePress",
+    description: "vitePress",
     cleanUrls: true,         //生成简洁的url
     themeConfig: {
         lastUpdated: {
@@ -81,10 +81,25 @@ export default defineConfig({
             },
             {
                 text: 'html',
-                collapsible: true, // 允许折叠 (默认true，可省略)
-                collapsed: false, // 初始状态为“展开”
                 items: [
-                    {text: 'html5新特性', link: '/html/html5NewFeatures'},
+                    {
+                        text: '基础',
+                        collapsible: true, // 允许折叠 (默认true，可省略)
+                        collapsed: false, // 初始状态为“展开”
+                        items: [
+                            {text: '基础结构', link: '/html/htmlBasicStructure'},
+                            {text: '常用标签', link: '/html/commonTags'},
+                        ]
+                    },
+                    {
+                        text: '进阶',
+                        collapsible: true, // 允许折叠 (默认true，可省略)
+                        collapsed: false, // 初始状态为“展开”
+                        items: [
+                            {text: '语义化标签', link: '/html/semanticHtml'},
+                            {text: '多媒体元素', link: '/html/multimediaElements'},
+                        ]
+                    },
                 ]
             },
             {
@@ -101,8 +116,8 @@ export default defineConfig({
                             {text: '继承', link: '/css/inheritance'},
                             {text: '盒模型', link: '/css/boxModel'},
                             {text: '文档流', link: '/css/documentFlow'},
-                            {text: '定位布局', link: '/css/position'},
-                            {text: '浮动布局', link: '/css/float'},
+                            {text: '定位', link: '/css/position'},
+                            {text: '浮动', link: '/css/float'},
                         ]
                     },
                     {
@@ -118,6 +133,9 @@ export default defineConfig({
                                     {text: '圆角', link: '/css/borderRadius'},
                                     {text: '阴影', link: '/css/boxShadow'},
                                     {text: '渐变', link: '/css/gradients'},
+                                    {text: '背景增强', link: '/css/backgroundEnhancement'},
+                                    {text: '文字效果', link: '/css/textEffects'},
+                                    {text: '颜色', link: '/css/colors'},
                                 ]
                             },
                             {
@@ -129,6 +147,25 @@ export default defineConfig({
                                     {text: 'Table表格布局', link: '/css/tableLayout'},
                                     {text: 'Flex弹性布局', link: '/css/flexibleBox'},
                                     {text: 'Grid栅格布局', link: '/css/grid'},
+                                ]
+                            },
+                            {
+                                text: '动画与变换',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: false, // 初始状态为“展开”
+                                items:[
+                                    {text: '变换', link: '/css/transform'},
+                                    {text: '过渡', link: '/css/transitions'},
+                                    {text: '动画', link: '/css/animations'},
+                                ]
+                            },
+                            {
+                                text: '响应式设计',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: false, // 初始状态为“展开”
+                                items:[
+                                    {text: '媒体查询', link: '/css/mediaQueries'},
+                                    {text: '单位', link: '/css/units'},
                                 ]
                             }
                         ]

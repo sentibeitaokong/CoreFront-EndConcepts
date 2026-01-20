@@ -102,16 +102,16 @@
 假设容器宽 `100%`，你有两个子元素，宽度设为 `50%`。
 *   如果给它们加了 `border: 1px` 或者 `padding`，且没有设置 `box-sizing: border-box`，它们的实际宽度会超过 50%，导致一行放不下，第二个元素被挤到下一行。
 
-*   **解法**：始终使用 `box-sizing: border-box`；或者使用 `calc(50% - 2px)` 预留空间。
+**解法**：始终使用 `box-sizing: border-box`；或者使用 `calc(50% - 2px)` 预留空间。
 
 ### Q2: 为什么 `text-align: center` 对浮动元素无效？
 **原因**：
 `text-align` 只能控制行内元素（inline/inline-block）的对齐。
 浮动元素虽然变成了块级，但它们已经脱离了常规文档流，父容器的文字对齐规则管不到它们。
 
-**解法**：
-*   若要居中浮动元素，很难直接做。通常需要定宽，然后配合 `margin-left` 计算。
-*   **建议**：改用 `flex` 布局 (`justify-content: center`)，一秒解决。
+**解法**：若要居中浮动元素，很难直接做。通常需要定宽，然后配合 `margin-left` 计算。
+
+**建议**：改用 `flex` 布局 (`justify-content: center`)，一秒解决。
 
 ### Q3: 浮动元素会被 `position: absolute` 覆盖吗？
 **答案**：是的。
