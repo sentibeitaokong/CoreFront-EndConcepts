@@ -57,37 +57,186 @@ window.addEventListener('popstate', (event) => {
 });
 ```
 
-## 3. 实战代码：手写一个简单的路由
+## 3. 实战代码
 
-```javascript
-// 1. 路由跳转函数
-function navigateTo(url, data) {
-  // 修改 URL，不刷新页面
-  history.pushState(data, "", url);
-  // 手动触发渲染（因为 pushState 不会触发 popstate）
-  renderPage(url);
-}
+实现前端路由(SPA)的核心原理在于：**改变 URL，不刷新页面，同时根据 URL 渲染对应的视图**。
 
-// 2. 监听浏览器的前进/后退
-window.addEventListener('popstate', (event) => {
-  // event.state 包含了我们之前存的数据
-  renderPage(location.pathname);
-});
+下面我将分别用原生 JavaScript 手写实现 **Hash 模式** 和 **History 模式** 的路由。
 
-// 3. 页面渲染逻辑
-function renderPage(path) {
-  const content = document.getElementById('app');
-  if (path === '/home') {
-    content.innerHTML = '<h1>首页</h1>';
-  } else if (path === '/about') {
-    content.innerHTML = '<h1>关于</h1>';
-  } else {
-    content.innerHTML = '<h1>404</h1>';
-  }
-}
 
-// 绑定点击事件
-document.querySelector('#link-home').onclick = () => navigateTo('/home', { id: 1 });
+### 3.1 Hash 模式路由实现
+
+**原理**：
+*   URL 中 `#` 后面的内容被称为 Hash。
+*   修改 Hash 不会触发页面刷新。
+*   浏览器提供了 `hashchange` 事件，当 Hash 变化时会触发该事件。
+*   页面加载时会触发 `load` 事件。
+
+**实现代码**：
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hash Router Demo</title>
+</head>
+<body>
+    <h1>Hash 模式路由</h1>
+    <nav>
+        <!-- 核心：链接使用 # 开头 -->
+        <a href="#/home">首页</a>
+        <a href="#/about">关于</a>
+    </nav>
+    <div id="app"></div>
+
+    <script>
+        class HashRouter {
+            constructor() {
+                // 存储路由配置：path -> callback
+                this.routes = {};
+                // 当前路由 URL
+                this.currentUrl = '';
+                
+                // 绑定 this，确保回调中 this 指向实例
+                this.refresh = this.refresh.bind(this);
+
+                // 监听页面加载（首次进入）
+                window.addEventListener('load', this.refresh);
+                // 监听 Hash 变化
+                window.addEventListener('hashchange', this.refresh);
+            }
+
+            // 注册路由
+            route(path, callback) {
+                this.routes[path] = callback || function() {};
+            }
+
+            // 刷新页面（核心逻辑）
+            refresh() {
+                // 获取当前 hash，去掉 # 号。如果没有 hash 默认为 /
+                this.currentUrl = location.hash.slice(1) || '/';
+                
+                // 执行对应的回调函数渲染视图
+                if(this.routes[this.currentUrl]) {
+                    this.routes[this.currentUrl]();
+                } else {
+                    console.log('404 Not Found');
+                    document.getElementById('app').innerHTML = '404';
+                }
+            }
+        }
+
+        // --- 使用示例 ---
+        const router = new HashRouter();
+        const app = document.getElementById('app');
+
+        router.route('/home', () => {
+            app.innerHTML = '<h2>我是首页内容</h2>';
+        });
+
+        router.route('/about', () => {
+            app.innerHTML = '<h2>我是关于页面</h2>';
+        });
+    </script>
+</body>
+</html>
+```
+
+### 3.2 History 模式路由实现
+
+**原理**：
+*   利用 HTML5 的 `history.pushState()` 和 `history.replaceState()` 修改 URL，这两个 API **不会**触发页面刷新。
+*   浏览器前进/后退会触发 `popstate` 事件。
+*   **难点**：`pushState` 和 `replaceState` **不会**触发 `popstate` 事件，所以我们需要手动拦截链接点击或创建自定义方法来更新视图。
+
+**实现代码**：
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>History Router Demo</title>
+</head>
+<body>
+    <h1>History 模式路由</h1>
+    <nav>
+        <!-- 链接是正常的路径 -->
+        <a href="/home" class="link">首页</a>
+        <a href="/about" class="link">关于</a>
+    </nav>
+    <div id="app"></div>
+
+    <script>
+        class HistoryRouter {
+            constructor() {
+                this.routes = {};
+                this.bindPopState();
+                this.bindLinkClick(); // 拦截 a 标签点击
+            }
+
+            // 注册路由
+            route(path, callback) {
+                this.routes[path] = callback || function() {};
+            }
+
+            // 核心：处理路由跳转
+            push(path) {
+                // 1. 修改浏览器地址栏，但不刷新页面
+                window.history.pushState({}, null, path);
+                // 2. 手动更新视图
+                this.render(path);
+            }
+
+            // 监听浏览器的前进/后退
+            bindPopState() {
+                window.addEventListener('popstate', (e) => {
+                    const path = location.pathname;
+                    this.render(path);
+                });
+            }
+
+            // 拦截全局 A 标签点击事件 (为了阻止默认刷新行为)
+            bindLinkClick() {
+                window.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'A' && e.target.classList.contains('link')) {
+                        e.preventDefault(); // 阻止 A 标签默认跳转刷新
+                        const path = e.target.getAttribute('href');
+                        this.push(path); // 使用 API 跳转
+                    }
+                });
+            }
+
+            // 渲染视图
+            render(path) {
+                if (this.routes[path]) {
+                    this.routes[path]();
+                } else {
+                    document.getElementById('app').innerHTML = '404';
+                }
+            }
+        }
+
+        // --- 使用示例 ---
+        const router = new HistoryRouter();
+        const app = document.getElementById('app');
+
+        router.route('/home', () => {
+            app.innerHTML = '<h2>Home Page (History Mode)</h2>';
+        });
+
+        router.route('/about', () => {
+            app.innerHTML = '<h2>About Page (History Mode)</h2>';
+        });
+        
+        // 初始化渲染（处理页面刚加载时的情况）
+        window.addEventListener('load', () => {
+             router.render(location.pathname);
+        });
+    </script>
+</body>
+</html>
 ```
 
 ## 4. 常见问题 (FAQ) 与 避坑指南

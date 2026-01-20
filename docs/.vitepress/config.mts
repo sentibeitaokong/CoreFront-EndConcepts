@@ -106,6 +106,7 @@ export default defineConfig({
                             {text: 'WebSockets', link: '/html/webSockets'},
                             {text: 'history路由', link: '/html/history'},
                             {text: '拖放', link: '/html/dragAndDrop'},
+                            {text: '自定义数据属性', link: '/html/dataAttributes'},
                         ]
                     },
                 ]

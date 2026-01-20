@@ -3,19 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
-    <style>
-        .triangle {
-            width: 0;
-            height: 0;
-            /* 四个边框都很粗，但内容区是 0 */
-            border-top: 50px solid transparent;    /* 上边框透明 */
-            border-right: 50px solid transparent;  /* 右边框透明 */
-            border-bottom: 50px solid red;         /* 下边框红色 -> 形成向上的三角形 */
-            border-left: 50px solid transparent;   /* 左边框透明 */
-        }
-    </style>
 </head>
 <body>
-    <div class="triangle "></div>
+    <div id="source" draggable="true">我是可拖拽的方块</div>
+    <div id="target">拖到这里</div>
+    <script type="application/javascript">
+        window.onload = function() {
+            const source = document.getElementById('source');
+            const target = document.getElementById('target');
+
+// --- 拖拽源逻辑 ---
+
+            source.addEventListener('dragstart', (e) => {
+                // 1. 传输数据：存入 ID
+                e.dataTransfer.setData('text/plain', e.target.id);
+                // 2. 视觉反馈：半透明
+                setTimeout(() => e.target.style.opacity = '0.5', 0);
+                e.dataTransfer.effectAllowed = 'move';
+            });
+
+            source.addEventListener('dragend', (e) => {
+                // 恢复样式
+                e.target.style.opacity = '1';
+            });
+
+// --- 放置目标逻辑 ---
+
+            target.addEventListener('dragover', (e) => {
+                // 3. 关键：必须阻止默认行为，否则 drop 不会触发！
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+            });
+
+            target.addEventListener('dragenter', (e) => {
+                e.target.style.border = '2px dashed red'; // 高亮
+            });
+
+            target.addEventListener('dragleave', (e) => {
+                e.target.style.border = '1px solid black'; // 恢复
+            });
+
+            target.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.target.style.border = '1px solid black';
+
+                // 4. 获取数据
+                const id = e.dataTransfer.getData('text/plain');
+                const draggableElement = document.getElementById(id);
+
+                // 5. 移动 DOM
+                target.appendChild(draggableElement);
+            });
+        }
+    </script>
 </body>
 </html>
