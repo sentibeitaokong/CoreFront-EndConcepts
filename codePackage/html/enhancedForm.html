@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML5 表单增强示例</title>
+</head>
+<body>
+<form action="/submit" method="post">
+    <label for="email">邮箱:</label>
+    <input type="email" id="email" name="email" required placeholder="请输入邮箱地址" autofocus><br><br>
+
+    <label for="tel">电话:</label>
+    <input type="tel" id="tel" name="tel" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" placeholder="格式: 123-456-7890"><br><br>
+
+    <label for="url">个人网站:</label>
+    <input type="url" id="url" name="url" placeholder="请输入您的网址"><br><br>
+
+
+    <label for="num">数量 (1-10):</label>
+    <input type="number" id="num" name="num" step="1" min="1" max="10" value="1" required><br><br>
+
+    <label for="search">搜索:</label>
+    <input type="search" id="search" name="search"><br><br>
+
+    <label for="date">选择日期:</label>
+    <input type="date" id="date" name="date"><br><br>
+
+    <label for="time">选择时间:</label>
+    <input type="time" id="time" name="time"><br><br>
+
+    <label for="range">选择滑块:</label>
+    <input type="range" id="range" name="range"><br><br>
+
+    <label for="color">选择颜色:</label>
+    <input type="color" id="color" name="color"><br><br>
+
+    <label for="password">选择密码:</label>
+    <input type="password" id="password" name="password"><br><br>
+    <label>浏览器：</label>
+    <input list="browsers" name="browser">
+
+    <datalist id="browsers">
+        <option value="Chrome">
+        <option value="Firefox">
+        <option value="Safari">
+    </datalist>
+
+    <br/>
+    <progress value="70" max="100"></progress>
+    <br/>
+    <meter value="80" min="0" max="100" low="30" high="60"></meter>
+    <br/>
+    <input type="submit" value="提交表单">
+    <!-- 不进行验证的提交按钮 -->
+    <input type="submit" value="跳过验证提交" formnovalidate>
+</form>
+</body>
+</html>

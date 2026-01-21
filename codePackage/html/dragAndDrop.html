@@ -12,7 +12,7 @@
             const source = document.getElementById('source');
             const target = document.getElementById('target');
 
-// --- 拖拽源逻辑 ---
+                // --- 拖拽源逻辑 ---
 
             source.addEventListener('dragstart', (e) => {
                 // 1. 传输数据：存入 ID
@@ -27,7 +27,7 @@
                 e.target.style.opacity = '1';
             });
 
-// --- 放置目标逻辑 ---
+            // --- 放置目标逻辑 ---
 
             target.addEventListener('dragover', (e) => {
                 // 3. 关键：必须阻止默认行为，否则 drop 不会触发！

@@ -83,7 +83,6 @@ a[href^="https"] {  }
 | [attr]        | [target]          | 选中带有 **`target 属性`** 的元素。    |
 | [attr=value]  | [type="text"]     | 选中属性值 **`完全等于指定值`** 的元素。     |
 | [attr~=value] | [title~="flower"] | 选中属性值 **`包含指定单词（空格分隔`** 的元素。 |
-| `[attr        | =value]`          | `[lang                       |
 | [attr^=value] | [href^="https"]   | 选中属性值以指定字符串 **`开头`** 的元素。    |
 | [attr$=value] | [src$=".png"]     | 选中属性值以指定字符串 **`结尾`** 的元素。    |
 | [attr*=value] | [class*="icon"]   | 选中属性值 **`包含指定子字符串`** 的元素。    |

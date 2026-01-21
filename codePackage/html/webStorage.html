@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+名称：<span id="currentName"></span>
+长度：<span id="currentLength"></span>
+<script type="text/javascript">
+    window.onload = () => {
+        const user = { name: "张三", age: 18 };
+
+        // 存：对象 -> JSON 字符串
+        // localStorage.setItem('userInfo', JSON.stringify(user));
+        //清除
+        // localStorage.removeItem('userInfo');
+        // localStorage.clear()
+
+        // 取：JSON 字符串 -> 对象
+        const storedData = localStorage.getItem('userInfo');
+        if (storedData) {
+            const userData = JSON.parse(storedData);
+            document.getElementById('currentName').innerText = user.name;
+            document.getElementById('currentLength').innerText = localStorage.length;
+            console.log(localStorage.length); // "张三"
+        }
+    }
+</script>
+</body>
+</html>

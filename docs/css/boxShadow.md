@@ -29,36 +29,44 @@ box-shadow: 10px 10px 20px 5px rgba(0, 0, 0, 0.5) inset;
 ```css
 .card {
   /* 0偏移，让阴影向四周扩散 */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 ```
+
+![Logo](/boxShadowFirst.png)
 
 **2. 单边阴影 (只在底部)**
 利用**负的 spread** 抵消阴影的尺寸，只让它在 Y 轴偏移时露出来。
 ```css
 .bottom-only {
   /* x=0, y=10, blur=10, spread=-5 */
-  box-shadow: 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 10px -5px rgba(0, 0, 0, 0.5);
 }
 ```
+
+![Logo](/boxShadowSecond.png)
 
 **3. 内阴影 (输入框凹陷感)**
 ```css
 .input-field {
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 ```
+
+![Logo](/boxShadowThird.png)
 
 **4. 多重阴影 (逼真效果)**
 使用逗号分隔，可以叠加多层阴影。越写在前面的层级越高。
 ```css
 .realistic {
   box-shadow: 
-    0 1px 2px rgba(0,0,0,0.1),  /* 第一层：紧贴的深色 */
-    0 4px 8px rgba(0,0,0,0.1),  /* 第二层：中距离 */
-    0 8px 16px rgba(0,0,0,0.1); /* 第三层：远距离扩散 */
+    0 1px 2px rgba(0,0,255,0.6),  /* 第一层：紧贴的深色 */
+    0 4px 8px rgba(0,255,0,0.7),  /* 第二层：中距离 */
+    0 8px 16px rgba(255,0,0,0.8); /* 第三层：远距离扩散 */
 }
 ```
+
+![Logo](/boxShadowFourth.png)
 
 ## 2. 文字阴影 (`text-shadow`)
 

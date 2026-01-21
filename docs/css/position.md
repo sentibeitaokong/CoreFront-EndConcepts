@@ -32,19 +32,38 @@
 这是 Web 开发中最经典的布局模式。
 *   **目标**：想让子元素在父元素内部自由定位。
 *   **做法**：给父元素加 `relative` (即使不移动它)，给子元素加 `absolute`。
-```css
-.card {
-  position: relative; /* 1. 限制子元素的活动范围，使其以 .card 为基准 */
-  width: 300px;
-  height: 200px;
-}
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .card {
+            position: relative; /* 1. 限制子元素的活动范围，使其以 .card 为基准 */
+            width: 100px;
+            height: 100px;
+            background-color: blue;
+        }
 
-.badge {
-  position: absolute; /* 2. 绝对定位 */
-  top: 10px;
-  right: 10px; /* 3. 固定在 .card 的右上角 */
-}
+        .badge {
+            position: absolute; /* 2. 绝对定位 */
+            top: 10px;
+            right: 10px; /* 3. 固定在 .card 的右上角 */
+            width: 50px;
+            height: 50px;
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="badge"></div>
+</div>
+</body>
+</html>
 ```
+![Logo](/absoluteInsideRelative.png)
 
 ### 2.3 Fixed (固定定位) —— "牛皮癣广告"
 *   **特性**：不管你怎么滚动页面，它永远钉在屏幕的某个位置。
@@ -73,7 +92,9 @@
 ### Q2: `z-index` 设置了 9999 为什么还是被遮挡？
 **原因**：**层叠上下文 (Stacking Context)** 陷阱。
 如果父元素的 `z-index` 很低（比如 1），那么子元素的 `z-index` 即使是 9999，也永远无法盖住另一个 `z-index` 为 2 的**叔叔元素**（父元素的兄弟）。
+
 **比喻**：你是“小兵”，你爸爸是“连长”，对面是“团长”。哪怕你是全军最强的兵（z-index 9999），因为你爸爸级别低，你也打不过对面的团长（z-index 2）。
+
 **解法**：检查并提高**父元素**的 `z-index`，或者把该元素移出父容器，放到 DOM 树的更高层级。
 
 ### Q3: 怎么让绝对定位的元素水平垂直居中？

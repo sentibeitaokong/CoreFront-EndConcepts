@@ -46,7 +46,7 @@
   border-radius: 50%;
 }
 ```
-
+![Logo](/circle.png)
 ### B. 胶囊/药丸按钮 (Pill Shape)
 无论按钮多宽，两头始终保持半圆。
 **技巧**：设置一个**极大的像素值**。
@@ -57,18 +57,22 @@
   border-radius: 9999px; 
 }
 ```
-
+![Logo](/pillShape.png)
 ### C. 聊天气泡 / 树叶形
 只设置对角，或者 3 个角。
 ```css
 .message-bubble {
   border-radius: 15px 15px 0 15px; /* 左下角是直角 */
 }
-
+```
+![Logo](/bubble.png)
+```css
 .leaf {
   border-radius: 0 50% 0 50%; /* 像一片叶子 */
 }
 ```
+![Logo](/leaf.png)
+
 
 ## 4. 高级用法：椭圆圆角 (斜杠语法)
 
@@ -81,13 +85,15 @@
 .ellipse-corner {
   border-radius: 100px / 50px;
 }
-
+```
+![Logo](/corner.png)
+```css
 /* 这种写法能创造出类似“手绘不规则圆”的效果 */
 .blob {
   border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
 }
 ```
-
+![Logo](/blob.png)
 ## 5. 常见问题 (FAQ)
 
 ### Q1: 里面的图片溢出了圆角怎么办？
@@ -106,9 +112,11 @@
 *   **内侧圆角**会自动计算：`内侧半径 = 外侧半径 - 边框厚度`。
 *   如果 `边框厚度 > 外侧半径`，内侧就会变成直角。
 
+![Logo](/borderCompareRadius.png)
+
+
 ### Q3: 嵌套圆角如何看起来才“协调”？
 如果你有一个外框（圆角 20px）和一个内部按钮，内部按钮的圆角应该是多少才好看？
-
 **公式**：`内圆角 = 外圆角 - Padding`
 ```css
 .outer {
@@ -120,3 +128,4 @@
   border-radius: 10px; /* 20px - 10px */
 }
 ```
+![Logo](/outerAndInnerCircle.png)

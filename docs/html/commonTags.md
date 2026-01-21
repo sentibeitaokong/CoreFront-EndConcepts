@@ -115,7 +115,7 @@ HTML 标签有上百个，但实际开发中 90% 的场景只用到其中约 20-
 ### Q6: `target="_blank"` 有安全隐患？
 是的。当你在新窗口打开外链时，新页面可以通过 `window.opener` 控制原页面（例如跳转到钓鱼网站）。
 
-**解法**: 总是搭配 `rel` 属性使用。
+**解法**: 总是搭配 `rel` 属性使用。rel="noopener noreferrer"在安全范围内
 ```html
 <a href="..." target="_blank" rel="noopener noreferrer">外部链接</a>
 ```

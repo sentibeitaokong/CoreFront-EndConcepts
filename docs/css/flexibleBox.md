@@ -38,7 +38,7 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 
 采用 Flex 布局的元素，称为 **Flex 容器（flex container）**，简称"容器"。它的所有子元素自动成为容器成员，称为 **Flex 项目（flex item）**，简称"项目"。
 
-![Logo](../assets/images/flexBase.png)
+![Logo](/flexBase.png)
 
 *   **轴线**：容器默认存在两根轴。
     *   **主轴（main axis）**：水平方向。
@@ -70,7 +70,7 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
   flex-direction: row | row-reverse | column | column-reverse;
 }
 ```
-![Logo](../assets/images/flexDirection.png)
+![Logo](/flexDirection.png)
 
 *   `row`（默认值）：主轴为水平方向，起点在左端。
 *   `row-reverse`：主轴为水平方向，起点在右端。
@@ -86,19 +86,19 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
   flex-wrap: nowrap | wrap | wrap-reverse;
 }
 ```
-![Logo](../assets/images/flexWrap.png)
+![Logo](/flexWrap.png)
 
 *   `nowrap`（默认）：不换行。
 
-    ![Logo](../assets/images/nowrap.png)
+    ![Logo](/nowrap.png)
 
 *   `wrap`：换行，第一行在上方。
 
-    ![Logo](../assets/images/wrap.jpg)
+    ![Logo](/wrap.jpg)
 
 *   `wrap-reverse`：换行，第一行在下方。
 
-    ![Logo](../assets/images/wrapReverse.jpg)
+    ![Logo](/wrapReverse.jpg)
 
 ### 3.3 flex-flow 属性
 
@@ -120,7 +120,7 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](../assets/images/justifyContent.png)
+![Logo](/justifyContent.png)
 
 假设主轴为从左到右：
 *   `flex-start`（默认值）：左对齐。
@@ -139,7 +139,7 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](../assets/images/alignItems.png)
+![Logo](/alignItems.png)
 
 假设交叉轴从上到下：
 *   `flex-start`：交叉轴的起点对齐。
@@ -158,7 +158,7 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](../assets/images/alignContent.png)
+![Logo](/alignContent.png)
 
 *   `flex-start`：与交叉轴的起点对齐。
 *   `flex-end`：与交叉轴的终点对齐。
@@ -188,7 +188,7 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](../assets/images/order.png)
+![Logo](/order.png)
 
 ### 4.2 flex-grow 属性
 
@@ -200,7 +200,7 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](../assets/images/flexGrow.png)
+![Logo](/flexGrow.png)
 
 *   如果所有项目的`flex-grow`属性都为 1，则它们将等分剩余空间（如果有的话）。
 *   如果一个项目的`flex-grow`属性为 2，其他项目都为 1，则前者占据的剩余空间将比其他项多一倍。
@@ -215,7 +215,7 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](../assets/images/flexShrink.jpg)
+![Logo](/flexShrink.jpg)
 
 *   如果所有项目的`flex-shrink`属性都为 1，当空间不足时，都将等比例缩小。
 *   如果一个项目的`flex-shrink`属性为 0，其他项目都为 1，则空间不足时，前者不缩小。
@@ -262,6 +262,6 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](../assets/images/alignSelf.png)
+![Logo](/alignSelf.png)
 
 该属性可能取 6 个值，除了 auto，其他都与 align-items 属性完全一致。

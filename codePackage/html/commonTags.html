@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .container{
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <h3 style="color:blue">文本排版</h3>
+    <h1>h1</h1>
+    <h2>h2</h2>
+    <h3>h3</h3>
+    <h4>h4</h4>
+    <h5>h5</h5>
+    <h6>h6</h6>
+    <p>段落</p>
+    <div class="container">
+        <span>行内容器</span>
+        <a href="http://www.baidu.com" target="_blank" rel="noreferrer">超链接</a>
+        <strong>加粗(强调)</strong>
+        <em>斜体(语气)</em>
+        <br/>
+        <hr/>
+        <h3 style="color:blue">嵌入资源</h3>
+        <img src="../../docs/public/autoFill.png" alt="图片失效" width="50" height="50">
+        <video src="" autoplay controls muted width="200" height="200"></video>
+        <audio src=""  controls ></audio>
+        <iframe src="http://www.baidu.com" frameborder="0" height="200" width="1000"></iframe>
+        <h3 style="color:blue">容器</h3>
+        <div class="container">
+            <!-- 2. 页面主体 (左侧) -->
+            <main>
+                <!-- 一篇完整的文章 -->
+                <article>
+                    <header>
+                        <h2>HTML5 语义化详解</h2>
+                        <p>作者: 张三 | <time datetime="2023-10-24">2023年10月24日</time></p>
+                    </header>
+
+                    <section>
+                        <h3>第一章: 为什么需要语义化?</h3>
+                        <p>...</p>
+                    </section>
+
+                    <section>
+                        <h3>第二章: 常用标签</h3>
+                        <p>...</p>
+                    </section>
+
+                    <footer>
+                        <p>版权所有，转载请注明出处。</p>
+                    </footer>
+                </article>
+
+                <!-- 评论区 (也是独立内容，可用 article 或 section) -->
+                <section class="comments">
+                    <h3>评论</h3>
+                    <article class="comment">...</article>
+                    <article class="comment">...</article>
+                </section>
+            </main>
+
+            <!-- 3. 侧边栏 (右侧) -->
+            <aside>
+                <h3>热门文章</h3>
+                <ul>...</ul>
+                <h3>广告位</h3>
+                <div>...</div>
+            </aside>
+        </div>
+
+        <!-- 4. 网站底部 -->
+        <footer>
+            <p>&copy; 2023 My Blog. All rights reserved.</p>
+        </footer>
+        <h3 style="color:blue">列表</h3>
+        <ul>
+            <li>1</li>
+            <li>2</li>
+            <li>3</li>
+            <li>4</li>
+        </ul>
+        <h3 style="color:blue">表单</h3>
+        <form action="#">
+            <label for="select">select</label>
+            <input type="text">
+            <textarea name="" id="" cols="30" rows="10"></textarea>
+            <select name="" id="select" style="width: 100px;">
+                <option value="11">111</option>
+                <option value="22">12211</option>
+            </select>
+            <button type="submit" style="width: 50px;height:50px;">提交</button>
+        </form>
+        <h3 style="color:blue">表格</h3>
+        <table>
+            <thead>
+                <th>姓名</th>
+                <th>年龄</th>
+                <th>性别</th>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>小红</td>
+                    <td>18</td>
+                    <td>女</td>
+                </tr>
+                <tr>
+                    <td>华</td>
+                    <td>19</td>
+                    <td>男</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

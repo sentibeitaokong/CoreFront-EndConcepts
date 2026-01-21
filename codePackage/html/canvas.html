@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<!-- 1. 创建画布 -->
+<canvas id="myCanvas" width="200" height="200"></canvas>
+
+<script>
+    // 2. 获取画布元素
+    const canvas = document.getElementById("myCanvas");
+    // 3. 获取绘图上下文 (这是你的画笔)
+    const ctx = canvas.getContext("2d");
+
+    // 4. 开始绘画
+   /* //填充绘画
+    ctx.fillStyle = "red";      // 蘸红墨水
+    ctx.fillRect(10, 10, 50, 50); // 画一个实心矩形 (x, y, w, h)
+
+    //描边绘画
+    ctx.strokeStyle='green'
+    ctx.strokeRect(100, 10, 50, 50); // 画一个空心矩形 (x, y, w, h)*/
+   /* ctx.strokeStyle = 'red'
+    ctx.lineWidth = 5
+    ctx.lineCap='round'
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.lineTo(50, 0)
+    ctx.lineTo(100, 100)
+    ctx.closePath()
+    ctx.stroke()*/
+    const img = new Image();
+    img.src = '../../docs/public/backgroundImage.png';
+    img.onload = () => {
+        ctx.drawImage(img, 0, 0); // 确保图片好了再画
+        ctx.strokeStyle='red'
+        ctx.strokeRect(50, 10, 50, 50);
+    };
+</script>
+</body>
+</html>

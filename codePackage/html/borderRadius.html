@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .circle {
+            width: 100px;
+            height: 100px;
+            background-color: #5c73e7;
+            border-radius: 50%;
+        }
+        .btn {
+            height: 40px;
+            margin-top: 20px;
+            width: 80px;
+            background-color: #5a5e9a;
+            /* 不要用 50%，否则长方形按钮会变成难看的椭圆 */
+            border-radius: 9999px;
+        }
+        .message-bubble {
+            width: 100px;
+            height: 100px;
+            margin-top: 20px;
+            background-color: #47caff;
+            border-radius: 15px 15px 0 15px; /* 左下角是直角 */
+        }
+
+        .leaf {
+            width: 100px;
+            height: 100px;
+            margin-top: 20px;
+            background-color: #3dd68c;
+            border-radius: 0 50% 0 50%; /* 像一片叶子 */
+        }
+
+        /* 水平方向半径 100px，垂直方向半径 50px */
+        .ellipse-corner {
+            width: 100px;
+            height: 100px;
+            margin-top: 20px;
+            background-color: #c8abfa;
+            border-radius: 100px / 50px;
+        }
+
+        /* 这种写法能创造出类似“手绘不规则圆”的效果 */
+        .blob {
+            width: 100px;
+            height: 100px;
+            margin-top: 20px;
+            background-color: #f66f81;
+            border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+        }
+        .outer{
+            margin-top: 20px;
+            width: 100px;
+            height: 100px;
+            background-color: #f66f81;
+            padding: 10px;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .inner {
+            height: 90px;
+            width:90px;
+            background-color: #c8abfa;
+            /* 视觉上最完美的同心圆角 */
+            border-radius: 10px; /* 20px - 10px */
+        }
+        .outCircle{
+            margin-top: 20px;
+            width: 100px;
+            height: 100px;
+            border: 10px solid #47caff;
+            background-color: #c8abfa;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="circle">
+</div>
+<div class="btn"></div>
+
+<div class="message-bubble"></div>
+<div class="leaf"></div>
+
+<div class="ellipse-corner"></div>
+<div class="blob"></div>
+
+<div class="outCircle"></div>
+
+<div class="outer">
+    <div class="inner"></div>
+</div>
+</body>
+</html>

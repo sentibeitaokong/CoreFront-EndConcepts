@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hash Router Demo</title>
+</head>
+<body>
+<h1>Hash 模式路由</h1>
+<nav>
+    <!-- 核心：链接使用 # 开头 -->
+    <a href="#/home">首页</a>
+    <a href="#/about">关于</a>
+</nav>
+<div id="app"></div>
+
+<script>
+    class HashRouter {
+        constructor() {
+            // 存储路由配置：path -> callback
+            this.routes = {};
+            // 当前路由 URL
+            this.currentUrl = '';
+
+            // 绑定 this，确保回调中 this 指向实例
+            this.refresh = this.refresh.bind(this);
+
+            // 监听页面加载（首次进入）
+            window.addEventListener('load', this.refresh);
+            // 监听 Hash 变化
+            window.addEventListener('hashchange', this.refresh);
+        }
+
+        // 注册路由
+        route(path, callback) {
+            this.routes[path] = callback || function() {};
+        }
+
+        // 刷新页面（核心逻辑）
+        refresh() {
+            // 获取当前 hash，去掉 # 号。如果没有 hash 默认为 /
+            this.currentUrl = location.hash.slice(1) || '/';
+
+            // 执行对应的回调函数渲染视图
+            if(this.routes[this.currentUrl]) {
+                this.routes[this.currentUrl]();
+            } else {
+                console.log('404 Not Found');
+                document.getElementById('app').innerHTML = '404';
+            }
+        }
+    }
+
+    // --- 使用示例 ---
+    const router = new HashRouter();
+    const app = document.getElementById('app');
+
+    router.route('/home', () => {
+        app.innerHTML = '<h2>我是首页内容</h2>';
+    });
+
+    router.route('/about', () => {
+        app.innerHTML = '<h2>我是关于页面</h2>';
+    });
+</script>
+</body>
+</html>

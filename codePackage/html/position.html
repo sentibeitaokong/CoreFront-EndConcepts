@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .card {
+            position: relative; /* 1. 限制子元素的活动范围，使其以 .card 为基准 */
+            width: 100px;
+            height: 100px;
+            background-color: blue;
+        }
+
+        .badge {
+            position: absolute; /* 2. 绝对定位 */
+            top: 10px;
+            right: 10px; /* 3. 固定在 .card 的右上角 */
+            width: 50px;
+            height: 50px;
+            background-color: red;
+        }
+        .title{
+            width: 100%;
+            height: 200px;
+            background-color: #3dd68c;
+            /*吸顶效果*/
+            position: sticky;
+            top:0;
+        }
+        .main{
+            width: 100%;
+            height: 100vh;
+
+        }
+        .ad{
+            width: 100px;
+            height: 100px;
+            position: fixed;
+            bottom: 50px;
+            right: 50px;
+            background-color: #18794e;
+        }
+    </style>
+</head>
+<body>
+<!--子绝父相-->
+<div class="card">
+    <div class="badge"></div>
+</div>
+
+<!--吸顶效果-->
+<div class="title">
+    标题头
+</div>
+<div class="main">
+
+
+<!-- 固定定位   -->
+<div class="ad">广告</div>
+</div>
+</body>
+</html>

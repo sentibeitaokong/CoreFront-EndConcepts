@@ -1,0 +1,121 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .outer{
+            background: blue;
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            /*overflow: hidden;    解决方案：触发BFC*/
+        }
+        .inter{
+            margin-top: 20px;
+            background: red;
+            width: 50px;
+            height: 50px;
+        }
+        .container{
+            background-color: #9ac8ff;
+            overflow: hidden;
+        }
+        .boxModelFirst,.boxModelSecond{
+            width: 100px;
+            height: 100px;
+        }
+        .boxModelFirst{
+            /*overflow: hidden;      触发BFC 解决外边距折叠*/
+            background-color: green;
+            margin-bottom: 50px;
+            border: 1px;
+        }
+        .boxModelSecond{
+            background-color: #5a5e9a;
+            margin-top:100px;
+        }
+        .btn {
+            margin-top: 20px;
+            /* 1. 使用 border-box 防止边框撑大按钮 */
+            box-sizing: border-box;
+            /* 2. Content: 文字大小 */
+            font-size: 16px;
+
+            /* 3. 宽度*/
+            width: 80px;
+
+            /* 4. 高度*/
+            height: 50px;
+
+            /* 5. Padding: 决定按钮的“胖瘦” */
+            /* 上下 10px，左右 20px */
+            padding: 10px 20px;
+
+            /* 6. Border: 按钮的边框 */
+            border: 2px solid #007bff;
+
+            /* 7. Margin: 按钮之间的间距 */
+            margin-right: 10px;
+
+            /* 8. 背景 */
+            background-color: transparent;
+        }
+        .card {
+            box-sizing: border-box; /* 必备 */
+            width: 300px;
+
+            /* Padding: 让内容不要紧贴卡片边缘，产生呼吸感 */
+            padding: 20px;
+
+            /* Border: 卡片的轮廓 */
+            border: 1px solid #ddd;
+
+            /* Margin: 卡片与其他卡片的距离 */
+            margin: 20px;
+
+            background: white;
+        }
+        .triangle {
+            width: 0;
+            height: 0;
+            /* 四个边框都很粗，但内容区是 0 */
+            border-top: 50px solid transparent;    /* 上边框透明 */
+            border-right: 50px solid transparent;  /* 右边框透明 */
+            border-bottom: 50px solid red;         /* 下边框红色 -> 形成向上的三角形 */
+            border-left: 50px solid transparent;   /* 左边框透明 */
+        }
+        .child{
+            width: 50px;
+            height: 50px;
+            float: left;
+        }
+        .parent{
+            /*display: flow-root;     触发bfc*/
+            background-color: #1b1b1f;
+        }
+    </style>
+</head>
+<body>
+<!--外边距塌陷-->
+<div class="outer">
+    <div class="inter"></div>
+</div>
+<div class="container">
+    <!--外边距折叠-->
+    <div class="boxModelFirst"></div>
+    <div class="boxModelSecond"></div>
+</div>
+
+<div class="parent">
+    <div class="child"></div>
+</div>
+
+
+<div class="btn">按钮</div>
+<div class="card">卡片</div>
+
+<div class="triangle"></div>
+</body>
+</html>

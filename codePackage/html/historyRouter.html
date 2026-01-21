@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>History Router Demo</title>
+</head>
+<body>
+<h1>History 模式路由</h1>
+<nav>
+    <!-- 链接是正常的路径 -->
+    <a href="/home" class="link">首页</a>
+    <a href="/about" class="link">关于</a>
+</nav>
+<div id="app"></div>
+
+<script>
+    class HistoryRouter {
+        constructor() {
+            this.routes = {};
+            this.bindPopState();
+            this.bindLinkClick(); // 拦截 a 标签点击
+        }
+
+        // 注册路由
+        route(path, callback) {
+            this.routes[path] = callback || function() {};
+        }
+
+        // 核心：处理路由跳转
+        push(path) {
+            // 1. 修改浏览器地址栏，但不刷新页面
+            window.history.pushState({}, null, path);
+            // 2. 手动更新视图
+            this.render(path);
+        }
+
+        // 监听浏览器的前进/后退
+        bindPopState() {
+            window.addEventListener('popstate', (e) => {
+                const path = location.pathname;
+                this.render(path);
+            });
+        }
+
+        // 拦截全局 A 标签点击事件 (为了阻止默认刷新行为)
+        bindLinkClick() {
+            window.addEventListener('click', (e) => {
+                if (e.target.tagName === 'A' && e.target.classList.contains('link')) {
+                    e.preventDefault(); // 阻止 A 标签默认跳转刷新
+                    const path = e.target.getAttribute('href');
+                    this.push(path); // 使用 API 跳转
+                }
+            });
+        }
+
+        // 渲染视图
+        render(path) {
+            if (this.routes[path]) {
+                this.routes[path]();
+            } else {
+                document.getElementById('app').innerHTML = '404';
+            }
+        }
+    }
+
+    // --- 使用示例 ---
+    const router = new HistoryRouter();
+    const app = document.getElementById('app');
+
+    router.route('/home', () => {
+        app.innerHTML = '<h2>Home Page (History Mode)</h2>';
+    });
+
+    router.route('/about', () => {
+        app.innerHTML = '<h2>About Page (History Mode)</h2>';
+    });
+
+    // 初始化渲染（处理页面刚加载时的情况）
+    window.addEventListener('load', () => {
+        router.render(location.pathname);
+    });
+</script>
+</body>
+</html>

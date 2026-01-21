@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML5 Web Worker 示例</title>
+</head>
+<body>
+<h2>Web Worker (计算复杂任务)</h2>
+<button onclick="startWorker()">开始计算 (Worker)</button>
+<button onclick="alert('UI 线程依然响应!')">点击我 (验证 UI 响应)</button>
+<p>计算结果: <span id="result"></span></p>
+<script>
+    let worker;
+    function startWorker() {
+        if (typeof Worker !== "undefined") {
+            if (worker) {
+                worker.terminate(); // 终止旧的 worker
+            }
+            worker = new Worker('../js/worker.js'); // 创建一个新的 Web Worker
+
+            worker.onmessage = function(event) {
+                document.getElementById('result').textContent = event.data;
+            };
+
+            worker.onerror = function(error) {
+                console.error('Worker error:', error);
+            };
+
+            worker.postMessage(10000000); // 发送一个大数字给 worker 计算
+        } else {
+            document.getElementById('result').textContent = "您的浏览器不支持 Web Workers。";
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>HTML5 WebSocket 示例</title>
+</head>
+<body>
+<h2>WebSocket 实时聊天</h2>
+<div id="messages" style="border: 1px solid #ccc; height: 200px; overflow-y: scroll; padding: 10px;"></div>
+<input type="text" id="messageInput" placeholder="输入消息">
+<button onclick="sendMessage()">发送</button>
+
+<script>
+    let ws;
+    const messagesDiv = document.getElementById('messages');
+    const messageInput = document.getElementById('messageInput');
+  /*  let heartbeatInterval;
+    //心跳机制防止断开连接
+    function startHeartbeat(ws) {
+        heartbeatInterval = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'ping' })); // 发送心跳包
+            }
+        }, 30000); // 每30秒一次
+    }*/
+    function connectWebSocket() {
+        // 请替换为您的 WebSocket 服务器地址
+        // 例如：const ws = new WebSocket('ws://localhost:3000');
+        // 1. 创建连接 (建议使用 wss:// 安全协议)
+        ws = new WebSocket('wss://echo.websocket.org'); // 使用公共测试服务器
+        // 2. 设置二进制数据类型 (如果你传输的是文件/音视频)
+        ws.binaryType = "arraybuffer";
+        // 3. 监听连接打开
+        ws.onopen = function() {
+            messagesDiv.innerHTML += '<p><strong>连接已建立。</strong></p>';
+            // startHeartbeat(ws);
+        };
+        // 4. 监听收到消息
+        ws.onmessage = function(event) {
+            messagesDiv.innerHTML += `<p><strong>接收:</strong> ${event.data}</p>`;
+            messagesDiv.scrollTop = messagesDiv.scrollHeight; // 滚动到底部
+        };
+        // 5. 监听连接关闭
+        ws.onclose = function() {
+            clearInterval(heartbeatInterval); // 断开时停止心跳
+            messagesDiv.innerHTML += '<p><strong>连接已关闭。</strong></p>';
+        };
+        // 6. 监听错误
+        ws.onerror = function(error) {
+            messagesDiv.innerHTML += `<p style="color: red;"><strong>错误:</strong> ${error.message}</p>`;
+        };
+    }
+
+
+    function sendMessage() {
+        const message = messageInput.value;
+        if (message && ws && ws.readyState === WebSocket.OPEN) {
+            //发送消息
+            ws.send(message);
+            messagesDiv.innerHTML += `<p><strong>发送:</strong> ${message}</p>`;
+            messageInput.value = '';
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        } else if (ws.readyState !== WebSocket.OPEN) {
+            alert('WebSocket 连接未打开，请稍候或重试。');
+        }
+    }
+
+    // 页面加载时连接 WebSocket
+    window.onload = connectWebSocket;
+</script>
+</body>
+</html>

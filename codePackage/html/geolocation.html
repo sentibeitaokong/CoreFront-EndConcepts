@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<button id="btn">获取我的位置</button>
+<div id="output"></div>
+
+<script>
+    const btn = document.getElementById('btn');
+    const output = document.getElementById('output');
+
+    btn.onclick = function() {
+        //检测浏览器支持：
+        if (!navigator.geolocation) {
+            output.innerHTML = "您的浏览器不支持地理定位";
+            return;
+        }
+
+        output.innerHTML = "定位中...";
+
+        //获取一次当前位置。
+        navigator.geolocation.getCurrentPosition(
+            // 1. 成功回调
+            (position) => {
+                const lat = position.coords.latitude; // 纬度
+                const lng = position.coords.longitude; // 经度
+                const acc = position.coords.accuracy;  // 精度
+
+                output.innerHTML = `
+                    <p>纬度: ${lat}</p>
+                    <p>经度: ${lng}</p>
+                    <p>精度: ${acc} 米</p>
+                    <p>注意：这是 WGS84 坐标，在中国地图上显示需要转换。</p>
+                  `;
+            },
+            // 2. 失败回调
+            (error) => {
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        output.innerHTML = "用户拒绝了定位请求。";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        output.innerHTML = "位置信息不可用。";
+                        break;
+                    case error.TIMEOUT:
+                        output.innerHTML = "请求超时。";
+                        break;
+                    default:
+                        output.innerHTML = "未知错误: " + error.message;
+                }
+            },
+            // 3. 配置项
+            {
+                enableHighAccuracy: true, // 尝试高精度
+                timeout: 5000,            // 5秒超时
+                maximumAge: 0             // 不读缓存
+            }
+        );
+    };
+</script>
+</body>
+</html>
