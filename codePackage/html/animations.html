@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .boxMove{
+            width: 100px;
+            height: 100px;
+            background-color: red;
+            position: relative;
+            animation: move 2s steps(100) 0s 3 alternate forwards;
+        }
+        @keyframes move {
+            0%{
+                left: 0;
+            }
+            30%{
+                left: 100px;
+                background-color: blue;
+            }
+            50%{
+                left: 200px;
+                background-color: green;
+            }
+            100%{
+                left: 300px;
+                background-color: yellow;
+            }
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;      /* 浅灰底环 */
+            border-top: 4px solid #3498db;  /* 蓝色进度条 */
+            border-radius: 50%;             /* 变圆 */
+
+            /* 核心：1秒，匀速，无限循环 */
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="boxMove"></div>
+<div class="spinner"></div>
+</body>
+</html>

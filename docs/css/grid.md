@@ -364,18 +364,29 @@ place-items: <align-items> <justify-items>;
 ```
 
 *   `start` - 对齐容器的起始边框。
+
+    ![Logo](/justifyContentStart.png)
+
 *   `end` - 对齐容器的结束边框。
+
+    ![Logo](/gridContainerEnd.png)
+
 *   `center` - 容器内部居中。
+
+    ![Logo](/gridContainerCenter.png)
+
 *   `space-around` - 每个项目两侧的间隔相等。
+a
+    ![Logo](/gridContainerSpaceAround.png)
+
 *   `space-between` - 项目与项目的间隔相等，项目与容器边框之间没有间隔。
+
+    ![Logo](/gridContainerSpaceBetween.png)
+
 *   `space-evenly` - 项目与项目的间隔相等，项目与容器边框之间也是同样长度的间隔。
 
-```css
-.container {
-  justify-content: start;
-}
-```
-![Logo](/justifyContentStart.png)
+    ![Logo](/gridContainerSpaceEvenly.png)
+
 `place-content`属性是`align-content`属性和`justify-content`属性的合并简写形式。
 
 ```css
@@ -398,7 +409,7 @@ place-content: <align-content> <justify-content>
 }
 ```
 
-
+![Logo](/gridAutoRows.png)
 
 ## 四、项目属性
 

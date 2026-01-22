@@ -29,6 +29,8 @@ CSS 不仅能控制字体的大小和颜色，还能通过阴影、描边、渐�
     ```
 *   **常用值**: `underline` (下划线), `line-through` (删除线), `none` (去掉链接下划线)。
 
+![Logon](/underline.png)
+
 ### 2.2 文本转换 (`text-transform`)
 控制大小写。
 *   `uppercase`: 全部大写。
@@ -46,6 +48,8 @@ CSS 不仅能控制字体的大小和颜色，还能通过阴影、描边、渐�
     /* 3D 浮雕效果 */
     text-shadow: 1px 1px 0 #ddd, 2px 2px 0 #bbb;
     ```
+    
+![Logon](/textShadowSecond.png)
 
 ## 3. 进阶特效 (Advanced Effects)
 
@@ -69,6 +73,8 @@ CSS 没有直接的 `text-gradient` 属性，需要结合背景裁剪来实现�
 }
 ```
 
+![Logon](/textGradients.png)
+
 ### 3.2 文字描边 (Text Stroke)
 这是一个非标准但广泛支持 (`-webkit-`) 的属性。
 
@@ -78,6 +84,8 @@ CSS 没有直接的 `text-gradient` 属性，需要结合背景裁剪来实现�
   -webkit-text-stroke: 1px black; /* 1px 宽的黑色描边 */
 }
 ```
+
+![Logon](/strokeText.png)
 
 ### 3.3 多行省略号 (Multi-line Truncation)
 单行省略号很容易，多行省略号需要特定的 Webkit 属性。
@@ -90,6 +98,8 @@ CSS 没有直接的 `text-gradient` 属性，需要结合背景裁剪来实现�
   overflow: hidden;               /* 超出隐藏 */
 }
 ```
+
+![Logo](/lineClamp.png)
 
 ## 4. 换行与空白控制 (Breaking & Spacing)
 

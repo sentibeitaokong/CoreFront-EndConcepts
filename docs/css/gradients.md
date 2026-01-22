@@ -1,8 +1,6 @@
 # CSS 渐变 (Gradients)
 
 CSS 渐变是网页视觉设计中不可或缺的一部分，它允许我们在两个或多个颜色之间平滑过渡。**CSS 渐变本质上是一种“背景图像” (`<image>`)，而不是“背景颜色” (`<color>`)**。
-
-
 CSS 提供了三种类型的渐变：线性 (Linear)、径向 (Radial) 和 锥形 (Conic)。
 
 ## 1. 线性渐变 (`linear-gradient`)
@@ -22,10 +20,16 @@ background-image: linear-gradient(direction, color-stop1, color-stop2, ...);
 ```css
 /* 从左上角 到 右下角 */
 background: linear-gradient(to bottom right, red, blue);
+```
 
+![Logo](/gradientFirst.png)
+
+```css
 /* 指定 45 度角 */
 background: linear-gradient(45deg, orange, yellow);
 ```
+
+![Logo](/gradientSecond.png)
 
 ### 1.3 颜色节点 (Color Stops)
 你可以指定颜色开始的位置（百分比或像素）。如果不指定，颜色会均匀分布。
@@ -33,11 +37,17 @@ background: linear-gradient(45deg, orange, yellow);
 ```css
 /* 红色占前 30%，蓝色从 30% 开始过渡到 100% */
 background: linear-gradient(to right, red 30%, blue 100%);
+```
 
+![Logo](/gradientThird.png)
+
+```css
 /* 硬切变 (Hard Stop)：瞬间变色，没有过渡 */
 /* 制作条纹效果 */
 background: linear-gradient(to right, red 50%, blue 50%);
 ```
+
+![Logo](/gradientFourth.png)
 
 ## 2. 径向渐变 (`radial-gradient`)
 
@@ -60,6 +70,8 @@ background-image: radial-gradient(shape size at position, start-color, ..., last
 background: radial-gradient(circle at top left, white, black);
 ```
 
+![Logo](/gradientFifth.png)
+
 ## 3. 锥形渐变 (`conic-gradient`)
 
 围绕中心点旋转颜色（像饼图或色轮）。这是 CSS3 较晚加入的特性，非常适合做饼图或金属光泽。
@@ -74,6 +86,8 @@ background-image: conic-gradient(from angle at position, color1, color2, ...);
 /* 红色占 25%，蓝色占剩余部分 */
 background: conic-gradient(red 0% 25%, blue 25% 100%);
 ```
+
+![Logo](/gradientSixth.png)
 
 ## 4. 重复渐变 (Repeating Gradients)
 
@@ -94,6 +108,8 @@ background: repeating-linear-gradient(
   black 20px   /* 黑色带宽度 10px (20-10) */
 );
 ```
+
+![Logo](/gradientSeventh.png)
 
 ## 5. 常见问题 (FAQ) 与 避坑指南
 

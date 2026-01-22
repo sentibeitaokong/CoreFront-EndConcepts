@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .gradientFirst,.gradientSecond,.gradientThird,.gradientFourth,.gradientFifth,.gradientSixth,.gradientSeventh{
+            width: 200px;
+            height: 100px;
+            margin-bottom: 20px;
+        }
+        .gradientFirst{
+            background: linear-gradient(to bottom right, red, blue);
+        }
+        .gradientSecond{
+            background: linear-gradient(45deg, red, yellow);
+        }
+        .gradientThird{
+            background: linear-gradient(to right, red 30%, blue 100%);
+        }
+        .gradientFourth{
+            background: linear-gradient(to right, red 50%, blue 50%);
+        }
+        .gradientFifth{
+            background: radial-gradient(circle at top left, white, black);
+        }
+        .gradientSixth{
+            border-radius: 50%;
+            background: conic-gradient(red 0% 25%, blue 25% 100%);
+        }
+        .gradientSeventh{
+            background: repeating-linear-gradient(
+                    45deg,
+                    yellow,
+                    yellow 10px, /* 黄色带宽度 10px */
+                    black 10px,
+                    black 20px   /* 黑色带宽度 10px (20-10) */
+            );
+        }
+    </style>
+</head>
+<body>
+<div class="gradientFirst"></div>
+<div class="gradientSecond"></div>
+<div class="gradientThird"></div>
+<div class="gradientFourth"></div>
+<div class="gradientFifth"></div>
+<div class="gradientSixth"></div>
+<div class="gradientSeventh"></div>
+</body>
+</html>

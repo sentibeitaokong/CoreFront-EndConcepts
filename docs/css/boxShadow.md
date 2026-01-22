@@ -78,6 +78,8 @@ box-shadow: 10px 10px 20px 5px rgba(0, 0, 0, 0.5) inset;
 text-shadow: 2px 2px 4px #000;
 ```
 
+![Logo](/textShadow.png)
+
 ### 2.2 常见效果
 
 **1. 发光文字 (Glow)**
@@ -92,6 +94,8 @@ text-shadow: 2px 2px 4px #000;
 }
 ```
 
+![Logo](/glow.png)
+
 **2. 浮雕效果 (Letterpress)**
 ```css
 .emboss {
@@ -101,6 +105,8 @@ text-shadow: 2px 2px 4px #000;
   text-shadow: 0 1px 0 #fff; 
 }
 ```
+
+![Logo](/emboss.png)
 
 ## 3. 智能阴影：`filter: drop-shadow`
 
@@ -117,12 +123,20 @@ text-shadow: 2px 2px 4px #000;
 **适用场景**：PNG 透明图标、SVG 图标、CSS 绘制的三角形。
 
 ```css
-/* 给一个透明背景的 Logo 加阴影 */
-.logo {
-  /* x y blur color (不支持 spread 和 inset) */
-  filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
+/* 给一个红色三角形 加阴影 */
+.triangle {
+    filter: drop-shadow(0 5px 5px rgba(0,0,0,0.9));
+    width: 0;
+    height: 0;
+    /* 四个边框都很粗，但内容区是 0 */
+    border-top: 50px solid transparent;    /* 上边框透明 */
+    border-right: 50px solid transparent;  /* 右边框透明 */
+    border-bottom: 50px solid red;         /* 下边框红色 -> 形成向上的三角形 */
+    border-left: 50px solid transparent;   /* 左边框透明 */
 }
 ```
+
+![Logo](/dropShadow.png)
 
 ## 4. 常见问题 (FAQ) 与 避坑指南
 

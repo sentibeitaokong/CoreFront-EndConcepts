@@ -14,12 +14,16 @@ CSS Multi-column 模块的核心逻辑是将一个容器内的内容（文本、
 | **`column-width`** | `<length> \| auto`<br>`column-width: 200px;` | **理想（最小）列宽**。<br>浏览器会计算：`容器宽 / 200px` 能放下几列？<br>例如容器 500px，设为 200px，则显示 2 列（每列 250px），剩余空间均分。 |
 | **`columns`** | `[width] \|\| [count]`<br>`columns: 3 200px;` | **简写属性**。<br>表示：**“最多 3 列，且每一列不能小于 200px”**。<br>这是一个非常灵活的响应式写法。 |
 
+![Logo](/multiColumnFirst.png)
+
 ### 1.2 样式与间距
 
 | 属性 | 语法 / 示例 | 详细逻辑 |
 | :--- | :--- | :--- |
 | **`column-gap`** | `<length> \| normal`<br>`column-gap: 20px;` | **列间距**。<br>默认值 `normal` 通常等于 `1em`。<br>支持 `px`, `%`, `em` 等。 |
 | **`column-rule`** | `width style color`<br>`column-rule: 1px solid #ccc;` | **列分割线**。<br>语法完全等同于 `border`。<br>**注意**：分割线绘制在 Gap 中间，**不占据任何布局空间**。 |
+
+![Logo](/multiColumnSecond.png)
 
 ### 1.3 填充模式 (高级)
 
@@ -38,6 +42,8 @@ CSS Multi-column 模块的核心逻辑是将一个容器内的内容（文本、
 | :--- | :--- | :--- |
 | **`column-span`** | `none` (默认) | 元素仅在自己的列宽内显示。 |
 | | **`all`** | **横跨所有列**。<br>通常用于标题。元素会截断内容流，该元素之前的内容在上方平衡分列，之后的内容在下方重新分列。 |
+
+![Logo](/multiColumnThird.png)
 
 ### 2.2 断裂控制 (Fragmentation)
 

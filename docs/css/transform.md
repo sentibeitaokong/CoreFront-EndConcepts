@@ -7,17 +7,41 @@
 这是应用转换的主属性。你可以组合多个函数，**空格分隔**，执行顺序**从左到右**。
 
 ### 2D 转换函数
-| 函数 | 语法 | 描述 |
-| :--- | :--- | :--- |
-| **`translate()`** | `translate(x, y)` | **平移**。<br>`translate(50px, 100px)`。<br>支持 `%` (相对于**自身**尺寸)。 |
-| `translateX()` | `translateX(50px)` | 仅水平移动。 |
-| `translateY()` | `translateY(50px)` | 仅垂直移动。 |
-| **`scale()`** | `scale(x, y)` | **缩放**。<br>`scale(1.5)` (等比放大) 或 `scale(2, 1)` (拉伸)。<br>**负值** (如 `-1`) 会导致镜像翻转。 |
-| `scaleX()` | `scaleX(0.5)` | 仅水平缩放。 |
-| `scaleY()` | `scaleY(0.5)` | 仅垂直缩放。 |
+| 函数 | 语法 | 描述                                                                                                  |
+| :--- | :--- |:----------------------------------------------------------------------------------------------------|
+| **`translate()`** | `translate(x, y)` | **平移**。<br>`translate(50px, 100px)`。<br>支持 `%` (相对于**自身**尺寸)。                                       |
+| `translateX()` | `translateX(50px)` | 仅水平移动。                                                                                              |
+| `translateY()` | `translateY(50px)` | 仅垂直移动。                                                                                              |
+| **`scale()`** | `scale(x, y)` | **缩放**。<br>`scale(1.5)` (等比放大) 或 `scale(2, 1)` (拉伸)。<br>**负值** (如 `-1`) 会导致镜像翻转。                    |
+| `scaleX()` | `scaleX(0.5)` | 仅水平缩放。                                                                                              |
+| `scaleY()` | `scaleY(0.5)` | 仅垂直缩放。                                                                                              |
 | **`rotate()`** | `rotate(angle)` | **旋转**。<br>`rotate(45deg)` (顺时针) 或 `rotate(-90deg)` (逆时针)。<br>支持 `deg` (度), `turn` (圈), `rad` (弧度)。 |
-| **`skew()`** | `skew(x-angle, y-angle)` | **倾斜/斜切**。<br>`skew(30deg, 0)`。改变矩形角度变成平行四边形。 |
-| `matrix()` | `matrix(a, b, c, d, tx, ty)` | 2D 变换矩阵 (高级用法，涵盖上述所有功能)。 |
+| **`skew()`** | `skew(x-angle, y-angle)` | **倾斜/斜切**。<br>`skew(30deg, 0)`。改变矩形角度变成平行四边形。                                                       |
+| `matrix()` | `matrix(a, b, c, d, tx, ty)` | 2D 变换矩阵,参数(Y轴放大倍数，绕Y轴旋转，绕X轴旋转，X轴放大倍数，X轴平移， Y轴平移)。                                                   |
+
+```css
+transform: translate(x, y);
+```
+
+![Logo](/translate.png)
+
+```css
+transform: scale(x, y);
+```
+
+![Logo](/scale.png)
+
+```css
+transform: rotate(angle);
+```
+
+![Logo](/rotate.png)
+
+```css
+transform: skew(x-angle, y-angle);
+```
+
+![Logo](/skew.png)
 
 ### 3D 转换函数 (需配合 perspective)
 | 函数 | 语法 | 描述 |
@@ -30,6 +54,25 @@
 | `rotateZ()` | `rotateZ(45deg)` | 绕 Z 轴旋转。视觉效果等同于 2D `rotate()`。 |
 | `scaleZ()` | `scaleZ(2)` | Z轴方向缩放。仅在元素有厚度（立方体）时有意义。 |
 | `perspective()` | `perspective(n)` | **函数版透视**。为**当前元素**设置透视点。通常用于给单个元素做 3D 效果。 |
+
+```css
+transform: translate3d(x, y, z);
+```
+
+![Logo](/translate3d.png)
+
+```css
+transform: rotate3d(x, y, z, a);
+```
+
+![Logo](/rotate3d.png)
+
+```css
+transform: perspective(n);
+```
+
+![Logo](/perspective.png)
+
 
 ## 1.2 辅助属性 API (环境设置)
 

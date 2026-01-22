@@ -25,6 +25,8 @@ CSS 的 `background` 属性远不止“铺一张图”那么简单。通过组�
 **Sprite (雪碧图) 原理**：
 利用负值定位（如 `background-position: -50px -100px`）来显示大图中的某一个小图标。
 
+![Logo](/backgroundPosition.png)
+
 ### 1.3 背景原点 (`background-origin`)
 
 决定背景图片从哪里开始绘制（(0,0) 坐标在哪里）。
@@ -32,6 +34,8 @@ CSS 的 `background` 属性远不止“铺一张图”那么简单。通过组�
 *   **`padding-box` (默认)**: 从 Padding 左上角开始绘制（不会被 border 遮挡，但也不会延伸到 border 下面）。
 *   **`border-box`**: 从 Border 左上角开始绘制（背景图会延伸到边框底下）。
 *   **`content-box`**: 从内容区域开始绘制（背景图只在内容区显示，Padding 区域是空的）。
+
+![Logo](/backgroundOrigin.png)
 
 ### 1.4 背景裁剪 (`background-clip`)
 
@@ -41,6 +45,10 @@ CSS 的 `background` 属性远不止“铺一张图”那么简单。通过组�
 *   **`padding-box`**: 背景延伸到 padding 外侧，不包括边框。
 *   **`content-box`**: 背景只在内容区显示。
 *   **`text`**: **黑科技**。背景被裁剪成文字的形状（实现**文字渐变**的核心）。
+
+![Logo](/backgroundClipFirst.png)
+
+![Logo](/backgroundClipSecond.png)
 
 ## 2. 高级技巧：多重背景 (Multiple Backgrounds)
 
@@ -70,8 +78,6 @@ background:
   url(icon.png) center / 50px no-repeat, /* 这一层的所有属性写在一起 */
   url(photo.jpg) center / cover no-repeat;
 ```
-
----
 
 ## 3. 常见问题 (FAQ) 与 避坑指南
 

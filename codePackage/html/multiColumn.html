@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        .container{
+            width: 200px;
+            columns:50px 3;
+            column-gap:20px;
+            column-rule: 1px solid #ccc;
+            column-fill:balance;
+        }
+        .container>img{
+            width: 50px;
+            height: 50px;
+        }
+        .container>div{
+            column-span:all;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div>图片的标题</div>
+    <img src="../../docs/public/imageFirst.avif" alt="">
+    <img src="../../docs/public/imageSecond.avif" alt="">
+    <img src="../../docs/public/imageThird.avif" alt="">
+    <img src="../../docs/public/imageSecond.avif" alt="">
+    <img src="../../docs/public/gradientFifth.png" alt="">
+    <img src="../../docs/public/imageThird.avif" alt="">
+    <img src="../../docs/public/gradientSeventh.png" alt="">
+</div>
+</body>
+</html>

@@ -27,6 +27,8 @@ table {
 }
 ```
 
+![Logo](/tableFixed.png)
+
 ### 2. 边框模型 (`border-collapse`)
 
 控制单元格边框的合并方式。
@@ -44,6 +46,19 @@ th, td {
 }
 ```
 
+![Logo](/tableCollapse.png)
+
+```css
+table {
+  border-collapse: separate; 
+}
+th, td {
+  border: 1px solid #ccc;
+}
+```
+
+![Logo](/tableSeparate.png)
+
 ### 3. 间距与位置
 
 *   **`border-spacing`**: 单元格之间的距离。**仅在** `border-collapse: separate` 时有效。
@@ -55,6 +70,32 @@ th, td {
 *   **`empty-cells`**: 是否显示空单元格的边框。
     *   `show` (默认)
     *   `hide` (隐藏，表格会出现“缺牙”)
+
+```css
+table {
+    border-collapse: separate;
+    border-spacing: 2px;
+}
+
+th, td {
+    border: 1px solid #ccc;
+}
+```
+
+![Logo](/tableSpacing.png)
+
+```css
+table {
+    border-collapse: collapse;
+    caption-side: top;
+}
+
+th, td {
+    border: 1px solid #ccc;
+}
+```
+
+![Logo](/tableCaption.png)
 
 ## 二、CSS 模拟表格布局 (`display: table`)
 

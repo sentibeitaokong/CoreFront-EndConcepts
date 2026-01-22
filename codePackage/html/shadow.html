@@ -40,6 +40,38 @@
                     0 4px 8px rgba(0,255,0,0.7),  /* 第二层：中距离 */
                     0 8px 16px rgba(255,0,0,0.8); /* 第三层：远距离扩散 */
         }
+        .textShadow{
+            margin-top: 20px;
+            text-shadow: 2px 2px 4px #000;
+        }
+        .neon {
+            margin-top: 20px;
+            color: #fff;
+            /* 多层叠加增加亮度 */
+            text-shadow:
+                    0 0 5px #fff,
+                    0 0 10px #ff00de,
+                    0 0 20px #ff00de;
+        }
+        .emboss {
+            width: 80px;
+            margin-top: 20px;
+            color: #888;
+            background: #eee;
+            /* 下方给白光，看起来像刻进去的 */
+            text-shadow: 0 1px 0 #fff;
+        }
+        .triangle {
+            margin-top: 20px;
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.9));
+            width: 0;
+            height: 0;
+            /* 四个边框都很粗，但内容区是 0 */
+            border-top: 50px solid transparent;    /* 上边框透明 */
+            border-right: 50px solid transparent;  /* 右边框透明 */
+            border-bottom: 50px solid red;         /* 下边框红色 -> 形成向上的三角形 */
+            border-left: 50px solid transparent;   /* 左边框透明 */
+        }
     </style>
 </head>
 <body>
@@ -48,5 +80,13 @@
 <div class="input-field"></div>
 
 <div class="realistic"></div>
+
+<div class="textShadow">文字阴影</div>
+
+<div class="neon">发光文字</div>
+
+<div class="emboss">浮雕效果</div>
+
+<div class="triangle"></div>
 </body>
 </html>
