@@ -89,6 +89,9 @@ export default defineConfig({
                         items: [
                             {text: '基础结构', link: '/html/htmlBasicStructure'},
                             {text: '常用标签', link: '/html/commonTags'},
+                            {text: 'Dom元素', link: '/html/domAttributes'},
+                            {text: 'Dom事件流', link: '/html/domEvents'},
+                            {text: 'ajax请求', link: '/html/ajax'},
                         ]
                     },
                     {
@@ -177,6 +180,31 @@ export default defineConfig({
                                     {text: '单位', link: '/css/units'},
                                 ]
                             }
+                        ]
+                    }
+                ]
+            },
+            {
+                text: 'js',
+                // collapsible: true, // 允许折叠 (默认true，可省略)
+                // collapsed: false, // 初始状态为“展开”
+                items: [
+                    {
+                        text: '基础',
+                        collapsible: true, // 允许折叠 (默认true，可省略)
+                        collapsed: false, // 初始状态为“展开”
+                        items: [
+                            {text: '变量', link: '/js/variables'},
+                            {text: '作用域', link: '/js/lexicalScope'},
+                            {text: '执行上下文和执行栈', link: '/js/executionContextAndStack'},
+                        ]
+                    },
+                    {
+                        text: '进阶',
+                        collapsible: true, // 允许折叠 (默认true，可省略)
+                        collapsed: false, // 初始状态为“展开”
+                        items: [
+
                         ]
                     }
                 ]

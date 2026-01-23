@@ -20,14 +20,14 @@
         }
         .container{
             background-color: #9ac8ff;
-            overflow: hidden;
+            /*overflow: hidden;      触发BFC 解决外边距折叠*/
         }
         .boxModelFirst,.boxModelSecond{
             width: 100px;
             height: 100px;
         }
         .boxModelFirst{
-            /*overflow: hidden;      触发BFC 解决外边距折叠*/
+
             background-color: green;
             margin-bottom: 50px;
             border: 1px;
@@ -105,8 +105,8 @@
 <div class="container">
     <!--外边距折叠-->
     <div class="boxModelFirst"></div>
-    <div class="boxModelSecond"></div>
 </div>
+<div class="boxModelSecond"></div>
 
 <div class="parent">
     <div class="child"></div>

@@ -159,7 +159,7 @@ CSS 盒模型是 Web 布局的基石。为了帮助你彻底掌握它，我将�
 }
 ```
 
-#### 场景 D：纯 CSS 绘制三角形 (Border 的黑魔法)
+#### 场景 D：纯 CSS 绘制三角形 (Border 的黑魔法)([更多图形绘制](https://css-tricks.com/the-shapes-of-css/))
 利用边框交界处是斜切的原理。
 
 ```css
