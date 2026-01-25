@@ -2,7 +2,7 @@
 
 ## 1. 执行上下文 (Execution Context)
 
-执行上下文是 JavaScript 代码被评估和执行的环境。每当 JS 代码运行的时候，它都是在某个执行上下文中运行的。
+执行上下文是 JavaScript代码解析和执行的环境。每当 JS 代码运行的时候，它都是在某个执行上下文中运行的。
 
 #### 1.1 上下文的类型
 
@@ -25,21 +25,124 @@
 ### 1.2 生命周期：创建与执行
 
 这是理解 JS "诡异"行为（如提升）的关键。执行上下文有两个阶段：
+> [!IMPORTANT] 
+>#### 第一阶段：创建阶段 (Creation Phase)俗称`预编译`
+>在代码执行之前，JS 引擎会扫描代码并设置环境：
+>1.  **确定 `this` 的值** (Binding `this`)。
+>2.  **创建词法环境 (Lexical Environment)**：
+>    *   **存储`let/const`变量和函数声明**：
+>      *   **函数声明**：会被完整地存储在内存中（完全提升）。
+>      *   **`let/const`变量**：会被“创建”但**未初始化**（进入暂时性死区 TDZ）。
+>3.  **创建VariableEnvironment(变量环境)并建立作用域链 (Scope Chain)**：连接当前环境和父级环境，用于查找变量。
+>    *   **`var`变量**：会被初始化为 `undefined`（变量提升）。
 
-#### **第一阶段：创建阶段 (Creation Phase)**
-在代码执行之前，JS 引擎会扫描代码并设置环境：
-1.  **确定 `this` 的值** (Binding `this`)。
-2.  **创建词法环境 (Lexical Environment)**：
-    *   **存储变量和函数声明**：
-    *   **函数声明**：会被完整地存储在内存中（完全提升）。
-    *   **`var` 变量**：会被初始化为 `undefined`（变量提升）。
-    *   **`let/const` 变量**：会被“创建”但**未初始化**（进入暂时性死区 TDZ）。
-3.  **建立作用域链 (Scope Chain)**：连接当前环境和父级环境，用于查找变量。
 
-#### **第二阶段：执行阶段 (Execution Phase)**
-1.  **代码从上到下逐行执行。**
-2.  **为变量赋值（将 `undefined` 替换为真实值）。**
-3.  **执行函数调用。**
+
+```markdown
+ExecutionContext = {  
+  ThisBinding = <this value>,     // 确定this 
+  LexicalEnvironment = { ... },   // 词法环境
+  VariableEnvironment = { ... },  // 变量环境
+}
+```
+
+##### **This Binding**
+
+*   在 **全局** 执行上下文中，`this` 的值指向全局对象，在浏览器中 `this` 的值指向 `window` 对象，而在 `nodejs` 中指向这个文件的 `module` 对象。
+*   在 **函数** 执行上下文中，`this` 的值取决于函数的调用方式。具体有：默认绑定、隐式绑定、显式绑定（硬绑定）、`new` 绑定、箭头函数，具体内容会在【this全面解析】部分详解。
+
+##### **词法环境（Lexical Environment）**
+
+词法环境有两个**组成部分**：
+
+1.  **环境记录**：存储变量和函数声明的实际位置。
+2.  **对外部环境的引用**：可以访问其外部词法环境。
+
+词法环境有两种**类型**：
+
+1.  **全局环境**：是一个没有外部环境的词法环境，其外部环境引用为 **null**。它拥有一个全局对象（window 对象）及其关联的方法和属性（例如数组方法）以及任何用户自定义的全局变量，`this` 的值指向这个全局对象。
+2.  **函数环境**：用户在函数中定义的变量被存储在**环境记录**中，包含了 `arguments` 对象。对外部环境的引用可以是全局环境，也可以是包含内部函数的外部函数环境。
+
+```javascript
+GlobalExectionContext = { // 全局执行上下文
+  LexicalEnvironment: {    	  // 词法环境
+    EnvironmentRecord: {   		// 环境记录
+      Type: "Object",      		   // 全局环境
+      // 标识符绑定在这里 
+      outer: <null>  	   		   // 对外部环境的引用
+    }
+  }  
+}
+
+FunctionExectionContext = { // 函数执行上下文
+  LexicalEnvironment: {  	  // 词法环境
+    EnvironmentRecord: {  		// 环境记录
+      Type: "Declarative",  	   // 函数环境
+      // 标识符绑定在这里 			  
+      outer: <Global or outer function environment reference>  // 对外部环境的引用
+    }  
+  }
+}
+```
+
+#####  **变量环境**
+
+变量环境也是一个词法环境，因此它具有上面定义的词法环境的所有属性。在 ES6 中，**词法** 环境和 **变量** 环境的区别在于前者用于存储 **函数声明和变量（`let` 和 `const`）** 绑定，而后者仅用于存储 **变量（`var`）** 绑定。
+
+
+**变量提升**的原因：在创建阶段，函数声明存储在环境中，而变量会被设置为 `undefined`（在 `var` 的情况下）或保持未初始化（在 `let` 和 `const` 的情况下）。所以这就是为什么可以在声明之前访问 `var` 定义的变量（尽管是 `undefined`），但如果在声明之前访问 `let` 和 `const` 定义的变量就会提示引用错误的原因。这就是所谓的变量提升。
+> [!IMPORTANT]
+>#### **第二阶段：执行阶段 (Execution Phase)**
+>1.  **代码从上到下逐行执行。**
+>2.  **为变量赋值（将 `undefined` 替换为真实值）。**
+>3.  **执行函数调用。**
+
+### 1.3 内部结构演进：ES3 vs ES6+
+为了彻底理解，我们需要对比旧标准（解释了 AO/VO）和新标准（解释了 `let`/`const` 块级作用域）。
+
+
+####  1.3.1 ES3 标准（经典模型）
+VO/AO 模型。
+
+![Logo](/VO.png)
+
+| 概念 | 全称   | 作用范围 | 何时创建   | 包含内容                          |
+|----|------|------|--------|-------------------------------|
+| VO | 变量对象 | 统称   | -      | 变量声明、函数声明                     |
+| GO | 全局对象 | 全局   | 浏览器加载时 | 全局变量、内置对象(Date, Math...)、函数声明 |
+| AO | 活动对象 | 函数内部 | 函数被调用时 | arguments、形参、局部变量、内部函数声明      |
+
+```javascript
+ExecutionContext = {
+    scopeChain: { ... }, // 作用域链
+    variableObject: { ... }, // VO/AO (变量、函数声明、arguments)
+    this: { ... }
+}
+```
+
+#### 1.3.2 ES6+ 标准（现代模型）
+在 ES6 中，VO/AO 的概念被 **词法环境 (Lexical Environment)** 替代。这是为了支持 `let` 和 `const` 的块级作用域。
+
+新的执行上下文结构如下：
+
+```js
+ExecutionContext = {
+    // 1. 词法环境：处理 let, const, 函数声明
+    LexicalEnvironment: {
+        EnvironmentRecord: { ... }, // 存储变量的具体地方
+        outer: <Reference to outer env> // 指向父级作用域（作用域链）
+    },
+
+    // 2. 变量环境：专门处理 var
+    VariableEnvironment: {
+        EnvironmentRecord: { ... },
+        outer: <Reference to outer env>
+    },
+
+    // 3. This 绑定
+    ThisBinding: <Global Object or Object Reference>
+}
+```
 
 ## 2. 执行栈 (Execution Stack / Call Stack)
 
@@ -69,6 +172,11 @@ function second() {
 
 first(); // 调用 first
 console.log('Inside Global Execution Context');
+
+// Inside first function
+// Inside second function
+// Again inside first function
+// Inside Global Execution Context
 ```
 
 **栈的变化过程：**
@@ -80,7 +188,180 @@ console.log('Inside Global Execution Context');
 5.  **first 执行完毕**: `[ Global EC ]` (first 弹出，继续执行 Global)
 6.  **End**: 程序结束，全局上下文销毁（页面关闭时）。
 
-## 3. 常见问题与面试题 (FAQ)
+## 3.综合案例
+让我们通过一段代码，结合调用栈和ES6 结构来模拟整个过程：
+```js
+let a = 20;
+const b = 30;
+var c;
+
+function multiply(e, f) {
+ var g = 20;
+ return e * f * g;
+}
+
+c = multiply(20, 30);
+
+```
+#### 3.1 全局执行上下文 (GEC) 创建阶段
+**ES3:**
+```markdown
+GO:{
+    a:<uninitialized>,    // 暂时性死区
+    b:<uninitialized>,    // 暂时性死区
+    c:undefined,
+    multiply:function(){}
+}
+```
+
+**ES6+:**
+```javascript
+GlobalExectionContext = {
+  ThisBinding: <Global Object>,
+
+  // 词法环境：存 let, const
+  LexicalEnvironment: {
+    EnvironmentRecord: {
+      Type: "Object",
+      a: <uninitialized>, // 暂时性死区
+      b: <uninitialized>,
+      multiply: <func>
+    },
+    outer: null
+  },
+
+  // 变量环境：存 var
+  VariableEnvironment: {
+    EnvironmentRecord: {
+      Type: "Object",
+      c: undefined, // var 提升为 undefined
+    },
+    outer: null
+  }
+}
+```
+
+#### 3.2 全局执行上下文 (GEC) 执行阶段
+
+**ES3:**
+```markdown
+GO:{
+    a:20,
+    b:30,
+    c:undefined,
+    multiply(20, 30),
+}
+```
+
+**ES6+:**
+
+代码逐行执行：
+*   `a` 赋值为 20。
+*   `b` 赋值为 30。
+*   `c` 此时还是 `undefined`。
+*   遇到 `multiply(20, 30)` 调用 -> **创建函数执行上下文**。
+
+
+#### 3.3 函数执行上下文 (FEC) 创建阶段
+
+**ES3:**
+```markdown
+GO:{
+    g:undefined,
+    e:20,
+    f:30,
+}
+```
+
+**ES6+:**
+
+```javascript
+FunctionExectionContext = {
+  ThisBinding: <Global Object>, // 因为是普通调用
+
+  LexicalEnvironment: {
+    EnvironmentRecord: {
+      Type: "Declarative",
+      arguments: {0: 20, 1: 30, length: 2},
+      e: 20, // 形参
+      f: 30  // 形参
+    },
+    outer: <GlobalLexicalEnvironment> // 作用域链指向全局
+  },
+
+  VariableEnvironment: {
+    EnvironmentRecord: {
+      Type: "Declarative",
+      g: undefined // var 提升
+    },
+    outer: <GlobalLexicalEnvironment>
+  }
+}
+```
+
+#### 3.4 函数执行上下文 (FEC) 执行阶段
+*   `g` 被赋值为 20。
+*   计算 `e * f * g`。
+*   返回结果。
+*   **FEC 出栈销毁**。
+
+#### 3.5 回到全局
+*   `c` 接收返回值。
+*   程序结束。
+
+## 4.其他示例
+
+### 4.1 变量提升
+
+```js
+foo;  // undefined
+var foo = function () {
+    console.log('foo1');
+}
+
+foo();  // foo1，foo赋值
+
+var foo = function () {
+    console.log('foo2');
+}
+
+foo(); // foo2，foo重新赋值
+```
+
+### 4.2 函数提升
+
+```js
+foo();  // foo2
+function foo() {
+    console.log('foo1');
+}
+
+foo();  // foo2
+
+function foo() {
+    console.log('foo2');
+}
+
+foo(); // foo2
+```
+
+### 4.3 声明优先级，函数 > 变量
+```js
+foo();  // foo2
+var foo = function() {
+    console.log('foo1');
+}
+
+foo();  // foo1，foo重新赋值
+
+function foo() {
+    console.log('foo2');
+}
+
+foo(); // foo1
+```
+
+## 5. 常见问题与面试题 (FAQ)
 
 ### Q1: 栈溢出 (Stack Overflow) 是什么？
 **答**：当执行栈被推入过多的执行上下文，超过了浏览器/引擎允许的最大容量时，就会报错 `RangeError: Maximum call stack size exceeded`。
