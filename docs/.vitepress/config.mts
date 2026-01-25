@@ -73,8 +73,6 @@ export default defineConfig({
         sidebar: [
             {
                 text: '简介',
-                collapsible: true, // 允许折叠 (默认true，可省略)
-                collapsed: false, // 初始状态为“展开”
                 items: [
                     {text: '前端知识体系介绍', link: '/intro'},
                 ]
@@ -85,7 +83,7 @@ export default defineConfig({
                     {
                         text: '基础',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
                             {text: '基础结构', link: '/html/htmlBasicStructure'},
                             {text: '常用标签', link: '/html/commonTags'},
@@ -97,7 +95,7 @@ export default defineConfig({
                     {
                         text: '进阶',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
                             {text: '语义化标签', link: '/html/semanticHtml'},
                             {text: '多媒体元素', link: '/html/multimediaElements'},
@@ -122,7 +120,7 @@ export default defineConfig({
                     {
                         text: '基础',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
                             {text: '选择器', link: '/css/selectors'},
                             {text: '继承', link: '/css/inheritance'},
@@ -135,7 +133,7 @@ export default defineConfig({
                     {
                         text: '进阶',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
                             {
                                 text: '视觉装饰',
@@ -153,7 +151,7 @@ export default defineConfig({
                             {
                                 text: '现代布局系统',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
-                                collapsed: false, // 初始状态为“展开”
+                                collapsed: true, // 初始状态为“展开”
                                 items:[
                                     {text: '多列布局', link: '/css/multiColumn'},
                                     {text: 'Table表格布局', link: '/css/tableLayout'},
@@ -164,7 +162,7 @@ export default defineConfig({
                             {
                                 text: '动画与变换',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
-                                collapsed: false, // 初始状态为“展开”
+                                collapsed: true, // 初始状态为“展开”
                                 items:[
                                     {text: '变换', link: '/css/transform'},
                                     {text: '过渡', link: '/css/transitions'},
@@ -174,7 +172,7 @@ export default defineConfig({
                             {
                                 text: '响应式设计',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
-                                collapsed: false, // 初始状态为“展开”
+                                collapsed: true, // 初始状态为“展开”
                                 items:[
                                     {text: '媒体查询', link: '/css/mediaQueries'},
                                     {text: '单位', link: '/css/units'},
@@ -192,7 +190,7 @@ export default defineConfig({
                     {
                         text: '基础',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
                             {text: '数据类型', link: '/js/eightTypes'},
                             {text: '变量', link: '/js/variables'},
