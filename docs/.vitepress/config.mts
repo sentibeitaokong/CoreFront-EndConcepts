@@ -193,12 +193,11 @@ export default defineConfig({
                         collapsed: true, // 初始状态为“展开”
                         items: [
                             {text: '数据类型', link: '/js/eightTypes'},
-                            {text: '变量', link: '/js/variables'},
-                            {text: '相等运算符', link: '/js/equal'},
+                            {text: '变量声明', link: '/js/variables'},
                             {text: '执行上下文和执行栈', link: '/js/executionContextAndStack'},
                             {text: '作用域', link: '/js/lexicalScope'},
                             {text: '内存空间', link: '/js/memorySpace'},
-                            {text: '原始值包装类型', link: '/js/primitiveWrapperTypes'},
+                            {text: '基本引用类型', link: '/js/basicPrimitiveType'},
                         ]
                     },
                     {

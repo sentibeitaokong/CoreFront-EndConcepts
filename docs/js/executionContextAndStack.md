@@ -1,10 +1,13 @@
+---
+outline: [2,4] # 这个页面将显示 h2 和 h3 标题
+---
 # 执行上下文 (Execution Context) 和 执行栈 (Execution Stack / Call Stack)
 
 ## 1. 执行上下文 (Execution Context)
 
 执行上下文是 JavaScript代码解析和执行的环境。每当 JS 代码运行的时候，它都是在某个执行上下文中运行的。
 
-#### 1.1 上下文的类型
+### 1.1 上下文的类型
 
 主要有三种类型：
 
