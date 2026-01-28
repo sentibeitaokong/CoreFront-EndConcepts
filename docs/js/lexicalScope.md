@@ -25,7 +25,7 @@ function check() {
 *   **访问性**：只能在该函数内部访问，外部无法“看见”。
 *   **关键字**：`var`, `let`, `const` 在函数内声明都遵循此规则。
 
-```javascript
+```js
 function myFunction() {
   var secret = "123";
   console.log(secret); // ✅ 内部可访问
@@ -38,7 +38,7 @@ console.log(secret); // ❌ 报错: ReferenceError
 *   **定义**：由花括号 `{}` 包裹的代码块（如 `if`, `for`, `switch` 语句）。
 *   **关键点**：只有 `let` 和 `const` 遵循块级作用域，`var` **不遵循**（会穿透）。
 
-```javascript
+```js
 if (true) {
   let blockLet = "Locked";
   var blockVar = "Leaked";
@@ -56,7 +56,7 @@ JavaScript 采用的是**词法作用域**（也叫静态作用域）。
 
 无论函数在哪里被调用，它总是查找它**写代码时**所在位置的上层作用域。
 
-```javascript
+```js
 let value = 1;
 
 function foo() {
@@ -89,7 +89,7 @@ bar(); // 输出: 1
 
 **定义**：当一个函数能够记住并访问它的**词法作用域**，即使这个函数在它的词法作用域之外执行时，就产生了闭包。
 
-```javascript
+```js
 function createCounter() {
   let count = 0; // 这个变量被“封闭”在闭包里
   
@@ -110,7 +110,7 @@ myCounter(); // 2
 ### Q1: 什么是“变量遮蔽” (Variable Shadowing)？
 **答**：当内部作用域声明了与外部作用域同名的变量时，内部变量会“遮盖”外部变量。在内部无法直接访问那个被遮盖的外部变量。
 
-```javascript
+```js
 let name = "Outer";
 
 function show() {
@@ -132,7 +132,7 @@ function show() {
 **答**：微乎其微。现代 JS 引擎（如 V8）对作用域查找进行了极度的优化。使用 `let`/`const` 带来的逻辑清晰度和安全性收益远大于任何理论上的性能损耗。
 
 ### Q5: 面试题：作用域链查找
-```javascript
+```js
 var a = 10;
 function test() {
   console.log(a); 
@@ -145,7 +145,7 @@ test();
 1.  函数 `test` 内部声明了 `var a`。
 2.  由于**变量提升**，`var a` 被提到了函数顶部，但赋值留在原地。
 3.  代码实际变成了：
-    ```javascript
+    ```js
     function test() {
       var a; // undefined
       console.log(a);

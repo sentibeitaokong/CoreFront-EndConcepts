@@ -185,7 +185,7 @@ SVG 可以像 HTML 一样加 class，用 CSS 控制颜色。
 **原因**: 图片还没加载完，你就调用了 `drawImage`。
 
 **解法**: 必须在 `onload` 回调里画。
-```javascript
+```js
 const img = new Image();
 img.src = 'photo.jpg';
 img.onload = () => {
@@ -197,7 +197,7 @@ img.onload = () => {
 **核心原理**: 1个 CSS 像素在 Retina 屏上对应 2个或 3个物理像素。如果 Canvas 的 `width` 属性是 100，它只有 100 个物理像素，被拉伸显示就会糊。
 
 **标准解法**:
-```javascript
+```js
 function setupCanvas(canvas) {
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();

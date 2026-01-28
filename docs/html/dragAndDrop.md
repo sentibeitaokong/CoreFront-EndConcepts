@@ -60,7 +60,7 @@ HTML5 原生拖放允许用户在网页内部拖拽元素（如列表排序、�
 
 ### 步骤 2: 绑定事件
 
-```javascript
+```js
 const source = document.getElementById('source');
 const target = document.getElementById('target');
 
@@ -112,7 +112,7 @@ target.addEventListener('drop', (e) => {
 
 从桌面拖拽图片到网页。
 
-```javascript
+```js
 const dropZone = document.getElementById('drop-zone');
 
 dropZone.addEventListener('dragover', (e) => {
@@ -147,7 +147,7 @@ dropZone.addEventListener('drop', (e) => {
 **原因**: 浏览器的默认行为是“禁止放置”。
 
 **解法**: 必须在 **`dragover`** 事件中调用 **`e.preventDefault()`**。
-```javascript
+```js
 target.addEventListener('dragover', (e) => e.preventDefault());
 ```
 
@@ -168,7 +168,7 @@ target.addEventListener('dragover', (e) => e.preventDefault());
 
 ### Q4: 拖拽时不想显示默认的“幽灵图”，或者想自定义？
 **解法**: 使用 `setDragImage`。
-```javascript
+```js
 source.addEventListener('dragstart', (e) => {
   const img = new Image();
   img.src = 'custom-ghost.png';

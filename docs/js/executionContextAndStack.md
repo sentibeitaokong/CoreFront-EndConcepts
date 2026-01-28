@@ -66,7 +66,7 @@ ExecutionContext = {
 1.  **全局环境**：是一个没有外部环境的词法环境，其外部环境引用为 **null**。它拥有一个全局对象（window 对象）及其关联的方法和属性（例如数组方法）以及任何用户自定义的全局变量，`this` 的值指向这个全局对象。
 2.  **函数环境**：用户在函数中定义的变量被存储在**环境记录**中，包含了 `arguments` 对象。对外部环境的引用可以是全局环境，也可以是包含内部函数的外部函数环境。
 
-```javascript
+```js
 GlobalExectionContext = { // 全局执行上下文
   LexicalEnvironment: {    	  // 词法环境
     EnvironmentRecord: {   		// 环境记录
@@ -115,7 +115,7 @@ VO/AO 模型。
 | GO | 全局对象 | 全局   | 浏览器加载时 | 全局变量、内置对象(Date, Math...)、函数声明 |
 | AO | 活动对象 | 函数内部 | 函数被调用时 | arguments、形参、局部变量、内部函数声明      |
 
-```javascript
+```js
 ExecutionContext = {
     scopeChain: { ... }, // 作用域链
     variableObject: { ... }, // VO/AO (变量、函数声明、arguments)
@@ -160,7 +160,7 @@ ExecutionContext = {
 
 ### 2.2 图解示例
 
-```javascript
+```js
 let a = 'Hello World!';
 
 function first() {
@@ -219,7 +219,7 @@ GO:{
 ```
 
 **ES6+:**
-```javascript
+```js
 GlobalExectionContext = {
   ThisBinding: <Global Object>,
 
@@ -279,7 +279,7 @@ GO:{
 
 **ES6+:**
 
-```javascript
+```js
 FunctionExectionContext = {
   ThisBinding: <Global Object>, // 因为是普通调用
 
@@ -372,7 +372,7 @@ foo(); // foo1
 
 **常见原因**：递归函数没有终止条件。
 
-```javascript
+```js
 function recursive() {
     recursive(); // 无限递归
 }
@@ -398,7 +398,7 @@ recursive(); // 报错！
 ### Q5: 代码演示上下文执行顺序
 看下面代码，请问输出顺序是什么？
 
-```javascript
+```js
 console.log('1');
 
 function foo() {

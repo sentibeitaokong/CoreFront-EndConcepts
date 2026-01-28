@@ -19,7 +19,7 @@ HTML5 提供了两种在客户端存储数据的机制，旨在取代传统的 C
 
 **简便写法 (不推荐，但可用)：**
 Web Storage 对象可以像普通 JS 对象一样操作（但不建议这样用，因为可能与原生原型方法冲突）。
-```javascript
+```js
 localStorage.username = "John"; // 存
 console.log(localStorage.username); // 取
 delete localStorage.username; // 删
@@ -32,7 +32,7 @@ delete localStorage.username; // 删
 如果你直接存对象或数组，它会强行调用 `.toString()`，变成 `"[object Object]"`，导致数据丢失。
 
 **✅ 正确做法：使用 JSON 序列化**
-```javascript
+```js
 const user = { name: "张三", age: 18 };
 
 // 存：对象 -> JSON 字符串
@@ -58,7 +58,7 @@ if (storedData) {
 当 `localStorage` 的数据在**其他标签页**被修改时，当前标签页会触发 `storage` 事件。
 *   *注意：在当前修改数据的页面，不会触发自己的 storage 事件。*
 
-```javascript
+```js
 // 监听数据变化
 window.addEventListener('storage', (event) => {
   console.log("哪个Key变了:", event.key);
@@ -88,7 +88,7 @@ window.addEventListener('storage', (event) => {
 原生 API 不支持过期时间（它是永久的）。必须手动封装。
 **实现思路**：存数据时，把当前时间戳也存进去。取数据时，判断时间是否超时。
 
-```javascript
+```js
 const myStorage = {
   set(key, value, ttl) { // ttl: 有效期(毫秒)
     const data = {
@@ -122,7 +122,7 @@ const myStorage = {
 
 ### Q6: 为什么 `localStorage` 存布尔值 `false` 取出来变成了 `"false"` (字符串)？
 因为 Web Storage 只能存字符串。
-```javascript
+```js
 localStorage.setItem('isLogin', false);
 const isLogin = localStorage.getItem('isLogin'); // 结果是字符串 "false"
 if (isLogin) { ... } // 字符串 "false" 在 if 中是 true！这是惊天大坑！

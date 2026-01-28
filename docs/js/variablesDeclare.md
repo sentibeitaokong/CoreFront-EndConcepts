@@ -5,7 +5,7 @@
 ### 1.1 基本用法
 
 **示例**：
-```javascript
+```js
 var a; // 声明 a，值为 undefined
 var b = 10; // 声明 b 并赋值为 10
 var c = 1, d = 2; // 同时声明多个变量
@@ -17,14 +17,14 @@ var c = 1, d = 2; // 同时声明多个变量
 这导致了一个独特的现象：**你可以在声明变量之前使用它**，它的值是 `undefined`（不会报错）。
 
 **代码书写顺序：**
-```javascript
+```js
 console.log(myVar); // 输出: undefined (不会报错)
 var myVar = 5;
 console.log(myVar); // 输出: 5
 ```
 
 **引擎实际执行顺序：**
-```javascript
+```js
 var myVar;          // 1. 声明被提升到顶部，初始化为 undefined
 console.log(myVar); // 2. 执行打印
 myVar = 5;          // 3. 执行赋值
@@ -34,7 +34,7 @@ console.log(myVar); // 4. 执行打印
 ### 1.3 允许重复声明 (Re-declaration)
 在同一个作用域内，使用 `var` 多次声明同一个变量名**不会报错**。第二次声明通常会被视为赋值操作。这在大型项目中非常容易导致 bug（意外覆盖了之前的变量）。
 
-```javascript
+```js
 var user = "Alice";
 var user = "Bob"; // 合法，不会报错
 console.log(user); // "Bob"
@@ -44,7 +44,7 @@ console.log(user); // "Bob"
 ### 1.4 挂载到全局对象 (Global Object Property)
 在全局作用域（函数外部）使用 `var` 声明变量时，该变量会自动成为全局对象（浏览器中是 `window`，Node.js 中是 `global`）的一个属性。
 
-```javascript
+```js
 var myGlobal = "Hello";
 console.log(window.myGlobal); // 输出: "Hello"
 
@@ -55,7 +55,7 @@ console.log(window.myLet);    // 输出: undefined (let 不会挂载)
 ### 1.5 循环中的闭包问题 (The Loop Problem)
 这是面试中最常考的 `var` 痛点。由于 `var` 没有块级作用域，循环中的变量 `i` 其实是**同一个变量**。
 
-```javascript
+```js
 for (var i = 0; i < 3; i++) {
   // 这里的 i 是全局的（或函数级的），并在每次循环中被修改
   setTimeout(function() {
@@ -71,7 +71,7 @@ for (var i = 0; i < 3; i++) {
 
 **传统解决方案 (IIFE)**：
 在 ES6 之前，我们需要使用“立即执行函数表达式”来人为创建一个新的作用域：
-```javascript
+```js
 for (var i = 0; i < 3; i++) {
   (function(lockedIndex) {
     setTimeout(function() {
@@ -85,7 +85,7 @@ for (var i = 0; i < 3; i++) {
 ### 1.6 隐式全局变量 (Implicit Globals)
 如果在非严格模式下，给一个**未声明**的变量赋值，JavaScript 会自动将其创建为全局变量（即使是在函数内部赋值）。这不完全是 `var` 的问题，但常与 `var` 漏写有关。
 
-```javascript
+```js
 function mistake() {
   var a = 1; // 局部变量
   b = 2;     // 漏写了 var/let/const -> 变成了全局变量！

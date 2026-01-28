@@ -192,7 +192,7 @@ displayList.removeAllChildren();
 在 JavaScript 中，如果你在函数内部忘记使用 `let`、`const` 或 `var` 来声明变量，这个变量就会被创建在全局对象上（在浏览器中是 `window` 对象）。全局变量的生命周期与页面的生命周期相同，除非被显式移除，否则垃圾回收器无法回收它们。
 
 **示例代码 (泄漏):**
-```javascript
+```js
 function createLeak() {
     // a 没有被声明，因此会被创建为 window.a
     a = new Array(1000000).join('*'); 
@@ -205,7 +205,7 @@ createLeak();
 始终使用 `let`、`const` 或 `var` 来声明变量，以确保它们在正确的作用域内。启用**严格模式 (`'use strict'`)** 也是一个好习惯，因为它会在你试图创建意外的全局变量时抛出错误。
 
 **修复后代码:**
-```javascript
+```js
 'use strict';
 function createLeakFixed() {
     let a = new Array(1000000).join('*');
@@ -220,7 +220,7 @@ createLeakFixed();
 `setTimeout`、`setInterval`、`requestAnimationFrame` 等定时器，或者事件监听器 `addEventListener`，如果它们内部引用了外部对象，而你又没有在适当的时候清除它们，那么这些外部对象将永远不会被回收。
 
 **示例代码 (泄漏):**
-```javascript
+```js
 function startTimer() {
     let largeObject = { data: new Array(1000000).join('x') };
 
@@ -237,7 +237,7 @@ startTimer();
 在定时器或回调完成其任务后，或者在组件销毁、页面卸载等生命周期结束时，务必手动清除它们。
 
 **修复后代码:**
-```javascript
+```js
 function startTimerFixed() {
     let largeObject = { data: new Array(1000000).join('x') };
     
@@ -266,7 +266,7 @@ startTimerFixed();
     <button id="leakyButton">Click Me</button>
 </div>
 ```
-```javascript
+```js
 // 在一个变量中保存了对按钮的引用
 const leakyButtonRef = document.getElementById('leakyButton');
 
@@ -283,7 +283,7 @@ console.log(leakyButtonRef); // 依然可以访问
 当 DOM 元素被移除后，确保代码中所有对它的引用也都被清除。
 
 **修复后代码:**
-```javascript
+```js
 let leakyButtonRef = document.getElementById('leakyButton');
 // ... 添加事件监听等操作 ...
 
@@ -298,7 +298,7 @@ leakyButtonRef = null; // 手动解除引用
 闭包的强大之处在于它可以“记住”其创建时所在的作用域。但如果不当使用，就可能导致内存泄漏。如果一个闭包的作用域中引用了一个大对象，而这个闭包又被长期持有（例如，被赋给一个全局变量或作为事件监听器），那么这个大对象也无法被回收。
 
 **示例代码 (泄漏):**
-```javascript
+```js
 function createClosure() {
     // 一个大对象
     const largeData = new Array(1000000).join('y');
@@ -319,7 +319,7 @@ const globalClosure = createClosure();
 仔细审视你的闭包，确保它们没有无意中捕获到不再需要的大对象。如果闭包只需要对象中的某个值，而不是整个对象，那么应该只传递那个值。
 
 **修复后代码:**
-```javascript
+```js
 function createClosureFixed() {
     const largeData = new Array(1000000).join('y');
     const specificValue = largeData.length; // 只获取需要的值

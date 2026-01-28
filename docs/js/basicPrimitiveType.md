@@ -10,7 +10,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 `Date` 类型将日期保存为自 1970 年 1 月 1 日 00:00:00 UTC 以来经过的毫秒数。
 
 ### 1.1 创建日期
-```javascript
+```js
 let now = new Date(); // 当前时间
 let date1 = new Date(1000); // 时间戳（1970-01-01 00:00:01）
 let date2 = new Date("2023-12-25"); // 字符串解析
@@ -31,7 +31,7 @@ let date3 = new Date(2023, 11, 25, 10, 30, 0); // 年, 月(0-11), 日, 时, 分,
 
 ### 1.3 `Date.now()`
 获取当前时间戳的高性能方法：
-```javascript
+```js
 const start = Date.now();
 // ... do something
 const end = Date.now();
@@ -43,7 +43,7 @@ console.log(`耗时: ${end - start}ms`);
 `RegExp` 类型用于支持正则表达式。
 
 ### 2.1 创建方式
-```javascript
+```js
 // 1. 字面量形式 (推荐)
 // 格式: /pattern/flags
 let re1 = /at/g;
@@ -65,7 +65,7 @@ let re2 = new RegExp("at", "g");
 2.  **`test(str)`**:
     *   返回 `true` 或 `false`。用于简单的模式检测。
 
-```javascript
+```js
 let text = "cat, bat, sat, fat";
 let pattern = /.at/;
 
@@ -104,7 +104,7 @@ console.log(matches.index); // 0
 *   `toPrecision(digits)`: 返回指定精度的数值字符串。
 *   `Number.isInteger(val)`: 判断是否为整数。
 
-```javascript
+```js
 let num = 10.005;
 console.log(num.toFixed(2)); // "10.01" (注意四舍五入的坑，实际往往需配合 Math 库)
 ```
@@ -132,7 +132,7 @@ JS 中最常用的引用类型之一。由于字符串是不可变的，所有�
 当你访问一个原始值的属性时（例如 `str.length`），JS 引擎会**瞬间**完成以下三个步骤：
 
 假设代码是：
-```javascript
+```js
 var s1 = "some text";
 var s2 = s1.substring(2);
 ```
@@ -158,7 +158,7 @@ var s2 = s1.substring(2);
 | **`typeof`** | `"string"` | `"object"` |
 | **真值判断** | 非空字符串为 true | **永远为 true** (因为它是对象) |
 
-```javascript
+```js
 var s1 = "hello";
 var s2 = new String("hello");
 
@@ -198,7 +198,7 @@ console.log(s1 == s2);  // true (值相等，隐式转换)
 *   **随机**:
     *   `Math.random()`: 返回 [0, 1) 之间的随机数。
     *   *公式：生成 [min, max] 随机整数*:
-        ```javascript
+        ```js
         Math.floor(Math.random() * (max - min + 1)) + min
         ```
 *   **计算**: `Math.abs()` (绝对值), `Math.pow()` (幂), `Math.sqrt()` (平方根).
@@ -209,7 +209,7 @@ console.log(s1 == s2);  // true (值相等，隐式转换)
 
 由于包装对象的生命周期**只有一瞬间**，你给原始值添加属性是无效的。
 
-```javascript
+```js
 var str = "abc";
 str.color = "red"; // 步骤1: 创建临时对象 -> 步骤2: 添加属性 -> 步骤3: 销毁对象
 
@@ -221,7 +221,7 @@ console.log(str.color); // undefined
 
 这是最容易出错的地方：**`new Boolean(false)` 在条件判断中是 `true`！**
 
-```javascript
+```js
 var falseObject = new Boolean(false);
 var result = falseObject && true;
 
@@ -233,7 +233,7 @@ console.log(result); // true
 
 如果想把包装对象变回原始值，可以使用 `valueOf()`或`toString()` 方法。
 
-```javascript
+```js
 var obj = new Number(123); // object
 var obj2= new String('123'); // object
 var val = obj.valueOf();   // number 123

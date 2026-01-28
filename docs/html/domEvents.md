@@ -40,7 +40,7 @@ JavaScript 允许我们“监听”这些事件，并在它们发生时执行特
 
 *   **语法**: `element.onevent = function(){ /* ... */ };`
 *   **示例**:
-    ```javascript
+    ```js
     const myButton = document.getElementById('myBtn');
     myButton.onclick = function() {
       alert('按钮被点击了！');
@@ -64,7 +64,7 @@ JavaScript 允许我们“监听”这些事件，并在它们发生时执行特
     *   **注意**: `removeEventListener` 要想成功，传入的 `listener` 必须是与 `addEventListener` 中**完全相同的函数引用**，匿名函数无法被移除。
 
 *   **示例**:
-    ```javascript
+    ```js
     const myButton = document.getElementById('myBtn');
 
     function handleClick() {
@@ -87,7 +87,7 @@ JavaScript 允许我们“监听”这些事件，并在它们发生时执行特
 
 当事件触发时，浏览器会自动创建一个 `Event` 对象，并将其作为唯一的参数传递给事件处理函数。这个对象包含了关于事件的所有信息。
 
-```javascript
+```js
 element.addEventListener('click', function(event) {
   // 'event' 就是 Event 对象
   console.log(event.type); // -> "click"
@@ -135,7 +135,7 @@ element.addEventListener('click', function(event) {
 *   **问题**: 页面加载后，通过 JavaScript 新创建的元素无法触发之前绑定的事件。
 *   **解决方案 (事件委托/Event Delegation)**: 不要给每个子元素都绑定事件，而是利用事件冒泡原理，将事件监听器绑定到它们的**共同的、静态的父元素**上。然后在父元素的处理函数中，通过 `event.target` 来判断是哪个子元素触发了事件。
 *   **示例**:
-    ```javascript
+    ```js
     const userList = document.getElementById('user-list'); // 这是一个 <ul>
 
     userList.addEventListener('click', function(event) {
@@ -150,7 +150,7 @@ element.addEventListener('click', function(event) {
 ### 4.  **`removeEventListener` 失效**
 *   **问题**: 调用 `removeEventListener` 后，事件依然能触发。
 *   **原因**: 最常见的原因是添加时使用了匿名函数。
-    ```javascript
+    ```js
     // 错误示范：无法移除
     element.addEventListener('click', function() { console.log('Hi'); });
     element.removeEventListener('click', function() { console.log('Hi'); }); // 这是两个不同的函数

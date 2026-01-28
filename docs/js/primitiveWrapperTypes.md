@@ -26,7 +26,7 @@
 当你访问一个原始值的属性时（例如 `str.length`），JS 引擎会**瞬间**完成以下三个步骤：
 
 假设代码是：
-```javascript
+```js
 var s1 = "some text";
 var s2 = s1.substring(2);
 ```
@@ -52,7 +52,7 @@ var s2 = s1.substring(2);
 | **`typeof`** | `"string"` | `"object"` |
 | **真值判断** | 非空字符串为 true | **永远为 true** (因为它是对象) |
 
-```javascript
+```js
 var s1 = "hello";
 var s2 = new String("hello");
 
@@ -69,7 +69,7 @@ console.log(s1 == s2);  // true (值相等，隐式转换)
 
 由于包装对象的生命周期**只有一瞬间**，你给原始值添加属性是无效的。
 
-```javascript
+```js
 var str = "abc";
 str.color = "red"; // 步骤1: 创建临时对象 -> 步骤2: 添加属性 -> 步骤3: 销毁对象
 
@@ -81,7 +81,7 @@ console.log(str.color); // undefined
 
 这是最容易出错的地方：**`new Boolean(false)` 在条件判断中是 `true`！**
 
-```javascript
+```js
 var falseObject = new Boolean(false);
 var result = falseObject && true;
 
@@ -95,7 +95,7 @@ console.log(result); // true
 
 如果想把包装对象变回原始值，可以使用 `valueOf()`或`toString()` 方法。
 
-```javascript
+```js
 var obj = new Number(123); // object
 var obj2= new String('123'); // object
 var val = obj.valueOf();   // number 123

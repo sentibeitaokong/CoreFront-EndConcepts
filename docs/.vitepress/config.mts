@@ -43,7 +43,7 @@ export default defineConfig({
         i18nRouting: true,           //i18n
         //目录导航标题和层级
         outline: {
-            level: [2, 5],
+            level: [2, 4],
             label: '页面导航'
         },
         // 修改页面底部导航链接的文本
@@ -193,11 +193,16 @@ export default defineConfig({
                         collapsed: true, // 初始状态为“展开”
                         items: [
                             {text: '数据类型', link: '/js/eightTypes'},
-                            {text: '变量声明', link: '/js/variables'},
+                            {text: '变量声明', link: '/js/variablesDeclare'},
+                            {text: '变量解构赋值', link: '/js/variablesDestructuring'},
                             {text: '执行上下文和执行栈', link: '/js/executionContextAndStack'},
                             {text: '作用域', link: '/js/lexicalScope'},
                             {text: '内存空间', link: '/js/memorySpace'},
                             {text: '基本引用类型', link: '/js/basicPrimitiveType'},
+                            {text: '集合引用类型', link: '/js/collectionPrimitiveTypes'},
+                            {text: '函数基础', link: '/js/basicFunction'},
+                            {text: '闭包', link: '/js/closure'},
+                            {text: 'this全面解析', link: '/js/this'},
                         ]
                     },
                     {

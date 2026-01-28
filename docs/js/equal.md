@@ -127,7 +127,7 @@ object.is=function(a,b){
 `if (myVar == true)` 这样的代码可能不会按预期工作。
 
 **代码示例**:
-```javascript
+```js
 const value = "1";
 
 if (value == true) { // "1" == true -> "1" == 1 -> 1 == 1 -> true
@@ -143,7 +143,7 @@ if (text == true) { // "hello" == true -> NaN == 1 -> false
 **✅ 解决方案**:
 永远不要用 `== true` 或 `== false` 来检查真值。直接利用值的“真值性” (truthiness)。
 
-```javascript
+```js
 // 正确的方式
 if (value) { 
     console.log("Value is truthy");
@@ -156,7 +156,7 @@ if (value) {
 `[]` 本身是一个“真值” (truthy)，但 `[] == false` 的结果却是 `true`。
 
 **代码示例**:
-```javascript
+```js
 if ([]) {
     console.log("Empty array is truthy"); // ✅ 执行
 }
@@ -181,7 +181,7 @@ console.log([] == false); // true
 `null == 0` 是 `false`，但 `null > 0` 和 `null >= 0` 却表现不一。
 
 **代码示例**:
-```javascript
+```js
 console.log(null == 0); // false (宽松相等有 null 和 undefined 的特例)
 
 console.log(null > 0);  // false (关系比较中，null -> 0)
@@ -191,7 +191,7 @@ console.log(null >= 0); // true (关系比较中，null -> 0)
 **✅ 解决方案**:
 同样，使用 `===` 进行显式检查，避免依赖 `null` 的隐式转换。
 
-```javascript
+```js
 const value = null;
 
 if (value === 0) {

@@ -37,7 +37,7 @@ HTML5 引入了自定义数据属性 `data-*`，它允许开发者在标准的 H
 1.  **`getAttribute()` 和 `setAttribute()`:**
     这是通用的属性访问方法，可以用来读取和设置任何 HTML 属性，包括 `data-*` 属性。
 
-    ```javascript
+    ```js
     const article = document.getElementById('electric-cars');
 
     // 获取 data-columns 的值
@@ -52,7 +52,7 @@ HTML5 引入了自定义数据属性 `data-*`，它允许开发者在标准的 H
 
     *   `data-` 后面的属性名会从连字符命名法（kebab-case）转换成驼峰式命名法（camelCase）。例如，`data-index-number` 在 `dataset` 中会变成 `indexNumber`。
 
-    ```javascript
+    ```js
     const article = document.getElementById('electric-cars');
 
     // 获取 data-index-number 的值
@@ -69,7 +69,7 @@ HTML5 引入了自定义数据属性 `data-*`，它允许开发者在标准的 H
 
 如果您正在使用 jQuery，可以使用 `.data()` 方法来访问 `data-*` 属性。从 jQuery 1.4.3 版本开始，`data-*` 属性会在第一次调用 `.data()` 方法时被读取并缓存。
 
-```javascript
+```js
 // 获取 data-columns 的值
 const columns = $('#electric-cars').data('columns'); // 3 (jQuery 会尝试将字符串转换为数字)
 

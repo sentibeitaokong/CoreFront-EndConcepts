@@ -10,7 +10,7 @@
 
 ### 1. 基础语法
 
-```javascript
+```js
 fetch(url, [options])
   .then(response => response.json()) // 解析响应
   .then(data => console.log(data))   // 处理数据
@@ -56,7 +56,7 @@ fetch(url, [options])
 | **`responseText`** | 服务器返回的文本数据。 |
 | **`upload.onprogress`** | **独有功能**。监听文件上传进度。 |
 
-```javascript
+```js
 // 1. 创建对象
 const xhr = new XMLHttpRequest();
 
@@ -131,7 +131,7 @@ XHR 将进度分为 **下载 (Download)** 和 **上传 (Upload)** 两个对象�
 | **`progress`** | 数据传输过程中**持续触发** (约每 50ms 一次)。 | `e.loaded`: 已传输字节。<br>`e.total`: 总字节。<br>`e.lengthComputable`: 是否知道总大小。 |
 
 **实战：文件上传进度条**
-```javascript
+```js
 const xhr = new XMLHttpRequest();
 xhr.open('POST', '/upload');
 
@@ -152,7 +152,7 @@ xhr.send(formData);
 
 这是目前最优雅的写法。
 
-```javascript
+```js
 async function postUser() {
   const url = 'https://api.example.com/users';
   const userData = { name: "Gemini", role: "AI" };
@@ -184,7 +184,7 @@ async function postUser() {
 
 利用 `FormData` 对象，浏览器会自动设置 `Content-Type: multipart/form-data`，**千万不要手动设置 Content-Type**。
 
-```javascript
+```js
 const input = document.querySelector('input[type="file"]');
 const formData = new FormData();
 formData.append('file', input.files[0]);
@@ -211,7 +211,7 @@ fetch('/upload', {
 **原因**: 为了隐私，Fetch 默认不发送 Cookie。
 
 **解法**: 添加配置 `credentials: 'include'`。
-```javascript
+```js
 fetch(url, { credentials: 'include' });
 ```
 
@@ -235,7 +235,7 @@ fetch(url, { credentials: 'include' });
 **Axios**: 推荐使用 Axios 库，它封装了 XHR，获取进度很简单 (`onUploadProgress`)。
 
 ### Q6: 异步陷阱：为什么变量是 `undefined`？
-```javascript
+```js
 let data;
 fetch(url).then(res => res.json()).then(res => {
     data = res; // 2. 后执行

@@ -9,7 +9,7 @@ WebSocket 的 API 设计非常简洁，核心只有一个 `WebSocket` 对象。
 
 ### 1.1 构造函数
 
-```javascript
+```js
 // url: 必须以 ws:// (非加密) 或 wss:// (加密, 推荐) 开头
 // protocols: (可选) 子协议字符串或数组
 const ws = new WebSocket(url, [protocols]);
@@ -110,7 +110,7 @@ const ws = new WebSocket(url, [protocols]);
 ### 3.1 心跳机制 (Keep-Alive)
 防止连接因长时间没有数据传输而被路由器/防火墙切断。
 
-```javascript
+```js
 let heartbeatInterval;
 
 function startHeartbeat(ws) {
@@ -131,7 +131,7 @@ ws.onclose = () => {
 ```
 
 ### 3.2 断线重连
-```javascript
+```js
 function connect() {
   const ws = new WebSocket(url);
   
@@ -168,7 +168,7 @@ function connect() {
 ### Q4: 怎么发送图片或文件？
 不要把文件转成 Base64 字符串发送（体积会变大 33%）。
 请直接发送 `Blob` 或 `ArrayBuffer`。
-```javascript
+```js
 const fileInput = document.querySelector('input[type="file"]');
 const file = fileInput.files[0];
 ws.send(file); // 浏览器会自动处理二进制流
@@ -183,7 +183,7 @@ WebSocket 没有浏览器的同源策略限制（你可以随便连别人的 Web
 **场景**: 当你上传大文件时，如果不加限制地 `while` 循环调用 `ws.send()`，浏览器的内存会被撑爆，因为数据发不出去全堆在缓冲区。
     
 **用法**:
-```javascript
+```js
 if (ws.bufferedAmount === 0) {
   // 缓冲区空了，发送下一块数据
   ws.send(nextChunk);

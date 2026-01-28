@@ -7,7 +7,7 @@ HTML5 Geolocation API 允许网页访问用户的当前地理位置（经纬度�
 所有功能都挂载在 `navigator.geolocation` 对象上。
 
 **检测浏览器支持：**
-```javascript
+```js
 if ("geolocation" in navigator) {
   // 支持
 } else {

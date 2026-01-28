@@ -1,7 +1,7 @@
 ---
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
-# js数据类型
+# javascript数据类型
 ECMAScript 标准定义了 8 种数据类型，分为两大类：**原始类型（Primitive Types）** 和 **对象类型（Object Type）**。
 
 *   **7 种原始类型**: `String`、`Number`、`BigInt`、`Boolean`、`Undefined`、`Null`、`Symbol`
@@ -123,7 +123,7 @@ ECMAScript 标准定义了 8 种数据类型，分为两大类：**原始类型�
 
 #### ✨ 用法
 
-```javascript
+```js
 typeof 42;          // "number"
 typeof "hello";     // "string"
 typeof true;        // "boolean"
@@ -157,7 +157,7 @@ typeof function(){}; // "function"
 
 #### ✨ 用法
 
-```javascript
+```js
 const arr = [];
 const obj = {};
 const now = new Date();
@@ -187,7 +187,7 @@ now instanceof Date;    // true
 
 #### ✨ 用法
 
-```javascript
+```js
 const num = 1;
 const str = "hi";
 const arr = [];
@@ -204,7 +204,7 @@ console.log(num.constructor === Number);  // true
 | **不稳定性** | `constructor` 属性是可以被轻易修改的。如果手动改变了一个对象的 `prototype.constructor`，那么检测结果将完全不可靠。 |
 | **`null` 和 `undefined`** | `null` 和 `undefined` 没有 `constructor` 属性，直接访问会报错。 |
 
-```javascript
+```js
 function MyClass() {}
 MyClass.prototype.constructor = Array; // 手动修改 constructor
 const instance = new MyClass();
@@ -223,7 +223,7 @@ console.log(instance.constructor === Array); // true，但 instance 并非数组
 
 #### ✨ 用法
 
-```javascript
+```js
 const toString = Object.prototype.toString;
 
 toString.call(123);          // "[object Number]"
@@ -243,7 +243,7 @@ toString.call(window);       // "[object Window]" (在浏览器中)
 
 为了方便使用，通常会将它封装成一个工具函数。
 
-```javascript
+```js
 function getType(value) {
     if (value === null) {
         return "null";
@@ -368,7 +368,7 @@ JS 中只有极少数的值会被转换为 `false`，其他全是 `true`。
 1.  如果有一侧是 **字符串**，则按照 **字符串拼接** 处理（另一侧调用 `ToString`）。
 2.  如果两侧都不是字符串，则按照 **数字加法** 处理（两侧调用 `ToNumber`）。
 
-```javascript
+```js
 1 + "1"       // "11" (拼接)
 true + true   // 2 (1 + 1)
 4 + [1,2,3]   // "41,2,3" (数组转字符串是 "1,2,3")
@@ -378,7 +378,7 @@ true + true   // 2 (1 + 1)
 #### 2. 数学运算符 (`-`, `*`, `/`, `%`)
 **规则**：除了 `+` 以外的数学运算符，一律将操作数转换为 **数字 (`ToNumber`)**。
 
-```javascript
+```js
 "100" - 10    // 90
 100 * "2"     // 200
 10 - "abc"    // NaN
@@ -389,7 +389,7 @@ true + true   // 2 (1 + 1)
 #### 3. 逻辑非 (`!`) 和 逻辑运算
 **规则**：转换为 **布尔值 (`ToBoolean`)**。
 
-```javascript
+```js
 ![]   // false (数组是真值，取反为假)
 !!"0" // true (非空字符串是真值)
 ```
@@ -515,7 +515,7 @@ object.is=function(a,b){
 `if (myVar == true)` 这样的代码可能不会按预期工作。
 
 **代码示例**:
-```javascript
+```js
 const value = "1";
 
 if (value == true) { // "1" == true -> "1" == 1 -> 1 == 1 -> true
@@ -531,7 +531,7 @@ if (text == true) { // "hello" == true -> NaN == 1 -> false
 **✅ 解决方案**:
 永远不要用 `== true` 或 `== false` 来检查真值。直接利用值的“真值性” (truthiness)。
 
-```javascript
+```js
 // 正确的方式
 if (value) { 
     console.log("Value is truthy");
@@ -544,7 +544,7 @@ if (value) {
 `[]` 本身是一个“真值” (truthy)，但 `[] == false` 的结果却是 `true`。
 
 **代码示例**:
-```javascript
+```js
 if ([]) {
     console.log("Empty array is truthy"); // ✅ 执行
 }
@@ -569,7 +569,7 @@ console.log([] == false); // true
 `null == 0` 是 `false`，但 `null > 0` 和 `null >= 0` 却表现不一。
 
 **代码示例**:
-```javascript
+```js
 console.log(null == 0); // false (宽松相等有 null 和 undefined 的特例)
 
 console.log(null > 0);  // false (关系比较中，null -> 0)
@@ -579,7 +579,7 @@ console.log(null >= 0); // true (关系比较中，null -> 0)
 **✅ 解决方案**:
 同样，使用 `===` 进行显式检查，避免依赖 `null` 的隐式转换。
 
-```javascript
+```js
 const value = null;
 
 if (value === 0) {

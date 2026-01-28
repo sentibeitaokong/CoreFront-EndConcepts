@@ -48,7 +48,7 @@ History API 允许开发者在**不刷新页面**的情况下修改浏览器地�
 *   ✅ 调用 `history.back()`, `history.forward()`, `history.go()`。
 *   ❌ 调用 `pushState()` 或 `replaceState()` **不会触发**此事件。
 
-```javascript
+```js
 window.addEventListener('popstate', (event) => {
   console.log("URL 变了！用户点击了前进/后退");
   console.log("之前存的状态数据:", event.state);
@@ -268,7 +268,7 @@ location / {
 ### Q4: 怎么监听 `pushState` 事件？
 原生没有监听 `pushstate` 事件。如果你想在 `pushState` 被调用时收到通知（比如为了做埋点统计），你需要**重写 (Monkey Patch)** 原生方法。
 
-```javascript
+```js
 // 拦截并重写 pushState
 const originalPushState = history.pushState;
 history.pushState = function(state, title, url) {
@@ -302,7 +302,7 @@ window.addEventListener('pushstate', (e) => {
 **场景**：用户在一个无限滚动的列表页浏览，点击详情页，然后点“后退”。浏览器默认会自动滚动回之前的位置。但如果你是 JS 动态渲染的列表，数据还没加载回来，浏览器滚动就会失败或乱跳。
 
 **解法**：关闭自动滚动，完全由 JS 接管。
-```javascript
+```js
 if ('scrollRestoration' in history) {
   history.scrollRestoration = 'manual'; // 关闭自动恢复
 }

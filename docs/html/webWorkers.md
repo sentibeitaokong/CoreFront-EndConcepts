@@ -10,7 +10,7 @@ Web Worker 的通信机制基于 **消息传递 (Message Passing)**。
 
 用于创建一个新的 Worker 线程。
 
-```javascript
+```js
 const myWorker = new Worker(aURL, options);
 ```
 
@@ -121,7 +121,7 @@ Worker 通信有两种数据传输方式，性能差异巨大。
 *   **特点**：数据的所有权瞬间转移给 Worker。
 *   **后果**：**主线程里的这个变量会瞬间变成空（不可用）**。
 
-```javascript
+```js
 // 主线程
 const hugeBuffer = new ArrayBuffer(1024 * 1024 * 100); // 100MB
 // 第二个参数是转移列表
@@ -154,7 +154,7 @@ console.log(hugeBuffer.byteLength); // 0 (主线程已经失去了它)
 现代构建工具（Webpack 5+, Vite）不再需要 `worker-loader`，直接使用原生 URL 构造函数即可。
 
 **Vite / Webpack 5 标准写法**:
-```javascript
+```js
 // 这里的 import.meta.url 指向当前文件的路径
 const worker = new Worker(new URL('./worker.js', import.meta.url), {
   type: 'module' // 如果 worker 内部用了 import/export，需要加这个

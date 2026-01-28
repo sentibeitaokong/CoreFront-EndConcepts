@@ -92,7 +92,7 @@ animation: move 2s 1s linear infinite alternate;
 **痛点**: 简单的 `classList.add` 和 `remove` 如果在同一帧执行，浏览器会合并操作，导致动画不重播。
 
 **解法**: **强制重绘 (Force Reflow)**。
-```javascript
+```js
 const box = document.querySelector('.box');
 
 // 1. 移除 class
