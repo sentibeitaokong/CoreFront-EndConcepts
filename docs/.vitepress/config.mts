@@ -203,6 +203,9 @@ export default defineConfig({
                             {text: '函数基础', link: '/js/basicFunction'},
                             {text: '闭包', link: '/js/closure'},
                             {text: 'this全面解析', link: '/js/this'},
+                            {text: '深浅拷贝原理', link: '/js/copy'},
+                            {text: 'JSON序列化', link: '/js/jsonSerialize'},
+                            {text: '原型、原型链、继承', link: '/js/prototype'},
                         ]
                     },
                     {

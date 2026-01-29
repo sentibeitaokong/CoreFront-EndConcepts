@@ -180,12 +180,18 @@ foo.call(obj); // 2 (调用 foo 时，强制将 this 绑定到 obj)
 
     **通用辅助函数：**
     ```js
+    function foo(something) {
+        console.log( this.a, something );
+        return this.a + something;
+    }
     function bind(fn, obj) {
         return function() {
             return fn.apply(obj, arguments);
         };
     }
-
+    var obj = {
+        a: 2
+    };
     var bar = bind(foo, obj);
     bar(3);
     ```
@@ -193,8 +199,19 @@ foo.call(obj); // 2 (调用 foo 时，强制将 this 绑定到 obj)
     **ES5 内置 `Function.prototype.bind`：**
     `bind()` 会返回一个硬绑定的新函数。
     ```js
-    var bar = foo.bind(obj);
-    var b = bar(3); // 2 3
+    function foo(something) {
+        console.log( this.a, something );
+        return this.a + something;
+    }
+    
+    var obj = {
+        a: 2
+    };
+    
+    var bar = foo.bind( obj );
+    
+    var b = bar( 3 ); // 2 3
+    console.log( b ); // 5
     ```
 
 *   **2. API 调用的“上下文”参数**
@@ -233,9 +250,9 @@ var bar = new foo(2); // bar 被绑定到 foo() 调用中的 this
 console.log(bar.a); // 2
 ```
 
-#### **手写 `new` 实现**
+**手写 `new` 实现**
 ```js
-function create() {
+function myNew() {
     // 1. 创建一个空对象
     var obj = new Object();
     
@@ -253,42 +270,116 @@ function create() {
 }
 ```
 
----
-
 ## **3. 优先级**
+**隐式绑定vs显式绑定**
+```js
+function foo() {
+	console.log( this.a );
+}
 
-`this` 绑定的四条规则的优先级如下：
-`new` 绑定 > 显式绑定 (`call`/`apply`/`bind`) > 隐式绑定 (`obj.method()`) > 默认绑定
+var obj1 = {
+	a: 2,
+	foo: foo
+};
 
-```mermaid
-graph TD
-    st(Start) --> cond1{new 绑定?};
-    cond1 -- Yes --> op1(this 绑定到新创建的对象);
-    op1 --> e(End);
-    cond1 -- No --> cond2{显式绑定?};
-    cond2 -- Yes --> op2(this 绑定到指定的对象);
-    op2 --> e;
-    cond2 -- No --> cond3{隐式绑定?};
-    cond3 -- Yes --> op3(this 绑定到上下文对象);
-    op3 --> e;
-    cond3 -- No --> op4(默认绑定);
-    op4 --> op5(严格模式下绑定到 undefined,<br>否则绑定到全局对象);
-    op5 --> e;
+var obj2 = {
+	a: 3,
+	foo: foo
+};
+
+obj1.foo(); // 2
+obj2.foo(); // 3
+
+//隐式绑定>显式绑定
+obj1.foo.call( obj2 ); // 3   
+obj2.foo.call( obj1 ); // 2
 ```
 
-> 在 `new` 中使用硬绑定函数（`bind`）的目的是为了**柯里化**，即预先设置函数的一些参数。
-> ```js
-> function foo(p1, p2) {
->     this.val = p1 + p2;
-> }
-> 
-> // 使用 null 是因为 new 绑定会覆盖 bind 的 this，我们不关心它
-> var bar = foo.bind(null, "p1");
-> var baz = new bar("p2");
-> console.log(baz.val); // "p1p2"
-> ```
+**new绑定vs隐式绑定**
+```js
+function foo(something) {
+	this.a = something;
+}
 
----
+var obj1 = {
+	foo: foo
+};
+
+var obj2 = {};
+
+obj1.foo( 2 );
+console.log( obj1.a ); // 2
+
+obj1.foo.call( obj2, 3 );
+console.log( obj2.a ); // 3
+
+var bar = new obj1.foo( 4 );
+console.log( obj1.a ); // 2 
+console.log( bar.a ); // 4    //new绑定>隐式绑定
+```
+**硬绑定vsnew绑定**
+```js
+function foo(something) {
+	this.a = something;
+}
+
+var obj1 = {};
+
+var bar = foo.bind( obj1 );
+bar( 2 );
+console.log( obj1.a ); // 2
+
+var baz = new bar( 3 );
+console.log( obj1.a ); // 2
+console.log( baz.a ); // 3    //new绑定>硬绑定
+```
+**`this` 绑定的四条规则的优先级如下：**
+`new` 绑定 > 显式绑定 (`call`/`apply`/`bind`) > 隐式绑定 (`obj.method()`) > 默认绑定
+
+**MDN bind 实现**
+```js
+if (!Function.prototype.bind) {
+	Function.prototype.bind = function(oThis) {
+		if (typeof this !== "function") {
+			// 可能的与 ECMAScript 5 内部的 IsCallable 函数最接近的东西，
+			throw new TypeError( "Function.prototype.bind - what " +
+				"is trying to be bound is not callable"
+			);
+		}
+
+		var aArgs = Array.prototype.slice.call( arguments, 1 ),
+			fToBind = this,
+			fNOP = function(){},
+			fBound = function(){
+				return fToBind.apply(
+                        (this instanceof fNOP && oThis ? this : oThis),   //new绑定>硬绑定的关键  // [!code highlight] 
+                        aArgs.concat( Array.prototype.slice.call(arguments)
+                    )
+				);
+			}
+		;
+
+		fNOP.prototype = this.prototype;
+		fBound.prototype = new fNOP();
+
+		return fBound;
+	};
+}
+```
+**new绑定可以覆盖硬绑定的作用:** 预先设置函数的一些参数，这样在使用new进行初始化时就可以只传入其余的参数（柯里化）。
+```js
+function foo(p1,p2) {
+	this.val = p1 + p2;
+}
+
+// 在这里使用 `null` 是因为在这种场景下我们不关心 `this` 的硬绑定
+// 而且反正它将会被 `new` 调用覆盖掉！
+var bar = foo.bind( null, "p1" );
+
+var baz = new bar( "p2" );
+
+baz.val; // p1p2
+```
 
 ## **4. 绑定例外**
 
@@ -313,8 +404,19 @@ bar(3); // a:2，b:3
 为了避免 `this` 意外地绑定到全局对象，可以传入一个**空对象**作为占位符。创建一个“更空”的对象的方法是 `Object.create(null)`，它没有 `Object.prototype` 委托。
 
 ```js
-var ø = Object.create(null);
-foo.apply(ø, [2, 3]);
+function foo(a,b) {
+    console.log( "a:" + a + ", b:" + b );
+}
+
+// 我们的 DMZ 空对象
+var ø = Object.create( null );
+
+// 将数组散开作为参数
+foo.apply( ø, [2, 3] ); // a:2, b:3
+
+// 用 `bind(..)` 进行 currying
+var bar = foo.bind( ø, 2 );
+bar( 3 ); // a:2, b:3
 ```
 
 ### **4.2 间接引用**
@@ -381,8 +483,6 @@ fooOBJ.call(obj3); // name: obj3
 setTimeout(obj2.foo, 10); // name: obj
 ```
 
----
-
 ## **5. `this` 词法 (Lexical `this`)**
 
 ES6 新增的**箭头函数 (`=>`)** 不使用上述四条规则。它的 `this` 是根据其外层（函数或全局）的**词法作用域**来决定的。
@@ -418,3 +518,8 @@ function foo() {
 var obj = { a: 2 };
 foo.call(obj); // 2
 ```      
+## 6.[判定this](https://juejin.cn/post/6844904083707396109)
+* 函数是通过 **`new`** 被调用的吗（**`new 绑定`**）？如果是，this 就是新构建的对象。
+* 函数是通过 **`call`** 或 **`apply`** 被调用（**`显式绑定`**），甚至是隐藏在 **`bind`** 硬绑定 之中吗？如果是，this 就是那个被明确指定的对象。
+* 函数是通过环境对象（也称为拥有者或容器对象）被调用的吗（**`隐式绑定`**）？如果是，this 就是那个环境对象。
+* 否则，使用默认的 this（**`默认绑定`**）。如果在 strict mode 下，就是 undefined，否则是 global 对象。

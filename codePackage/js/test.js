@@ -8,3 +8,4 @@ console.log(typeof obj); // "object"
 console.log(typeof obj2); // "object"
 console.log(typeof val); // "number"
 console.log(typeof val2);
+
