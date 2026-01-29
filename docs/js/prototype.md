@@ -608,11 +608,11 @@ p.__proto__.__proto__.__proto__ === null; // true
 | **7. 混入继承** | 灵活，功能组合 | 易属性冲突 | ★★★☆☆ |
 | **8. ES6 `extends`** | **语法简洁，现代 JS 最佳方案** | 只是语法糖 | ★★★★★ |
 
-*   **Q: 为什么组合继承中，`constructor` 需要被修正？**
-    *   **A**: 因为 `Dog.prototype = new Animal()` 这行代码，会用 `Animal` 的实例覆盖 `Dog` 的原型。`Animal` 实例的 `constructor` 指向 `Animal`，这导致 `Dog` 实例的 `constructor` 也错误地指向了 `Animal`。`Dog.prototype.constructor = Dog;` 就是为了把这个指向修正回来。
+*   **Q1: 为什么组合继承中，`constructor` 需要被修正？**
+    *  因为 `Dog.prototype = new Animal()` 这行代码，会用 `Animal` 的实例覆盖 `Dog` 的原型。`Animal` 实例的 `constructor` 指向 `Animal`，这导致 `Dog` 实例的 `constructor` 也错误地指向了 `Animal`。`Dog.prototype.constructor = Dog;` 就是为了把这个指向修正回来。
 
-*   **Q: `Object.create()` 在继承中到底起了什么作用？**
-    *   **A**: 在寄生组合式继承中，`Object.create(superType.prototype)` 创建了一个**新的空对象**，这个空对象的 `__proto__` 直接指向 `superType.prototype`。它完美地替代了 `new superType()`，既建立了原型链的链接，又**避免了执行父类的构造函数**，从而防止了在子类原型上创建多余的实例属性。
+*   **Q2: `Object.create()` 在继承中到底起了什么作用？**
+    *  在寄生组合式继承中，`Object.create(superType.prototype)` 创建了一个**新的空对象**，这个空对象的 `__proto__` 直接指向 `superType.prototype`。它完美地替代了 `new superType()`，既建立了原型链的链接，又**避免了执行父类的构造函数**，从而防止了在子类原型上创建多余的实例属性。
 
 ## **5. 常见问题 (FAQ)**
 

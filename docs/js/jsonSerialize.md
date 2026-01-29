@@ -1,4 +1,4 @@
-# JavaScript `JSON.parse()` 和 `JSON.stringify()`
+# **`JSON.parse()`** 和 **`JSON.stringify()`**
 
 *   **`JSON.stringify()` (序列化)**: 将 JavaScript **值** (通常是对象或数组) 转换为 **JSON 字符串**。
 *   **`JSON.parse()` (反序列化/解析)**: 将 **JSON 字符串** 转换为 JavaScript **值**。

@@ -206,6 +206,7 @@ export default defineConfig({
                             {text: '深浅拷贝原理', link: '/js/copy'},
                             {text: 'JSON序列化', link: '/js/jsonSerialize'},
                             {text: '原型、原型链、继承', link: '/js/prototype'},
+                            {text: '任务队列和事件循环', link: '/js/eventLoop'},
                         ]
                     },
                     {
