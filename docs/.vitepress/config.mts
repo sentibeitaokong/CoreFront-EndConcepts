@@ -7,6 +7,13 @@ export default defineConfig({
     description: "vitePress",
     cleanUrls: true,         //生成简洁的url
     themeConfig: {
+        /*markdown: {
+            // Shiki 主题配置
+            theme: {
+                light: 'material-theme-lighter', // 亮色模式下的主题
+                dark: 'material-theme-palenight' // 暗色模式下的主题
+            }
+        },*/
         lastUpdated: {
             text: '最后更新于',      //自定义名称
             formatOptions: {
@@ -206,7 +213,11 @@ export default defineConfig({
                             {text: '深浅拷贝原理', link: '/js/copy'},
                             {text: 'JSON序列化', link: '/js/jsonSerialize'},
                             {text: '原型、原型链、继承', link: '/js/prototype'},
+                            {text: 'class的基本语法', link: '/js/classBasic'},
+                            {text: 'class的继承', link: '/js/classExtends'},
                             {text: '任务队列和事件循环', link: '/js/eventLoop'},
+                            {text: 'Promise对象', link: '/js/promise'},
+                            {text: 'async函数', link: '/js/async'},
                         ]
                     },
                     {

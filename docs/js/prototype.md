@@ -444,6 +444,7 @@ p.__proto__.__proto__.__proto__ === null; // true
     dog1.colors.push('brown');
     console.log(dog2.colors); // ['black', 'white'] (未被污染)
     ```
+    ![Logo](/prototypeExtends.png)
 *   **优点**:
     *   完美解决了参数传递和引用类型共享的问题。
     *   实例既有自己的属性，也能使用原型上的方法，实现了函数复用。
