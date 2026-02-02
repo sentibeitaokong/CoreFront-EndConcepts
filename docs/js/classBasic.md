@@ -4,7 +4,7 @@
 
 JavaScript 语言中，生成实例对象的传统方法是通过构造函数。下面是一个例子。
 
-```javascript
+```js
 function Point(x, y) {
   this.x = x;
   this.y = y;
@@ -23,7 +23,7 @@ ES6 提供了更接近传统语言的写法，引入了 Class（类）这个概�
 
 基本上，ES6 的`class`可以看作只是一个语法糖，它的绝大部分功能，ES5 都可以做到，新的`class`写法只是让对象原型的写法更加清晰、更像面向对象编程的语法而已。上面的代码用 ES6 的`class`改写，就是下面这样。
 
-```javascript
+```js
 class Point {
   constructor(x, y) {
     this.x = x;
@@ -42,7 +42,7 @@ class Point {
 
 ES6 的类，完全可以看作构造函数的另一种写法。
 
-```javascript
+```js
 class Point {
   // ...
 }
@@ -55,7 +55,7 @@ Point === Point.prototype.constructor // true
 
 使用的时候，也是直接对类使用`new`命令，跟构造函数的用法完全一致。
 
-```javascript
+```js
 class Bar {
   doStuff() {
     console.log('stuff');
@@ -68,7 +68,7 @@ b.doStuff() // "stuff"
 
 构造函数的`prototype`属性，在 ES6 的“类”上面继续存在。事实上，类的所有方法都定义在类的`prototype`属性上面。
 
-```javascript
+```js
 class Point {
   constructor() {
     // ...
@@ -96,7 +96,7 @@ Point.prototype = {
 
 因此，在类的实例上面调用方法，其实就是调用原型上的方法。
 
-```javascript
+```js
 class B {}
 const b = new B();
 
@@ -107,7 +107,7 @@ b.constructor === B.prototype.constructor // true
 
 由于类的方法都定义在`prototype`对象上面，所以类的新方法可以添加在`prototype`对象上面。`Object.assign()`方法可以很方便地一次向类添加多个方法。
 
-```javascript
+```js
 class Point {
   constructor(){
     // ...
@@ -122,13 +122,13 @@ Object.assign(Point.prototype, {
 
 `prototype`对象的`constructor`属性，直接指向“类”的本身，这与 ES5 的行为是一致的。
 
-```javascript
+```js
 Point.prototype.constructor === Point // true
 ```
 
 另外，类的内部所有定义的方法，都是不可枚举的（non-enumerable）。
 
-```javascript
+```js
 class Point {
   constructor(x, y) {
     // ...
@@ -147,7 +147,7 @@ Object.getOwnPropertyNames(Point.prototype)
 
 上面代码中，`toString()`方法是`Point`类内部定义的方法，它是不可枚举的。这一点与 ES5 的行为不一致。
 
-```javascript
+```js
 var Point = function (x, y) {
   // ...
 };
@@ -168,7 +168,7 @@ Object.getOwnPropertyNames(Point.prototype)
 
 `constructor()`方法是类的默认方法，通过`new`命令生成对象实例时，自动调用该方法。一个类必须有`constructor()`方法，如果没有显式定义，一个空的`constructor()`方法会被默认添加。
 
-```javascript
+```js
 class Point {
 }
 
@@ -182,7 +182,7 @@ class Point {
 
 `constructor()`方法默认返回实例对象（即`this`），完全可以指定返回另外一个对象。
 
-```javascript
+```js
 class Foo {
   constructor() {
     return Object.create(null);
@@ -197,7 +197,7 @@ new Foo() instanceof Foo
 
 类必须使用`new`调用，否则会报错。这是它跟普通构造函数的一个主要区别，后者不用`new`也可以执行。
 
-```javascript
+```js
 class Foo {
   constructor() {
     return Object.create(null);
@@ -212,7 +212,7 @@ Foo()
 
 生成类的实例的写法，与 ES5 完全一样，也是使用`new`命令。前面说过，如果忘记加上`new`，像函数那样调用`Class()`，将会报错。
 
-```javascript
+```js
 class Point {
   // ...
 }
@@ -226,7 +226,7 @@ var point = new Point(2, 3);
 
 类的属性和方法，除非显式定义在其本身（即定义在`this`对象上），否则都是定义在原型上（即定义在`class`上）。
 
-```javascript
+```js
 class Point {
   constructor(x, y) {
     this.x = x;
@@ -252,7 +252,7 @@ point.__proto__.hasOwnProperty('toString') // true
 
 与 ES5 一样，类的所有实例共享一个原型对象。
 
-```javascript
+```js
 var p1 = new Point(2,3);
 var p2 = new Point(3,2);
 
@@ -266,7 +266,7 @@ p1.__proto__ === p2.__proto__
 
 > `__proto__` 并不是语言本身的特性，这是各大厂商具体实现时添加的私有属性，虽然目前很多现代浏览器的 JS 引擎中都提供了这个私有属性，但依旧不建议在生产中使用该属性，避免对环境产生依赖。生产环境中，我们可以使用 `Object.getPrototypeOf()` 方法来获取实例对象的原型，然后再来为原型添加方法/属性。
 
-```javascript
+```js
 var p1 = new Point(2,3);
 var p2 = new Point(3,2);
 
@@ -285,7 +285,7 @@ p3.printName() // "Oops"
 
 [ES2022](https://github.com/tc39/proposal-class-fields) 为类的实例属性，又规定了一种新写法。实例属性现在除了可以定义在`constructor()`方法里面的`this`上面，也可以定义在类内部的最顶层。
 
-```javascript
+```js
 // 原来的写法
 class IncreasingCounter {
   constructor() {
@@ -305,7 +305,7 @@ class IncreasingCounter {
 
 现在的新写法是，这个属性也可以定义在类的最顶层，其他都不变。
 
-```javascript
+```js
 class IncreasingCounter {
   _count = 0;
   get value() {
@@ -324,7 +324,7 @@ class IncreasingCounter {
 
 这种新写法的好处是，所有实例对象自身的属性都定义在类的头部，看上去比较整齐，一眼就能看出这个类有哪些实例属性。
 
-```javascript
+```js
 class foo {
   bar = 'hello';
   baz = 'world';
@@ -341,7 +341,7 @@ class foo {
 
 与 ES5 一样，在“类”的内部可以使用`get`和`set`关键字，对某个属性设置存值函数和取值函数，拦截该属性的存取行为。
 
-```javascript
+```js
 class MyClass {
   constructor() {
     // ...
@@ -367,7 +367,7 @@ inst.prop
 
 存值函数和取值函数是设置在属性的 Descriptor 对象上的。
 
-```javascript
+```js
 class CustomHTMLElement {
   constructor(element) {
     this.element = element;
@@ -396,7 +396,7 @@ var descriptor = Object.getOwnPropertyDescriptor(
 
 类的属性名，可以采用表达式。
 
-```javascript
+```js
 let methodName = 'getArea';
 
 class Square {
@@ -416,7 +416,7 @@ class Square {
 
 与函数一样，类也可以使用表达式的形式定义。
 
-```javascript
+```js
 const MyClass = class Me {
   getClassName() {
     return Me.name;
@@ -426,7 +426,7 @@ const MyClass = class Me {
 
 上面代码使用表达式定义了一个类。需要注意的是，这个类的名字是`Me`，但是`Me`只在 Class 的内部可用，指代当前类。在 Class 外部，这个类只能用`MyClass`引用。
 
-```javascript
+```js
 let inst = new MyClass();
 inst.getClassName() // Me
 Me.name // ReferenceError: Me is not defined
@@ -436,13 +436,13 @@ Me.name // ReferenceError: Me is not defined
 
 如果类的内部没用到的话，可以省略`Me`，也就是可以写成下面的形式。
 
-```javascript
+```js
 const MyClass = class { /* ... */ };
 ```
 
 采用 Class 表达式，可以写出立即执行的 Class。
 
-```javascript
+```js
 let person = new class {
   constructor(name) {
     this.name = name;
@@ -462,7 +462,7 @@ person.sayName(); // "张三"
 
 类相当于实例的原型，所有在类中定义的方法，都会被实例继承。如果在一个方法前，加上`static`关键字，就表示该方法不会被实例继承，而是直接通过类来调用，这就称为“静态方法”。
 
-```javascript
+```js
 class Foo {
   static classMethod() {
     return 'hello';
@@ -480,7 +480,7 @@ foo.classMethod()
 
 注意，如果静态方法包含`this`关键字，这个`this`指的是类，而不是实例。
 
-```javascript
+```js
 class Foo {
   static bar() {
     this.baz();
@@ -500,7 +500,7 @@ Foo.bar() // hello
 
 父类的静态方法，可以被子类继承。
 
-```javascript
+```js
 class Foo {
   static classMethod() {
     return 'hello';
@@ -517,7 +517,7 @@ Bar.classMethod() // 'hello'
 
 静态方法也是可以从`super`对象上调用的。
 
-```javascript
+```js
 class Foo {
   static classMethod() {
     return 'hello';
@@ -537,7 +537,7 @@ Bar.classMethod() // "hello, too"
 
 静态属性指的是 Class 本身的属性，即`Class.propName`，而不是定义在实例对象（`this`）上的属性。
 
-```javascript
+```js
 class Foo {
 }
 
@@ -549,7 +549,7 @@ Foo.prop // 1
 
 目前，只有这种写法可行，因为 ES6 明确规定，Class 内部只有静态方法，没有静态属性。现在有一个[提案](https://github.com/tc39/proposal-class-fields)提供了类的静态属性，写法是在实例属性的前面，加上`static`关键字。
 
-```javascript
+```js
 class MyClass {
   static myStaticProp = 42;
 
@@ -561,7 +561,7 @@ class MyClass {
 
 这个新写法大大方便了静态属性的表达。
 
-```javascript
+```js
 // 老写法
 class Foo {
   // ...
@@ -584,7 +584,7 @@ class Foo {
 
 一种做法是在命名上加以区别。
 
-```javascript
+```js
 class Widget {
 
   // 公有方法
@@ -605,7 +605,7 @@ class Widget {
 
 另一种方法就是索性将私有方法移出类，因为类内部的所有方法都是对外可见的。
 
-```javascript
+```js
 class Widget {
   foo (baz) {
     bar.call(this, baz);
@@ -623,7 +623,7 @@ function bar(baz) {
 
 还有一种方法是利用`Symbol`值的唯一性，将私有方法的名字命名为一个`Symbol`值。
 
-```javascript
+```js
 const bar = Symbol('bar');
 const snaf = Symbol('snaf');
 
@@ -645,7 +645,7 @@ export default class myClass{
 
 上面代码中，`bar`和`snaf`都是`Symbol`值，一般情况下无法获取到它们，因此达到了私有方法和私有属性的效果。但是也不是绝对不行，`Reflect.ownKeys()`依然可以拿到它们。
 
-```javascript
+```js
 const inst = new myClass();
 
 Reflect.ownKeys(myClass.prototype)
@@ -658,7 +658,7 @@ Reflect.ownKeys(myClass.prototype)
 
 [ES2022](https://github.com/tc39/proposal-class-fields)正式为`class`添加了私有属性，方法是在属性名之前使用`#`表示。
 
-```javascript
+```js
 class IncreasingCounter {
   #count = 0;
   get value() {
@@ -673,7 +673,7 @@ class IncreasingCounter {
 
 上面代码中，`#count`就是私有属性，只能在类的内部使用（`this.#count`）。如果在类的外部使用，就会报错。
 
-```javascript
+```js
 const counter = new IncreasingCounter();
 counter.#count // 报错
 counter.#count = 42 // 报错
@@ -685,7 +685,7 @@ counter.#count = 42 // 报错
 
 另外，不管在类的内部或外部，读取一个不存在的私有属性，也都会报错。这跟公开属性的行为完全不同，如果读取一个不存在的公开属性，不会报错，只会返回`undefined`。
 
-```javascript
+```js
 class IncreasingCounter {
   #count = 0;
   get value() {
@@ -705,7 +705,7 @@ counter.#myCount // 报错
 
 注意，私有属性的属性名必须包括`#`，如果不带`#`，会被当作另一个属性。
 
-```javascript
+```js
 class Point {
   #x;
 
@@ -727,7 +727,7 @@ class Point {
 
 这种写法不仅可以写私有属性，还可以用来写私有方法。
 
-```javascript
+```js
 class Foo {
   #a;
   #b;
@@ -748,7 +748,7 @@ class Foo {
 
 另外，私有属性也可以设置 getter 和 setter 方法。
 
-```javascript
+```js
 class Counter {
   #xValue = 0;
 
@@ -767,7 +767,7 @@ class Counter {
 
 私有属性不限于从`this`引用，只要是在类的内部，实例也可以引用私有属性。
 
-```javascript
+```js
 class Foo {
   #privateValue = 42;
   static getPrivateValue(foo) {
@@ -782,7 +782,7 @@ Foo.getPrivateValue(new Foo()); // 42
 
 私有属性和私有方法前面，也可以加上`static`关键字，表示这是一个静态的私有属性或私有方法。
 
-```javascript
+```js
 class FakeMath {
   static PI = 22 / 7;
   static #totallyRandomNumber = 4;
@@ -811,7 +811,7 @@ FakeMath.#computeRandomNumber() // 报错
 
 前面说过，直接访问某个类不存在的私有属性会报错，但是访问不存在的公开属性不会报错。这个特性可以用来判断，某个对象是否为类的实例。
 
-```javascript
+```js
 class C {
   #brand;
 
@@ -830,7 +830,7 @@ class C {
 
 因此，`try...catch`结构可以用来判断某个私有属性是否存在。但是，这样的写法很麻烦，代码可读性很差，[ES2022](https://github.com/tc39/proposal-private-fields-in-in) 改进了`in`运算符，使它也可以用来判断私有属性。
 
-```javascript
+```js
 class C {
   #brand;
 
@@ -850,7 +850,7 @@ class C {
 
 这种用法的`in`，也可以跟`this`一起配合使用。
 
-```javascript
+```js
 class A {
   #foo = 0;
   m() {
@@ -861,7 +861,7 @@ class A {
 
 注意，判断私有属性时，`in`只能用在类的内部。另外，判断所针对的私有属性，一定要先声明，否则会报错。
 
-```javascript
+```js
 class A {
   m() {
     console.log(#foo in this); // 报错
@@ -875,7 +875,7 @@ class A {
 
 静态属性的一个问题是，如果它有初始化逻辑，这个逻辑要么写在类的外部，要么写在`constructor()`方法里面。
 
-```javascript
+```js
 class C {
   static x = 234;
   static y;
@@ -896,7 +896,7 @@ try {
 
 为了解决这个问题，ES2022 引入了[静态块](https://github.com/tc39/proposal-class-static-block)（static block），允许在类的内部设置一个代码块，在类生成时运行且只运行一次，主要作用是对静态属性进行初始化。以后，新建类的实例时，这个块就不运行了。
 
-```javascript
+```js
 class C {
   static x = ...;
   static y;
@@ -922,7 +922,7 @@ class C {
 
 静态块内部可以使用类名或`this`，指代当前类。
 
-```javascript
+```js
 class C {
   static x = 1;
   static {
@@ -937,7 +937,7 @@ class C {
 
 除了静态属性的初始化，静态块还有一个作用，就是将私有属性与类的外部代码分享。
 
-```javascript
+```js
 let getX;
 
 export class C {
@@ -962,14 +962,14 @@ console.log(getX(new C())); // 1
 
 类不存在变量提升（hoist），这一点与 ES5 完全不同。
 
-```javascript
+```js
 new Foo(); // ReferenceError
 class Foo {}
 ```
 
 上面代码中，`Foo`类使用在前，定义在后，这样会报错，因为 ES6 不会把类的声明提升到代码头部。这种规定的原因与下文要提到的继承有关，必须保证子类在父类之后定义。
 
-```javascript
+```js
 {
   let Foo = class {};
   class Bar extends Foo {
@@ -983,7 +983,7 @@ class Foo {}
 
 由于本质上，ES6 的类只是 ES5 的构造函数的一层包装，所以函数的许多特性都被`Class`继承，包括`name`属性。
 
-```javascript
+```js
 class Point {}
 Point.name // "Point"
 ```
@@ -994,7 +994,7 @@ Point.name // "Point"
 
 如果某个方法之前加上星号（`*`），就表示该方法是一个 Generator 函数。
 
-```javascript
+```js
 class Foo {
   constructor(...args) {
     this.args = args;
@@ -1019,7 +1019,7 @@ for (let x of new Foo('hello', 'world')) {
 
 类的方法内部如果含有`this`，它默认指向类的实例。但是，必须非常小心，一旦单独使用该方法，很可能报错。
 
-```javascript
+```js
 class Logger {
   printName(name = 'there') {
     this.print(`Hello ${name}`);
@@ -1039,7 +1039,7 @@ printName(); // TypeError: Cannot read property 'print' of undefined
 
 一个比较简单的解决方法是，在构造方法中绑定`this`，这样就不会找不到`print`方法了。
 
-```javascript
+```js
 class Logger {
   constructor() {
     this.printName = this.printName.bind(this);
@@ -1051,7 +1051,7 @@ class Logger {
 
 另一种解决方法是使用箭头函数。
 
-```javascript
+```js
 class Obj {
   constructor() {
     this.getThis = () => this;
@@ -1066,7 +1066,7 @@ myObj.getThis() === myObj // true
 
 还有一种解决方法是使用`Proxy`，获取方法的时候，自动绑定`this`。
 
-```javascript
+```js
 function selfish (target) {
   const cache = new WeakMap();
   const handler = {
@@ -1092,7 +1092,7 @@ const logger = selfish(new Logger());
 
 `new`是从构造函数生成实例对象的命令。ES6 为`new`命令引入了一个`new.target`属性，该属性一般用在构造函数之中，返回`new`命令作用于的那个构造函数。如果构造函数不是通过`new`命令或`Reflect.construct()`调用的，`new.target`会返回`undefined`，因此这个属性可以用来确定构造函数是怎么调用的。
 
-```javascript
+```js
 function Person(name) {
   if (new.target !== undefined) {
     this.name = name;
@@ -1118,7 +1118,7 @@ var notAPerson = Person.call(person, '张三');  // 报错
 
 Class 内部调用`new.target`，返回当前 Class。
 
-```javascript
+```js
 class Rectangle {
   constructor(length, width) {
     console.log(new.target === Rectangle);
@@ -1132,7 +1132,7 @@ var obj = new Rectangle(3, 4); // 输出 true
 
 需要注意的是，子类继承父类时，`new.target`会返回子类。
 
-```javascript
+```js
 class Rectangle {
   constructor(length, width) {
     console.log(new.target === Rectangle);
@@ -1153,7 +1153,7 @@ var obj = new Square(3); // 输出 false
 
 利用这个特点，可以写出不能独立使用、必须继承后才能使用的类。
 
-```javascript
+```js
 class Shape {
   constructor() {
     if (new.target === Shape) {

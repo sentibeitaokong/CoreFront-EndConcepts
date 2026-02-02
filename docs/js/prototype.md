@@ -11,7 +11,7 @@ JavaScript 并非传统的基于“类”(Class)的语言，而是基于**原型
 *   **约定**: 构造函数的函数名通常首字母大写，以作区分，例如 `Person`, `Car`。
 *   **作用**: 主要用于**初始化**一个新创建的对象，为其设置属性和方法。
 
-```javascript
+```js
 // 定义一个构造函数
 function Car(make, model, year) {
     // `this` 在这里指向一个新创建的空对象
@@ -70,7 +70,7 @@ function myNew() {
 **最佳实践：将共享方法放在原型上**
 将方法直接定义在构造函数内（如 `this.getDetails = ...`）会导致**每个实例**都创建一份该方法的副本，造成内存浪费。正确的做法是将其放在原型上。
 
-```javascript
+```js
 function Car(make, model) {
   this.make = make;
   this.model = model;
@@ -95,13 +95,13 @@ console.log(car1.getDetails === car2.getDetails); // true
 ### **1.4 常见问题与陷阱 (FAQ)**
 
 *   **Q1: 如果忘记使用 `new` 关键字会发生什么？**
-    *   **A**: 这是**非常危险**的错误。如果直接调用 `Car(...)`，它就是一个普通函数。
+    *   这是**非常危险**的错误。如果直接调用 `Car(...)`，它就是一个普通函数。
         *   在**非严格模式**下，函数内部的 `this`会指向**全局对象 (`window`)**。`this.make = ...` 这样的操作会意外地创建全局变量 `window.make`, `window.model` 等，污染全局作用域。
         *   在**严格模式**下，`this` 是 `undefined`，尝试给 `undefined` 设置属性（`this.make`）会直接抛出 `TypeError`。
 
     **安全模式**:
     为了防止这种错误，可以在构造函数内部进行检查。
-    ```javascript
+    ```js
     function Person(name) {
       if (!(this instanceof Person)) {
         // 如果不是通过 new 调用，则强制用 new 调用并返回
@@ -114,16 +114,16 @@ console.log(car1.getDetails === car2.getDetails); // true
     ```
 
 *   **Q2: 构造函数和普通函数到底有什么区别？**
-    *   **A**: **没有本质区别**。任何函数都可以是构造函数。它们的区别完全在于**调用方式**：
+    *  **没有本质区别**。任何函数都可以是构造函数。它们的区别完全在于**调用方式**：
         *   **`new Car()`**: 构造调用，`this` 指向新实例。
         *   **`Car()`**: 普通函数调用，`this` 指向 `window` 或 `undefined`。
 
 *   **Q3: 构造函数一定要有返回值吗？**
-    *   **A**: **不需要**。`new` 操作符会隐式地帮你返回新创建的实例。只有当你需要打破这个默认行为，返回一个完全不同的对象时，才需要使用 `return`。
+    *   **不需要**。`new` 操作符会隐式地帮你返回新创建的实例。只有当你需要打破这个默认行为，返回一个完全不同的对象时，才需要使用 `return`。
 
 *   **Q4: ES6 的 `class` 和构造函数有什么关系？**
-    *   **A**: ES6 的 `class` 是构造函数的**语法糖**。它提供了更清晰、更接近传统面向对象语言的语法，但其底层实现**完全基于**构造函数和原型链。
-        ```javascript
+    *   ES6 的 `class` 是构造函数的**语法糖**。它提供了更清晰、更接近传统面向对象语言的语法，但其底层实现**完全基于**构造函数和原型链。
+        ```js
         class Car {
           constructor(make, model) {
             this.make = make;
@@ -139,7 +139,7 @@ console.log(car1.getDetails === car2.getDetails); // true
     *   `class` 构造函数**必须**通过 `new` 调用，直接调用会报错，这从语法层面避免了忘记 `new` 的问题。
 
 *   **Q5: 为什么 `myCar.constructor` 指向 `Car`？**
-    *   **A**: 因为 `myCar` 实例自身没有 `constructor` 属性，它会沿着原型链找到 `myCar.__proto__` (即 `Car.prototype`)。而 `Car.prototype` 上有一个默认的 `constructor` 属性，它指回 `Car` 函数本身。
+    *   因为 `myCar` 实例自身没有 `constructor` 属性，它会沿着原型链找到 `myCar.__proto__` (即 `Car.prototype`)。而 `Car.prototype` 上有一个默认的 `constructor` 属性，它指回 `Car` 函数本身。
 
 ## **2. 原型 (Prototype)**
 
@@ -160,7 +160,7 @@ JavaScript 是一种基于原型的语言。这意味着对象不从“类”创
 
 **优化构造函数**: 将共享的方法放到 `prototype` 上，以节省内存。
 
-```javascript
+```js
 function Person(name, age) {
   this.name = name;
   this.age = age;
@@ -249,20 +249,20 @@ console.log( types.join("\n") );
 ### **2.4 常见问题 (FAQ)**
 
 *   **Q1: `prototype` 和 `__proto__` 到底是什么关系？**
-    *   **A**: 它们是同一枚硬币的两面。`prototype` 是从**构造函数**的角度看，定义了“模板”是什么。`__proto__` 是从**实例**的角度看，指向了它的“模板”。它们通过 `new` 操作符连接在一起。
+    *   它们是同一枚硬币的两面。`prototype` 是从**构造函数**的角度看，定义了“模板”是什么。`__proto__` 是从**实例**的角度看，指向了它的“模板”。它们通过 `new` 操作符连接在一起。
 
 *   **Q2: 我可以直接修改 `__proto__` 吗？**
-    *   **A**: **可以，但不推荐**。直接修改一个已存在对象的 `__proto__` 会严重影响 JavaScript 引擎的性能优化。标准的做法是使用 `Object.create()` 来创建一个具有指定原型的新对象，或者在 ES6 中使用 `class` 和 `extends`。
+    *   **可以，但不推荐**。直接修改一个已存在对象的 `__proto__` 会严重影响 JavaScript 引擎的性能优化。标准的做法是使用 `Object.create()` 来创建一个具有指定原型的新对象，或者在 ES6 中使用 `class` 和 `extends`。
 
 *   **Q3: 所有的函数都有 `prototype` 吗？**
-    *   **A**: 几乎所有函数都有。一个重要的例外是 ES6 中的**箭头函数 (`=>`)**，它们没有自己的 `prototype` 属性，也不能用作构造函数。
+    *   几乎所有函数都有。一个重要的例外是 ES6 中的**箭头函数 (`=>`)**，它们没有自己的 `prototype` 属性，也不能用作构造函数。
 
 *   **Q4: `Object.create(null)` 创建的对象有什么特别之处？**
-    *   **A**: 它创建了一个**没有原型**的对象，其 `__proto__` 是 `null`。这是一个绝对“干净”的对象，不继承任何来自 `Object.prototype` 的方法（如 `toString`, `hasOwnProperty`）。非常适合用作纯粹的、无副作用的哈希表或字典。
+    *   它创建了一个**没有原型**的对象，其 `__proto__` 是 `null`。这是一个绝对“干净”的对象，不继承任何来自 `Object.prototype` 的方法（如 `toString`, `hasOwnProperty`）。非常适合用作纯粹的、无副作用的哈希表或字典。
 
 *   **Q5: 如何判断一个属性是对象自身的还是原型链上的？**
-    *   **A**: 使用 `obj.hasOwnProperty(propName)`。如果属性是对象自身的，它会返回 `true`，否则返回 `false`。
-    ```javascript
+    *   使用 `obj.hasOwnProperty(propName)`。如果属性是对象自身的，它会返回 `true`，否则返回 `false`。
+    ```js
     console.log(cat.hasOwnProperty('name')); // true (自身属性)
     console.log(cat.hasOwnProperty('eat'));  // false (原型链上的属性)
     ```
@@ -273,7 +273,7 @@ console.log( types.join("\n") );
 **定义**:每个 JavaScript 对象都有一个指向其**原型 (prototype)** 的内部链接 `[[Prototype]]`（可通过 `__proto__` 访问）。这个原型对象自身也是一个对象，所以它也有自己的原型。这样，一个对象可以通过其内部链接访问其原型的属性，其原型又可以访问其原型的属性，如此层层向上，直到一个对象的原型为 `null` 为止。
 这个由 `[[Prototype]]` 链接起来的、单向的对象链条，就叫做**原型链**。
 
-```javascript
+```js
 function Parent(age) {
     this.age = age;
 }
@@ -299,7 +299,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 *   **Q1: `hasOwnProperty()` 和 `in` 操作符有什么区别？**
     *   **`prop in obj`**: 检查 `prop` 是否在 `obj` 的**自身**或其**原型链**上。只要能通过原型链找到，就返回 `true`。
     *   **`obj.hasOwnProperty(prop)`**: **只**检查 `prop` 是否是 `obj` 的**自身属性**，不关心原型链。
-    ```javascript
+    ```js
     console.log('name' in myDog);      // true (自身属性)
     console.log('species' in myDog);  // true (原型链属性)
     console.log('toString' in myDog); // true (顶级原型链属性)
@@ -310,7 +310,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 
 *   **Q2: 属性的“屏蔽” (Shadowing) 是怎么回事？**
     *   当你试图给一个对象**赋值**一个原型链上已存在的同名属性时，会在**对象自身**上创建一个新属性，而不是修改原型链上的属性。这个自身属性会“屏蔽”原型链上的同名属性。
-    ```javascript
+    ```js
     myDog.species = 'Feline'; // 在 myDog 自身上创建了一个新属性 species
 
     console.log(myDog.species); // 'Feline' (优先访问自身属性)
@@ -324,7 +324,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 
 *   **Q3: 为什么修改原型上的引用类型属性会影响所有实例？**
     *   因为原型是被所有实例**共享**的。如果原型上的属性是一个对象或数组（引用类型），那么所有实例访问这个属性时，访问的都是**同一个**对象或数组的引用。
-    ```javascript
+    ```js
     function Cat() {}
     Cat.prototype.hobbies = ['sleeping', 'eating'];
 
@@ -339,7 +339,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 
 *   **Q4: `instanceof` 的工作原理是什么？**
     *   `A instanceof B` 运算符检查的是 `B.prototype` 对象是否出现在 `A` 的**原型链**上。它不是检查 `A` 是否由 `B` 直接创建。
-    ```javascript
+    ```js
     console.log(eagle instanceof Bird);   // true
     console.log(eagle instanceof Animal); // true (因为 Animal.prototype 在其原型链上)
     console.log(eagle instanceof Object); // true
@@ -356,7 +356,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 
 *   **核心**: 将子类的原型 `prototype` 直接设置为父类的一个**实例**。
 *   **实现**:
-    ```javascript
+    ```js
     function Animal(name) {
         this.name = name; // 实例自身属性
         this.colors = ['black', 'white']; // 引用类型属性，用于测试
@@ -378,7 +378,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 *   **缺点**:
     1.  **无法向父类构造函数传递参数**: 所有 `Dog` 实例的 `name` 都是 `undefined`。
     2.  **引用类型属性共享**: 所有子类实例会共享父类实例的引用类型属性（如 `colors`）。一个实例修改，会影响所有其他实例，这是**致命缺陷**。
-        ```javascript
+        ```js
         const dog1 = new Dog();
         const dog2 = new Dog();
         dog1.colors.push('brown');
@@ -389,7 +389,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 
 *   **核心**: 在子类构造函数内部，使用 `call()` 或 `apply()` 来调用父类构造函数，从而将父类的实例属性复制到子类实例上。
 *   **实现**:
-    ```javascript
+    ```js
     function Animal(name) {
         this.name = name; // 实例自身属性
         this.colors = ['black', 'white']; // 引用类型属性，用于测试
@@ -421,7 +421,7 @@ p.__proto__.__proto__.__proto__ === null; // true
     *   使用**原型链**继承共享的**原型属性和方法**。
     *   使用**借用构造函数**继承**实例自身属性**。
 *   **实现**:
-    ```javascript
+    ```js
     function Animal(name) {
         this.name = name; // 实例自身属性
         this.colors = ['black', 'white']; // 引用类型属性，用于测试
@@ -455,7 +455,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 
 *   **核心**: 利用一个**临时构造函数**，接收一个对象作为参数，然后返回这个临时构造函数的一个新实例。本质上是对传入的对象进行了一次**浅拷贝**。ES5 的 `Object.create()` 就是这种思想的规范化。
 *   **实现**:
-    ```javascript
+    ```js
     function object(o) {
       function F() {}
       F.prototype = o;
@@ -476,7 +476,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 
 *   **核心**: 在**原型式继承**的基础上，创建一个用于封装继承过程的函数，该函数在内部以某种方式来增强对象，最后再像真的是它自己的对象一样返回。
 *   **实现**:
-    ```javascript
+    ```js
     function createAnother(original) {
       const clone = object(original); // 通过原型式继承创建一个新对象
       clone.sayHi = function() { // 增强这个对象
@@ -499,7 +499,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 
 *   **核心**: 这是对**组合继承**的终极优化。它通过**寄生式继承**来继承父类的原型，解决了组合继承中父类构造函数被调用两次的问题。
 *   **实现**:
-    ```javascript
+    ```js
     function Animal(name) {
         this.name = name; // 实例自身属性
         this.colors = ['black', 'white']; // 引用类型属性，用于测试
@@ -540,7 +540,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 
 *   **核心**: 将多个对象的属性和方法复制到一个对象上。这不是严格意义上的继承，更像是一种“组合”或“扩展”。
 *   **实现**:
-    ```javascript
+    ```js
     function mixin(target, ...sources) {
       Object.assign(target, ...sources);
     }
@@ -563,7 +563,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 
 *   **核心**: ES6 引入的**语法糖**，让继承的写法更清晰、更符合传统面向对象语言的习惯。其底层实现就是**寄生组合式继承**。
 *   **实现**:
-    ```javascript
+    ```js
     class Animal {
       constructor(name) {
         this.name = name;
@@ -624,7 +624,7 @@ p.__proto__.__proto__.__proto__ === null; // true
 
 *   **Q2: 为什么修改一个实例的引用类型属性，会影响其他实例？（原型链继承的坑）**
     *   如果父类的属性是引用类型（如 `colors` 数组），并且是通过原型链继承的，那么所有子类实例将**共享**同一个 `colors` 数组。
-        ```javascript
+        ```js
         const dog1 = new Dog('d1');
         const dog2 = new Dog('d2');
         dog1.colors.push('brown');

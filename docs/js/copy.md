@@ -62,7 +62,7 @@ console.log(objA.name); // 'Bob' (objA 也受到了影响，因为它们指向�
 
 **结论**: 浅拷贝只在**顶层**是独立的。其内部嵌套的引用类型，在新旧对象之间**仍然是共享的**。
 
-### **`Object.assign()`**
+### **2.1 `Object.assign()`**
 Object.assign() 方法用于将所有可枚举属性的值从一个或多个源对象复制到目标对象。它将返回目标对象。
 ```js
 let a = {
@@ -94,7 +94,7 @@ console.log(b);
 // } 
 ```
 
-### 展开语法 **`Spread`**
+### **2.2 `Spread`**(展开语法) 
 ```js
 let a = {
     name: "javascript",
@@ -124,7 +124,7 @@ console.log(b);
 // 	book: {title: "You Don't Know JS", price: "55"}
 // } 
 ```
-### **`Array.prototype.slice()`和`Array.prototype.concat()`**
+### **2.3 `Array.prototype.slice()`和`Array.prototype.concat()`**
 ```js
 let a = [0, "1", [2, 3]];
 //let b = a.concat();
@@ -149,7 +149,7 @@ console.log(b);
 
 **结论**: 深拷贝后，新旧对象**完全隔离**，互不影响。
 
-### **[`JSON.parse(JSON.stringify(obj))`](/js/jsonSerialize)**
+### **3.1 [`JSON.parse(JSON.stringify(obj))`](/js/jsonSerialize)**
 
 这是最广为人知、最简单的深拷贝方法。它巧妙地利用了 `JSON` 的两个方法，将 JavaScript 对象转换为 JSON 字符串，然后再解析回新的 JavaScript 对象。
 
@@ -204,7 +204,7 @@ Output:
 
 ---
 
-### **`structuredClone(obj)` (现代最佳实践)**
+### **3.2 `structuredClone(obj)` (现代最佳实践)**
 
 这是一个由 Web API 提供的**全局函数**，专门用于深拷贝。它在现代浏览器和 Node.js v17+ 中可用。
 
@@ -247,7 +247,7 @@ console.log(copied.circular === copied); // true (循环引用被正确处理)
 
 ---
 
-### **Lodash `_.cloneDeep()`**
+### **3.3 Lodash `_.cloneDeep()`**
 
 *   **优点**:
     *   **功能最强大、最完善**: 被认为是 JavaScript 深拷贝的“黄金标准”。

@@ -83,7 +83,7 @@ bar(); // 输出: 1
     *   非严格模式 → 可能会隐式创建全局变量（如果是赋值操作）。
     *   严格模式/取值操作 → 抛出 `ReferenceError`。
 
-**图解链条**： `Inner Function` -> `Outer Function` -> `Global` -> `Error`
+**链条**： `Inner Function` -> `Outer Function` -> `Global` -> `Error`
 
 ### 2.3 作用域的高级应用——闭包 (Closure)
 

@@ -1132,7 +1132,7 @@ run(g);
 
 上面代码的 Generator 函数`g`之中，有一个异步操作`getFoo`，它返回的就是一个`Promise`对象。函数`run`用来处理这个`Promise`对象，并调用下一个`next`方法。
 
-## **4. `Promise`核心方法总结**
+## **4. `Promise`核心总结**
 
 `Promise` 的强大之处在于其链式调用的能力，这通过以下三个核心方法实现。
 
@@ -1162,7 +1162,7 @@ run(g);
     *   它会将父 `Promise` 的 `value` 或 `reason` **“透传”** 给下一个 `.then` 或 `.catch`。
 
 **链式调用示例**:
-```javascript
+```js
 myPromise
   .then(successValue => {
     console.log('Success:', successValue); // "Success: Operation successful!"
@@ -1199,6 +1199,23 @@ myPromise
 | `Promise.allSettled(iterable)` (ES2020) | 接收一个 `Promise` 数组。**永远不会 `rejected`**。它会**等待所有** `Promise` 都“尘埃落定”（`fulfilled` 或 `rejected`）。 | 一个 `fulfilled` 的 `Promise`，其值为一个对象数组，每个对象描述了对应 `Promise` 的最终状态：<br>`{ status: 'fulfilled', value: ... }` 或 `{ status: 'rejected', reason: ... }` |
 | `Promise.any(iterable)` (ES2021) | **“或”逻辑**。接收一个 `Promise` 数组。只要有**一个** `Promise` `fulfilled`，它就会立即 `fulfilled`。只有当**所有** `Promise` 都 `rejected` 时，它才会 `rejected`。 | `fulfilled` 时，返回第一个 `fulfilled` 的 `Promise` 的值。<br>`rejected` 时，返回一个包含所有 `reason` 的 `AggregateError`。 |
 
+### **4.5. [`Promise` 总结](https://mp.weixin.qq.com/s?__biz=MzU5NDM5MDg1Mw==&mid=2247484225&idx=1&sn=b1d26191a41b9a3961f6798d1218fd79&chksm=fe00b96bc977307d2eab27dbd25bf6d27194d7fcdd9d9515822639b0206ad6ca1f946a0de7a9&token=1408690735&lang=zh_CN#rd)**
+
+* **`Promise`**的状态**一经改变**就**不能再改变**。
+* **`.then`**和**`.catch`**都会返回一个**新的** **`Promise`**。
+* **`catch`**不管被连接到哪里，都能**捕获**上层的错误。
+* 在**`Promise`**中，返回任意一个非**`promise`**的值都会被包裹成**`promise`**对象，例如return2会被包装为**`return Promise.resolve(2)`**.
+* **`Promise`**的**`.then`**或者**`.catch`**可以被调用多次，当如果**`Promise`**内部的状态一经改变，并且有了一个值，那么后续每次调用**`.then`**或者**`.catch`**的时候都会直接掌到该值。
+* **`.then`**或者**`.catch`**中return一个**`error`**对象并不会抛出错误，所以不会被**后续的`.catch`**捕获。
+* **`.then`**或**`.catch`**返回的值不能是**`promise`本身**，否则会造成**死循环**。
+* **`.then`**或者**`.catch`**的参数**期望是函数**，传入**非函数**则会发生**值穿透**。
+* **`.then`**方法是能接收**两个参数**的，第一个是处理成功的函数，第二个是处理失败的函数，再某些时候你可以认为**`catch`**是**`.then`**第二个参数的简便写法。
+* **`.finally`**方法也是返回一个**`Promise`**,他在**`Promise`结束**的时候，无论结果为**`resolved`**还是**`rejected`**,都会执行里面的回调函数, 且它的回调函数是**没有参数**的。
+* **`promise.all`**可以并行执行多个异步操作，并在在一个回调中处理所有的返回数据。
+* 如果在**`async`**函数中抛出了**错误**，则**终止错误结果**，不会继续向下执行。
+* **`async`**函数中**`await`**的**`new Promise`**要是**没有返回值**的话则不执行后面的内容
+* 正常情况下，**`async`**中的**`await`**命令是一个**`Promise`**对象，返回该对象的结果。但如果不是**`Promise`**对象的话，就会直接**返回对应的值**，相当**`Promise.resolve()`**
+* **`new Promise`**它的**`resovle`**的值和**`async1().then()`**里的值是没有关系的，**`resovle('promise resolve')`**容易误以为是**`async1().then()`**中的返回值。
 
 ## **5. 常见问题 (FAQ)**
 

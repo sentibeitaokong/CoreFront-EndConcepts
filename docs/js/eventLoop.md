@@ -188,7 +188,7 @@ Node.js 事件循环可以被看作一个**分阶段**的、循环往复的过�
 
 我们通过一个经典的例子来理解它们在 Node.js 中的执行顺序。
 
-```javascript
+```js
 console.log('Start'); // 同步任务
 
 setTimeout(() => {
@@ -253,7 +253,7 @@ setImmediate
 *   **它们的执行顺序依赖于当前事件循环的状态**。如果在 `timers` 阶段执行前 `poll` 阶段已经有任务，或者 `setTimeout` 实际延迟大于 0，那么 `setImmediate` 可能先执行。但在大部分常见场景下（如上例），`setTimeout(0)` 往往会先触发，因为 `timers` 阶段在 `check` 阶段之前。**但在纯粹的 I/O 回调内部，`setImmediate` 总是优先于 `setTimeout(0)`。**
 
 例如：
-```javascript
+```js
 const fs = require('fs');
 
 fs.readFile(__filename, () => {
@@ -309,7 +309,7 @@ setTimeout in readFile
     *   微任务提供了一种“插队”的能力。它允许我们在当前宏任务结束后、下一次 UI 渲染或下一个宏任务开始前，立即执行一些高优先级的、与状态更新相关的逻辑（如 `Promise` 的决议）。这确保了操作的**原子性**和**及时性**，避免了在等待下一个宏任务期间可能出现的 UI 状态不一致。
 *   **Q2: 如果微任务队列一直有新任务加入，会发生什么？**
     *  会导致**主线程阻塞**，因为事件循环会一直“卡”在清空微任务队列的阶段，无法进入下一个宏任务或 UI 渲染。这被称为“微任务饥饿”(Microtask starvation)。
-    ```javascript
+    ```js
     // 危险！不要在生产环境运行
     Promise.resolve().then(function microtask() {
       console.log('Microtask running...');
@@ -328,7 +328,7 @@ setTimeout in readFile
         *   `async` 函数本身会立即返回一个 `Promise` 对象。
 
     **示例**:
-    ```javascript
+    ```js
     async function async1() {
       console.log('2. async1 start');
       await async2(); // await 后面的代码会进入微任务队列

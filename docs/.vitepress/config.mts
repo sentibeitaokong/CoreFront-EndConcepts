@@ -209,15 +209,9 @@ export default defineConfig({
                             {text: '集合引用类型', link: '/js/collectionPrimitiveTypes'},
                             {text: '函数基础', link: '/js/basicFunction'},
                             {text: '闭包', link: '/js/closure'},
-                            {text: 'this全面解析', link: '/js/this'},
+                            {text: 'This全面解析', link: '/js/this'},
                             {text: '深浅拷贝原理', link: '/js/copy'},
                             {text: 'JSON序列化', link: '/js/jsonSerialize'},
-                            {text: '原型、原型链、继承', link: '/js/prototype'},
-                            {text: 'class的基本语法', link: '/js/classBasic'},
-                            {text: 'class的继承', link: '/js/classExtends'},
-                            {text: '任务队列和事件循环', link: '/js/eventLoop'},
-                            {text: 'Promise对象', link: '/js/promise'},
-                            {text: 'async函数', link: '/js/async'},
                         ]
                     },
                     {
@@ -225,7 +219,61 @@ export default defineConfig({
                         collapsible: true, // 允许折叠 (默认true，可省略)
                         collapsed: false, // 初始状态为“展开”
                         items: [
-
+                            {
+                                text: '基础引用类型扩展',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: false, // 初始状态为“展开”
+                                items:[
+                                    {text: '字符串的扩展', link: '/js/string'},
+                                    {text: '正则的扩展', link: '/js/regExp'},
+                                    {text: '数值的扩展', link: '/js/number'},
+                                    {text: '函数的扩展', link: '/js/function'},
+                                    {text: '数组的扩展', link: '/js/array'},
+                                    {text: '对象的扩展', link: '/js/object'},
+                                    {text: '字符串的新增方法', link: '/js/objectMethods'},
+                                    {text: '运算符的扩展', link: '/js/operator'},
+                                    {text: 'Symbol', link: '/js/symbol'},
+                                    {text: 'Set和Map数据结构', link: '/js/setAndmap'},
+                                ]
+                            },
+                            {
+                                text: '事件循环和异步',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: false, // 初始状态为“展开”
+                                items:[
+                                    {text: 'Promise对象', link: '/js/promise'},
+                                    {text: 'Iterator(遍历器)', link: '/js/iterator'},
+                                    {text: 'Generator函数的语法', link: '/js/generator'},
+                                    {text: 'Generator函数的异步应用', link: '/js/generatorApply'},
+                                    {text: 'async函数', link: '/js/async'},
+                                    {text: '任务队列和事件循环', link: '/js/eventLoop'},
+                                ]
+                            },
+                            {text: 'Class的基本语法', link: '/js/classBasic'},
+                            {text: 'Class的继承', link: '/js/classExtends'},
+                            {text: '原型、原型链、继承', link: '/js/prototype'},
+                            {
+                                text: '元编程',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: false, // 初始状态为“展开”
+                                items:[
+                                    {text: 'Proxy', link: '/js/proxy'},
+                                    {text: 'Reflect', link: '/js/reflect'},
+                                ]
+                            },
+                            {
+                                text: '模块化',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: false, // 初始状态为“展开”
+                                items:[
+                                    {text: 'Module的语法', link: '/js/module'},
+                                    {text: 'Module的加载实现', link: '/js/compareModule'},
+                                ]
+                            },
+                            {text: '跨域', link: '/js/crossOrigin'},
+                            {text: 'ArrayBuffer', link: '/js/arrayBuffer'},
+                            {text: 'Decorator(装饰器)', link: '/js/decorator'},
+                            {text: '性能优化', link: '/js/optimize'},
                         ]
                     }
                 ]

@@ -15,7 +15,7 @@
 要转换的 JavaScript 值。
 
 **基础用法**:
-```javascript
+```js
 const user = {
   id: 1,
   name: "Alice",
@@ -44,7 +44,7 @@ console.log(jsonString);
 6.  **`BigInt`**: 会抛出 `TypeError: Do not know how to serialize a BigInt`。
 7.  **只序列化可枚举自身属性**: 原型链上的属性会被忽略。
 
-```javascript
+```js
 const data = {
   a: undefined,
   b: Symbol('id'),
@@ -61,32 +61,32 @@ console.log(JSON.stringify(data)); // '{"d":[null,null]}' (a, b, c 都消失了)
 *   **作为函数 `(key, value) => newValue`**:
     *   该函数会对要序列化的对象的每个键值对调用一次。
     *   `key` 是属性名，`value` 是属性值。
-    *   **返回值**:
-        *   返回一个 `Number`, `String`, `Boolean` 或 `Object`，该值会替代原始值。
-        *   返回 `undefined`，该键值对会被忽略。
-        *   返回 `null`，该值会变成 `null`。
+*   **返回值**:
+    *   返回一个 `Number`, `String`, `Boolean` 或 `Object`，该值会替代原始值。
+    *   返回 `undefined`，该键值对会被忽略。
+    *   返回 `null`，该值会变成 `null`。
 
-    ```javascript
-    const product = { name: "Laptop", price: 1200, secretCode: "XYZ123" };
+  ```js
+  const product = { name: "Laptop", price: 1200, secretCode: "XYZ123" };
 
-    const replacerFunc = (key, value) => {
-      if (key === "secretCode") {
-        return undefined; // 过滤掉 secretCode
-      }
-      if (key === "price") {
-        return `$${value}`; // 修改 price 的值
-      }
-      return value;
-    };
+  const replacerFunc = (key, value) => {
+    if (key === "secretCode") {
+      return undefined; // 过滤掉 secretCode
+    }
+    if (key === "price") {
+      return `$${value}`; // 修改 price 的值
+    }
+    return value;
+  };
 
-    console.log(JSON.stringify(product, replacerFunc));
-    // '{"name":"Laptop","price":"$1200"}'
-    ```
+  console.log(JSON.stringify(product, replacerFunc));
+  // '{"name":"Laptop","price":"$1200"}'
+  ```
 
 *   **作为数组**:
     *   数组中的字符串值指定了**要被包含**在最终 JSON 字符串中的属性名。
 
-    ```javascript
+    ```js
     const user = { name: "Alice", age: 30, city: "New York" };
     const whitelist = ["name", "age"];
 
@@ -99,7 +99,7 @@ console.log(JSON.stringify(data)); // '{"d":[null,null]}' (a, b, c 都消失了)
 用于控制最终字符串的**缩进和间距**，使其更具可读性。
 
 *   **作为数字 (1-10)**: 指定每个级别缩进的空格数。
-    ```javascript
+    ```js
     const user = { name: "Alice", age: 30 };
     console.log(JSON.stringify(user, null, 2));
     /*
@@ -110,7 +110,7 @@ console.log(JSON.stringify(data)); // '{"d":[null,null]}' (a, b, c 都消失了)
     */
     ```
 *   **作为字符串 (最多 10 个字符)**: 该字符串将被用作缩进。
-    ```javascript
+    ```js
     console.log(JSON.stringify(user, null, '----'));
     /*
     {
@@ -132,7 +132,7 @@ console.log(JSON.stringify(data)); // '{"d":[null,null]}' (a, b, c 都消失了)
 一个**有效的 JSON 字符串**。如果字符串格式不符合 JSON 规范，会抛出 `SyntaxError`。
 
 **基础用法**:
-```javascript
+```js
 const jsonString = '{"id":1,"name":"Alice","isAdmin":true,"courses":["Math","Science"]}';
 const userObject = JSON.parse(jsonString);
 
@@ -155,7 +155,7 @@ console.log(userObject.courses[0]); // "Math"
     *   不返回值 (或返回原始 `value`)，则保持不变。
 
 **最经典的应用：将日期字符串转换回 `Date` 对象**
-```javascript
+```js
 const jsonString = '{"name":"Meeting","time":"2023-10-27T10:00:00.000Z"}';
 
 const reviverFunc = (key, value) => {
@@ -174,12 +174,12 @@ console.log(eventObject.time instanceof Date); // true
 ## **3. 常见问题与技巧 (FAQ)**
 
 *   **Q1: 如何用 `JSON.stringify` 实现深拷贝？**
-    *   **A**: `const deepCopy = JSON.parse(JSON.stringify(originalObject));`
+    *   `const deepCopy = JSON.parse(JSON.stringify(originalObject));`
     *   **重要**: 这是一个**有缺陷**的深拷贝。它简单快捷，但无法处理函数、`undefined`、`Date`、循环引用等情况。只应用于纯粹的、JSON 安全的数据。
 
 *   **Q2: 如何处理 `BigInt` 的序列化？**
-    *   **A**: `BigInt` 默认不支持。你需要通过 `replacer` 或修改 `BigInt.prototype.toJSON` 来实现。
-    ```javascript
+    *   `BigInt` 默认不支持。你需要通过 `replacer` 或修改 `BigInt.prototype.toJSON` 来实现。
+    ```js
     // 方法一：修改原型 (会影响全局)
     BigInt.prototype.toJSON = function() {
       return this.toString();
@@ -193,18 +193,18 @@ console.log(eventObject.time instanceof Date); // true
     ```
 
 *   **Q3: 为什么 `JSON.parse()` 报错 `SyntaxError: Unexpected token`？**
-    *   **A**: 99% 的可能性是你的 JSON 字符串格式不正确。请检查：
+    *   99% 的可能性是你的 JSON 字符串格式不正确。请检查：
         1.  **键名**是否用了双引号 `"`。
         2.  字符串值是否用了双引号 `"`。
         3.  对象或数组的末尾是否有多余的**逗号**。
         4.  字符串中是否有未正确转义的特殊字符（如换行符）。
 
 *   **Q4: `JSON.stringify` 有性能问题吗？**
-    *   **A**: 是的。对于非常巨大的对象（几 MB 或几十 MB），`JSON.stringify` 是一个**同步的、阻塞的操作**。在主线程上执行它可能会导致页面卡顿。对于大数据，可以考虑使用 `Web Worker` 在后台线程中进行序列化，或者使用流式 (streaming) JSON 库。
+    *   是的。对于非常巨大的对象（几 MB 或几十 MB），`JSON.stringify` 是一个**同步的、阻塞的操作**。在主线程上执行它可能会导致页面卡顿。对于大数据，可以考虑使用 `Web Worker` 在后台线程中进行序列化，或者使用流式 (streaming) JSON 库。
 
 *   **Q5: `toJSON()` 方法有什么用？**
-    *   **A**: 如果一个对象有自己的 `toJSON()` 方法，那么 `JSON.stringify()` 在序列化这个对象时，会**优先调用这个 `toJSON()` 方法**，并使用其返回值进行下一步的序列化。`Date` 对象就是一个很好的例子，它的 `toJSON()` 方法返回其 ISO 字符串。
-    ```javascript
+    *   如果一个对象有自己的 `toJSON()` 方法，那么 `JSON.stringify()` 在序列化这个对象时，会**优先调用这个 `toJSON()` 方法**，并使用其返回值进行下一步的序列化。`Date` 对象就是一个很好的例子，它的 `toJSON()` 方法返回其 ISO 字符串。
+    ```js
     const user = {
       name: 'Alice',
       lastLogin: new Date(),

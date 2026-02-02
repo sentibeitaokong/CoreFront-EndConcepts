@@ -8,7 +8,7 @@ async 函数是什么？一句话，它就是 Generator 函数的语法糖。
 
 前文有一个 Generator 函数，依次读取两个文件。
 
-```javascript
+```js
 const fs = require('fs');
 
 const readFile = function (fileName) {
@@ -30,7 +30,7 @@ const gen = function* () {
 
 上面代码的函数`gen`可以写成`async`函数，就是下面这样。
 
-```javascript
+```js
 const asyncReadFile = async function () {
   const f1 = await readFile('/etc/fstab');
   const f2 = await readFile('/etc/shells');
@@ -47,7 +47,7 @@ const asyncReadFile = async function () {
 
 Generator 函数的执行必须靠执行器，所以才有了`co`模块，而`async`函数自带执行器。也就是说，`async`函数的执行，与普通函数一模一样，只要一行。
 
-```javascript
+```js
 asyncReadFile();
 ```
 
@@ -73,7 +73,7 @@ asyncReadFile();
 
 下面是一个例子。
 
-```javascript
+```js
 async function getStockPriceByName(name) {
   const symbol = await getStockSymbol(name);
   const stockPrice = await getStockPrice(symbol);
@@ -89,7 +89,7 @@ getStockPriceByName('goog').then(function (result) {
 
 下面是另一个例子，指定多少毫秒后输出一个值。
 
-```javascript
+```js
 function timeout(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -108,7 +108,7 @@ asyncPrint('hello world', 50);
 
 由于`async`函数返回的是 Promise 对象，可以作为`await`命令的参数。所以，上面的例子也可以写成下面的形式。
 
-```javascript
+```js
 async function timeout(ms) {
   await new Promise((resolve) => {
     setTimeout(resolve, ms);
@@ -125,7 +125,7 @@ asyncPrint('hello world', 50);
 
 async 函数有多种使用形式。
 
-```javascript
+```js
 // 函数声明
 async function foo() {}
 
@@ -165,7 +165,7 @@ const foo = async () => {};
 
 `async`函数内部`return`语句返回的值，会成为`then`方法回调函数的参数。
 
-```javascript
+```js
 async function f() {
   return 'hello world';
 }
@@ -178,7 +178,7 @@ f().then(v => console.log(v))
 
 `async`函数内部抛出错误，会导致返回的 Promise 对象变为`reject`状态。抛出的错误对象会被`catch`方法回调函数接收到。
 
-```javascript
+```js
 async function f() {
   throw new Error('出错了');
 }
@@ -196,7 +196,7 @@ f().then(
 
 下面是一个例子。
 
-```javascript
+```js
 async function getTitle(url) {
   let response = await fetch(url);
   let html = await response.text();
@@ -212,7 +212,7 @@ getTitle('https://tc39.github.io/ecma262/').then(console.log)
 
 正常情况下，`await`命令后面是一个 Promise 对象，返回该对象的结果。如果不是 Promise 对象，就直接返回对应的值。
 
-```javascript
+```js
 async function f() {
   // 等同于
   // return 123;
@@ -227,7 +227,7 @@ f().then(v => console.log(v))
 
 另一种情况是，`await`命令后面是一个`thenable`对象（即定义了`then`方法的对象），那么`await`会将其等同于 Promise 对象。
 
-```javascript
+```js
 class Sleep {
   constructor(timeout) {
     this.timeout = timeout;
@@ -252,7 +252,7 @@ class Sleep {
 
 这个例子还演示了如何实现休眠效果。JavaScript 一直没有休眠的语法，但是借助`await`命令就可以让程序停顿指定的时间。下面给出了一个简化的`sleep`实现。
 
-```javascript
+```js
 function sleep(interval) {
   return new Promise(resolve => {
     setTimeout(resolve, interval);
@@ -272,7 +272,7 @@ one2FiveInAsync();
 
 `await`命令后面的 Promise 对象如果变为`reject`状态，则`reject`的参数会被`catch`方法的回调函数接收到。
 
-```javascript
+```js
 async function f() {
   await Promise.reject('出错了');
 }
@@ -287,7 +287,7 @@ f()
 
 任何一个`await`语句后面的 Promise 对象变为`reject`状态，那么整个`async`函数都会中断执行。
 
-```javascript
+```js
 async function f() {
   await Promise.reject('出错了');
   await Promise.resolve('hello world'); // 不会执行
@@ -298,7 +298,7 @@ async function f() {
 
 有时，我们希望即使前一个异步操作失败，也不要中断后面的异步操作。这时可以将第一个`await`放在`try...catch`结构里面，这样不管这个异步操作是否成功，第二个`await`都会执行。
 
-```javascript
+```js
 async function f() {
   try {
     await Promise.reject('出错了');
@@ -314,7 +314,7 @@ f()
 
 另一种方法是`await`后面的 Promise 对象再跟一个`catch`方法，处理前面可能出现的错误。
 
-```javascript
+```js
 async function f() {
   await Promise.reject('出错了')
     .catch(e => console.log(e));
@@ -331,7 +331,7 @@ f()
 
 如果`await`后面的异步操作出错，那么等同于`async`函数返回的 Promise 对象被`reject`。
 
-```javascript
+```js
 async function f() {
   await new Promise(function (resolve, reject) {
     throw new Error('出错了');
@@ -348,7 +348,7 @@ f()
 
 防止出错的方法，也是将其放在`try...catch`代码块之中。
 
-```javascript
+```js
 async function f() {
   try {
     await new Promise(function (resolve, reject) {
@@ -362,7 +362,7 @@ async function f() {
 
 如果有多个`await`命令，可以统一放在`try...catch`结构中。
 
-```javascript
+```js
 async function main() {
   try {
     const val1 = await firstStep();
@@ -379,7 +379,7 @@ async function main() {
 
 下面的例子使用`try...catch`结构，实现多次重复尝试。
 
-```javascript
+```js
 const superagent = require('superagent');
 const NUM_RETRIES = 3;
 
@@ -403,7 +403,7 @@ test();
 
 第一点，前面已经说过，`await`命令后面的`Promise`对象，运行结果可能是`rejected`，所以最好把`await`命令放在`try...catch`代码块中。
 
-```javascript
+```js
 async function myFunction() {
   try {
     await somethingThatReturnsAPromise();
@@ -424,14 +424,14 @@ async function myFunction() {
 
 第二点，多个`await`命令后面的异步操作，如果不存在继发关系，最好让它们同时触发。
 
-```javascript
+```js
 let foo = await getFoo();
 let bar = await getBar();
 ```
 
 上面代码中，`getFoo`和`getBar`是两个独立的异步操作（即互不依赖），被写成继发关系。这样比较耗时，因为只有`getFoo`完成以后，才会执行`getBar`，完全可以让它们同时触发。
 
-```javascript
+```js
 // 写法一
 let [foo, bar] = await Promise.all([getFoo(), getBar()]);
 
@@ -446,7 +446,7 @@ let bar = await barPromise;
 
 第三点，`await`命令只能用在`async`函数之中，如果用在普通函数，就会报错。
 
-```javascript
+```js
 async function dbFuc(db) {
   let docs = [{}, {}, {}];
 
@@ -459,7 +459,7 @@ async function dbFuc(db) {
 
 上面代码会报错，因为`await`用在普通函数之中了。但是，如果将`forEach`方法的参数改成`async`函数，也有问题。
 
-```javascript
+```js
 function dbFuc(db) { //这里不需要 async
   let docs = [{}, {}, {}];
 
@@ -472,7 +472,7 @@ function dbFuc(db) { //这里不需要 async
 
 上面代码可能不会正常工作，原因是这时三个`db.post()`操作将是并发执行，也就是同时执行，而不是继发执行。正确的写法是采用`for`循环。
 
-```javascript
+```js
 async function dbFuc(db) {
   let docs = [{}, {}, {}];
 
@@ -484,7 +484,7 @@ async function dbFuc(db) {
 
 另一种方法是使用数组的`reduce()`方法。
 
-```javascript
+```js
 async function dbFuc(db) {
   let docs = [{}, {}, {}];
 
@@ -501,7 +501,7 @@ async function dbFuc(db) {
 
 如果确实希望多个请求并发执行，可以使用`Promise.all`方法。当三个请求都会`resolved`时，下面两种写法效果相同。
 
-```javascript
+```js
 async function dbFuc(db) {
   let docs = [{}, {}, {}];
   let promises = docs.map((doc) => db.post(doc));
@@ -526,7 +526,7 @@ async function dbFuc(db) {
 
 第四点，async 函数可以保留运行堆栈。
 
-```javascript
+```js
 const a = () => {
   b().then(() => c());
 };
@@ -536,7 +536,7 @@ const a = () => {
 
 现在将这个例子改成`async`函数。
 
-```javascript
+```js
 const a = async () => {
   await b();
   c();
@@ -549,7 +549,7 @@ const a = async () => {
 
 async 函数的实现原理，就是将 Generator 函数和自动执行器，包装在一个函数里。
 
-```javascript
+```js
 async function fn(args) {
   // ...
 }
@@ -567,7 +567,7 @@ function fn(args) {
 
 下面给出`spawn`函数的实现，基本就是前文自动执行器的翻版。
 
-```javascript
+```js
 function spawn(genF) {
   return new Promise(function(resolve, reject) {
     const gen = genF();
@@ -600,7 +600,7 @@ function spawn(genF) {
 
 首先是 Promise 的写法。
 
-```javascript
+```js
 function chainAnimationsPromise(elem, animations) {
 
   // 变量ret用来保存上一个动画的返回值
@@ -631,7 +631,7 @@ function chainAnimationsPromise(elem, animations) {
 
 接着是 Generator 函数的写法。
 
-```javascript
+```js
 function chainAnimationsGenerator(elem, animations) {
 
   return spawn(function*() {
@@ -653,7 +653,7 @@ function chainAnimationsGenerator(elem, animations) {
 
 最后是 async 函数的写法。
 
-```javascript
+```js
 async function chainAnimationsAsync(elem, animations) {
   let ret = null;
   try {
@@ -675,7 +675,7 @@ async function chainAnimationsAsync(elem, animations) {
 
 Promise 的写法如下。
 
-```javascript
+```js
 function logInOrder(urls) {
   // 远程读取所有URL
   const textPromises = urls.map(url => {
@@ -694,7 +694,7 @@ function logInOrder(urls) {
 
 这种写法不太直观，可读性比较差。下面是 async 函数实现。
 
-```javascript
+```js
 async function logInOrder(urls) {
   for (const url of urls) {
     const response = await fetch(url);
@@ -705,7 +705,7 @@ async function logInOrder(urls) {
 
 上面代码确实大大简化，问题是所有远程操作都是继发。只有前一个 URL 返回结果，才会去读取下一个 URL，这样做效率很差，非常浪费时间。我们需要的是并发发出远程请求。
 
-```javascript
+```js
 async function logInOrder(urls) {
   // 并发读取远程URL
   const textPromises = urls.map(async url => {
@@ -726,7 +726,7 @@ async function logInOrder(urls) {
 
 早期的语法规定是，`await`命令只能出现在 async 函数内部，否则都会报错。
 
-```javascript
+```js
 // 报错
 const data = await fetch('https://api.example.com');
 ```
@@ -735,7 +735,7 @@ const data = await fetch('https://api.example.com');
 
 从 [ES2022](https://github.com/tc39/proposal-top-level-await) 开始，允许在模块的顶层独立使用`await`命令，使得上面那行代码不会报错了。它的主要目的是使用`await`解决模块异步加载的问题。
 
-```javascript
+```js
 // awaiting.js
 let output;
 async function main() {
@@ -751,7 +751,7 @@ export { output };
 
 下面是加载这个模块的写法。
 
-```javascript
+```js
 // usage.js
 import { output } from "./awaiting.js";
 
@@ -765,7 +765,7 @@ setTimeout(() => console.log(outputPlusValue(100)), 1000);
 
 目前的解决方法，就是让原始模块输出一个 Promise 对象，从这个 Promise 对象判断异步操作有没有结束。
 
-```javascript
+```js
 // awaiting.js
 let output;
 export default (async function main() {
@@ -780,7 +780,7 @@ export { output };
 
 下面是加载这个模块的新的写法。
 
-```javascript
+```js
 // usage.js
 import promise, { output } from "./awaiting.js";
 
@@ -798,7 +798,7 @@ promise.then(() => {
 
 顶层的`await`命令，就是为了解决这个问题。它保证只有异步操作完成，模块才会输出值。
 
-```javascript
+```js
 // awaiting.js
 const dynamic = import(someMission);
 const data = fetch(url);
@@ -809,7 +809,7 @@ export const output = someProcess((await dynamic).default, await data);
 
 加载这个模块的写法如下。
 
-```javascript
+```js
 // usage.js
 import { output } from "./awaiting.js";
 function outputPlusValue(value) { return output + value }
@@ -826,7 +826,7 @@ setTimeout(() => console.log(outputPlusValue(100)), 1000);
 
 下面是顶层`await`的一些使用场景。
 
-```javascript
+```js
 // import() 方法加载
 const strings = await import(`/i18n/${navigator.language}`);
 
@@ -844,7 +844,7 @@ try {
 
 注意，如果加载多个包含顶层`await`命令的模块，加载命令是同步执行的。
 
-```javascript
+```js
 // x.js
 console.log("X1");
 await new Promise(r => setTimeout(r, 1000));
