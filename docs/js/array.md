@@ -1,8 +1,8 @@
 # 数组的扩展
 
-## 扩展运算符
+## 1. 扩展运算符
 
-### 含义
+### 1.1 含义
 
 扩展运算符（spread）是三个点（`...`）。它好比 rest 参数的逆运算，将一个数组转为用逗号分隔的参数序列。
 
@@ -73,7 +73,7 @@ console.log(...[1, 2])
 
 上面三种情况，扩展运算符都放在圆括号里面，但是前两种情况会报错，因为扩展运算符所在的括号不是函数调用。
 
-### 替代函数的 apply() 方法
+### 1.2 替代函数的 apply() 方法
 
 由于扩展运算符可以展开数组，所以不再需要`apply()`方法将数组转为函数的参数了。
 
@@ -134,7 +134,7 @@ new (Date.bind.apply(Date, [null, 2015, 1, 1]))
 new Date(...[2015, 1, 1]);
 ```
 
-### 扩展运算符的应用
+### 1.3 扩展运算符的应用
 
 **（1）复制数组**
 
@@ -287,7 +287,7 @@ str.split('').reverse().join('')
 
 **（5）实现了 Iterator 接口的对象**
 
-任何定义了遍历器（Iterator）接口的对象（参阅 Iterator 一章），都可以用扩展运算符转为真正的数组。
+任何定义了遍历器（Iterator）接口的对象（参阅 [Iterator](/js/iterator) 一章），都可以用扩展运算符转为真正的数组。
 
 ```js
 let nodeList = document.querySelectorAll('div');
@@ -360,8 +360,9 @@ const go = function*(){
 const obj = {a: 1, b: 2};
 let arr = [...obj]; // TypeError: Cannot spread non-iterable object
 ```
+## 2.数组的静态方法
 
-## Array.from()
+### 2.1 Array.from()
 
 `Array.from()`方法用于将两类对象转为真正的数组：类似数组的对象（array-like object）和可遍历（iterable）的对象（包括 ES6 新增的数据结构 Set 和 Map）。
 
@@ -507,7 +508,7 @@ function countSymbols(string) {
 }
 ```
 
-## Array.of()
+### 2.2 Array.of()
 
 `Array.of()`方法用于将一组值，转换为数组。
 
@@ -546,7 +547,9 @@ function ArrayOf(){
 }
 ```
 
-## 实例方法：copyWithin()
+## 3.数组的原型方法
+
+###  3.1 copyWithin()
 
 数组实例的`copyWithin()`方法，在当前数组内部，将指定位置的成员复制到其他位置（会覆盖原有成员），然后返回当前数组。也就是说，使用这个方法，会修改当前数组。
 
@@ -595,7 +598,7 @@ i32a.copyWithin(0, 2);
 // Int32Array [4, 2, 3, 4, 5]
 ```
 
-## 实例方法：find()，findIndex()，findLast()，findLastIndex()
+###  3.2 find()，findIndex()，findLast()，findLastIndex()
 
 数组实例的`find()`方法，用于找出第一个符合条件的数组成员。它的参数是一个回调函数，所有数组成员依次执行该回调函数，直到找出第一个返回值为`true`的成员，然后返回该成员。如果没有符合条件的成员，则返回`undefined`。
 
@@ -662,7 +665,7 @@ array.findLastIndex(n => n.value % 2 === 1); // 2
 
 上面示例中，`findLast()`和`findLastIndex()`从数组结尾开始，寻找第一个`value`属性为奇数的成员。结果，该成员是`{ value: 3 }`，位置是2号位。
 
-## 实例方法：fill()
+###  3.3 fill()
 
 `fill`方法使用给定值，填充一个数组。
 
@@ -699,7 +702,7 @@ arr
 // [[5], [5], [5]]
 ```
 
-## 实例方法：entries()，keys() 和 values()
+###  3.4 entries()，keys() 和 values()
 
 ES6 提供三个新的方法——`entries()`，`keys()`和`values()`——用于遍历数组。它们都返回一个遍历器对象（详见《Iterator》一章），可以用`for...of`循环进行遍历，唯一的区别是`keys()`是对键名的遍历、`values()`是对键值的遍历，`entries()`是对键值对的遍历。
 
@@ -733,7 +736,7 @@ console.log(entries.next().value); // [1, 'b']
 console.log(entries.next().value); // [2, 'c']
 ```
 
-## 实例方法：includes()
+###  3.5 includes()
 
 `Array.prototype.includes`方法返回一个布尔值，表示某个数组是否包含给定的值，与字符串的`includes`方法类似。ES2016 引入了该方法。
 
@@ -788,7 +791,7 @@ contains(['foo', 'bar'], 'baz'); // => false
 - Map 结构的`has`方法，是用来查找键名的，比如`Map.prototype.has(key)`、`WeakMap.prototype.has(key)`、`Reflect.has(target, propertyKey)`。
 - Set 结构的`has`方法，是用来查找值的，比如`Set.prototype.has(value)`、`WeakSet.prototype.has(value)`。
 
-## 实例方法：flat()，flatMap()
+###  3.6 flat()，flatMap()
 
 数组的成员有时还是数组，`Array.prototype.flat()`用于将嵌套的数组“拉平”，变成一维的数组。该方法返回一个新数组，对原数据没有影响。
 
@@ -853,7 +856,7 @@ arr.flatMap(function callback(currentValue[, index[, array]]) {
 
 `flatMap()`方法还可以有第二个参数，用来绑定遍历函数里面的`this`。
 
-## 实例方法：at()
+###  3.7 at()
 
 长久以来，JavaScript 不支持数组的负索引，如果要引用数组的最后一个成员，不能写成`arr[-1]`，只能使用`arr[arr.length - 1]`。
 
@@ -879,7 +882,7 @@ sentence.at(-100) // undefined
 sentence.at(100) // undefined
 ```
 
-## 实例方法：toReversed()，toSorted()，toSpliced()，with()
+###  3.8 toReversed()，toSorted()，toSpliced()，with()
 
 很多数组的传统方法会改变原数组，比如`push()`、`pop()`、`shift()`、`unshift()`等等。数组只要调用了这些方法，它的值就变了。[ES2023](https://github.com/tc39/proposal-change-array-by-copy)引入了四个新方法，对数组进行操作时，不改变原数组，而返回一个原数组的拷贝。
 
@@ -917,7 +920,7 @@ correctionNeeded.with(1, 2) // [1, 2, 3]
 correctionNeeded // [1, 1, 3]
 ```
 
-## 实例方法：group()，groupToMap()
+###  3.9 group()，groupToMap()
 
 数组成员分组是一个常见需求，比如 SQL 有`GROUP BY`子句和函数式编程有 MapReduce 方法。现在有一个[提案](https://github.com/tc39/proposal-array-grouping)，为 JavaScript 新增了数组实例方法`group()`和`groupToMap()`，它们可以根据分组函数的运行结果，将数组成员分组。
 
@@ -964,7 +967,7 @@ array.groupToMap((num, index, array) => {
 
 总之，按照字符串分组就使用`group()`，按照对象分组就使用`groupToMap()`。
 
-## 数组的空位
+## 4. 数组的空位
 
 数组的空位指的是，数组的某一个位置没有任何值，比如`Array()`构造函数返回的数组都是空位。
 
@@ -1077,41 +1080,77 @@ for (let i of arr) {
 
 由于空位的处理规则非常不统一，所以建议避免出现空位。
 
-## Array.prototype.sort() 的排序稳定性
 
-排序稳定性（stable sorting）是排序算法的重要属性，指的是排序关键字相同的项目，排序前后的顺序不变。
+## **5. 常见问题与陷阱 (FAQ)**
 
-```js
-const arr = [
-  'peach',
-  'straw',
-  'apple',
-  'spork'
-];
+* **Q1: `includes` 和 `indexOf` 有什么区别？我该用哪个？**
 
-const stableSorting = (s1, s2) => {
-  if (s1[0] < s2[0]) return -1;
-  return 1;
-};
+  *   **区别 1 (NaN 处理)**: `indexOf` 无法找到 `NaN`（返回 -1），而 `includes` **可以正确找到** `NaN`（返回 true）。这是最大的区别。
+  *   **区别 2 (返回值)**: `indexOf` 返回**索引**（数字），`includes` 返回**布尔值**。
+  *   **建议**: 如果你只需要判断元素**是否存在**，首选 `includes`，语义更清晰。如果你需要**索引**，用 `indexOf`。
 
-arr.sort(stableSorting)
-// ["apple", "peach", "straw", "spork"]
-```
+* **Q2: `find` 和 `filter` 有什么区别？**        
 
-上面代码对数组`arr`按照首字母进行排序。排序结果中，`straw`在`spork`的前面，跟原始顺序一致，所以排序算法`stableSorting`是稳定排序。
+  *   **`find`**: 找到**第一个**满足条件的元素后**立即停止**，并返回该**元素**。如果没找到，返回 `undefined`。
+  *   **`filter`**: 遍历**整个数组**，返回一个包含**所有**满足条件元素的**新数组**。
+  *   **性能**: 如果你只需要一个结果，`find` 性能更好，因为它不需要遍历完整个数组。
 
-```js
-const unstableSorting = (s1, s2) => {
-  if (s1[0] <= s2[0]) return -1;
-  return 1;
-};
+* **Q3: `forEach` 和 `map` 的核心区别是什么？**
 
-arr.sort(unstableSorting)
-// ["apple", "peach", "spork", "straw"]
-```
+  *   **`forEach`**: 用于**执行副作用**（如打印日志、修改外部变量、DOM 操作）。它**没有返回值**（返回 `undefined`），且**不可链式调用**。
+  *   **`map`**: 用于**数据转换**。它对每个元素执行回调，并**返回一个新数组**（长度与原数组一致）。它**不应**用于执行副作用。
 
-上面代码中，排序结果是`spork`在`straw`前面，跟原始顺序相反，所以排序算法`unstableSorting`是不稳定的。
+* **Q4: 为什么不能在 `forEach` 中使用 `break` 或 `continue`？**
+  * `forEach` 是一个函数调用，传递给它的是一个回调函数。在回调函数中使用 `break`/`continue` 是语法错误的。
+  *   **解决**: 如果需要中途跳出循环，请使用 `for...of` 循环，或者使用 `find` / `some` / `every` 来模拟。
 
-常见的排序算法之中，插入排序、合并排序、冒泡排序等都是稳定的，堆排序、快速排序等是不稳定的。不稳定排序的主要缺点是，多重排序时可能会产生问题。假设有一个姓和名的列表，要求按照“姓氏为主要关键字，名字为次要关键字”进行排序。开发者可能会先按名字排序，再按姓氏进行排序。如果排序算法是稳定的，这样就可以达到“先姓氏，后名字”的排序效果。如果是不稳定的，就不行。
+* **Q5: `map` 也是浅拷贝吗？**
+  * 是的。`map` 返回的是一个新数组，但如果原数组的元素是**对象**，新数组中的元素仍然指向同一个对象引用（除非你在 `map` 回调中显式创建了新对象）。
 
-早先的 ECMAScript 没有规定，`Array.prototype.sort()`的默认排序算法是否稳定，留给浏览器自己决定，这导致某些实现是不稳定的。[ES2019](https://github.com/tc39/ecma262/pull/1340) 明确规定，`Array.prototype.sort()`的默认排序算法必须稳定。这个规定已经做到了，现在 JavaScript 各个主要实现的默认排序算法都是稳定的。
+* **Q6: `flat()` 默认拉平几层？如何拉平无限层？**
+
+  *   `flat()` 默认只拉平 **1 层**。
+  *   要拉平任意深度的嵌套数组，使用 `flat(Infinity)`。
+
+* **Q7: `flat` 会如何处理数组中的“空位” (Empty slots)？**
+
+    * `flat()` 会**自动移除**数组中的空位。
+
+        ```js
+        [1, 2, , 4, 5].flat(); // [1, 2, 4, 5]
+        ```
+
+* **Q8: `flatMap` 和先 `map` 再 `flat` 有什么区别？**
+
+  * 结果是一样的，但 `flatMap` **效率更高**。因为它在一次遍历中同时完成了映射和扁平化操作，避免了创建中间的临时数组。
+  *   **注意**: `flatMap` 只能拉平 **1 层**。
+
+
+* **Q9: `Array.from` 到底有什么用？**
+    * 它是将**类数组对象**（如 `arguments`、DOM `NodeList`）或**可迭代对象**（如 `Set`, `Map`, `String`）转换为**真正数组**的最佳方式。
+    * 它还可以接受第二个参数（map 函数），在转换的同时处理数据：
+          ```js
+          Array.from({ length: 3 }, (_, i) => i); // [0, 1, 2]
+          ```
+
+* **Q10: 为什么需要 `Array.of`？**
+
+     * 它是为了修复 `new Array()` 的怪异行为。
+        *   `new Array(3)`: 创建一个长度为 3 的**空数组**。
+        *   `new Array(1, 2)`: 创建数组 `[1, 2]`。
+        *   `Array.of(3)`: 始终创建包含该元素的数组 `[3]`。`Array.of` 行为更一致。
+
+
+* **Q11: 扩展运算符是深拷贝吗？**
+
+    * **不是**。`[...arr]` 是**浅拷贝**。它只复制了第一层，如果数组元素是对象，复制的依然是引用。
+
+* **Q12: 在处理大数据量时，链式调用（如 `.map().filter()`）有性能问题吗？**
+
+     * **有**。每次链式调用（`.map`, `.filter`）都会创建一个**完整的临时新数组**并遍历一次。对于大数据量，这会增加内存消耗和 CPU 时间。
+     *   **优化**: 使用 `reduce` 在一次遍历中同时完成过滤和映射，或者使用 `for` 循环。
+
+* **Q13: ES6 的数组方法性能一定比 `for` 循环好吗？**
+
+    *   **通常不是**。原生 `for` 循环（特别是 `for...of` 或经典的 `for(i=0...)`）在纯计算性能上往往是最快的。ES6 方法（`map`, `forEach`）因为有函数调用开销，通常会慢一些。
+    *   **但是**：除非在极端性能敏感的代码中（如游戏渲染、数万次操作），否则**优先选择 ES6 方法**，因为它们的可读性、维护性远高于 `for` 循环。

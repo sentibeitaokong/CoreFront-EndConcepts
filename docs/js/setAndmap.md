@@ -1,8 +1,8 @@
 # Set 和 Map 数据结构
 
-## Set
+## 1. Set
 
-### 基本用法
+### 1.1 基本用法
 
 ES6 提供了新的数据结构 Set。它类似于数组，但是成员的值都是唯一的，没有重复的值。
 
@@ -105,7 +105,7 @@ function dedupe(array) {
 dedupe([1, 1, 2, 3]) // [1, 2, 3]
 ```
 
-### Set 实例的属性和方法
+### 1.2 Set 实例的属性和方法
 
 Set 结构的实例有以下属性。
 
@@ -159,7 +159,7 @@ if (properties.has(someName)) {
 }
 ```
 
-### 遍历操作
+### 1.3 遍历操作
 
 Set 结构的实例有四个遍历方法，可以用于遍历成员。
 
@@ -302,7 +302,7 @@ set = new Set(Array.from(set, val => val * 2));
 
 上面代码提供了两种方法，直接在遍历操作中改变原来的 Set 结构。
 
-### 集合运算
+### 1.4 集合运算
 
 [ES2025](https://github.com/tc39/proposal-set-methods) 为 Set 结构添加了以下集合运算方法。
 
@@ -418,9 +418,9 @@ frontEnd.isDisjointFrom(interpreted);
 // false
 ```
 
-## WeakSet
+## 2. WeakSet
 
-### 含义
+### 2.1 含义
 
 WeakSet 结构与 Set 类似，也是不重复的值的集合。但是，它与 Set 有两个区别。
 
@@ -442,7 +442,7 @@ ws.add(Symbol()) // 不报错
 
 这些特点同样适用于本章后面要介绍的 WeakMap 结构。
 
-### 语法
+### 2.2 语法
 
 WeakSet 是一个构造函数，可以使用`new`命令，创建 WeakSet 数据结构。
 
@@ -525,9 +525,9 @@ class Foo {
 
 上面代码保证了`Foo`的实例方法，只能在`Foo`的实例上调用。这里使用 WeakSet 的好处是，`foos`对实例的引用，不会被计入内存回收机制，所以删除实例的时候，不用考虑`foos`，也不会出现内存泄漏。
 
-## Map
+## 3. Map
 
-### 含义和基本用法
+### 3.1 含义和基本用法
 
 JavaScript 的对象（Object），本质上是键值对的集合（Hash 结构），但是传统上只能用字符串当作键。这给它的使用带来了很大的限制。
 
@@ -678,7 +678,7 @@ map.set(NaN, 123);
 map.get(NaN) // 123
 ```
 
-### 实例的属性和操作方法
+### 3.2 实例的属性和操作方法
 
 Map 结构的实例有以下属性和操作方法。
 
@@ -772,7 +772,7 @@ map.clear()
 map.size // 0
 ```
 
-### 遍历方法
+### 3.3 遍历方法
 
 Map 结构原生提供三个遍历器生成函数和一个遍历方法。
 
@@ -894,7 +894,7 @@ map.forEach(function(value, key, map) {
 
 上面代码中，`forEach`方法的回调函数的`this`，就指向`reporter`。
 
-### 与其他数据结构的互相转换
+### 3.4 与其他数据结构的互相转换
 
 **（1）Map 转为数组**
 
@@ -1019,9 +1019,9 @@ jsonToMap('[[true,7],[{"foo":3},["abc"]]]')
 // Map {true => 7, Object {foo: 3} => ['abc']}
 ```
 
-## WeakMap
+## 4. WeakMap
 
-### 含义
+### 4.1 含义
 
 `WeakMap`结构与`Map`结构类似，也是用于生成键值对的集合。
 
@@ -1113,7 +1113,7 @@ wm.get(key)
 
 上面代码中，键值`obj`是正常引用。所以，即使在 WeakMap 外部消除了`obj`的引用，WeakMap 内部的引用依然存在。
 
-### WeakMap 的语法
+### 4.2 WeakMap 的语法
 
 WeakMap 与 Map 在 API 上的区别主要是两个，一是没有遍历操作（即没有`keys()`、`values()`和`entries()`方法），也没有`size`属性。因为没有办法列出所有键名，某个键名是否存在完全不可预测，跟垃圾回收机制是否运行相关。这一刻可以取到键名，下一刻垃圾回收机制突然运行了，这个键名就没了，为了防止出现不确定性，就统一规定不能取到键名。二是无法清空，即不支持`clear`方法。因此，`WeakMap`只有四个方法可用：`get()`、`set()`、`has()`、`delete()`。
 
@@ -1126,7 +1126,7 @@ wm.forEach // undefined
 wm.clear // undefined
 ```
 
-### WeakMap 的示例
+### 4.3 WeakMap 的示例
 
 WeakMap 的例子很难演示，因为无法观察它里面的引用会自动消失。此时，其他引用都解除了，已经没有引用指向 WeakMap 的键名了，导致无法证实那个键名是不是存在。
 
@@ -1200,7 +1200,7 @@ undefined
 
 Chrome 浏览器的 Dev Tools 的 Memory 面板，有一个垃圾桶的按钮，可以强制垃圾回收（garbage collect）。这个按钮也能用来观察 WeakMap 里面的引用是否消失。
 
-### WeakMap 的用途
+### 4.4 WeakMap 的用途
 
 前文说过，WeakMap 应用的典型场合就是 DOM 节点作为键名。下面是一个例子。
 
@@ -1251,7 +1251,7 @@ c.dec()
 
 上面代码中，`Countdown`类的两个内部属性`_counter`和`_action`，是实例的弱引用，所以如果删除实例，它们也就随之消失，不会造成内存泄漏。
 
-## WeakRef
+## 5. WeakRef
 
 WeakSet 和 WeakMap 是基于弱引用的数据结构，[ES2021](https://github.com/tc39/proposal-weakrefs) 更进一步，提供了 WeakRef 对象，用于直接创建对象的弱引用。
 
@@ -1300,106 +1300,4 @@ const getImageCached = makeWeakCached(getImage);
 上面示例中，`makeWeakCached()`用于建立一个缓存，缓存里面保存对原始文件的弱引用。
 
 注意，标准规定，一旦使用`WeakRef()`创建了原始对象的弱引用，那么在本轮事件循环（event loop），原始对象肯定不会被清除，只会在后面的事件循环才会被清除。
-
-## FinalizationRegistry
-
-[ES2021](https://github.com/tc39/proposal-weakrefs#finalizers) 引入了清理器注册表功能 FinalizationRegistry，用来指定目标对象被垃圾回收机制清除以后，所要执行的回调函数。
-
-首先，新建一个注册表实例。
-
-```js
-const registry = new FinalizationRegistry(heldValue => {
-  // ....
-});
-```
-
-上面代码中，`FinalizationRegistry()`是系统提供的构造函数，返回一个清理器注册表实例，里面登记了所要执行的回调函数。回调函数作为`FinalizationRegistry()`的参数传入，它本身有一个参数`heldValue`。
-
-然后，注册表实例的`register()`方法，用来注册所要观察的目标对象。
-
-```js
-registry.register(theObject, "some value");
-```
-
-上面示例中，`theObject`就是所要观察的目标对象，一旦该对象被垃圾回收机制清除，注册表就会在清除完成后，调用早前注册的回调函数，并将`some value`作为参数（前面的`heldValue`）传入回调函数。
-
-注意，注册表不对目标对象`theObject`构成强引用，属于弱引用。因为强引用的话，原始对象就不会被垃圾回收机制清除，这就失去使用注册表的意义了。
-
-回调函数的参数`heldValue`可以是任意类型的值，字符串、数值、布尔值、对象，甚至可以是`undefined`。
-
-最后，如果以后还想取消已经注册的回调函数，则要向`register()`传入第三个参数，作为标记值。这个标记值必须是对象，一般都用原始对象。接着，再使用注册表实例对象的`unregister()`方法取消注册。
-
-```js
-registry.register(theObject, "some value", theObject);
-// ...其他操作...
-registry.unregister(theObject);
-```
-
-上面代码中，`register()`方法的第三个参数就是标记值`theObject`。取消回调函数时，要使用`unregister()`方法，并将标记值作为该方法的参数。这里`register()`方法对第三个参数的引用，也属于弱引用。如果没有这个参数，则回调函数无法取消。
-
-由于回调函数被调用以后，就不再存在于注册表之中了，所以执行`unregister()`应该是在回调函数还没被调用之前。
-
-下面使用`FinalizationRegistry`，对前一节的缓存函数进行增强。
-
-```js
-function makeWeakCached(f) {
-  const cache = new Map();
-  const cleanup = new FinalizationRegistry(key => {
-    const ref = cache.get(key);
-    if (ref && !ref.deref()) cache.delete(key);
-  });
-
-  return key => {
-    const ref = cache.get(key);
-    if (ref) {
-      const cached = ref.deref();
-      if (cached !== undefined) return cached;
-    }
-
-    const fresh = f(key);
-    cache.set(key, new WeakRef(fresh));
-    cleanup.register(fresh, key);
-    return fresh;
-  };
-}
-
-const getImageCached = makeWeakCached(getImage);
-```
-
-上面示例与前一节的例子相比，就是增加一个清理器注册表，一旦缓存的原始对象被垃圾回收机制清除，会自动执行一个回调函数。该回调函数会清除缓存里面已经失效的键。
-
-下面是另一个例子。
-
-```js
-class Thingy {
-  #file;
-  #cleanup = file => {
-    console.error(
-      `The \`release\` method was never called for the \`Thingy\` for the file "${file.name}"`
-    );
-  };
-  #registry = new FinalizationRegistry(this.#cleanup);
-
-  constructor(filename) {
-    this.#file = File.open(filename);
-    this.#registry.register(this, this.#file, this.#file);
-  }
-
-  release() {
-    if (this.#file) {
-      this.#registry.unregister(this.#file);
-      File.close(this.#file);
-      this.#file = null;
-    }
-  }
-}
-```
-
-上面示例中，如果由于某种原因，`Thingy`类的实例对象没有调用`release()`方法，就被垃圾回收机制清除了，那么清理器就会调用回调函数`#cleanup()`，输出一条错误信息。
-
-由于无法知道清理器何时会执行，所以最好避免使用它。另外，如果浏览器窗口关闭或者进程意外退出，清理器则不会运行。
-
-## 参考链接
-
-- [Union, intersection, difference, and more are coming to JavaScript Sets](https://www.sonarsource.com/blog/union-intersection-difference-javascript-sets/)
 

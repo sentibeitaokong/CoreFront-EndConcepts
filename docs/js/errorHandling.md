@@ -1,21 +1,14 @@
-好的，这是一份极其详尽的、关于 JavaScript **错误处理 (Error Handling)** 的终极指南。它将涵盖从核心概念、语法，到同步/异步错误处理，再到自定义错误、最佳实践和常见陷阱，帮助你构建更健壮、更可靠的 JavaScript 应用。
+# JavaScript **错误处理 (Error Handling)**
 
----
+错误处理是任何健壮应用不可或缺的一部分。在 JavaScript 中，错误处理旨在**捕获、识别、响应和恢复**代码执行中遇到的异常情况，从而防止程序崩溃、提供友好的用户体验，并帮助开发者进行调试。
 
-### **文档：JavaScript 错误处理深度解析**
+## **1. 核心概念**
 
-**版本**: 2.0
-**核心思想**: 错误处理是任何健壮应用不可或缺的一部分。在 JavaScript 中，错误处理旨在**捕获、识别、响应和恢复**代码执行中遇到的异常情况，从而防止程序崩溃、提供友好的用户体验，并帮助开发者进行调试。
-
----
-
-### **Part 1: 核心概念**
-
-#### **1.1 什么是错误 (Error)？**
+### **1.1 什么是错误 (Error)？**
 
 在 JavaScript 中，错误是一个特殊的对象，它表示在程序执行期间发生了非预期的事件。当错误发生时，正常的程序流程会被中断。
 
-#### **1.2 错误的类型 (`Error` 对象)**
+### **1.2 错误的类型 (`Error` 对象)**
 
 所有 JavaScript 错误对象都继承自内置的 `Error` 对象。`Error` 对象通常包含以下属性：
 
@@ -35,16 +28,14 @@
 | **`URIError`** | `encodeURI()` 或 `decodeURI()` 等函数参数不合法。 | `decodeURI('%');` |
 | **`EvalError`** | `eval()` 函数相关错误（不推荐使用 `eval`）。 | `new EvalError('Eval error');` |
 
-#### **1.3 同步错误 vs. 异步错误**
+### **1.3 同步错误 vs. 异步错误**
 
 *   **同步错误**: 发生在代码的**主执行流**中，可以使用 `try...catch` 语句直接捕获。
 *   **异步错误**: 发生在**异步操作**的回调函数中。由于异步操作通常在主线程的代码执行完毕后才执行，`try...catch` 无法直接捕获，需要特殊的异步错误处理机制（如 `.catch()`，`async/await` 中的 `try...catch`）。
 
----
+## **2. 同步错误处理**
 
-### **Part 2: 同步错误处理**
-
-#### **2.1 `try...catch` 语句**
+### **2.1 `try...catch` 语句**
 
 这是 JavaScript 处理同步错误的最基本方式。
 
@@ -86,7 +77,7 @@ console.log(divide(10, 2));   // 5, "Divide operation attempted."
 console.log(divide(10, 0));   // "Error in divide function: Division by zero is not allowed.", "Divide operation attempted.", null
 ```
 
-#### **2.2 `throw` 语句**
+### **2.2 `throw` 语句**
 
 `throw` 语句用于**手动抛出**一个错误。你可以抛出任何 JavaScript 值，但通常抛出 `Error` 对象或其子类实例是最佳实践。
 
@@ -107,13 +98,11 @@ try {
 // Output: Validation error: TypeError Input must be a non-negative number.
 ```
 
----
-
-### **Part 3: 异步错误处理**
+## **3. 异步错误处理**
 
 异步操作的错误处理是 JS 错误处理中最复杂的部分，因为 `try...catch` 无法直接捕获异步回调中发生的错误。
 
-#### **3.1 回调函数模式 (Callback Pattern)**
+### **3.1 回调函数模式 (Callback Pattern)**
 
 在基于回调的异步代码中，通常约定**回调函数的第一个参数是错误对象 `err`**。
 
@@ -140,7 +129,7 @@ fetchData("api/users", (err, data) => {
 ```
 **缺点**: 嵌套回调会导致“回调地狱”，错误处理分散且复杂。
 
-#### **3.2 Promise 模式**
+### **3.2 Promise 模式**
 
 `Promise` 提供了统一且强大的异步错误处理机制。
 
@@ -175,7 +164,7 @@ asyncOperation()
   });
 ```
 
-#### **3.3 `async/await` 模式**
+### **3.3 `async/await` 模式**
 
 `async/await` 是 `Promise` 的语法糖，它使得异步代码的错误处理可以像同步代码一样使用 `try...catch`。
 
@@ -201,13 +190,11 @@ async function performAsyncAction() {
 performAsyncAction();
 ```
 
----
-
-### **Part 4: 全局错误捕获**
+## **4. 全局错误捕获**
 
 为了防止未捕获的错误导致程序崩溃，可以设置全局的错误监听。
 
-#### **4.1 浏览器环境**
+### **4.1 浏览器环境**
 
 *   **`window.onerror`**: 捕获所有未被 `try...catch` 捕获的**同步** JavaScript 运行时错误（包括来自外部脚本的错误）。
     ```js
@@ -235,7 +222,7 @@ performAsyncAction();
     // new Promise((resolve, reject) => reject('Whoops!'));
     ```
 
-#### **4.2 Node.js 环境**
+### **4.2 Node.js 环境**
 
 *   **`process.on('uncaughtException', handler)`**: 捕获所有未被 `try...catch` 捕获的**同步** JavaScript 运行时错误。
     *   **注意**: 捕获 `uncaughtException` 后，Node.js 进程通常处于不确定的状态，**不建议继续正常运行**。最佳实践是执行清理工作（如关闭数据库连接），然后优雅地退出进程。
@@ -257,9 +244,7 @@ performAsyncAction();
     // new Promise((resolve, reject) => reject('Whoops Node!'));
     ```
 
----
-
-### **Part 5: 自定义错误类型**
+## **5. 自定义错误类型**
 
 为了提供更具体的错误信息，可以通过继承 `Error` 类来创建自定义错误。
 
@@ -322,9 +307,7 @@ getUserInfo(0);     // ValidationError
 getUserInfo(123);   // NetworkError or User data
 ```
 
----
-
-### **Part 6: 最佳实践与常见陷阱**
+## **6. 最佳实践与常见陷阱**
 
 *   **1. 不要“吞噬”错误 (Don't Swallow Errors)**:
     *   最糟糕的错误处理是捕获错误后什么也不做。这使得问题难以发现和调试。
@@ -356,6 +339,3 @@ getUserInfo(123);   // NetworkError or User data
     *   `finally` 块中的 `return` 语句会**覆盖** `try` 块或 `catch` 块中的 `return` 语句。
     *   `finally` 块中抛出的错误会**覆盖** `try` 块或 `catch` 块中抛出的错误。
 
----
-
-**结语**: 健壮的错误处理是高质量 JavaScript 应用的标志。通过理解各种错误类型，掌握同步和异步的错误处理模式，并遵循最佳实践，你将能够创建出更稳定、更易于维护的应用程序。

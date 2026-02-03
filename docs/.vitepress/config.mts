@@ -220,7 +220,7 @@ export default defineConfig({
                         collapsed: false, // 初始状态为“展开”
                         items: [
                             {
-                                text: '基础引用类型扩展',
+                                text: '数据类型扩展',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: false, // 初始状态为“展开”
                                 items:[
@@ -230,9 +230,7 @@ export default defineConfig({
                                     {text: '函数的扩展', link: '/js/function'},
                                     {text: '数组的扩展', link: '/js/array'},
                                     {text: '对象的扩展', link: '/js/object'},
-                                    {text: '字符串的新增方法', link: '/js/objectMethods'},
                                     {text: '运算符的扩展', link: '/js/operator'},
-                                    {text: 'Symbol', link: '/js/symbol'},
                                     {text: 'Set和Map数据结构', link: '/js/setAndmap'},
                                 ]
                             },
@@ -249,14 +247,22 @@ export default defineConfig({
                                     {text: '任务队列和事件循环', link: '/js/eventLoop'},
                                 ]
                             },
-                            {text: 'Class的基本语法', link: '/js/classBasic'},
-                            {text: 'Class的继承', link: '/js/classExtends'},
-                            {text: '原型、原型链、继承', link: '/js/prototype'},
+                            {
+                                text: '类与继承',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: false, // 初始状态为“展开”
+                                items:[
+                                    {text: 'Class的基本语法', link: '/js/classBasic'},
+                                    {text: 'Class的继承', link: '/js/classExtends'},
+                                    {text: '原型、原型链、继承', link: '/js/prototype'},
+                                ]
+                            },
                             {
                                 text: '元编程',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: false, // 初始状态为“展开”
                                 items:[
+                                    {text: 'Symbol', link: '/js/symbol'},
                                     {text: 'Proxy', link: '/js/proxy'},
                                     {text: 'Reflect', link: '/js/reflect'},
                                 ]
@@ -270,10 +276,12 @@ export default defineConfig({
                                     {text: 'Module的加载实现', link: '/js/compareModule'},
                                 ]
                             },
+                            {text: '严格模式', link: '/js/strict'},
                             {text: '跨域', link: '/js/crossOrigin'},
+                            {text: '错误处理', link: '/js/errorHandling'},
+                            {text: '性能优化', link: '/js/optimize'},
                             {text: 'ArrayBuffer', link: '/js/arrayBuffer'},
                             {text: 'Decorator(装饰器)', link: '/js/decorator'},
-                            {text: '性能优化', link: '/js/optimize'},
                         ]
                     }
                 ]

@@ -1,10 +1,8 @@
 # Symbol
+Symbol 是 ES6 引入的第七种原始数据类型。它的核心目的是创建独一无二的标识符，主要用于防止对象属性名冲突，以及通过“知名 Symbol (Well-Known Symbols)”来修改语言内部的默认行为（元编程）。
 
-## 概述
-
-ES5 的对象属性名都是字符串，这容易造成属性名的冲突。比如，你使用了一个他人提供的对象，但又想为这个对象添加新的方法（mixin 模式），新方法的名字就有可能与现有方法产生冲突。如果有一种机制，保证每个属性的名字都是独一无二的就好了，这样就从根本上防止属性名的冲突。这就是 ES6 引入`Symbol`的原因。
-
-ES6 引入了一种新的原始数据类型`Symbol`，表示独一无二的值。它属于 JavaScript 语言的原生数据类型之一，其他数据类型是：`undefined`、`null`、布尔值（Boolean）、字符串（String）、数值（Number）、大整数（BigInt）、对象（Object）。
+## 1. Symbol 基础
+###  1.1 创建 Symbol
 
 Symbol 值通过`Symbol()`函数生成。这就是说，对象的属性名现在可以有两种类型，一种是原来就有的字符串，另一种就是新增的 Symbol 类型。凡是属性名属于 Symbol 类型，就都是独一无二的，可以保证不会与其他属性名产生冲突。
 
@@ -99,7 +97,7 @@ Number(sym) // TypeError
 sym + 2 // TypeError
 ```
 
-## Symbol.prototype.description
+**`Symbol.prototype.description`**
 
 前面说过，`Symbol()`函数创建 Symbol 值时，可以用参数添加一个描述。
 
@@ -126,7 +124,7 @@ const sym = Symbol('foo');
 sym.description // "foo"
 ```
 
-## 作为属性名的 Symbol
+### 1.2 Symbol 作为对象属性
 
 由于每一个 Symbol 值都是不相等的，这意味着只要 Symbol 值作为标识符，用于对象的属性名，就能保证不会出现同名的属性。这对于一个对象由多个模块构成的情况非常有用，能防止某一个键被不小心改写或覆盖。
 
@@ -223,62 +221,7 @@ function getComplement(color) {
 
 还有一点需要注意，Symbol 值作为属性名时，该属性还是公开属性，不是私有属性。
 
-## 实例：消除魔术字符串
-
-魔术字符串指的是，在代码之中多次出现、与代码形成强耦合的某一个具体的字符串或者数值。风格良好的代码，应该尽量消除魔术字符串，改由含义清晰的变量代替。
-
-```js
-function getArea(shape, options) {
-  let area = 0;
-
-  switch (shape) {
-    case 'Triangle': // 魔术字符串
-      area = .5 * options.width * options.height;
-      break;
-    /* ... more code ... */
-  }
-
-  return area;
-}
-
-getArea('Triangle', { width: 100, height: 100 }); // 魔术字符串
-```
-
-上面代码中，字符串`Triangle`就是一个魔术字符串。它多次出现，与代码形成“强耦合”，不利于将来的修改和维护。
-
-常用的消除魔术字符串的方法，就是把它写成一个变量。
-
-```js
-const shapeType = {
-  triangle: 'Triangle'
-};
-
-function getArea(shape, options) {
-  let area = 0;
-  switch (shape) {
-    case shapeType.triangle:
-      area = .5 * options.width * options.height;
-      break;
-  }
-  return area;
-}
-
-getArea(shapeType.triangle, { width: 100, height: 100 });
-```
-
-上面代码中，我们把`Triangle`写成`shapeType`对象的`triangle`属性，这样就消除了强耦合。
-
-如果仔细分析，可以发现`shapeType.triangle`等于哪个值并不重要，只要确保不会跟其他`shapeType`属性的值冲突即可。因此，这里就很适合改用 Symbol 值。
-
-```js
-const shapeType = {
-  triangle: Symbol()
-};
-```
-
-上面代码中，除了将`shapeType.triangle`的值设为一个 Symbol，其他地方都不用修改。
-
-## 属性名的遍历
+### 1.3 获取 Symbol 属性
 
 Symbol 值作为属性名，遍历对象的时候，该属性不会出现在`for...in`、`for...of`循环中，也不会被`Object.keys()`、`Object.getOwnPropertyNames()`、`JSON.stringify()`返回。
 
@@ -364,8 +307,9 @@ Object.getOwnPropertySymbols(x) // [Symbol(size)]
 
 上面代码中，对象`x`的`size`属性是一个 Symbol 值，所以`Object.keys(x)`、`Object.getOwnPropertyNames(x)`都无法获取它。这就造成了一种非私有的内部方法的效果。
 
-## Symbol.for()，Symbol.keyFor()
+## 2. 全局 Symbol 注册表 
 
+### **2.1 `Symbol.for()`**
 有时，我们希望重新使用同一个 Symbol 值，`Symbol.for()`方法可以做到这一点。它接受一个字符串作为参数，然后搜索有没有以该参数作为名称的 Symbol 值。如果有，就返回这个 Symbol 值，否则就新建一个以该字符串为名称的 Symbol 值，并将其注册到全局。
 
 ```js
@@ -389,6 +333,7 @@ Symbol("bar") === Symbol("bar")
 
 上面代码中，由于`Symbol()`写法没有登记机制，所以每次调用都会返回一个不同的值。
 
+### **2.2 `Symbol.keyFor()`**
 `Symbol.keyFor()`方法返回一个已登记的 Symbol 类型值的`key`。
 
 ```js
@@ -428,7 +373,63 @@ iframe.contentWindow.Symbol.for('foo') === Symbol.for('foo')
 
 上面代码中，iframe 窗口生成的 Symbol 值，可以在主页面得到。
 
-## 实例：模块的 Singleton 模式
+## 3. Symbol应用
+
+### 3.1 消除魔术字符串
+
+魔术字符串指的是，在代码之中多次出现、与代码形成强耦合的某一个具体的字符串或者数值。风格良好的代码，应该尽量消除魔术字符串，改由含义清晰的变量代替。
+
+```js
+function getArea(shape, options) {
+  let area = 0;
+
+  switch (shape) {
+    case 'Triangle': // 魔术字符串
+      area = .5 * options.width * options.height;
+      break;
+    /* ... more code ... */
+  }
+
+  return area;
+}
+
+getArea('Triangle', { width: 100, height: 100 }); // 魔术字符串
+```
+
+上面代码中，字符串`Triangle`就是一个魔术字符串。它多次出现，与代码形成“强耦合”，不利于将来的修改和维护。
+
+常用的消除魔术字符串的方法，就是把它写成一个变量。
+
+```js
+const shapeType = {
+  triangle: 'Triangle'
+};
+
+function getArea(shape, options) {
+  let area = 0;
+  switch (shape) {
+    case shapeType.triangle:
+      area = .5 * options.width * options.height;
+      break;
+  }
+  return area;
+}
+
+getArea(shapeType.triangle, { width: 100, height: 100 });
+```
+
+上面代码中，我们把`Triangle`写成`shapeType`对象的`triangle`属性，这样就消除了强耦合。
+
+如果仔细分析，可以发现`shapeType.triangle`等于哪个值并不重要，只要确保不会跟其他`shapeType`属性的值冲突即可。因此，这里就很适合改用 Symbol 值。
+
+```js
+const shapeType = {
+  triangle: Symbol()
+};
+```
+
+上面代码中，除了将`shapeType.triangle`的值设为一个 Symbol，其他地方都不用修改。
+### 3.2 模块的 Singleton 模式
 
 Singleton 模式指的是调用一个类，任何时候返回的都是同一个实例。
 
@@ -505,11 +506,11 @@ const FOO_KEY = Symbol('foo');
 
 上面代码将导致其他脚本都无法引用`FOO_KEY`。但这样也有一个问题，就是如果多次执行这个脚本，每次得到的`FOO_KEY`都是不一样的。虽然 Node 会将脚本的执行结果缓存，一般情况下，不会多次执行同一个脚本，但是用户可以手动清除缓存，所以也不是绝对可靠。
 
-## 内置的 Symbol 值
+## 4. 内置的 Symbol 值(元编程的核心)
 
-除了定义自己使用的 Symbol 值以外，ES6 还提供了 11 个内置的 Symbol 值，指向语言内部使用的方法。
+ES6 暴露了11个内置的 Symbol 常量，允许开发者自定义对象在语言内部的行为（如迭代、转换、匹配等）。这是 Symbol 最强大的功能。E
 
-### Symbol.hasInstance
+### 4.1 Symbol.hasInstance
 
 对象的`Symbol.hasInstance`属性，指向一个内部方法。当其他对象使用`instanceof`运算符，判断是否为该对象的实例时，会调用这个方法。比如，`foo instanceof Foo`在语言内部，实际调用的是`Foo[Symbol.hasInstance](foo)`。
 
@@ -546,7 +547,7 @@ const Even = {
 12345 instanceof Even // false
 ```
 
-### Symbol.isConcatSpreadable
+### 4.2 Symbol.isConcatSpreadable
 
 对象的`Symbol.isConcatSpreadable`属性等于一个布尔值，表示该对象用于`Array.prototype.concat()`时，是否可以展开。
 
@@ -603,7 +604,7 @@ a2[1] = 6;
 
 注意，`Symbol.isConcatSpreadable`的位置差异，`A1`是定义在实例上，`A2`是定义在类本身，效果相同。
 
-### Symbol.species
+### 4.3 Symbol.species
 
 对象的`Symbol.species`属性，指向一个构造函数。创建衍生对象时，会使用该属性。
 
@@ -673,7 +674,7 @@ new T2(r => r()).then(v => v) instanceof T2 // false
 
 总之，`Symbol.species`的作用在于，实例对象在运行过程中，需要再次调用自身的构造函数时，会调用该属性指定的构造函数。它主要的用途是，有些类库是在基类的基础上修改的，那么子类使用继承的方法时，作者可能希望返回基类的实例，而不是子类的实例。
 
-### Symbol.match
+### 4.4 Symbol.match
 
 对象的`Symbol.match`属性，指向一个函数。当执行`str.match(myObject)`时，如果该属性存在，会调用它，返回该方法的返回值。
 
@@ -691,7 +692,7 @@ class MyMatcher {
 'e'.match(new MyMatcher()) // 1
 ```
 
-### Symbol.replace
+### 4.5 Symbol.replace
 
 对象的`Symbol.replace`属性，指向一个方法，当该对象被`String.prototype.replace`方法调用时，会返回该方法的返回值。
 
@@ -712,7 +713,7 @@ x[Symbol.replace] = (...s) => console.log(s);
 
 `Symbol.replace`方法会收到两个参数，第一个参数是`replace`方法正在作用的对象，上面例子是`Hello`，第二个参数是替换后的值，上面例子是`World`。
 
-### Symbol.search
+### 4.6 Symbol.search
 
 对象的`Symbol.search`属性，指向一个方法，当该对象被`String.prototype.search`方法调用时，会返回该方法的返回值。
 
@@ -732,7 +733,7 @@ class MySearch {
 'foobar'.search(new MySearch('foo')) // 0
 ```
 
-### Symbol.split
+### 4.7 Symbol.split
 
 对象的`Symbol.split`属性，指向一个方法，当该对象被`String.prototype.split`方法调用时，会返回该方法的返回值。
 
@@ -773,7 +774,7 @@ class MySplitter {
 
 上面方法使用`Symbol.split`方法，重新定义了字符串对象的`split`方法的行为，
 
-### Symbol.iterator
+### 4.8 Symbol.iterator
 
 对象的`Symbol.iterator`属性，指向该对象的默认遍历器方法。
 
@@ -788,7 +789,7 @@ myIterable[Symbol.iterator] = function* () {
 [...myIterable] // [1, 2, 3]
 ```
 
-对象进行`for...of`循环时，会调用`Symbol.iterator`方法，返回该对象的默认遍历器，详细介绍参见《Iterator 和 for...of 循环》一章。
+对象进行`for...of`循环时，会调用`Symbol.iterator`方法，返回该对象的默认遍历器，详细介绍参见《[Iterator 和 for...of 循环](/js/iterator)》一章。
 
 ```js
 class Collection {
@@ -812,7 +813,7 @@ for(let value of myCollection) {
 // 2
 ```
 
-### Symbol.toPrimitive
+### 4.9 Symbol.toPrimitive
 
 对象的`Symbol.toPrimitive`属性，指向一个方法。该对象被转为原始类型的值时，会调用这个方法，返回该对象对应的原始类型值。
 
@@ -844,7 +845,7 @@ obj == 'default' // true
 String(obj) // 'str'
 ```
 
-### Symbol.toStringTag
+### 4.10 Symbol.toStringTag
 
 对象的`Symbol.toStringTag`属性，用来设定一个字符串（设为其他类型的值无效，但不报错）。在目标对象上面调用`Object.prototype.toString()`方法时，如果`Symbol.toStringTag`属性存在，该属性设定的字符串会出现在`toString()`方法返回的字符串之中，表示对象的类型。也就是说，这个属性可以用来定制`[object Object]`或`[object Array]`中`object`后面的那个大写字符串。
 
@@ -867,7 +868,7 @@ ES6 新增内置对象的`Symbol.toStringTag`属性值如下。
 
 - `JSON[Symbol.toStringTag]`：'JSON'
 - `Math[Symbol.toStringTag]`：'Math'
-- Module 对象`M[Symbol.toStringTag]`：'Module'
+- `Module[Symbol.toStringTag]`：'Module'
 - `ArrayBuffer.prototype[Symbol.toStringTag]`：'ArrayBuffer'
 - `DataView.prototype[Symbol.toStringTag]`：'DataView'
 - `Map.prototype[Symbol.toStringTag]`：'Map'
@@ -883,7 +884,7 @@ ES6 新增内置对象的`Symbol.toStringTag`属性值如下。
 - `Generator.prototype[Symbol.toStringTag]`：'Generator'
 - `GeneratorFunction.prototype[Symbol.toStringTag]`：'GeneratorFunction'
 
-### Symbol.unscopables
+### 4.11 Symbol.unscopables
 
 对象的`Symbol.unscopables`属性，指向一个对象。该对象指定了使用`with`关键字时，哪些属性会被`with`环境排除。
 
@@ -931,5 +932,54 @@ with (MyClass.prototype) {
   foo(); // 2
 }
 ```
+## **5. Symbol内置常量总结**
 
-上面代码通过指定`Symbol.unscopables`属性，使得`with`语法块不会在当前作用域寻找`foo`属性，即`foo`将指向外层作用域的变量。
+#### **1. 迭代与展开**
+
+| Symbol | 描述 | 触发场景 | 示例用途 |
+| :--- | :--- | :--- | :--- |
+| **`Symbol.iterator`** | 指向一个方法，该方法返回对象的**默认迭代器**。 | `for...of`, `...` (扩展运算符), `Array.from()` | 自定义对象如何被遍历。例如让一个普通对象 `obj` 可以像数组一样被遍历。 |
+| **`Symbol.asyncIterator`** | 指向一个方法，该方法返回对象的**默认异步迭代器**。 | `for await...of` | 处理异步数据流（如 Node.js 的 Readable Stream）。 |
+
+#### **2. 类型检测与转换**
+
+| Symbol | 描述 | 触发场景 | 示例用途 |
+| :--- | :--- | :--- | :--- |
+| **`Symbol.hasInstance`** | 指向一个方法，用于判断某对象是否为该构造函数的实例。 | `obj instanceof Constructor` | 自定义 `instanceof` 的逻辑。例如：`MyClass[Symbol.hasInstance](x)` 可以检查 `x` 是否符合某些鸭子类型特征。 |
+| **`Symbol.toPrimitive`** | 指向一个方法，将对象转换为**原始值**。 | `+obj`, `${obj}`, `obj == 1` (类型转换) | 替代 `toString` 和 `valueOf`，更精细地控制对象在转为 `number`、`string` 或 `default` 时的表现。 |
+| **`Symbol.toStringTag`** | 指向一个字符串值，用于创建对象的默认字符串描述。 | `Object.prototype.toString.call(obj)` | 自定义对象的类型标签。例如：`[object MyCustomType]`。 |
+
+#### **3. 正则表达式操作**
+
+这些 Symbol 允许任何对象模拟正则表达式的行为。
+
+| Symbol | 描述 | 触发场景 | 示例用途 |
+| :--- | :--- | :--- | :--- |
+| **`Symbol.match`** | 指向一个方法，执行匹配操作。 | `str.match(obj)` | 让自定义对象支持字符串的 `match` 方法。 |
+| **`Symbol.replace`** | 指向一个方法，执行替换操作。 | `str.replace(obj, replaceValue)` | 让自定义对象支持字符串的 `replace` 方法。 |
+| **`Symbol.search`** | 指向一个方法，返回匹配项的索引。 | `str.search(obj)` | 让自定义对象支持字符串的 `search` 方法。 |
+| **`Symbol.split`** | 指向一个方法，执行分割操作。 | `str.split(obj)` | 让自定义对象支持字符串的 `split` 方法。 |
+
+#### **4. 其他行为控制**
+
+| Symbol | 描述 | 触发场景 | 示例用途 |
+| :--- | :--- | :--- | :--- |
+| **`Symbol.species`** | 指向一个构造函数，用于创建**派生对象**。 | 数组方法 `map`, `filter`, `slice` 等返回新实例时 | 控制数组或 Promise 的子类在链式调用时，返回父类实例而不是子类实例。 |
+| **`Symbol.isConcatSpreadable`**| 一个布尔值属性。 | `[].concat(obj)` | 控制数组或类数组对象在 `concat` 操作中是否被**展开**（扁平化）。默认数组为 `true`，类数组为 `false`。 |
+
+
+## **5. 常见问题与最佳实践 (FAQ)**
+
+*   **Q1: Symbol 是私有属性吗？**
+    *   **不是真正的私有**。虽然它们不会出现在常规遍历中，但通过 `Object.getOwnPropertySymbols()` 可以轻易获取。它们主要用于防止**命名冲突**，而不是安全保护。
+
+*   **Q2: 为什么 `JSON.stringify` 会忽略 Symbol？**
+    *   这是规范设计的。JSON 是一种数据交换格式，而 Symbol 是语言内部的标识符，通常没有对应的字符串表示，也不适合跨语言传输。
+
+*   **Q3: 什么时候应该使用 Symbol？**
+
+    *    1.  当你需要给对象添加属性，但又不想与现有属性名冲突（特别是对于第三方库的对象）。
+    *    2.  当你需要自定义对象的迭代行为 (`Symbol.iterator`)。
+    *    3.  当你需要定义常量枚举值，且只关心值的唯一性，不关心具体值时。
+
+

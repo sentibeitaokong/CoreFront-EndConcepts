@@ -24,7 +24,7 @@ let str3 = `JavaScript`; // 模板字面量
 ## **2. [字符串的常用方法 (API)](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String/String)**
 
 字符串对象的新增方法。
-### 1.字符串静态方法 (String)
+### 2.1 字符串静态方法 (String)
 
 这些方法通过 String. 直接调用。
 
@@ -104,7 +104,7 @@ String.raw = function (strings, ...values) {
 | String.raw(callSite, ...substitutions) | ES6   | 作为标签模板函数使用，返回模板字面量的原始字符串形式（未处理转义字符）。                                         | string | String.raw`hi\\n` -> 'hi\\\\n'       |
 | String.fromCodePoint(...codePoints)    | ES6   | 根据 Unicode 码点（一个或多个）创建字符串。解决了 String.fromCharCode() 无法处理 4 字节 Unicode 字符的问题。 | string | String.fromCodePoint(128514) -> '😂' |
 
-### 2. 字符串原型方法 (String.prototype)
+### 2.2 字符串原型方法 (String.prototype)
 
 这些方法通过字符串实例 (myString.method()) 调用。
 
@@ -540,7 +540,7 @@ encodeURI(illFormed.toWellFormed()) // 正确
 
 ES6 (ECMAScript 2015) 及其后续版本为字符串带来了显著的增强。
 
-#### **2.1 模板字面量 (Template Literals)**
+### **3.1 模板字面量 (Template Literals)**
 
 *   **定义**: 使用反引号 (`` ` ``) 定义字符串。
 *   **特性**:
@@ -719,7 +719,7 @@ func('Jack') // "Hello Jack!"
 
 上面代码中，模板字符串写成了一个函数的返回值。执行这个函数，就相当于执行这个模板字符串了。
 
-#### **2.2 标签模板 (Tagged Templates)**
+### **3.2 标签模板 (Tagged Templates)**
 模板字符串的功能，不仅仅是上面这些。它可以紧跟在一个函数名后面，该函数将被调用来处理这个模板字符串。这被称为“标签模板”功能（tagged template）。
 
 *   **定义**: 在模板字面量前加上一个**标签函数 (tag function)**。
@@ -950,7 +950,7 @@ function tag(strings) {
 
 上面代码中，`tag`函数的第一个参数`strings`，有一个`raw`属性，也指向一个数组。该数组的成员与`strings`数组完全一致。比如，`strings`数组是`["First line\nSecond line"]`，那么`strings.raw`数组就是`["First line\\nSecond line"]`。两者唯一的区别，就是字符串里面的斜杠都被转义了。比如，strings.raw 数组会将`\n`视为`\\`和`n`两个字符，而不是换行符。这是为了方便取得转义之前的原始模板而设计的。
 
-#### **2.3 Unicode 字符串支持**
+### **3.3 Unicode 字符串支持**
 
 ES6 增强了对 Unicode 字符的支持
 

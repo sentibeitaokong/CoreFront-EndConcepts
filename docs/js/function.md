@@ -1,8 +1,11 @@
+---
+outline: [2,3] # 这个页面将显示 h2 和 h3 标题
+---
 # 函数的扩展
 
-## 函数参数的默认值
+## 1. 函数参数的默认值
 
-### 基本用法
+### 1.1 基本用法
 
 ES6 之前，不能直接为函数的参数指定默认值，只能采用变通的方法。
 
@@ -95,7 +98,7 @@ foo() // 101
 
 上面代码中，参数`p`的默认值是`x + 1`。这时，每次调用函数`foo()`，都会重新计算`x + 1`，而不是默认`p`等于 100。
 
-### 与解构赋值默认值结合使用
+### 1.2 与解构赋值默认值结合使用
 
 参数默认值可以与解构赋值的默认值，结合起来使用。
 
@@ -194,7 +197,7 @@ m1({z: 3}) // [0, 0]
 m2({z: 3}) // [undefined, undefined]
 ```
 
-### 参数默认值的位置
+### 1.3 参数默认值的位置
 
 通常情况下，定义了默认值的参数，应该是函数的尾参数。因为这样比较容易看出来，到底省略了哪些参数。如果非尾部的参数设置默认值，实际上这个参数是没法省略的。
 
@@ -235,7 +238,7 @@ foo(undefined, null)
 
 上面代码中，`x`参数对应`undefined`，结果触发了默认值，`y`参数等于`null`，就没有触发默认值。
 
-### 函数的 length 属性
+### 1.4 函数的 length 属性
 
 指定了默认值以后，函数的`length`属性，将返回没有指定默认值的参数个数。也就是说，指定了默认值后，`length`属性将失真。
 
@@ -260,7 +263,7 @@ foo(undefined, null)
 (function (a, b = 1, c) {}).length // 1
 ```
 
-### 作用域
+### 1.5 作用域
 
 一旦设置了参数的默认值，函数进行声明初始化时，参数会形成一个单独的作用域（context）。等到初始化结束，这个作用域就会消失。这种语法行为，在不设置参数默认值时，是不会出现的。
 
@@ -374,7 +377,7 @@ foo() // 2
 x // 1
 ```
 
-### 应用
+### 1.6 应用
 
 利用参数默认值，可以指定某一个参数不得省略，如果省略就抛出一个错误。
 
@@ -393,7 +396,7 @@ foo()
 
 上面代码的`foo`函数，如果调用的时候没有参数，就会调用默认值`throwIfMissing`函数，从而抛出一个错误。
 
-从上面代码还可以看到，参数`mustBeProvided`的默认值等于`throwIfMissing`函数的运行结果（注意函数名`throwIfMissing`之后有一对圆括号），这表明参数的默认值不是在定义时执行，而是在运行时执行。如果参数已经赋值，默认值中的函数就不会运行。
+从上面代码还可以看到，参数`mustBeProvided`的默认值等于`throwIfMissing`函数的运行结果（注意函数名`throwIfMissing`之后有一对圆括号），这表明参数的默认值不是在**定义**时执行，而是在**运行**时执行。如果参数已经赋值，默认值中的函数就不会运行。
 
 另外，可以将参数默认值设为`undefined`，表明这个参数是可以省略的。
 
@@ -401,202 +404,11 @@ foo()
 function foo(optional = undefined) { ··· }
 ```
 
-## rest 参数
+## 2. 函数定义语法增强
 
-ES6 引入 rest 参数（形式为`...变量名`），用于获取函数的多余参数，这样就不需要使用`arguments`对象了。rest 参数搭配的变量是一个数组，该变量将多余的参数放入数组中。
+### 2.1 箭头函数
 
-```js
-function add(...values) {
-  let sum = 0;
-
-  for (var val of values) {
-    sum += val;
-  }
-
-  return sum;
-}
-
-add(2, 5, 3) // 10
-```
-
-上面代码的`add`函数是一个求和函数，利用 rest 参数，可以向该函数传入任意数目的参数。
-
-下面是一个 rest 参数代替`arguments`变量的例子。
-
-```js
-// arguments变量的写法
-function sortNumbers() {
-  return Array.from(arguments).sort();
-}
-
-// rest参数的写法
-const sortNumbers = (...numbers) => numbers.sort();
-```
-
-上面代码的两种写法，比较后可以发现，rest 参数的写法更自然也更简洁。
-
-`arguments`对象不是数组，而是一个类似数组的对象。所以为了使用数组的方法，必须使用`Array.from`先将其转为数组。rest 参数就不存在这个问题，它就是一个真正的数组，数组特有的方法都可以使用。下面是一个利用 rest 参数改写数组`push`方法的例子。
-
-```js
-function push(array, ...items) {
-  items.forEach(function(item) {
-    array.push(item);
-    console.log(item);
-  });
-}
-
-var a = [];
-push(a, 1, 2, 3)
-```
-
-注意，rest 参数之后不能再有其他参数（即只能是最后一个参数），否则会报错。
-
-```js
-// 报错
-function f(a, ...b, c) {
-  // ...
-}
-```
-
-函数的`length`属性，不包括 rest 参数。
-
-```js
-(function(a) {}).length  // 1
-(function(...a) {}).length  // 0
-(function(a, ...b) {}).length  // 1
-```
-
-## 严格模式
-
-从 ES5 开始，函数内部可以设定为严格模式。
-
-```js
-function doSomething(a, b) {
-  'use strict';
-  // code
-}
-```
-
-ES2016 做了一点修改，规定只要函数参数使用了默认值、解构赋值、或者扩展运算符，那么函数内部就不能显式设定为严格模式，否则会报错。
-
-```js
-// 报错
-function doSomething(a, b = a) {
-  'use strict';
-  // code
-}
-
-// 报错
-const doSomething = function ({a, b}) {
-  'use strict';
-  // code
-};
-
-// 报错
-const doSomething = (...a) => {
-  'use strict';
-  // code
-};
-
-const obj = {
-  // 报错
-  doSomething({a, b}) {
-    'use strict';
-    // code
-  }
-};
-```
-
-这样规定的原因是，函数内部的严格模式，同时适用于函数体和函数参数。但是，函数执行的时候，先执行函数参数，然后再执行函数体。这样就有一个不合理的地方，只有从函数体之中，才能知道参数是否应该以严格模式执行，但是参数却应该先于函数体执行。
-
-```js
-// 报错
-function doSomething(value = 070) {
-  'use strict';
-  return value;
-}
-```
-
-上面代码中，参数`value`的默认值是八进制数`070`，但是严格模式下不能用前缀`0`表示八进制，所以应该报错。但是实际上，JavaScript 引擎会先成功执行`value = 070`，然后进入函数体内部，发现需要用严格模式执行，这时才会报错。
-
-虽然可以先解析函数体代码，再执行参数代码，但是这样无疑就增加了复杂性。因此，标准索性禁止了这种用法，只要参数使用了默认值、解构赋值、或者扩展运算符，就不能显式指定严格模式。
-
-两种方法可以规避这种限制。第一种是设定全局性的严格模式，这是合法的。
-
-```js
-'use strict';
-
-function doSomething(a, b = a) {
-  // code
-}
-```
-
-第二种是把函数包在一个无参数的立即执行函数里面。
-
-```js
-const doSomething = (function () {
-  'use strict';
-  return function(value = 42) {
-    return value;
-  };
-}());
-```
-
-## name 属性
-
-函数的`name`属性，返回该函数的函数名。
-
-```js
-function foo() {}
-foo.name // "foo"
-```
-
-这个属性早就被浏览器广泛支持，但是直到 ES6，才将其写入了标准。
-
-需要注意的是，ES6 对这个属性的行为做出了一些修改。如果将一个匿名函数赋值给一个变量，ES5 的`name`属性，会返回空字符串，而 ES6 的`name`属性会返回实际的函数名。
-
-```js
-var f = function () {};
-
-// ES5
-f.name // ""
-
-// ES6
-f.name // "f"
-```
-
-上面代码中，变量`f`等于一个匿名函数，ES5 和 ES6 的`name`属性返回的值不一样。
-
-如果将一个具名函数赋值给一个变量，则 ES5 和 ES6 的`name`属性都返回这个具名函数原本的名字。
-
-```js
-const bar = function baz() {};
-
-// ES5
-bar.name // "baz"
-
-// ES6
-bar.name // "baz"
-```
-
-`Function`构造函数返回的函数实例，`name`属性的值为`anonymous`。
-
-```js
-(new Function).name // "anonymous"
-```
-
-`bind`返回的函数，`name`属性值会加上`bound`前缀。
-
-```js
-function foo() {};
-foo.bind({}).name // "bound foo"
-
-(function(){}).bind({}).name // "bound "
-```
-
-## 箭头函数
-
-### 基本用法
+####  1. 基本用法
 
 ES6 允许使用“箭头”（`=>`）定义函数。
 
@@ -712,7 +524,7 @@ headAndTail(1, 2, 3, 4, 5)
 // [1,[2,3,4,5]]
 ```
 
-### 使用注意点
+#### 2. 使用注意点
 
 箭头函数有几个使用注意点。
 
@@ -860,7 +672,7 @@ foo(2, 4, 6, 8)
 
 长期以来，JavaScript 语言的`this`对象一直是一个令人头痛的问题，在对象方法中使用`this`，必须非常小心。箭头函数”绑定”`this`，很大程度上解决了这个困扰。
 
-### 不适用场合
+#### 3. 不适用场合
 
 由于箭头函数使得`this`从“动态”变成“静态”，下面两个场合不应该使用箭头函数。
 
@@ -919,7 +731,7 @@ button.addEventListener('click', () => {
 
 另外，如果函数体很复杂，有许多行，或者函数内部有大量的读写操作，不单纯是为了计算值，这时也不应该使用箭头函数，而是要使用普通函数，这样可以提高代码可读性。
 
-### 嵌套的箭头函数
+#### 4. 嵌套的箭头函数
 
 箭头函数内部，还可以再使用箭头函数。下面是一个 ES5 语法的多重嵌套函数。
 
@@ -984,9 +796,203 @@ var fix = f => (x => f(v => x(x)(v)))
 
 上面两种写法，几乎是一一对应的。由于 λ 演算对于计算机科学非常重要，这使得我们可以用 ES6 作为替代工具，探索计算机科学。
 
-## 尾调用优化
+### 2.2 rest 参数
 
-### 什么是尾调用？
+ES6 引入 rest 参数（形式为`...变量名`），用于获取函数的多余参数，这样就不需要使用`arguments`对象了。rest 参数搭配的变量是一个数组，该变量将多余的参数放入数组中。
+
+```js
+function add(...values) {
+  let sum = 0;
+
+  for (var val of values) {
+    sum += val;
+  }
+
+  return sum;
+}
+
+add(2, 5, 3) // 10
+```
+
+上面代码的`add`函数是一个求和函数，利用 rest 参数，可以向该函数传入任意数目的参数。
+
+下面是一个 rest 参数代替`arguments`变量的例子。
+
+```js
+// arguments变量的写法
+function sortNumbers() {
+  return Array.from(arguments).sort();
+}
+
+// rest参数的写法
+const sortNumbers = (...numbers) => numbers.sort();
+```
+
+上面代码的两种写法，比较后可以发现，rest 参数的写法更自然也更简洁。
+
+`arguments`对象不是数组，而是一个类似数组的对象。所以为了使用数组的方法，必须使用`Array.from`先将其转为数组。rest 参数就不存在这个问题，它就是一个真正的数组，数组特有的方法都可以使用。下面是一个利用 rest 参数改写数组`push`方法的例子。
+
+```js
+function push(array, ...items) {
+  items.forEach(function(item) {
+    array.push(item);
+    console.log(item);
+  });
+}
+
+var a = [];
+push(a, 1, 2, 3)
+```
+
+注意，rest 参数之后不能再有其他参数（即只能是最后一个参数），否则会报错。
+
+```js
+// 报错
+function f(a, ...b, c) {
+  // ...
+}
+```
+
+函数的`length`属性，不包括 rest 参数。
+
+```js
+(function(a) {}).length  // 1
+(function(...a) {}).length  // 0
+(function(a, ...b) {}).length  // 1
+```
+
+### 2.3 严格模式
+
+从 ES5 开始，函数内部可以设定为严格模式。
+
+```js
+function doSomething(a, b) {
+  'use strict';
+  // code
+}
+```
+
+ES2016 做了一点修改，规定只要函数参数使用了默认值、解构赋值、或者扩展运算符，那么函数内部就不能显式设定为严格模式，否则会报错。
+
+```js
+// 报错
+function doSomething(a, b = a) {
+  'use strict';
+  // code
+}
+
+// 报错
+const doSomething = function ({a, b}) {
+  'use strict';
+  // code
+};
+
+// 报错
+const doSomething = (...a) => {
+  'use strict';
+  // code
+};
+
+const obj = {
+  // 报错
+  doSomething({a, b}) {
+    'use strict';
+    // code
+  }
+};
+```
+
+这样规定的原因是，函数内部的严格模式，同时适用于函数体和函数参数。但是，函数执行的时候，先执行函数参数，然后再执行函数体。这样就有一个不合理的地方，只有从函数体之中，才能知道参数是否应该以严格模式执行，但是参数却应该先于函数体执行。
+
+```js
+// 报错
+function doSomething(value = 070) {
+  'use strict';
+  return value;
+}
+```
+
+上面代码中，参数`value`的默认值是八进制数`070`，但是严格模式下不能用前缀`0`表示八进制，所以应该报错。但是实际上，JavaScript 引擎会先成功执行`value = 070`，然后进入函数体内部，发现需要用严格模式执行，这时才会报错。
+
+虽然可以先解析函数体代码，再执行参数代码，但是这样无疑就增加了复杂性。因此，标准索性禁止了这种用法，只要参数使用了默认值、解构赋值、或者扩展运算符，就不能显式指定严格模式。
+
+两种方法可以规避这种限制。第一种是设定全局性的严格模式，这是合法的。
+
+```js
+'use strict';
+
+function doSomething(a, b = a) {
+  // code
+}
+```
+
+第二种是把函数包在一个无参数的立即执行函数里面。
+
+```js
+const doSomething = (function () {
+  'use strict';
+  return function(value = 42) {
+    return value;
+  };
+}());
+```
+
+###  2.4 name 属性
+
+函数的`name`属性，返回该函数的函数名。
+
+```js
+function foo() {}
+foo.name // "foo"
+```
+
+这个属性早就被浏览器广泛支持，但是直到 ES6，才将其写入了标准。
+
+需要注意的是，ES6 对这个属性的行为做出了一些修改。如果将一个匿名函数赋值给一个变量，ES5 的`name`属性，会返回空字符串，而 ES6 的`name`属性会返回实际的函数名。
+
+```js
+var f = function () {};
+
+// ES5
+f.name // ""
+
+// ES6
+f.name // "f"
+```
+
+上面代码中，变量`f`等于一个匿名函数，ES5 和 ES6 的`name`属性返回的值不一样。
+
+如果将一个具名函数赋值给一个变量，则 ES5 和 ES6 的`name`属性都返回这个具名函数原本的名字。
+
+```js
+const bar = function baz() {};
+
+// ES5
+bar.name // "baz"
+
+// ES6
+bar.name // "baz"
+```
+
+`Function`构造函数返回的函数实例，`name`属性的值为`anonymous`。
+
+```js
+(new Function).name // "anonymous"
+```
+
+`bind`返回的函数，`name`属性值会加上`bound`前缀。
+
+```js
+function foo() {};
+foo.bind({}).name // "bound foo"
+
+(function(){}).bind({}).name // "bound "
+```
+
+
+## 3. 尾调用优化
+
+### 3.1 什么是尾调用？
 
 尾调用（Tail Call）是函数式编程的一个重要概念，本身非常简单，一句话就能说清楚，就是指某个函数的最后一步是调用另一个函数。
 
@@ -1040,7 +1046,7 @@ function f(x) {
 
 上面代码中，函数`m`和`n`都属于尾调用，因为它们都是函数`f`的最后一步操作。
 
-### 尾调用优化
+### 3.2 尾调用优化
 
 尾调用之所以与其他调用不同，就在于它的特殊的调用位置。
 
@@ -1086,7 +1092,7 @@ function addOne(a){
 
 注意，目前只有 Safari 浏览器支持尾调用优化，Chrome 和 Firefox 都不支持。
 
-### 尾递归
+### 3.3 尾递归
 
 函数调用自身，称为递归。如果尾调用自身，就称为尾递归。
 
@@ -1146,7 +1152,7 @@ Fibonacci2(10000) // Infinity
 
 由此可见，“尾调用优化”对递归操作意义重大，所以一些函数式编程语言将其写入了语言规格。ES6 亦是如此，第一次明确规定，所有 ECMAScript 的实现，都必须部署“尾调用优化”。这就是说，ES6 中只要使用尾递归，就不会发生栈溢出（或者层层递归造成的超时），相对节省内存。
 
-### 递归函数的改写
+### 3.4 递归函数的改写
 
 尾递归的实现，往往需要改写递归函数，确保最后一步只调用自身。做到这一点的方法，就是把所有用到的内部变量改写成函数的参数。比如上面的例子，阶乘函数 factorial 需要用到一个中间变量`total`，那就把这个中间变量改写成函数的参数。这样做的缺点就是不太直观，第一眼很难看出来，为什么计算`5`的阶乘，需要传入两个参数`5`和`1`？
 
@@ -1203,7 +1209,7 @@ factorial(5) // 120
 
 总结一下，递归本质上是一种循环操作。纯粹的函数式编程语言没有循环操作命令，所有的循环都用递归实现，这就是为什么尾递归对这些语言极其重要。对于其他支持“尾调用优化”的语言（比如 Lua，ES6），只需要知道循环可以用递归代替，而一旦使用递归，就最好使用尾递归。
 
-### 严格模式
+### 3.5 严格模式
 
 ES6 的尾调用优化只在严格模式下开启，正常模式是无效的。
 
@@ -1223,7 +1229,7 @@ function restricted() {
 restricted();
 ```
 
-### 尾递归优化的实现
+### 3.6 尾递归优化的实现
 
 尾递归优化只在严格模式下生效，那么正常模式下，或者那些不支持该功能的环境中，有没有办法也使用尾递归优化呢？回答是可以的，就是自己实现尾递归优化。
 
@@ -1316,87 +1322,98 @@ sum(1, 100000)
 
 上面代码中，`tco`函数是尾递归优化的实现，它的奥妙就在于状态变量`active`。默认情况下，这个变量是不激活的。一旦进入尾递归优化的过程，这个变量就激活了。然后，每一轮递归`sum`返回的都是`undefined`，所以就避免了递归执行；而`accumulated`数组存放每一轮`sum`执行的参数，总是有值的，这就保证了`accumulator`函数内部的`while`循环总是会执行。这样就很巧妙地将“递归”改成了“循环”，而后一轮的参数会取代前一轮的参数，保证了调用栈只有一层。
 
-## 函数参数的尾逗号
+## 4.总结
+| 特性              | 普通函数 (Function)      | 箭头函数 (Arrow Function)     |
+|-----------------|----------------------|---------------------------|
+| this 绑定         | 动态，取决于调用方式           | 词法，取决于定义时的外部作用域           |
+| arguments 对象    | 有，是一个类数组对象           | 无，但可通过 Rest 参数 ...args 替代 |
+| prototype 属性    | 有                    | 无                         |
+| 作为构造函数          | 可以 (new 调用)          | 不可以 (TypeError )          |
+| 隐式 return       | 无，必须显式 return (除非单行) | 有，单行表达式时隐式 return         |
+| 函数提升 (Hoisting) | 函数声明有，函数表达式无         | 无                         |
+| Generator 函数    | 可以 (function*)       | 不可以                       |
+| 语法              | 相对冗长                 | 简洁                        |
 
-ES2017 [允许](https://github.com/jeffmo/es-trailing-function-commas)函数的最后一个参数有尾逗号（trailing comma）。
 
-此前，函数定义和调用时，都不允许最后一个参数后面出现逗号。
+## **5. 常见问题与陷阱 (FAQ)**
 
-```js
-function clownsEverywhere(
-  param1,
-  param2
-) { /* ... */ }
+* **Q1: 箭头函数中的 `this` 到底指向谁？**
+  *    箭头函数**没有自己的 `this`**。它的 `this` 也是**词法作用域**的，意味着它会**捕获**定义它时所在的上下文（外层函数或全局）的 `this` 值。
+          *   一旦捕获，`this` 指向就**固定**了，永远不会变。
+          *   **示例**:
+              ```js
+              function Person() {
+                this.age = 0;
+                // 这里的 this 是 Person 实例
+                setInterval(() => {
+                  // 箭头函数捕获了外层的 this (Person 实例)
+                  this.age++; 
+                }, 1000);
+              }
+              ```
 
-clownsEverywhere(
-  'foo',
-  'bar'
-);
-```
+* **Q2: 为什么箭头函数不能作为对象的方法？**
+  *    这是一个经典的陷阱。如果在对象字面量中直接使用箭头函数，它的 `this` 会指向**定义对象时所在的上下文**（通常是 `window` 或 `undefined`），而不是对象本身。
+          *   **错误示例**:
+              ```js
+              const obj = {
+                value: 10,
+                log: () => console.log(this.value) // this 指向 window，输出 undefined
+              };
+              ```
+          *   **解决**: 在对象方法中，应使用普通函数简写：`log() { ... }`。
 
-上面代码中，如果在`param2`或`bar`后面加一个逗号，就会报错。
+* **Q3: 箭头函数可以作为构造函数吗？为什么？**
+  *    **不可以**。尝试 `new` 一个箭头函数会抛出 `TypeError`。
+          *   **原因**: 箭头函数没有 `[[Construct]]` 方法，也没有 `prototype` 属性。它设计之初就是为了轻量级的函数操作，而非对象创建。
 
-如果像上面这样，将参数写成多行（即每个参数占据一行），以后修改代码的时候，想为函数`clownsEverywhere`添加第三个参数，或者调整参数的次序，就势必要在原来最后一个参数后面添加一个逗号。这对于版本管理系统来说，就会显示添加逗号的那一行也发生了变动。这看上去有点冗余，因此新的语法允许定义和调用时，尾部直接有一个逗号。
-
-```js
-function clownsEverywhere(
-  param1,
-  param2,
-) { /* ... */ }
-
-clownsEverywhere(
-  'foo',
-  'bar',
-);
-```
-
-这样的规定也使得，函数参数与数组和对象的尾逗号规则，保持一致了。
-
-## Function.prototype.toString()
-
-[ES2019](https://github.com/tc39/Function-prototype-toString-revision) 对函数实例的`toString()`方法做出了修改。
-
-`toString()`方法返回函数代码本身，以前会省略注释和空格。
-
-```js
-function /* foo comment */ foo () {}
-
-foo.toString()
-// function foo() {}
-```
-
-上面代码中，函数`foo`的原始代码包含注释，函数名`foo`和圆括号之间有空格，但是`toString()`方法都把它们省略了。
-
-修改后的`toString()`方法，明确要求返回一模一样的原始代码。
-
-```js
-function /* foo comment */ foo () {}
-
-foo.toString()
-// "function /* foo comment */ foo () {}"
-```
-
-## catch 命令的参数省略
-
-JavaScript 语言的`try...catch`结构，以前明确要求`catch`命令后面必须跟参数，接受`try`代码块抛出的错误对象。
-
-```js
-try {
-  // ...
-} catch (err) {
-  // 处理错误
-}
-```
-
-上面代码中，`catch`命令后面带有参数`err`。
-
-很多时候，`catch`代码块可能用不到这个参数。但是，为了保证语法正确，还是必须写。[ES2019](https://github.com/tc39/proposal-optional-catch-binding) 做出了改变，允许`catch`语句省略参数。
-
-```js
-try {
-  // ...
-} catch {
-  // ...
-}
-```
-
+* **Q4: 箭头函数可以使用 `call`, `apply`, `bind` 改变 `this` 吗？**
+    *    **不能**。虽然箭头函数对象也有这些方法，但由于它的 `this` 是词法绑定的，这些方法传入的第一个参数（即 `thisArg`）会被**忽略**。不过，后续的参数传递仍然有效。
+    
+* **Q5: 箭头函数没有 `arguments` 对象，那怎么获取参数？**
+    *    使用 **Rest 参数 (`...args`)**。这是更现代、更规范的做法，得到的 `args` 是一个真正的数组。
+            ```js
+            const sum = (...nums) => nums.reduce((a, b) => a + b, 0);
+            ```
+    
+* **Q6: 默认参数 (Default Parameters) 是在什么时候求值的？**
+    *    默认参数是**惰性求值**的，即只有在**调用函数**且**未提供参数**（或参数为 `undefined`）时，才会执行默认值表达式。
+            *   **示例**:
+                ```js
+                let i = 0;
+                function getVal() { return i++; }
+                function foo(val = getVal()) { console.log(val); }
+                
+                foo(10); // 10 (getVal 未执行)
+                foo();   // 0 (getVal 执行)
+                foo();   // 1 (getVal 再次执行)
+                ```
+    
+* **Q7: 默认参数会影响函数的 `length` 属性吗？**
+    *    **会**。函数的 `length` 属性返回**没有默认值的参数个数**。而且，一旦某个参数有了默认值，其后面的所有参数都不计入 `length`。
+            ```js
+            (function(a){}).length // 1
+            (function(a = 5){}).length // 0
+            (function(a, b, c = 5){}).length // 2
+            (function(a, b = 5, c){}).length // 1 (注意：c 也不计入了)
+            ```
+    
+* **Q8: Rest 参数 (`...args`) 和 `arguments` 对象有什么区别？**
+    
+    * **类型**: Rest 参数是**真正的数组** (Array)，可以直接使用 `map`, `sort` 等方法；`arguments` 是**类数组对象**。
+      * **包含内容**: Rest 参数只包含**未被命名**的参数（即多余的参数）；`arguments` 包含**所有**传给函数的参数。
+      * **位置**: Rest 参数必须是**最后一个**参数；`arguments` 不需要定义。
+    
+* **Q9: 什么是尾调用优化 (TCO)？为什么我看不到效果？**
+    *    尾调用优化是指函数最后一步调用另一个函数时，引擎复用当前栈帧而不是创建新栈帧，从而防止栈溢出。
+            *   **为什么看不到**: 尽管 ES6 规范要求实现 TCO，但**目前主流浏览器（Chrome V8, Firefox）和 Node.js 均未实现 TCO**。只有 Safari 实现了。
+            *   **原因**: 实现 TCO 会导致调试栈信息丢失，且实现复杂度高，收益在普通 Web 开发中不明显。
+    
+* **Q10: 可以在箭头函数中使用 `await` 吗？**
+    *    **可以**。只要箭头函数被声明为 `async`，就可以在其中使用 `await`。
+            ```js
+            const fetchData = async () => {
+              const res = await fetch('/api');
+              return res.json();
+            };
+            ```
