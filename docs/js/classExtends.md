@@ -1,6 +1,8 @@
 # Class 的继承
 
-## 简介
+在面向对象编程中，继承是一种核心机制，它允许一个类（子类）获取另一个类（父类）的属性和方法。JavaScript 的 class 语法通过 extends 和 super 两个关键字，为开发者提供了一套清晰、强大的继承方案。
+
+## 1. Class继承核心语法
 
 Class 可以通过`extends`关键字实现继承，让子类继承父类的属性和方法。extends 的写法比 ES5 的原型链继承，要清晰和方便很多。
 
@@ -119,7 +121,7 @@ cp instanceof Point // true
 
 上面示例中，实例对象`cp`同时是`ColorPoint`和`Point`两个类的实例，这与 ES5 的行为完全一致。
 
-## 私有属性和私有方法的继承
+### 1.1 私有属性和私有方法的继承
 
 父类所有的属性和方法，都会被子类继承，除了私有的属性和方法。
 
@@ -164,7 +166,7 @@ class Bar extends Foo {
 
 上面示例中，`getP()`是父类用来读取私有属性的方法，通过该方法，子类就可以读到父类的私有属性。
 
-## 静态属性和静态方法的继承
+### 1.2 静态属性和静态方法的继承
 
 父类的静态属性和静态方法，也会被子类继承。
 
@@ -222,22 +224,7 @@ A.foo.n // 99
 
 上面示例中，`A.foo`的值是一个对象，浅拷贝导致`B.foo`和`A.foo`指向同一个对象。所以，子类`B`修改这个对象的属性值，会影响到父类`A`。
 
-## Object.getPrototypeOf()
-
-`Object.getPrototypeOf()`方法可以用来从子类上获取父类。
-
-```js
-class Point { /*...*/ }
-
-class ColorPoint extends Point { /*...*/ }
-
-Object.getPrototypeOf(ColorPoint) === Point
-// true
-```
-
-因此，可以使用这个方法判断，一个类是否继承了另一个类。
-
-## super 关键字
+### 1.3 super 关键字
 
 `super`这个关键字，既可以当作函数使用，也可以当作对象使用。在这两种情况下，它的用法完全不同。
 
@@ -522,7 +509,7 @@ var obj = {
 obj.toString(); // MyObject: [object Object]
 ```
 
-## 类的 prototype 属性和\_\_proto\_\_属性
+### 1.4 类的 prototype 属性和\_\_proto\_\_属性
 
 大多数浏览器的 ES5 实现之中，每一个对象都有`__proto__`属性，指向对应的构造函数的`prototype`属性。Class 作为构造函数的语法糖，同时有`prototype`属性和`__proto__`属性，因此同时存在两条继承链。
 
@@ -561,7 +548,7 @@ Object.setPrototypeOf(B, A);
 const b = new B();
 ```
 
-《对象的扩展》一章给出过`Object.setPrototypeOf`方法的实现。
+《[对象的扩展](/js/object)》一章给出过`Object.setPrototypeOf`方法的实现。
 
 ```js
 Object.setPrototypeOf = function (obj, proto) {
@@ -623,7 +610,7 @@ A.prototype.__proto__ === Object.prototype // true
 
 这种情况下，`A`作为一个基类（即不存在任何继承），就是一个普通函数，所以直接继承`Function.prototype`。但是，`A`调用后返回一个空对象（即`Object`实例），所以`A.prototype.__proto__`指向构造函数（`Object`）的`prototype`属性。
 
-### 实例的 \_\_proto\_\_ 属性
+### 1.5 类实例的 \_\_proto\_\_ 属性
 
 子类实例的`__proto__`属性的`__proto__`属性，指向父类实例的`__proto__`属性。也就是说，子类的原型的原型，是父类的原型。
 
@@ -649,7 +636,7 @@ p1.printName() // "Ha"
 
 上面代码在`ColorPoint`的实例`p2`上向`Point`类添加方法，结果影响到了`Point`的实例`p1`。
 
-## 原生构造函数的继承
+## 2. 原生构造函数的继承
 
 原生构造函数是指语言内置的构造函数，通常用来生成数据结构。ECMAScript 的原生构造函数大致有下面这些。
 
@@ -806,7 +793,7 @@ o.attr === true  // false
 
 上面代码中，`NewObj`继承了`Object`，但是无法通过`super`方法向父类`Object`传参。这是因为 ES6 改变了`Object`构造函数的行为，一旦发现`Object`方法不是通过`new Object()`这种形式调用，ES6 规定`Object`构造函数会忽略参数。
 
-## Mixin 模式的实现
+## 3. Mixin 模式的实现
 
 Mixin 指的是多个对象合成一个新的对象，新对象具有各个组成成员的接口。它的最简单实现如下。
 

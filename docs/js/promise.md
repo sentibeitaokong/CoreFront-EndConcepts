@@ -205,7 +205,7 @@ new Promise((resolve, reject) => {
 })
 ```
 
-### Promise.prototype.then()
+### 1. Promise.prototype.then()
 
 Promise 实例具有`then`方法，也就是说，`then`方法是定义在原型对象`Promise.prototype`上的。它的作用是为 Promise 实例添加状态改变时的回调函数。前面说过，`then`方法的第一个参数是`resolved`状态的回调函数，第二个参数是`rejected`状态的回调函数，它们都是可选的。
 
@@ -246,7 +246,7 @@ getJSON("/post/1.json").then(
 );
 ```
 
-### Promise.prototype.catch()
+### 2. Promise.prototype.catch()
 
 `Promise.prototype.catch()`方法是`.then(null, rejection)`或`.then(undefined, rejection)`的别名，用于指定发生错误时的回调函数。
 
@@ -483,7 +483,7 @@ someAsyncThing().then(function() {
 
 上面代码中，第二个`catch()`方法用来捕获前一个`catch()`方法抛出的错误。
 
-### Promise.prototype.finally()
+### 3. Promise.prototype.finally()
 
 `finally()`方法用于指定不管 Promise 对象最后状态如何，都会执行的操作。该方法是 ES2018 引入标准的。
 
@@ -562,7 +562,7 @@ Promise.reject(3).then(() => {}, () => {})
 Promise.reject(3).finally(() => {})
 ```
 
-### Promise.all()
+### 4. Promise.all()
 
 `Promise.all()`方法用于将多个 Promise 实例，包装成一个新的 Promise 实例。
 
@@ -657,7 +657,7 @@ Promise.all([p1, p2])
 // Error: 报错了
 ```
 
-### Promise.race()
+### 5. Promise.race()
 
 `Promise.race()`方法同样是将多个 Promise 实例，包装成一个新的 Promise 实例。
 
@@ -686,7 +686,7 @@ p
 
 上面代码中，如果 5 秒之内`fetch`方法无法返回结果，变量`p`的状态就会变为`rejected`，从而触发`catch`方法指定的回调函数。
 
-### Promise.allSettled()
+### 6. Promise.allSettled()
 
 有时候，我们希望等到一组异步操作都结束了，不管每一个操作是成功还是失败，再进行下一步操作。但是，现有的 Promise 方法很难实现这个要求。
 
@@ -769,7 +769,7 @@ const errors = results
   .map(p => p.reason);
 ```
 
-### Promise.any()
+### 7. Promise.any()
 
 ES2021 引入了[`Promise.any()`方法](https://github.com/tc39/proposal-promise-any)。该方法接受一组 Promise 实例作为参数，包装成一个新的 Promise 实例返回。
 
@@ -827,7 +827,7 @@ Promise.any([rejected, alsoRejected]).catch(function (results) {
 });
 ```
 
-### Promise.resolve()
+### 8. Promise.resolve()
 
 有时需要将现有对象转为 Promise 对象，`Promise.resolve()`方法就起到这个作用。
 
@@ -931,7 +931,7 @@ console.log('one');
 
 上面代码中，`setTimeout(fn, 0)`在下一轮“事件循环”开始时执行，`Promise.resolve()`在本轮“事件循环”结束时执行，`console.log('one')`则是立即执行，因此最先输出。
 
-### Promise.reject()
+### 9. Promise.reject()
 
 `Promise.reject(reason)`方法也会返回一个新的 Promise 实例，该实例的状态为`rejected`。
 
@@ -960,7 +960,7 @@ Promise.reject('出错了')
 
 上面代码中，`Promise.reject()`方法的参数是一个字符串，后面`catch()`方法的参数`e`就是这个字符串。
 
-### Promise.try()
+### 10. Promise.try()
 
 实际开发中，经常遇到一种情况：不知道或者不想区分，函数`f`是同步函数还是异步操作，但是想用 Promise 来处理它。因为这样就可以不管`f`是否包含异步操作，都用`then`方法指定下一步流程，用`catch`方法处理`f`抛出的错误。一般就会采用下面的写法。
 
@@ -1136,7 +1136,7 @@ run(g);
 
 `Promise` 的强大之处在于其链式调用的能力，这通过以下三个核心方法实现。
 
-### **3.1 `.then(onFulfilled, onRejected)`**
+### **4.1 `.then(onFulfilled, onRejected)`**
 
 *   **作用**: 为 `Promise` 注册成功 (`onFulfilled`) 和失败 (`onRejected`) 的回调函数。
 *   **参数**:

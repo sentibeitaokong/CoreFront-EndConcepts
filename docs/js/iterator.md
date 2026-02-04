@@ -1,6 +1,6 @@
 # Iterator 和 for...of 循环
 
-## Iterator（遍历器）的概念
+## 1. Iterator（遍历器）的概念
 
 JavaScript 原有的表示“集合”的数据结构，主要是数组（`Array`）和对象（`Object`），ES6 又添加了`Map`和`Set`。这样就有了四种数据集合，用户还可以组合使用它们，定义自己的数据结构，比如数组的成员是`Map`，`Map`的成员是对象。这样就需要一种统一的接口机制，来处理所有不同的数据结构。
 
@@ -104,7 +104,7 @@ interface IterationResult {
 }
 ```
 
-## 默认 Iterator 接口
+### 1.1 默认 Iterator 接口
 
 Iterator 接口的目的，就是为所有数据结构，提供了一种统一的访问机制，即`for...of`循环（详见下文）。当使用`for...of`循环遍历某种数据结构时，该循环会自动去寻找 Iterator 接口。
 
@@ -320,7 +320,7 @@ while (!$result.done) {
 
 上面代码中，`ITERABLE`代表某种可遍历的数据结构，`$iterator`是它的遍历器对象。遍历器对象每次移动指针（`next`方法），都检查一下返回值的`done`属性，如果遍历还没结束，就移动遍历器对象的指针到下一步（`next`方法），不断循环。
 
-## 调用 Iterator 接口的场合
+### 1.2 调用 Iterator 接口的场合
 
 有一些场合会默认调用 Iterator 接口（即`Symbol.iterator`方法），除了下文会介绍的`for...of`循环，还有几个别的场合。
 
@@ -392,7 +392,7 @@ iterator.next() // { value: undefined, done: true }
 - Promise.all()
 - Promise.race()
 
-## 字符串的 Iterator 接口
+## 2. 字符串的 Iterator 接口
 
 字符串是一个类似数组的对象，也原生具有 Iterator 接口。
 
@@ -437,7 +437,7 @@ str // "hi"
 
 上面代码中，字符串 str 的`Symbol.iterator`方法被修改了，所以扩展运算符（`...`）返回的值变成了`bye`，而字符串本身还是`hi`。
 
-## Iterator 接口与 Generator 函数
+## 3. Iterator 接口与 Generator 函数
 
 `Symbol.iterator()`方法的最简单实现，还是使用下一章要介绍的 Generator 函数。
 
@@ -469,7 +469,7 @@ for (let x of obj) {
 
 上面代码中，`Symbol.iterator()`方法几乎不用部署任何代码，只要用 yield 命令给出每一步的返回值即可。
 
-## 遍历器对象的 return()，throw()
+## 4. 遍历器对象的 return()，throw()
 
 遍历器对象除了具有`next()`方法，还可以具有`return()`方法和`throw()`方法。如果你自己写遍历器对象生成函数，那么`next()`方法是必须部署的，`return()`方法和`throw()`方法是否部署是可选的。
 
@@ -515,7 +515,7 @@ for (let line of readLinesSync(fileName)) {
 
 `throw()`方法主要是配合 Generator 函数使用，一般的遍历器对象用不到这个方法。请参阅《Generator 函数》一章。
 
-## for...of 循环
+## 5. for...of 循环
 
 ES6 借鉴 C++、Java、C# 和 Python 语言，引入了`for...of`循环，作为遍历所有数据结构的统一的方法。
 
@@ -523,7 +523,7 @@ ES6 借鉴 C++、Java、C# 和 Python 语言，引入了`for...of`循环，作�
 
 `for...of`循环可以使用的范围包括数组、Set 和 Map 结构、某些类似数组的对象（比如`arguments`对象、DOM NodeList 对象）、后文的 Generator 对象，以及字符串。
 
-### 数组
+### 5.1 数组
 
 数组原生具备`iterator`接口（即默认部署了`Symbol.iterator`属性），`for...of`循环本质上就是调用这个接口产生的遍历器，可以用下面的代码证明。
 
@@ -588,7 +588,7 @@ for (let i of arr) {
 
 上面代码中，`for...of`循环不会返回数组`arr`的`foo`属性。
 
-### Set 和 Map 结构
+### 5.2 Set 和 Map 结构
 
 Set 和 Map 结构也原生具有 Iterator 接口，可以直接使用`for...of`循环。
 
@@ -630,7 +630,7 @@ for (let [key, value] of map) {
 // b : 2
 ```
 
-### 计算生成的数据结构
+**计算生成的数据结构**
 
 有些数据结构是在现有数据结构的基础上，计算生成的。比如，ES6 的数组、Set、Map 都部署了以下三个方法，调用后都返回遍历器对象。
 
@@ -650,7 +650,7 @@ for (let pair of arr.entries()) {
 // [2, 'c']
 ```
 
-### 类似数组的对象
+### 5.3 类似数组的对象
 
 类似数组的对象包括好几类。下面是`for...of`循环用于字符串、DOM NodeList 对象、`arguments`对象的例子。
 
@@ -706,7 +706,7 @@ for (let x of Array.from(arrayLike)) {
 }
 ```
 
-### 对象
+### 5.4 对象
 
 对于普通的对象，`for...of`结构不能直接使用，会报错，必须部署了 Iterator 接口后才能使用。但是，这样情况下，`for...in`循环依然可以用来遍历键名。
 
@@ -759,7 +759,7 @@ for (let [key, value] of entries(obj)) {
 // c -> 3
 ```
 
-### 与其他遍历语法的比较
+### 5.5 与其他遍历语法的比较
 
 以数组为例，JavaScript 提供多种遍历语法。最原始的写法就是`for`循环。
 
@@ -819,7 +819,7 @@ for (var n of fibonacci) {
 
 上面的例子，会输出斐波纳契数列小于等于 1000 的项。如果当前项大于 1000，就会使用`break`语句跳出`for...of`循环。
 
-## 遍历器对象的工具方法
+## 6. 遍历器对象的工具方法
 
 ES2025 为遍历器接口返回的遍历器对象，添加了一些工具方法，便于处理数据。
 

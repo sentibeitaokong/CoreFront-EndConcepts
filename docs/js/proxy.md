@@ -1,6 +1,8 @@
 # Proxy
 
-## 概述
+Proxy 是 ES6 引入的一个特性，它允许你创建一个对象的“代理”，从而可以拦截并自定义该对象上的基本操作（如属性查找、赋值、函数调用等）。Proxy 包装了另一个对象（称为目标对象），并允许你定义一个包含“陷阱”（traps）的处理器对象（handler），这些陷阱就是拦截具体操作的函数。
+
+## 1. Proxy概述
 
 Proxy 用于修改某些操作的默认行为，等同于在语言层面做出修改，所以属于一种“元编程”（meta programming），即对编程语言进行编程。
 
@@ -139,11 +141,11 @@ fproxy.foo === "Hello, foo" // true
 - **apply(target, object, args)**：拦截 Proxy 实例作为函数调用的操作，比如`proxy(...args)`、`proxy.call(object, ...args)`、`proxy.apply(...)`。
 - **construct(target, args)**：拦截 Proxy 实例作为构造函数调用的操作，比如`new proxy(...args)`。
 
-## Proxy 实例的方法
+## 2. [Proxy 实例的方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Proxy)
 
 下面是上面这些拦截方法的详细介绍。
 
-### get()
+### 2.1 get()
 
 `get`方法用于拦截某个属性的读取操作，可以接受三个参数，依次为目标对象、属性名和 proxy 实例本身（严格地说，是操作行为所针对的对象），其中最后一个参数可选。
 
@@ -324,7 +326,7 @@ proxy.foo
 // TypeError: Invariant check failed
 ```
 
-### set()
+### 2.2 set()
 
 `set`方法用来拦截某个属性的赋值操作，可以接受四个参数，依次为目标对象、属性名、属性值和 Proxy 实例本身，其中最后一个参数可选。
 
@@ -462,7 +464,7 @@ proxy.foo = 'bar';
 
 上面代码中，严格模式下，`set`代理返回`false`或者`undefined`，都会报错。
 
-### apply()
+### 2.3 apply()
 
 `apply`方法拦截函数的调用、`call`和`apply`操作。
 
@@ -519,7 +521,7 @@ proxy.apply(null, [7, 8]) // 30
 Reflect.apply(proxy, null, [9, 10]) // 38
 ```
 
-### has()
+### 2.4 has()
 
 `has()`方法用来拦截`HasProperty`操作，即判断对象是否具有某个属性时，这个方法会生效。典型的操作就是`in`运算符。
 
@@ -603,7 +605,7 @@ for (let b in oproxy2) {
 
 上面代码中，`has()`拦截只对`in`运算符生效，对`for...in`循环不生效，导致不符合要求的属性没有被`for...in`循环所排除。
 
-### construct()
+### 2.5 construct()
 
 `construct()`方法用于拦截`new`命令，下面是拦截对象的写法。
 
@@ -676,7 +678,7 @@ let p = new Proxy(function () {}, handler);
 new p() // true
 ```
 
-### deleteProperty()
+### 2.6 deleteProperty()
 
 `deleteProperty`方法用于拦截`delete`操作，如果这个方法抛出错误或者返回`false`，当前属性就无法被`delete`命令删除。
 
@@ -704,7 +706,7 @@ delete proxy._prop
 
 注意，目标对象自身的不可配置（configurable）的属性，不能被`deleteProperty`方法删除，否则报错。
 
-### defineProperty()
+### 2.7 defineProperty()
 
 `defineProperty()`方法拦截了`Object.defineProperty()`操作。
 
@@ -723,7 +725,7 @@ proxy.foo = 'bar' // 不会生效
 
 注意，如果目标对象不可扩展（non-extensible），则`defineProperty()`不能增加目标对象上不存在的属性，否则会报错。另外，如果目标对象的某个属性不可写（writable）或不可配置（configurable），则`defineProperty()`方法不得改变这两个设置。
 
-### getOwnPropertyDescriptor()
+### 2.8 getOwnPropertyDescriptor()
 
 `getOwnPropertyDescriptor()`方法拦截`Object.getOwnPropertyDescriptor()`，返回一个属性描述对象或者`undefined`。
 
@@ -748,7 +750,7 @@ Object.getOwnPropertyDescriptor(proxy, 'baz')
 
 上面代码中，`handler.getOwnPropertyDescriptor()`方法对于第一个字符为下划线的属性名会返回`undefined`。
 
-### getPrototypeOf()
+### 2.9 getPrototypeOf()
 
 `getPrototypeOf()`方法主要用来拦截获取对象原型。具体来说，拦截下面这些操作。
 
@@ -774,7 +776,7 @@ Object.getPrototypeOf(p) === proto // true
 
 注意，`getPrototypeOf()`方法的返回值必须是对象或者`null`，否则报错。另外，如果目标对象不可扩展（non-extensible）， `getPrototypeOf()`方法必须返回目标对象的原型对象。
 
-### isExtensible()
+### 2.10 isExtensible()
 
 `isExtensible()`方法拦截`Object.isExtensible()`操作。
 
@@ -814,7 +816,7 @@ Object.isExtensible(p)
 // Uncaught TypeError: 'isExtensible' on proxy: trap result does not reflect extensibility of proxy target (which is 'true')
 ```
 
-### ownKeys()
+### 2.11 ownKeys()
 
 `ownKeys()`方法用来拦截对象自身属性的读取操作。具体来说，拦截以下操作。
 
@@ -993,7 +995,7 @@ Object.getOwnPropertyNames(p)
 
 上面代码中，`obj`对象是不可扩展的，这时`ownKeys()`方法返回的数组之中，包含了`obj`对象的多余属性`b`，所以导致了报错。
 
-### preventExtensions()
+### 2.12 preventExtensions()
 
 `preventExtensions()`方法拦截`Object.preventExtensions()`。该方法必须返回一个布尔值，否则会被自动转为布尔值。
 
@@ -1028,7 +1030,7 @@ Object.preventExtensions(proxy)
 // Proxy {}
 ```
 
-### setPrototypeOf()
+### 2.13 setPrototypeOf()
 
 `setPrototypeOf()`方法主要用来拦截`Object.setPrototypeOf()`方法。
 
@@ -1051,7 +1053,7 @@ Object.setPrototypeOf(proxy, proto);
 
 注意，该方法只能返回布尔值，否则会被自动转为布尔值。另外，如果目标对象不可扩展（non-extensible），`setPrototypeOf()`方法不得改变目标对象的原型。
 
-## Proxy.revocable()
+## 3. Proxy的可撤销性
 
 `Proxy.revocable()`方法返回一个可取消的 Proxy 实例。
 
@@ -1072,7 +1074,7 @@ proxy.foo // TypeError: Revoked
 
 `Proxy.revocable()`的一个使用场景是，目标对象不允许直接访问，必须通过代理访问，一旦访问结束，就收回代理权，不允许再次访问。
 
-## this 问题
+## 4. Proxy的this 问题
 
 虽然 Proxy 可以代理针对目标对象的访问，但它不是目标对象的透明代理，即不做任何拦截的情况下，也无法保证与目标对象的行为一致。主要原因就是在 Proxy 代理的情况下，目标对象内部的`this`关键字会指向 Proxy 代理。
 
@@ -1170,29 +1172,12 @@ proxy.foo = 1
 
 上面例子中，`get()`和`set()`拦截函数内部的`this`，指向的都是`handler`对象。
 
-## 实例：Web 服务的客户端
+## 5. 常见应用场景
 
-Proxy 对象可以拦截目标对象的任意属性，这使得它很合适用来写 Web 服务的客户端。
+1.  **数据绑定与观察者模式**: 现代前端框架（如 Vue 3）的核心响应式系统就是基于 `Proxy` 实现的。通过 `get` 陷阱收集依赖，通过 `set` 陷阱触发更新。
+2.  **数据验证**: 如 `set` 示例所示，确保赋给对象属性的值符合预设的格式或范围。
+3.  **API 增强与兼容性**: 为现有 API 提供更友好的接口，例如给属性不存在时提供默认值，或者将旧 API 的方法名映射为新名称。
+4.  **安全沙箱**: 创建一个代理来限制对某些敏感对象或 API 的访问，防止未经授权的修改或读取。
+5.  **日志与性能监控**: 在 `apply`、`get`、`set` 等陷阱中加入日志记录或性能计时器，用于调试和分析代码。
+6.  **实现负索引**: 通过 `get` 陷阱，让数组支持类似 `array[-1]` 的负索引访问。
 
-```js
-const service = createWebService('http://example.com/data');
-
-service.employees().then(json => {
-  const employees = JSON.parse(json);
-  // ···
-});
-```
-
-上面代码新建了一个 Web 服务的接口，这个接口返回各种数据。Proxy 可以拦截这个对象的任意属性，所以不用为每一种数据写一个适配方法，只要写一个 Proxy 拦截就可以了。
-
-```js
-function createWebService(baseUrl) {
-  return new Proxy({}, {
-    get(target, propKey, receiver) {
-      return () => httpGet(baseUrl + '/' + propKey);
-    }
-  });
-}
-```
-
-同理，Proxy 也可以用来实现数据库的 ORM 层。

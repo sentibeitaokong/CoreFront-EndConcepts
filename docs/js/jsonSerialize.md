@@ -3,7 +3,7 @@
 *   **`JSON.stringify()` (序列化)**: 将 JavaScript **值** (通常是对象或数组) 转换为 **JSON 字符串**。
 *   **`JSON.parse()` (反序列化/解析)**: 将 **JSON 字符串** 转换为 JavaScript **值**。
 
-## **1. `JSON.stringify()`**
+## **1. [`JSON.stringify()`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify)**
 
 `JSON.stringify()` 方法将一个 JavaScript 对象或值转换为 JSON 字符串。
 
@@ -120,7 +120,7 @@ console.log(JSON.stringify(data)); // '{"d":[null,null]}' (a, b, c 都消失了)
     */
     ```
 
-## **2. `JSON.parse()`**
+## **2. [`JSON.parse()`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse)**
 
 `JSON.parse()` 方法将一个 JSON 字符串解析为 JavaScript 对象或值。
 

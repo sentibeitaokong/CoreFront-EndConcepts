@@ -3,7 +3,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 # 对象的扩展
 
-对象（object）是 JavaScript 最重要的数据结构。ES6 对它进行了重大升级，本章介绍数据结构本身的改变，下一章介绍`Object`对象的新增方法。
+对象（object）是 JavaScript 最重要的数据结构。
 
 ## 1. 对象字面量增强
 
@@ -726,7 +726,7 @@ let aWithXGetter = { ...a }; // 报错
 
 上面例子中，取值函数`get`在扩展`a`对象时会自动执行，导致报错。
 
-## 2.Object常用静态方法扩展(Static Methods)
+## 2.[Object常用静态方法扩展(Static Methods)](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object)
 
 这些方法直接通过 Object. 调用。
 
@@ -1222,7 +1222,7 @@ Object.fromEntries(new URLSearchParams('foo=bar&baz=qux'))
 // { foo: "bar", baz: "qux" }
 ```
 
-###  2.8 Object.hasOwn()
+###  2.7 Object.hasOwn()
 
 JavaScript 对象的属性分成两种：自身的属性和继承的属性。对象实例有一个`hasOwnProperty()`方法，可以判断某个属性是否为原生属性。ES2022 在`Object`对象上面新增了一个静态方法[`Object.hasOwn()`](https://github.com/tc39/proposal-accessible-object-hasownproperty)，也可以判断是否为自身的属性。
 
@@ -1249,7 +1249,7 @@ Object.hasOwn(obj, 'foo') // false
 
 上面示例中，`Object.create(null)`返回的对象`obj`是没有原型的，不继承任何属性，这导致调用`obj.hasOwnProperty()`会报错，但是`Object.hasOwn()`就能正确处理这种情况。
 
-###  2.9 Object.getOwnPropertyDescriptors()
+###  2.8 Object.getOwnPropertyDescriptors()
 
 ES5 的`Object.getOwnPropertyDescriptor()`方法会返回某个对象属性的描述对象（descriptor）。ES2017 引入了`Object.getOwnPropertyDescriptors()`方法，返回指定对象所有自身属性（非继承属性）的描述对象。
 
@@ -1470,7 +1470,7 @@ Object.getPrototypeOf({ __proto__: null })
 // null
 ```
 
-###  2.10 Object.setPrototypeOf()
+###  2.9 Object.setPrototypeOf()
 
 `Object.setPrototypeOf`方法的作用与`__proto__`相同，用来设置一个对象的原型对象（prototype），返回参数对象本身。它是 ES6 正式推荐的设置原型对象的方法。
 
@@ -1526,7 +1526,7 @@ Object.setPrototypeOf(null, {})
 // TypeError: Object.setPrototypeOf called on null or undefined
 ```
 
-### 2.11 Object.getPrototypeOf()
+### 2.10 Object.getPrototypeOf()
 
 该方法与`Object.setPrototypeOf`方法配套，用于读取一个对象的原型对象。
 

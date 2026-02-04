@@ -1,5 +1,5 @@
 ---
-outline: [2,4] # 这个页面将显示 h2 和 h3 标题
+outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 # 执行上下文 (Execution Context) 和 执行栈 (Execution Stack / Call Stack)
 

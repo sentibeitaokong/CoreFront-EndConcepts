@@ -61,7 +61,7 @@
 *   **选择**: `|` (或)。
 *   **转义**: `\` (反斜杠)。
 
-### **1.4 `RegExp` 实例方法**
+### **1.4 [`RegExp` 实例方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/RegExp)**
 
 | 方法 | 描述 | 返回值 |
 | :--- | :--- | :--- |

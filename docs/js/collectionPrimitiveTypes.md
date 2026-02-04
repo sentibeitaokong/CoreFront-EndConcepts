@@ -36,7 +36,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
         console.log(arr); // [1, 2] (截断了)
         arr.length = 0;   // (清空数组的常用技巧)
         ```
-### 1.3 [核心 API 速查表](https://web.nodejavascript.cn/en-us/docs/web/javascript/reference/global_objects/array/)
+### 1.3 [核心 API 速查表](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array)
 这是 javascript 中 **Array (数组)** 的详细技术文档。数组是 javascript 中最核心、使用频率最高的数据结构之一。
 
 #### 1. 增删改 (Mutator Methods) - ⚠️ **会改变原数组**
@@ -217,7 +217,7 @@ TypedArray 拥有普通数组的大部分方法，但有几个关键区别：
 1.  **长度不可变**：一旦创建，不能改变大小。
 2.  **无增删方法**：没有 `push`, `pop`, `splice`, `shift`, `unshift`。
 
-### 2.4 [核心 API](https://web.nodejavascript.cn/en-us/docs/web/javascript/reference/global_objects/typedarray/)
+### 2.4 [核心 API](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/TypedArray)
 TypedArray数组是在 ES6 中为了高效处理**二进制数据**（如 WebGL 纹理、Canvas 像素数据、音频处理、文件 I/O）而引入的核心 API。
 
 
@@ -371,7 +371,7 @@ for (const [key, value] of Object.entries(person)) {
 }
 ```
 
-### **3.2 [`Object` 静态 API](https://web.nodejavascript.cn/en-us/docs/web/javascript/reference/global_objects/object/) 详解**
+### **3.2 [`Object` 静态 API](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object) 详解**
 
 这些方法直接通过 `Object` 构造函数调用。
 
@@ -498,7 +498,7 @@ console.log(myMap.get(123)); // "this is a number key"
 | :--- | :--- | :--- |
 | `size` | 返回 `Map` 实例中键值对的数量。 | `const map = new Map([['a',1], ['b',2]]); console.log(map.size); // 2` |
 
-#### **2. 核心方法**
+#### **2. [核心方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Map)**
 
 | 方法 | 描述 | 返回值 | 示例 |
 | :--- | :--- | :--- | :--- |
@@ -709,7 +709,7 @@ console.log(charSet); // Set(4) { 'h', 'e', 'l', 'o' }
 | :--- | :--- | :--- |
 | `size` | 返回 `Set` 实例中值的数量。 | `const set = new Set([1, 2, 3]); console.log(set.size); // 3` |
 
-#### **2. 核心方法**
+#### **2. [核心方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Set)**
 
 | 方法 | 描述 | 返回值 | 示例 |
 | :--- | :--- | :--- | :--- |
@@ -875,7 +875,7 @@ const numArray = [...numbers]; // [10, 20, 30]
 
 **用途**: 主要用于将**额外的数据**与一个**外部对象**关联起来，而**不阻止**该对象被垃圾回收。这在实现“私有”属性或缓存计算结果时非常有用。
 
-#### **1. API 概览**
+#### **1. [API](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/WeakMap) 概览**
 
 | 方法 | 描述 | 关键约束 |
 | :--- | :--- | :--- |
@@ -929,7 +929,7 @@ alice = null;
 
 **用途**: 主要用于**追踪**一组**对象**，例如，标记某些对象是否已被处理，而**不阻止**这些对象被垃圾回收。
 
-#### **1. API 概览**
+#### **1. [API](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/WeakSet) 概览**
 
 | 方法 | 描述 | 关键约束 |
 | :--- | :--- | :--- |

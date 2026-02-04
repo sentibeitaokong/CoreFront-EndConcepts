@@ -105,7 +105,7 @@ function dedupe(array) {
 dedupe([1, 1, 2, 3]) // [1, 2, 3]
 ```
 
-### 1.2 Set 实例的属性和方法
+### 1.2 [Set 实例的属性和方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Set)
 
 Set 结构的实例有以下属性。
 
@@ -442,7 +442,7 @@ ws.add(Symbol()) // 不报错
 
 这些特点同样适用于本章后面要介绍的 WeakMap 结构。
 
-### 2.2 语法
+### 2.2 [语法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/WeakSet)
 
 WeakSet 是一个构造函数，可以使用`new`命令，创建 WeakSet 数据结构。
 
@@ -678,7 +678,7 @@ map.set(NaN, 123);
 map.get(NaN) // 123
 ```
 
-### 3.2 实例的属性和操作方法
+### 3.2 [实例的属性和操作方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Map)
 
 Map 结构的实例有以下属性和操作方法。
 
@@ -1113,7 +1113,7 @@ wm.get(key)
 
 上面代码中，键值`obj`是正常引用。所以，即使在 WeakMap 外部消除了`obj`的引用，WeakMap 内部的引用依然存在。
 
-### 4.2 WeakMap 的语法
+### 4.2 [WeakMap 的语法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/WeakMap)
 
 WeakMap 与 Map 在 API 上的区别主要是两个，一是没有遍历操作（即没有`keys()`、`values()`和`entries()`方法），也没有`size`属性。因为没有办法列出所有键名，某个键名是否存在完全不可预测，跟垃圾回收机制是否运行相关。这一刻可以取到键名，下一刻垃圾回收机制突然运行了，这个键名就没了，为了防止出现不确定性，就统一规定不能取到键名。二是无法清空，即不支持`clear`方法。因此，`WeakMap`只有四个方法可用：`get()`、`set()`、`has()`、`delete()`。
 
@@ -1251,7 +1251,7 @@ c.dec()
 
 上面代码中，`Countdown`类的两个内部属性`_counter`和`_action`，是实例的弱引用，所以如果删除实例，它们也就随之消失，不会造成内存泄漏。
 
-## 5. WeakRef
+## 5. [WeakRef](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/WeakRef)
 
 WeakSet 和 WeakMap 是基于弱引用的数据结构，[ES2021](https://github.com/tc39/proposal-weakrefs) 更进一步，提供了 WeakRef 对象，用于直接创建对象的弱引用。
 

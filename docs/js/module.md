@@ -1,12 +1,21 @@
 # Module 的语法
 
-## 概述
+JavaScript 模块（通常称为 ES Modules 或 ESM）是 ES6 (ES2015) 引入的官方、标准化的模块系统。它允许开发者将代码分割成独立的、可复用的文件（模块），然后按需导入或导出功能（如函数、类、变量）。 
 
-历史上，JavaScript 一直没有模块（module）体系，无法将一个大程序拆分成互相依赖的小文件，再用简单的方法拼装起来。其他语言都有这项功能，比如 Ruby 的`require`、Python 的`import`，甚至就连 CSS 都有`@import`，但是 JavaScript 任何这方面的支持都没有，这对开发大型的、复杂的项目形成了巨大障碍。
+## 1. Module定义
 
-在 ES6 之前，社区制定了一些模块加载方案，最主要的有 CommonJS 和 AMD 两种。前者用于服务器，后者用于浏览器。ES6 在语言标准的层面上，实现了模块功能，而且实现得相当简单，完全可以取代 CommonJS 和 AMD 规范，成为浏览器和服务器通用的模块解决方案。
+模块化的核心优势：
+
+* 封装 (Encapsulation): 每个模块都有自己的作用域，模块内的变量、函数默认是私有的，不会污染全局作用域。
+
+* 可维护性 (Maintainability): 代码被组织成小的、功能单一的文件，更易于理解、修改和调试。
+
+* 可复用性 (Reusability): 可以轻松地在不同项目中复用写好的模块。
+
+* 依赖管理 (Dependency Management): 明确声明模块之间的依赖关系，使得代码结构更清晰。
 
 ES6 模块的设计思想是尽量的静态化，使得编译时就能确定模块的依赖关系，以及输入和输出的变量。CommonJS 和 AMD 模块，都只能在运行时确定这些东西。比如，CommonJS 模块就是对象，输入时必须查找对象属性。
+
 
 ```js
 // CommonJS模块
@@ -38,35 +47,8 @@ import { stat, exists, readFile } from 'fs';
 - 将来浏览器的新 API 就能用模块格式提供，不再必须做成全局变量或者`navigator`对象的属性。
 - 不再需要对象作为命名空间（比如`Math`对象），未来这些功能可以通过模块提供。
 
-本章介绍 ES6 模块的语法，下一章介绍如何在浏览器和 Node 之中，加载 ES6 模块。
 
-## 严格模式
-
-ES6 的模块自动采用严格模式，不管你有没有在模块头部加上`"use strict";`。
-
-严格模式主要有以下限制。
-
-- 变量必须声明后再使用
-- 函数的参数不能有同名属性，否则报错
-- 不能使用`with`语句
-- 不能对只读属性赋值，否则报错
-- 不能使用前缀 0 表示八进制数，否则报错
-- 不能删除不可删除的属性，否则报错
-- 不能删除变量`delete prop`，会报错，只能删除属性`delete global[prop]`
-- `eval`不会在它的外层作用域引入变量
-- `eval`和`arguments`不能被重新赋值
-- `arguments`不会自动反映函数参数的变化
-- 不能使用`arguments.callee`
-- 不能使用`arguments.caller`
-- 禁止`this`指向全局对象
-- 不能使用`fn.caller`和`fn.arguments`获取函数调用的堆栈
-- 增加了保留字（比如`protected`、`static`和`interface`）
-
-上面这些限制，模块都必须遵守。由于严格模式是 ES5 引入的，不属于 ES6，所以请参阅相关 ES5 书籍，本书不再详细介绍了。
-
-其中，尤其需要注意`this`的限制。ES6 模块之中，顶层的`this`指向`undefined`，即不应该在顶层代码使用`this`。
-
-## export 命令
+### 1.1 export 命令
 
 模块功能主要由两个命令构成：`export`和`import`。`export`命令用于规定模块的对外接口，`import`命令用于输入其他模块提供的功能。
 
@@ -186,7 +168,7 @@ foo()
 
 上面代码中，`export`语句放在函数之中，结果报错。
 
-## import 命令
+### 1.2 import 命令
 
 使用`export`命令定义了模块的对外接口以后，其他 JS 文件就可以通过`import`命令加载这个模块。
 
@@ -298,55 +280,7 @@ require('core-js/modules/es6.promise');
 import React from 'React';
 ```
 
-## 模块的整体加载
-
-除了指定加载某个输出值，还可以使用整体加载，即用星号（`*`）指定一个对象，所有输出值都加载在这个对象上面。
-
-下面是一个`circle.js`文件，它输出两个方法`area`和`circumference`。
-
-```js
-// circle.js
-
-export function area(radius) {
-  return Math.PI * radius * radius;
-}
-
-export function circumference(radius) {
-  return 2 * Math.PI * radius;
-}
-```
-
-现在，加载这个模块。
-
-```js
-// main.js
-
-import { area, circumference } from './circle';
-
-console.log('圆面积：' + area(4));
-console.log('圆周长：' + circumference(14));
-```
-
-上面写法是逐一指定要加载的方法，整体加载的写法如下。
-
-```js
-import * as circle from './circle';
-
-console.log('圆面积：' + circle.area(4));
-console.log('圆周长：' + circle.circumference(14));
-```
-
-注意，模块整体加载所在的那个对象（上例是`circle`），应该是可以静态分析的，所以不允许运行时改变。下面的写法都是不允许的。
-
-```js
-import * as circle from './circle';
-
-// 下面两行都是不允许的
-circle.foo = 'hello';
-circle.area = function () {};
-```
-
-## export default 命令
+### 1.3 export default 命令
 
 从前面的例子可以看出，使用`import`命令的时候，用户需要知道所要加载的变量名或函数名，否则无法加载。但是，用户肯定希望快速上手，未必愿意阅读文档，去了解模块有哪些属性和方法。
 
@@ -496,7 +430,7 @@ import MyClass from 'MyClass';
 let o = new MyClass();
 ```
 
-## export 与 import 的复合写法
+### 1.4 export 与 import 的复合写法
 
 如果在一个模块之中，先输入后输出同一个模块，`import`语句可以与`export`语句写在一起。
 
@@ -558,38 +492,57 @@ import * as ns from "mod";
 export {ns};
 ```
 
-## import 属性
+## 2. Module的高级特性
 
-ES2025 引入了“[import 属性](https://github.com/tc39/proposal-import-attributes)”（import attributes），允许为 import 命令设置属性，主要用于导入非模块的代码，比如 JSON 数据、WebAssembly 代码、CSS 代码。
+### 2.1 模块的整体加载
 
-目前，只支持导入 JSON 数据。
+除了指定加载某个输出值，还可以使用整体加载，即用星号（`*`）指定一个对象，所有输出值都加载在这个对象上面。
 
-```js
-// 静态导入
-import configData from './config-data.json' with { type: 'json' };
-
-// 动态导入
-const configData = await import(
-  './config-data.json', { with: { type: 'json' } }
-);
-```
-
-上面代码中，import 命令使用 with 子句，指定一个属性对象。这个属性对象目前只有一个 type 属性，它的值就是导入代码的类型，现在只能设置为`json`一个值。
-
-如果没有 import 属性，导入 JSON 数据只能使用 fetch 命令。
+下面是一个`circle.js`文件，它输出两个方法`area`和`circumference`。
 
 ```js
-const response = await fetch('./config.json');
-const json = await response.json();
+// circle.js
+
+export function area(radius) {
+  return Math.PI * radius * radius;
+}
+
+export function circumference(radius) {
+  return 2 * Math.PI * radius;
+}
 ```
 
-export 命令与 import 命令写在一起，形成一个再导出语句时，也可以使用 import 属性。
+现在，加载这个模块。
 
 ```js
-export { default as config } from './config-data.json' with { type: 'json' };
+// main.js
+
+import { area, circumference } from './circle';
+
+console.log('圆面积：' + area(4));
+console.log('圆周长：' + circumference(14));
 ```
 
-## 模块的继承
+上面写法是逐一指定要加载的方法，整体加载的写法如下。
+
+```js
+import * as circle from './circle';
+
+console.log('圆面积：' + circle.area(4));
+console.log('圆周长：' + circle.circumference(14));
+```
+
+注意，模块整体加载所在的那个对象（上例是`circle`），应该是可以静态分析的，所以不允许运行时改变。下面的写法都是不允许的。
+
+```js
+import * as circle from './circle';
+
+// 下面两行都是不允许的
+circle.foo = 'hello';
+circle.area = function () {};
+```
+
+### 2.2 模块的继承
 
 模块可以继承。
 
@@ -629,7 +582,7 @@ console.log(exp(math.e));
 
 上面代码中的`import exp`表示，将`circleplus`模块的默认方法加载为`exp`方法。
 
-## 跨模块常量
+### 2.3 跨模块常量
 
 本书介绍`const`命令的时候说过，`const`声明的常量只在当前代码块有效。如果想设置跨模块的常量（即跨多个文件），或者说一个值要被多个模块共享，可以采用下面的写法。
 
@@ -679,9 +632,70 @@ export {users} from './users';
 import {db, users} from './constants/index';
 ```
 
-## import()
+### 2.4 import 属性
 
-### 简介
+ES2025 引入了“[import 属性](https://github.com/tc39/proposal-import-attributes)”（import attributes），允许为 import 命令设置属性，主要用于导入非模块的代码，比如 JSON 数据、WebAssembly 代码、CSS 代码。
+
+目前，只支持导入 JSON 数据。
+
+```js
+// 静态导入
+import configData from './config-data.json' with { type: 'json' };
+
+// 动态导入
+const configData = await import(
+  './config-data.json', { with: { type: 'json' } }
+);
+```
+
+上面代码中，import 命令使用 with 子句，指定一个属性对象。这个属性对象目前只有一个 type 属性，它的值就是导入代码的类型，现在只能设置为`json`一个值。
+
+如果没有 import 属性，导入 JSON 数据只能使用 fetch 命令。
+
+```js
+const response = await fetch('./config.json');
+const json = await response.json();
+```
+
+export 命令与 import 命令写在一起，形成一个再导出语句时，也可以使用 import 属性。
+
+```js
+export { default as config } from './config-data.json' with { type: 'json' };
+```
+
+### 2.5 Module严格模式
+
+ES6 的模块自动采用严格模式，不管你有没有在模块头部加上`"use strict";`。
+
+严格模式主要有以下限制。
+
+- 变量必须声明后再使用
+- 函数的参数不能有同名属性，否则报错
+- 不能使用`with`语句
+- 不能对只读属性赋值，否则报错
+- 不能使用前缀 0 表示八进制数，否则报错
+- 不能删除不可删除的属性，否则报错
+- 不能删除变量`delete prop`，会报错，只能删除属性`delete global[prop]`
+- `eval`不会在它的外层作用域引入变量
+- `eval`和`arguments`不能被重新赋值
+- `arguments`不会自动反映函数参数的变化
+- 不能使用`arguments.callee`
+- 不能使用`arguments.caller`
+- 禁止`this`指向全局对象
+- 不能使用`fn.caller`和`fn.arguments`获取函数调用的堆栈
+- 增加了保留字（比如`protected`、`static`和`interface`）
+
+上面这些限制，模块都必须遵守。由于严格模式是 ES5 引入的，不属于 ES6，所以请参阅相关 ES5 书籍，本书不再详细介绍了。
+
+其中，尤其需要注意`this`的限制。ES6 模块之中，顶层的`this`指向`undefined`，即不应该在顶层代码使用`this`。
+
+## 3. 动态导入import()
+
+标准的 import 语句是静态的，必须写在模块的顶层。但有时，我们需要根据条件或在代码执行过程中按需加载模块。这时就可以使用动态导入 import()。
+
+import() 是一种类似函数的语法，它返回一个 Promise，该 Promise 在模块加载成功后会 resolve 为模块的命名空间对象。
+
+### 3.1 定义
 
 前面介绍过，`import`命令会被 JavaScript 引擎静态分析，先于模块内的其他语句执行（`import`命令叫做“连接” binding 其实更合适）。所以，下面的代码会报错。
 
@@ -748,9 +762,9 @@ renderWidget();
 
 上面示例中，`await`命令后面就是使用`import()`，对比`then()`的写法明显更简洁易读。
 
-### 适用场合
+### 3.2 应用场景
 
-下面是`import()`的一些适用场合。
+下面是`import()`的一些应用场景。
 
 （1）按需加载。
 
@@ -795,7 +809,7 @@ import(f())
 
 上面代码中，根据函数`f`的返回结果，加载不同的模块。
 
-### 注意点
+### 3.3 注意点
 
 `import()`加载模块成功以后，这个模块会作为一个对象，当作`then`方法的参数。因此，可以使用对象解构赋值的语法，获取输出接口。
 
@@ -835,7 +849,7 @@ Promise.all([
   import('./module3.js'),
 ])
 .then(([module1, module2, module3]) => {
-   ···
+    
 });
 ```
 
@@ -855,29 +869,29 @@ async function main() {
 main();
 ```
 
-## import.meta
+## 4. `import.meta`
 
-开发者使用一个模块时，有时需要知道模板本身的一些信息（比如模块的路径）。[ES2020](https://github.com/tc39/proposal-import-meta) 为 import 命令添加了一个元属性`import.meta`，返回当前模块的元信息。
+开发者使用一个模块时，有时需要知道模板本身的一些信息（比如模块的路径）。[ES2020](https://github.com/tc39/proposal-import-meta) 为 `import` 命令添加了一个元属性`import.meta`，返回当前模块的元信息。
 
 `import.meta`只能在模块内部使用，如果在模块外部使用会报错。
 
 这个属性返回一个对象，该对象的各种属性就是当前运行的脚本的元信息。具体包含哪些属性，标准没有规定，由各个运行环境自行决定。一般来说，`import.meta`至少会有下面两个属性。
 
-**（1）import.meta.url**
+### **4.1 `import.meta.url`**
 
-`import.meta.url`返回当前模块的 URL 路径。举例来说，当前模块主文件的路径是`https://foo.com/main.js`，`import.meta.url`就返回这个路径。如果模块里面还有一个数据文件`data.txt`，那么就可以用下面的代码，获取这个数据文件的路径。
+`import.meta.url`返回当前模块的 `URL` 路径。举例来说，当前模块主文件的路径是`https://foo.com/main.js`，`import.meta.url`就返回这个路径。如果模块里面还有一个数据文件`data.txt`，那么就可以用下面的代码，获取这个数据文件的路径。
 
-```js
+```javascript
 new URL('data.txt', import.meta.url)
 ```
 
-注意，Node.js 环境中，`import.meta.url`返回的总是本地路径，即`file:URL`协议的字符串，比如`file:///home/user/foo.js`。
+注意，`Node.js` 环境中，`import.meta.url`返回的总是本地路径，即`file:URL`协议的字符串，比如`file:///home/user/foo.js`。
 
-**（2）import.meta.scriptElement**
+### **4.2 `import.meta.scriptElement`**
 
-`import.meta.scriptElement`是浏览器特有的元属性，返回加载模块的那个`<script>`元素，相当于`document.currentScript`属性。
+`import.meta.scriptElement`是浏览器特有的元属性，返回加载模块的那个`script标签`元素，相当于`document.currentScript`属性。
 
-```js
+```javascript
 // HTML 代码为
 // <script type="module" src="my-module.js" data-foo="abc"></script>
 
@@ -886,9 +900,9 @@ import.meta.scriptElement.dataset.foo
 // "abc"
 ```
 
-**（3）其他**
+### **4.3 其他**
 
-Deno 现在还支持`import.meta.filename`和`import.meta.dirname`属性，对应 CommonJS 模块系统的`__filename`和`__dirname`属性。
+`Deno` 现在还支持`import.meta.filename`和`import.meta.dirname`属性，对应 `CommonJS` 模块系统的`__filename`和`__dirname`属性。
 
 - `import.meta.filename`：当前模块文件的绝对路径。
 - `import.meta.dirname`：当前模块文件的目录的绝对路径。
@@ -896,4 +910,8 @@ Deno 现在还支持`import.meta.filename`和`import.meta.dirname`属性，对�
 这两个属性都提供当前平台的正确的路径分隔符，比如 Linux 系统返回`/dev/my_module.ts`，Windows 系统返回`C:\dev\my_module.ts`。
 
 本地模块可以使用这两个属性，远程模块也可以使用。
+
+
+
+
 

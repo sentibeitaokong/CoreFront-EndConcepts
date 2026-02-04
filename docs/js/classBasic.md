@@ -1,6 +1,8 @@
 # Class 的基本语法
 
-## 类的由来
+class 是在 ES6 (ECMAScript 2015) 中引入的，它为 JavaScript 中现有的原型继承 (prototypal inheritance) 提供了一层更简洁、更清晰的语法糖。class 并没有引入新的面向对象继承模型，它只是让开发者能用更传统、更易于理解的方式来创建对象和处理继承。
+
+## 1. 类的定义和实例化
 
 JavaScript 语言中，生成实例对象的传统方法是通过构造函数。下面是一个例子。
 
@@ -164,7 +166,7 @@ Object.getOwnPropertyNames(Point.prototype)
 
 上面代码采用 ES5 的写法，`toString()`方法就是可枚举的。
 
-## constructor() 方法
+### 1.1 constructor() 方法
 
 `constructor()`方法是类的默认方法，通过`new`命令生成对象实例时，自动调用该方法。一个类必须有`constructor()`方法，如果没有显式定义，一个空的`constructor()`方法会被默认添加。
 
@@ -208,7 +210,7 @@ Foo()
 // TypeError: Class constructor Foo cannot be invoked without 'new'
 ```
 
-## 类的实例
+### 1.2 类的实例
 
 生成类的实例的写法，与 ES5 完全一样，也是使用`new`命令。前面说过，如果忘记加上`new`，像函数那样调用`Class()`，将会报错。
 
@@ -281,7 +283,7 @@ p3.printName() // "Oops"
 
 上面代码在`p1`的原型上添加了一个`printName()`方法，由于`p1`的原型就是`p2`的原型，因此`p2`也可以调用这个方法。而且，此后新建的实例`p3`也可以调用这个方法。这意味着，使用实例的`__proto__`属性改写原型，必须相当谨慎，不推荐使用，因为这会改变“类”的原始定义，影响到所有实例。
 
-## 实例属性的新写法
+### 1.3 类实例属性简写
 
 [ES2022](https://github.com/tc39/proposal-class-fields) 为类的实例属性，又规定了一种新写法。实例属性现在除了可以定义在`constructor()`方法里面的`this`上面，也可以定义在类内部的最顶层。
 
@@ -337,7 +339,7 @@ class foo {
 
 上面的代码，一眼就能看出，`foo`类有两个实例属性，一目了然。另外，写起来也比较简洁。
 
-## 取值函数（getter）和存值函数（setter）
+### 1.4 取值函数（getter）和存值函数（setter）
 
 与 ES5 一样，在“类”的内部可以使用`get`和`set`关键字，对某个属性设置存值函数和取值函数，拦截该属性的存取行为。
 
@@ -392,7 +394,7 @@ var descriptor = Object.getOwnPropertyDescriptor(
 
 上面代码中，存值函数和取值函数是定义在`html`属性的描述对象上面，这与 ES5 完全一致。
 
-## 属性表达式
+### 1.5 属性表达式
 
 类的属性名，可以采用表达式。
 
@@ -412,7 +414,7 @@ class Square {
 
 上面代码中，`Square`类的方法名`getArea`，是从表达式得到的。
 
-## Class 表达式
+### 1.6 Class 表达式
 
 与函数一样，类也可以使用表达式的形式定义。
 
@@ -458,7 +460,7 @@ person.sayName(); // "张三"
 
 上面代码中，`person`是一个立即执行的类的实例。
 
-## 静态方法
+### 1.7 类的静态方法
 
 类相当于实例的原型，所有在类中定义的方法，都会被实例继承。如果在一个方法前，加上`static`关键字，就表示该方法不会被实例继承，而是直接通过类来调用，这就称为“静态方法”。
 
@@ -533,7 +535,7 @@ class Bar extends Foo {
 Bar.classMethod() // "hello, too"
 ```
 
-## 静态属性
+### 1.8 类的静态属性
 
 静态属性指的是 Class 本身的属性，即`Class.propName`，而不是定义在实例对象（`this`）上的属性。
 
@@ -576,9 +578,91 @@ class Foo {
 
 上面代码中，老写法的静态属性定义在类的外部。整个类生成以后，再生成静态属性。这样让人很容易忽略这个静态属性，也不符合相关代码应该放在一起的代码组织原则。另外，新写法是显式声明（declarative），而不是赋值处理，语义更好。
 
-## 私有方法和私有属性
+### 1.9 静态块
 
-### 早期解决方案
+静态属性的一个问题是，如果它有初始化逻辑，这个逻辑要么写在类的外部，要么写在`constructor()`方法里面。
+
+```js
+class C {
+  static x = 234;
+  static y;
+  static z;
+}
+
+try {
+  const obj = doSomethingWith(C.x);
+  C.y = obj.y
+  C.z = obj.z;
+} catch {
+  C.y = ...;
+  C.z = ...;
+}
+```
+
+上面示例中，静态属性`y`和`z`的值依赖于静态属性`x`的运算结果，这段初始化逻辑写在类的外部（上例的`try...catch`代码块）。另一种方法是写到类的`constructor()`方法里面。这两种方法都不是很理想，前者是将类的内部逻辑写到了外部，后者则是每次新建实例都会运行一次。
+
+为了解决这个问题，ES2022 引入了[静态块](https://github.com/tc39/proposal-class-static-block)（static block），允许在类的内部设置一个代码块，在类生成时运行且只运行一次，主要作用是对静态属性进行初始化。以后，新建类的实例时，这个块就不运行了。
+
+```js
+class C {
+  static x = ...;
+  static y;
+  static z;
+
+  static {
+    try {
+      const obj = doSomethingWith(this.x);
+      this.y = obj.y;
+      this.z = obj.z;
+    }
+    catch {
+      this.y = ...;
+      this.z = ...;
+    }
+  }
+}
+```
+
+上面代码中，类的内部有一个 static 代码块，这就是静态块。它的好处是将静态属性`y`和`z`的初始化逻辑，写入了类的内部，而且只运行一次。
+
+每个类允许有多个静态块，每个静态块中只能访问之前声明的静态属性。另外，静态块的内部不能有`return`语句。
+
+静态块内部可以使用类名或`this`，指代当前类。
+
+```js
+class C {
+  static x = 1;
+  static {
+    this.x; // 1
+    // 或者
+    C.x; // 1
+  }
+}
+```
+
+上面示例中，`this.x`和`C.x`都能获取静态属性`x`。
+
+除了静态属性的初始化，静态块还有一个作用，就是将私有属性与类的外部代码分享。
+
+```js
+let getX;
+
+export class C {
+  #x = 1;
+  static {
+    getX = obj => obj.#x;
+  }
+}
+
+console.log(getX(new C())); // 1
+```
+
+上面示例中，`#x`是类的私有属性，如果类外部的`getX()`方法希望获取这个属性，以前是要写在类的`constructor()`方法里面，这样的话，每次新建实例都会定义一次`getX()`方法。现在可以写在静态块里面，这样的话，只在类生成时定义一次。
+
+
+## 2. 类的私有方法和私有属性
+
+### 2.1 早期解决方案
 
 私有方法和私有属性，是只能在类的内部访问的方法和属性，外部不能访问。这是常见需求，有利于代码的封装，但早期的 ES6 不提供，只能通过变通方法模拟实现。
 
@@ -654,7 +738,7 @@ Reflect.ownKeys(myClass.prototype)
 
 上面代码中，Symbol 值的属性名依然可以从类的外部拿到。
 
-### 私有属性的正式写法
+### 2.2 私有属性的正式写法
 
 [ES2022](https://github.com/tc39/proposal-class-fields)正式为`class`添加了私有属性，方法是在属性名之前使用`#`表示。
 
@@ -807,7 +891,7 @@ FakeMath.#computeRandomNumber() // 报错
 
 上面代码中，`#totallyRandomNumber`是私有属性，`#computeRandomNumber()`是私有方法，只能在`FakeMath`这个类的内部调用，外部调用就会报错。
 
-### in 运算符
+### 2.3 in 运算符
 
 前面说过，直接访问某个类不存在的私有属性会报错，但是访问不存在的公开属性不会报错。这个特性可以用来判断，某个对象是否为类的实例。
 
@@ -871,94 +955,14 @@ class A {
 
 上面示例中，私有属性`#foo`没有声明，就直接用于`in`运算符的判断，导致报错。
 
-## 静态块
 
-静态属性的一个问题是，如果它有初始化逻辑，这个逻辑要么写在类的外部，要么写在`constructor()`方法里面。
+## 3. 类的注意点
 
-```js
-class C {
-  static x = 234;
-  static y;
-  static z;
-}
-
-try {
-  const obj = doSomethingWith(C.x);
-  C.y = obj.y
-  C.z = obj.z;
-} catch {
-  C.y = ...;
-  C.z = ...;
-}
-```
-
-上面示例中，静态属性`y`和`z`的值依赖于静态属性`x`的运算结果，这段初始化逻辑写在类的外部（上例的`try...catch`代码块）。另一种方法是写到类的`constructor()`方法里面。这两种方法都不是很理想，前者是将类的内部逻辑写到了外部，后者则是每次新建实例都会运行一次。
-
-为了解决这个问题，ES2022 引入了[静态块](https://github.com/tc39/proposal-class-static-block)（static block），允许在类的内部设置一个代码块，在类生成时运行且只运行一次，主要作用是对静态属性进行初始化。以后，新建类的实例时，这个块就不运行了。
-
-```js
-class C {
-  static x = ...;
-  static y;
-  static z;
-
-  static {
-    try {
-      const obj = doSomethingWith(this.x);
-      this.y = obj.y;
-      this.z = obj.z;
-    }
-    catch {
-      this.y = ...;
-      this.z = ...;
-    }
-  }
-}
-```
-
-上面代码中，类的内部有一个 static 代码块，这就是静态块。它的好处是将静态属性`y`和`z`的初始化逻辑，写入了类的内部，而且只运行一次。
-
-每个类允许有多个静态块，每个静态块中只能访问之前声明的静态属性。另外，静态块的内部不能有`return`语句。
-
-静态块内部可以使用类名或`this`，指代当前类。
-
-```js
-class C {
-  static x = 1;
-  static {
-    this.x; // 1
-    // 或者
-    C.x; // 1
-  }
-}
-```
-
-上面示例中，`this.x`和`C.x`都能获取静态属性`x`。
-
-除了静态属性的初始化，静态块还有一个作用，就是将私有属性与类的外部代码分享。
-
-```js
-let getX;
-
-export class C {
-  #x = 1;
-  static {
-    getX = obj => obj.#x;
-  }
-}
-
-console.log(getX(new C())); // 1
-```
-
-上面示例中，`#x`是类的私有属性，如果类外部的`getX()`方法希望获取这个属性，以前是要写在类的`constructor()`方法里面，这样的话，每次新建实例都会定义一次`getX()`方法。现在可以写在静态块里面，这样的话，只在类生成时定义一次。
-
-## 类的注意点
-
-### 严格模式
+### 3.1 严格模式
 
 类和模块的内部，默认就是严格模式，所以不需要使用`use strict`指定运行模式。只要你的代码写在类或模块之中，就只有严格模式可用。考虑到未来所有的代码，其实都是运行在模块之中，所以 ES6 实际上把整个语言升级到了严格模式。
 
-### 不存在提升
+### 3.2 不存在提升
 
 类不存在变量提升（hoist），这一点与 ES5 完全不同。
 
@@ -979,7 +983,7 @@ class Foo {}
 
 上面的代码不会报错，因为`Bar`继承`Foo`的时候，`Foo`已经有定义了。但是，如果存在`class`的提升，上面代码就会报错，因为`class`会被提升到代码头部，而定义`Foo`的那一行没有提升，导致`Bar`继承`Foo`的时候，`Foo`还没有定义。
 
-### name 属性
+### 3.3 name 属性
 
 由于本质上，ES6 的类只是 ES5 的构造函数的一层包装，所以函数的许多特性都被`Class`继承，包括`name`属性。
 
@@ -990,7 +994,7 @@ Point.name // "Point"
 
 `name`属性总是返回紧跟在`class`关键字后面的类名。
 
-### Generator 方法
+### 3.4 Generator 方法
 
 如果某个方法之前加上星号（`*`），就表示该方法是一个 Generator 函数。
 
@@ -1015,7 +1019,7 @@ for (let x of new Foo('hello', 'world')) {
 
 上面代码中，`Foo`类的`Symbol.iterator`方法前有一个星号，表示该方法是一个 Generator 函数。`Symbol.iterator`方法返回一个`Foo`类的默认遍历器，`for...of`循环会自动调用这个遍历器。
 
-### this 的指向
+### 3.5 this 的指向
 
 类的方法内部如果含有`this`，它默认指向类的实例。但是，必须非常小心，一旦单独使用该方法，很可能报错。
 
@@ -1088,7 +1092,7 @@ function selfish (target) {
 const logger = selfish(new Logger());
 ```
 
-## new.target 属性
+## 4. new.target 属性
 
 `new`是从构造函数生成实例对象的命令。ES6 为`new`命令引入了一个`new.target`属性，该属性一般用在构造函数之中，返回`new`命令作用于的那个构造函数。如果构造函数不是通过`new`命令或`Reflect.construct()`调用的，`new.target`会返回`undefined`，因此这个属性可以用来确定构造函数是怎么调用的。
 

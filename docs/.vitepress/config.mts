@@ -252,9 +252,9 @@ export default defineConfig({
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: false, // 初始状态为“展开”
                                 items:[
+                                    {text: '原型、原型链、继承', link: '/js/prototype'},
                                     {text: 'Class的基本语法', link: '/js/classBasic'},
                                     {text: 'Class的继承', link: '/js/classExtends'},
-                                    {text: '原型、原型链、继承', link: '/js/prototype'},
                                 ]
                             },
                             {
@@ -281,7 +281,7 @@ export default defineConfig({
                             {text: '错误处理', link: '/js/errorHandling'},
                             {text: '性能优化', link: '/js/optimize'},
                             {text: 'ArrayBuffer', link: '/js/arrayBuffer'},
-                            {text: 'Decorator(装饰器)', link: '/js/decorator'},
+                            // {text: 'Decorator(装饰器)', link: '/js/decorator'},
                         ]
                     }
                 ]

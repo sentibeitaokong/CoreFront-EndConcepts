@@ -1,5 +1,6 @@
 # 数值的扩展
 
+
 ## 1. 二进制和八进制表示法
 
 ES6 提供了二进制和八进制数值的新的写法，分别用前缀`0b`（或`0B`）和`0o`（或`0O`）表示。
@@ -122,7 +123,7 @@ Number('123_456') // NaN
 parseInt('123_456') // 123
 ```
 
-## 3. `Number`的静态方法
+## 3. [`Number`的静态方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Number)
 
 ###   1. Number.isFinite(), Number.isNaN()
 
@@ -402,7 +403,7 @@ trusty(1, 2, 3)
 // 3
 ```
 
-## 4. Math 对象的扩展
+## 4. [Math 对象的扩展](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Math)
 
 ES6 在 Math 对象上新增了 17 个与数学相关的方法。所有这些方法都是静态方法，只能在 Math 对象上调用。
 
@@ -848,7 +849,7 @@ for (let i = 1n; i <= 70n; i++) {
 console.log(p); // 11978571...00000000n
 ```
 
-### 2. BigInt 函数
+### 2. [BigInt 函数](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/BigInt)
 
 JavaScript 原生提供`BigInt`函数，可以用它生成 BigInt 类型的数值。转换规则基本与`Number()`一致，将其他类型的值转为 BigInt。
 

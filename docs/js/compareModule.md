@@ -1,12 +1,12 @@
 # Module 的加载实现
 
-上一章介绍了模块的语法，本章介绍如何在浏览器和 Node.js 之中加载 ES6 模块，以及实际开发中经常遇到的一些问题（比如循环加载）。
+本章介绍如何在浏览器和 Node.js 之中加载 ES6 模块，以及实际开发中经常遇到的一些问题（比如循环加载）。
 
-## 浏览器加载
+## 1. 浏览器加载
 
-### 传统方法
+### 1.1 传统方法
 
-HTML 网页中，浏览器通过`<script>`标签加载 JavaScript 脚本。
+HTML 网页中，浏览器通过`script`标签加载 JavaScript 脚本。
 
 ```html
 <!-- 页面内嵌的脚本 -->
@@ -21,7 +21,7 @@ HTML 网页中，浏览器通过`<script>`标签加载 JavaScript 脚本。
 
 上面代码中，由于浏览器脚本的默认语言是 JavaScript，因此`type="application/javascript"`可以省略。
 
-默认情况下，浏览器是同步加载 JavaScript 脚本，即渲染引擎遇到`<script>`标签就会停下来，等到执行完脚本，再继续向下渲染。如果是外部脚本，还必须加入脚本下载的时间。
+默认情况下，浏览器是同步加载 JavaScript 脚本，即渲染引擎遇到`script`标签就会停下来，等到执行完脚本，再继续向下渲染。如果是外部脚本，还必须加入脚本下载的时间。
 
 如果脚本体积很大，下载和执行的时间就会很长，因此造成浏览器堵塞，用户会感觉到浏览器“卡死”了，没有任何响应。这显然是很不好的体验，所以浏览器允许脚本异步加载，下面就是两种异步加载的语法。
 
@@ -30,13 +30,13 @@ HTML 网页中，浏览器通过`<script>`标签加载 JavaScript 脚本。
 <script src="path/to/myModule.js" async></script>
 ```
 
-上面代码中，`<script>`标签打开`defer`或`async`属性，脚本就会异步加载。渲染引擎遇到这一行命令，就会开始下载外部脚本，但不会等它下载和执行，而是直接执行后面的命令。
+上面代码中，`script`标签打开`defer`或`async`属性，脚本就会异步加载。渲染引擎遇到这一行命令，就会开始下载外部脚本，但不会等它下载和执行，而是直接执行后面的命令。
 
 `defer`与`async`的区别是：`defer`要等到整个页面在内存中正常渲染结束（DOM 结构完全生成，以及其他脚本执行完成），才会执行；`async`一旦下载完，渲染引擎就会中断渲染，执行这个脚本以后，再继续渲染。一句话，`defer`是“渲染完再执行”，`async`是“下载完就执行”。另外，如果有多个`defer`脚本，会按照它们在页面出现的顺序加载，而多个`async`脚本是不能保证加载顺序的。
 
-### 加载规则
+### 1.2 加载规则
 
-浏览器加载 ES6 模块，也使用`<script>`标签，但是要加入`type="module"`属性。
+浏览器加载 ES6 模块，也使用`script`标签，但是要加入`type="module"`属性。
 
 ```html
 <script type="module" src="./foo.js"></script>
@@ -44,7 +44,7 @@ HTML 网页中，浏览器通过`<script>`标签加载 JavaScript 脚本。
 
 上面代码在网页中插入一个模块`foo.js`，由于`type`属性设为`module`，所以浏览器知道这是一个 ES6 模块。
 
-浏览器对于带有`type="module"`的`<script>`，都是异步加载，不会造成堵塞浏览器，即等到整个页面渲染完，再执行模块脚本，等同于打开了`<script>`标签的`defer`属性。
+浏览器对于带有`type="module"`的`script`，都是异步加载，不会造成堵塞浏览器，即等到整个页面渲染完，再执行模块脚本，等同于打开了`script`标签的`defer`属性。
 
 ```html
 <script type="module" src="./foo.js"></script>
@@ -54,7 +54,7 @@ HTML 网页中，浏览器通过`<script>`标签加载 JavaScript 脚本。
 
 如果网页有多个`<script type="module">`，它们会按照在页面出现的顺序依次执行。
 
-`<script>`标签的`async`属性也可以打开，这时只要加载完成，渲染引擎就会中断渲染立即执行。执行完成后，再恢复渲染。
+`script`标签的`async`属性也可以打开，这时只要加载完成，渲染引擎就会中断渲染立即执行。执行完成后，再恢复渲染。
 
 ```html
 <script type="module" src="./foo.js" async></script>
@@ -106,7 +106,7 @@ console.log(this === undefined); // true
 const isNotModuleScript = this !== undefined;
 ```
 
-## ES6 模块与 CommonJS 模块的差异
+## 2. ES6 模块与 CommonJS 模块的差异
 
 讨论 Node.js 加载 ES6 模块之前，必须了解 ES6 模块与 CommonJS 模块完全不同。
 
@@ -117,6 +117,7 @@ const isNotModuleScript = this !== undefined;
 - CommonJS 模块的`require()`是同步加载模块，ES6 模块的`import`命令是异步加载，有一个独立的模块依赖的解析阶段。
 
 第二个差异是因为 CommonJS 加载的是一个对象（即`module.exports`属性），该对象只有在脚本运行完才会生成。而 ES6 模块不是对象，它的对外接口只是一种静态定义，在代码静态解析阶段就会生成。
+
 
 下面重点解释第一个差异。
 
@@ -272,9 +273,9 @@ $ babel-node main.js
 
 这就证明了`x.js`和`y.js`加载的都是`C`的同一个实例。
 
-## Node.js 的模块加载方法
+## 3. Node.js 的模块加载方法
 
-### 概述
+### 3.1 概述
 
 JavaScript 现在有两种模块。一种是 ES6 模块，简称 ESM；另一种是 CommonJS 模块，简称 CJS。
 
@@ -305,7 +306,7 @@ $ node my-app.js
 
 注意，ES6 模块与 CommonJS 模块尽量不要混用。`require`命令不能加载`.mjs`文件，会报错，只有`import`命令才可以加载`.mjs`文件。反过来，`.mjs`文件里面也不能使用`require`命令，必须使用`import`。
 
-### package.json 的 main 字段
+### 3.2 package.json 的 main 字段
 
 `package.json`文件有两个字段可以指定模块的入口文件：`main`和`exports`。比较简单的模块，可以只使用`main`字段，指定模块加载的入口文件。
 
@@ -332,7 +333,7 @@ import { something } from 'es-module-package';
 
 这时，如果用 CommonJS 模块的`require()`命令去加载`es-module-package`模块会报错，因为 CommonJS 模块不能处理`export`命令。
 
-### package.json 的 exports 字段
+### 3.3 package.json 的 exports 字段
 
 `exports`字段的优先级高于`main`字段。它有多种用法。
 
@@ -452,7 +453,7 @@ import submodule from './node_modules/es-module-package/private-module.js';
 }
 ```
 
-### CommonJS 模块加载 ES6 模块
+### 3.4 CommonJS 模块加载 ES6 模块
 
 CommonJS 的`require()`命令不能加载 ES6 模块，会报错，只能使用`import()`这个方法加载。
 
@@ -466,7 +467,7 @@ CommonJS 的`require()`命令不能加载 ES6 模块，会报错，只能使用`
 
 `require()`不支持 ES6 模块的一个原因是，它是同步加载，而 ES6 模块内部可以使用顶层`await`命令，导致无法被同步加载。
 
-### ES6 模块加载 CommonJS 模块
+### 3.5 ES6 模块加载 CommonJS 模块
 
 ES6 模块的`import`命令可以加载 CommonJS 模块，但是只能整体加载，不能只加载单一的输出项。
 
@@ -504,7 +505,7 @@ cjs === 'cjs'; // true
 
 上面代码中，ES6 模块通过`module.createRequire()`方法可以加载 CommonJS 模块。但是，这种写法等于将 ES6 和 CommonJS 混在一起了，所以不建议使用。
 
-### 同时支持两种格式的模块
+### 3.6 同时支持两种格式的模块
 
 一个模块同时要支持 CommonJS 和 ES6 两种格式，也很容易。
 
@@ -532,7 +533,7 @@ export const foo = cjsModule.foo;
 
 上面代码指定`require()`和`import`，加载该模块会自动切换到不一样的入口文件。
 
-### Node.js 的内置模块
+### 3.7 Node.js 的内置模块
 
 Node.js 的内置模块可以整体加载，也可以加载指定的输出项。
 
@@ -552,7 +553,7 @@ readFile('./foo.txt', (err, source) => {
 });
 ```
 
-### 加载路径
+### 3.8 加载路径
 
 ES6 模块的加载路径必须给出脚本的完整路径，不能省略脚本的后缀名。`import`命令和`package.json`文件的`main`字段如果省略脚本的后缀名，会报错。
 
@@ -571,7 +572,7 @@ import './foo.mjs?query=1'; // 加载 ./foo 传入参数 ?query=1
 
 目前，Node.js 的`import`命令只支持加载本地模块（`file:`协议）和`data:`协议，不支持加载远程模块。另外，脚本路径只支持相对路径，不支持绝对路径（即以`/`或`//`开头的路径）。
 
-### 内部变量
+### 3.9 内部变量
 
 ES6 模块应该是通用的，同一个模块不用修改，就可以用在浏览器环境和服务器环境。为了达到这个目标，Node.js 规定 ES6 模块之中不能使用 CommonJS 模块的特有的一些内部变量。
 
@@ -586,7 +587,7 @@ ES6 模块应该是通用的，同一个模块不用修改，就可以用在浏�
 - `__filename`
 - `__dirname`
 
-## 循环加载
+## 4. 循环加载
 
 “循环加载”（circular dependency）指的是，`a`脚本的执行依赖`b`脚本，而`b`脚本的执行又依赖`a`脚本。
 
@@ -604,7 +605,7 @@ var a = require('a');
 
 对于 JavaScript 语言来说，目前最常见的两种模块格式 CommonJS 和 ES6，处理“循环加载”的方法是不一样的，返回的结果也不一样。
 
-### CommonJS 模块的加载原理
+### 4.1 CommonJS 模块的加载原理
 
 介绍 ES6 如何处理“循环加载”之前，先介绍目前最流行的 CommonJS 模块格式的加载原理。
 
@@ -623,7 +624,7 @@ CommonJS 的一个模块，就是一个脚本文件。`require`命令第一次�
 
 以后需要用到这个模块的时候，就会到`exports`属性上面取值。即使再次执行`require`命令，也不会再次执行该模块，而是到缓存之中取值。也就是说，CommonJS 模块无论加载多少次，都只会在第一次加载时运行一次，以后再加载，就返回第一次运行的结果，除非手动清除系统缓存。
 
-### CommonJS 模块的循环加载
+### 4.2 CommonJS 模块的循环加载
 
 CommonJS 模块的重要特性是加载时执行，即脚本代码在`require`的时候，就会全部执行。一旦出现某个模块被"循环加载"，就只输出已经执行的部分，还未执行的部分不会输出。
 
@@ -704,7 +705,7 @@ exports.bad = function (arg) {
 
 上面代码中，如果发生循环加载，`require('a').foo`的值很可能后面会被改写，改用`require('a')`会更保险一点。
 
-### ES6 模块的循环加载
+### 4.3 ES6 模块的循环加载
 
 ES6 处理“循环加载”与 CommonJS 有本质的不同。ES6 模块是动态引用，如果使用`import`从一个模块加载变量（即`import foo from 'foo'`），那些变量不会被缓存，而是成为一个指向被加载模块的引用，需要开发者自己保证，真正取值的时候能够取到值。
 

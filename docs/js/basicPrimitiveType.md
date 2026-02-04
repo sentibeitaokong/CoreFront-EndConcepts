@@ -18,7 +18,7 @@ let date3 = new Date(2023, 11, 25, 10, 30, 0); // 年, 月(0-11), 日, 时, 分,
 ```
 > **注意**：月份是从 **0** 开始的（0=1月，11=12月）。
 
-### 1.2 常用方法
+### 1.2 [常用方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Date)
 *   **Getter**:
     *   `getFullYear()`: 年份 (4位)
     *   `getMonth()`: 月份 (0-11)
@@ -58,7 +58,7 @@ let re2 = new RegExp("at", "g");
 *   `i`: 不区分大小写 (Case-insensitive)。
 *   `m`: 多行模式 (Multiline)。
 
-### 2.3 核心方法
+### 2.3 [核心方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/RegExp)
 1.  **`exec(str)`**:
     *   主要用于捕获组。返回一个数组（包含匹配项和捕获组），如果没有匹配则返回 `null`。
     *   是 RegExp 的最强方法。
@@ -95,10 +95,10 @@ console.log(matches.index); // 0
 ### 3.2 哪些是包装类型？
 
 主要有三个（对应三种常见的原始类型）：
-#### 1. Boolean
+#### 1. [Boolean](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Boolean)
 **强烈不建议显式创建 `new Boolean()`**，因为它容易引起误解（所有对象在布尔上下文中都为 true）。
 
-#### 2. Number
+#### 2. [Number](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Number)
 提供了处理数值的工具方法：
 *   `toFixed(digits)`: 保留几位小数（返回字符串）。
 *   `toPrecision(digits)`: 返回指定精度的数值字符串。
@@ -112,7 +112,7 @@ console.log(num.toFixed(2)); // "10.01" (注意四舍五入的坑，实际往往
 #### 3. String
 JS 中最常用的引用类型之一。由于字符串是不可变的，所有修改字符串的方法都会返回新字符串。
 
-**操作方法**:
+**[操作方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String)**:
 *   `slice(start, end)`, `substring(start, end)`, `substr(start, length)`: 截取。
 *   `concat()`: 拼接（不如直接用 `+` 或模板字符串）。
 *   `trim()`: 去除前后空格。
@@ -188,7 +188,7 @@ console.log(s1 == s2);  // true (值相等，隐式转换)
 **常用属性**:
 *   `Math.PI`: π 值。
 
-**常用方法**:
+**[常用方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Math)**:
 *   **最值**: `Math.min()`, `Math.max()`.
     *   技巧：求数组最大值 `Math.max(...arr)`.
 *   **舍入**:
