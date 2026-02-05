@@ -1154,3 +1154,50 @@ for (let i of arr) {
 
     *   **通常不是**。原生 `for` 循环（特别是 `for...of` 或经典的 `for(i=0...)`）在纯计算性能上往往是最快的。ES6 方法（`map`, `forEach`）因为有函数调用开销，通常会慢一些。
     *   **但是**：除非在极端性能敏感的代码中（如游戏渲染、数万次操作），否则**优先选择 ES6 方法**，因为它们的可读性、维护性远高于 `for` 循环。
+
+* **Q14: 通过给元素赋值来填充数组,可以给数组操作符一个非整形数值吗？**
+    *  **可以**,但是会作为数组的**属性**创建，而非数组的**元素**，不会记录进数组的`length`,`length`不变
+```js
+let arr=[]
+arr[3.4]='orange'
+console.log(arr.length)  //0
+console.log(arr.hasOwnProperty(3.4))  //true
+```
+* **Q15: 如果数组在迭代时被修改了，数组内其他的元素会如何？**
+  *  数组内其他的元素会**跳过**
+```js
+//遍历时删除了一个元素，导致数组所有项上移了一个单元，当准备遍历到第三个元素的时候，原本的元素'three'已经变成'four'了,'three'被跳过
+let words=['one','two','three','four']
+words.forEach(item=>{
+    console.log(item)
+    if(item=='two'){
+        words.shift()
+    }
+})
+//one
+//two
+//four
+```
+
+* **Q16:如何让类数组也具备数组的原型方法？**
+```js
+let  obj={
+    '2':3,
+    '3':4,
+    'length':2,
+    'push':Array.prototype.push,
+}
+//数组的push原型方法
+// Array.prototype.push = function(x) {
+//     this[this.length] = x;
+//     this.length++
+// }
+obj.push(1)
+obj.push(2)
+//基于length属性做push,直接更改了数组索引2和3的值
+// obj[2]=1 
+// obj[3]=2
+console.log(obj)     //[,,1,2]
+console.log(obj[2])     //1
+console.log(obj[3])     //2
+```

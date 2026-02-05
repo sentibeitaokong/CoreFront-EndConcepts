@@ -566,9 +566,40 @@ JavaScript 提供了丰富的运算符，用于执行各种操作，从数学计
 | `,` | 逗号 | |
 | `??` | 空值合并 | `a ?? b`，如果 `a` 是 `null` 或 `undefined`，则返回 `b`，否则返回 `a`。 |
 
-### **2. 运算符优先级 (Operator Precedence)**
+### **2. [运算符优先级 (Operator Precedence)](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Operator_precedence)**
 
 运算符的优先级决定了在表达式中运算执行的先后顺序。 优先级高的运算符会先被求值。
+
+```js
+function Foo() {
+    getName = function() {     //1
+        console.log(1);
+    };
+    return this;
+}
+Foo.getName = function() {     //2
+    console.log(2);
+};
+Foo.prototype.getName = function() {    //3
+    console.log(3);
+};
+var getName = function() {  //4
+    console.log(4);
+};
+function getName() {    //5
+    console.log(5);
+}
+//let foo=new Foo()   默认foo为Foo实例
+Foo.getName();           //直接调用Foo构造函数的静态方法getName()=>执行函数2=>返回2
+getName();                //函数5直接函数提升,函数4是函数表达式无法提升，覆盖函数5=>执行函数4=>返回4
+Foo().getName();          //直接调用Foo函数内部的getName函数=>执行函数1=>getName变量是全局的,等效于window.getName，会覆盖全局的getName方法=>返回1
+getName();                //全局getName函数被函数1覆盖=>执行函数1=>返回1
+new Foo.getName();        //new Foo.getName()=>new (Foo.getName())=>执行Foo的静态方法getName=>执行函数2=>new 2 => 返回2
+new Foo().getName();     // new Foo().getName()=>(new Foo()).getName()=>foo.getName()(实例对象执行的是FOO构造函数的getName原型方法)=>返回3
+new new Foo().getName();  //new new Foo().getName()=>new ((new Foo()).getName())=>new (foo.getName())=>new 3=>3
+
+//2 4 1 1 2 3 3
+```
 
 | 优先级 | 运算符 | 描述 | 结合性 |
 | :--- | :--- | :--- | :--- |

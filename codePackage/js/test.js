@@ -10,7 +10,7 @@ console.log(typeof val); // "number"
 console.log(typeof val2);*/
 
 
-function Animal(name) {
+/*function Animal(name) {
     this.name = name; // 实例自身属性
     this.colors = ['black', 'white']; // 引用类型属性，用于测试
 }
@@ -31,5 +31,22 @@ dog1.eat(); // "Buddy is eating."
 const dog2 = new Dog('Max');
 dog1.colors.push('brown');
 console.log(dog1)
-console.log(dog2.colors); // ['black', 'white'] (未被污染)
+console.log(dog2.colors); // ['black', 'white'] (未被污染)*/
+/*
+class Example{
+    get hello(){
+        return 'world'
+    }
+}
+const obj=new Example()
+var descriptor = Object.getOwnPropertyDescriptor(
+    Example.prototype, "hello"
+);
+
+console.log("get" in descriptor)  // true
+console.log("set" in descriptor)  // true
+console.log(obj.hello) //world
+console.log(Object.getOwnPropertyDescriptor(obj, 'hello'))   //undefined
+console.log(Object.getOwnPropertyDescriptor(Object.getPrototypeOf(obj), 'hello'))*/
+
 

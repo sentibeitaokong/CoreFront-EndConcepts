@@ -238,7 +238,117 @@ foo(undefined, null)
 
 上面代码中，`x`参数对应`undefined`，结果触发了默认值，`y`参数等于`null`，就没有触发默认值。
 
-### 1.4 函数的 length 属性
+### 1.4 `arguments`对象
+
+`arguments` 是一个在**所有（非箭头）函数**内部都可以访问的**类数组对象 (array-like object)**。它包含了函数在被调用时传递的所有参数。
+
+```js
+function logArgs() {
+  console.log(arguments);
+}
+
+logArgs('hello', 'world', 123);
+// 输出: Arguments(3) ['hello', 'world', 123, callee: ƒ, Symbol(Symbol.iterator): ƒ]
+```
+
+#### 1. 它是 "类数组" 而非真数组
+
+这是最关键的一点。`arguments` 看起来像一个数组，它有 `length` 属性，你也可以通过索引（如 `arguments[0]`）来访问元素，但它**没有**数组的内置方法，比如 `forEach()`, `map()`, `filter()` 等。
+
+```js
+function tryArrayMethods() {
+  // 这会报错: arguments.forEach is not a function
+  // arguments.forEach(arg => console.log(arg));
+}
+```
+
+**如何将 `arguments` 转换为真数组？**
+为了能方便地使用数组方法，我们通常会先把它转换成一个真正的数组：
+
+```js
+function toArray() {
+  // ES6+ 推荐方式 (最简洁)
+  const argsArray1 = [...arguments];
+  console.log(argsArray1);
+
+  // ES6+ 推荐方式
+  const argsArray2 = Array.from(arguments);
+  console.log(argsArray2);
+
+  // 传统 ES5 方式
+  const argsArray3 = Array.prototype.slice.call(arguments);
+  console.log(argsArray3);
+}
+
+toArray(1, 2, 3); // 输出三次 [1, 2, 3]
+```
+
+#### 2. 与函数参数的"绑定"关系 (非严格模式下)
+
+在非严格模式 (`'use strict'`)下，`arguments` 对象中的值与函数的命名参数是**双向绑定**的。修改其中一个，另一个也会跟着改变。
+
+```js
+function testBinding(a, b) {
+  console.log(`初始: a=${a}, arguments[0]=${arguments[0]}`); // 初始: a=1, arguments[0]=1
+
+  // 修改命名参数
+  a = 100;
+  console.log(`修改 a 后: a=${a}, arguments[0]=${arguments[0]}`); // 修改 a 后: a=100, arguments[0]=100
+
+  // 修改 arguments
+  arguments[1] = 200;
+  console.log(`修改 arguments[1] 后: b=${b}, arguments[1]=${arguments[1]}`); // 修改 arguments[1] 后: b=200, arguments[1]=200
+}
+
+testBinding(1, 2);
+```
+
+但在**严格模式**和函数有参数默认值的情况下，这种绑定关系被解除了，它们是相互独立的。
+
+```js
+//严格模式
+function testStrictBinding(a, b) {
+  'use strict';
+  console.log(`初始: a=${a}, arguments[0]=${arguments[0]}`); // 初始: a=1, arguments[0]=1
+
+  // 修改命名参数
+  a = 100;
+  console.log(`修改 a 后: a=${a}, arguments[0]=${arguments[0]}`); // 修改 a 后: a=100, arguments[0]=1
+}
+
+testStrictBinding(1, 2);
+
+//参数默认值
+function testDefaultBinding(a=5, b=6) {
+    console.log(`初始: a=${a}, arguments[0]=${arguments[0]}`); // 初始: a=1, arguments[0]=1
+
+    // 修改命名参数
+    a = 100;
+    console.log(`修改 a 后: a=${a}, arguments[0]=${arguments[0]}`); // 修改 a 后: a=100, arguments[0]=1
+}
+
+testDefaultBinding(1, 2);
+```
+
+
+
+#### 3. `arguments.callee` (已废弃)
+
+`arguments` 对象还有一个 `callee` 属性，它指向当前正在执行的函数本身。这在匿名函数递归调用时曾经很有用。
+
+```js
+// 以前的写法，现在不推荐
+const factorial = function(n) {
+  if (n <= 1) {
+    return 1;
+  }
+  // 使用 arguments.callee 实现匿名递归
+  return n * arguments.callee(n - 1);
+};
+```
+**注意：** `arguments.callee` 在严格模式下是被**禁用**的，并且出于性能和可读性的原因，现在已经**不推荐使用**。推荐使用函数命名表达式来实现同样效果。
+
+### 1.5 函数的 length 属性
 
 指定了默认值以后，函数的`length`属性，将返回没有指定默认值的参数个数。也就是说，指定了默认值后，`length`属性将失真。
 
@@ -263,7 +373,7 @@ foo(undefined, null)
 (function (a, b = 1, c) {}).length // 1
 ```
 
-### 1.5 作用域
+### 1.6 作用域
 
 一旦设置了参数的默认值，函数进行声明初始化时，参数会形成一个单独的作用域（context）。等到初始化结束，这个作用域就会消失。这种语法行为，在不设置参数默认值时，是不会出现的。
 
@@ -377,7 +487,7 @@ foo() // 2
 x // 1
 ```
 
-### 1.6 应用
+### 1.7 应用
 
 利用参数默认值，可以指定某一个参数不得省略，如果省略就抛出一个错误。
 
@@ -1323,6 +1433,20 @@ sum(1, 100000)
 上面代码中，`tco`函数是尾递归优化的实现，它的奥妙就在于状态变量`active`。默认情况下，这个变量是不激活的。一旦进入尾递归优化的过程，这个变量就激活了。然后，每一轮递归`sum`返回的都是`undefined`，所以就避免了递归执行；而`accumulated`数组存放每一轮`sum`执行的参数，总是有值的，这就保证了`accumulator`函数内部的`while`循环总是会执行。这样就很巧妙地将“递归”改成了“循环”，而后一轮的参数会取代前一轮的参数，保证了调用栈只有一层。
 
 ## 4.总结
+
+**`arguments` vs. Rest 参数 (`...args`)**
+
+| 特性 | `arguments` | Rest 参数 (`...args`) |
+| :--- | :--- | :--- |
+| **类型** | 类数组对象 | **真数组** |
+| **可用性** | 所有普通函数 | 仅在函数参数末尾声明 |
+| **箭头函数** | **不存在** ❌ | **可用** ✅ |
+| **包含内容** | 函数收到的**所有**参数 | **仅包含**未被命名的"剩余"参数 |
+| **绑定关系** | 在非严格模式下与参数双向绑定 | 与参数完全独立 |
+| **推荐度** | 遗留特性，不推荐在新代码中使用 | **现代 JS 最佳实践** ✅ |
+
+**普通函数 (`Function`)vs箭头函数 (`Arrow Function`)**
+
 | 特性              | 普通函数 (Function)      | 箭头函数 (Arrow Function)     |
 |-----------------|----------------------|---------------------------|
 | this 绑定         | 动态，取决于调用方式           | 词法，取决于定义时的外部作用域           |
@@ -1332,7 +1456,9 @@ sum(1, 100000)
 | 隐式 return       | 无，必须显式 return (除非单行) | 有，单行表达式时隐式 return         |
 | 函数提升 (Hoisting) | 函数声明有，函数表达式无         | 无                         |
 | Generator 函数    | 可以 (function*)       | 不可以                       |
+| super属性         | 有                    | 无                         |
 | 语法              | 相对冗长                 | 简洁                        |
+
 
 
 ## **5. 常见问题与陷阱 (FAQ)**

@@ -96,6 +96,7 @@ export default defineConfig({
                             {text: '常用标签', link: '/html/commonTags'},
                             {text: 'Dom元素', link: '/html/domAttributes'},
                             {text: 'Dom事件流', link: '/html/domEvents'},
+                            {text: '异步脚本加载', link: '/html/asyncScript'},
                             {text: 'ajax请求', link: '/html/ajax'},
                         ]
                     },

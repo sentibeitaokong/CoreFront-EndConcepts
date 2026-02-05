@@ -85,6 +85,9 @@ bar(); // 输出: 1
 
 **链条**： `Inner Function` -> `Outer Function` -> `Global` -> `Error`
 
+![Logo](/scopeChain.png)
+![Logo](/scopeChainSecond.png)
+
 ### 2.3 作用域的高级应用——闭包 (Closure)
 
 **定义**：当一个函数能够记住并访问它的**词法作用域**，即使这个函数在它的词法作用域之外执行时，就产生了闭包。

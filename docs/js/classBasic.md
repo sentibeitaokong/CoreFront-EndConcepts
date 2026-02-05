@@ -367,29 +367,31 @@ inst.prop
 
 上面代码中，`prop`属性有对应的存值函数和取值函数，因此赋值和读取行为都被自定义了。
 
-存值函数和取值函数是设置在属性的 Descriptor 对象上的。
+存值函数和取值函数是设置在属性的**`Descriptor`**对象上的,使用存值函数时，属性将被定义在**实例的原型**上，使用Object.defineProperty()时,属性将被定义在**实例自身**上。
 
 ```js
-class CustomHTMLElement {
-  constructor(element) {
-    this.element = element;
-  }
-
-  get html() {
-    return this.element.innerHTML;
-  }
-
-  set html(value) {
-    this.element.innerHTML = value;
-  }
+class Example{
+    get hello(){
+        return 'world'
+    }
 }
-
+const obj=new Example()
 var descriptor = Object.getOwnPropertyDescriptor(
-  CustomHTMLElement.prototype, "html"
+    Example.prototype, "hello"
 );
 
-"get" in descriptor  // true
-"set" in descriptor  // true
+console.log("get" in descriptor)  // true
+console.log("set" in descriptor)  // true
+console.log(obj.hello) //world
+console.log(Object.getOwnPropertyDescriptor(obj, 'hello'))   //undefined
+console.log(Object.getOwnPropertyDescriptor(Object.getPrototypeOf(obj), 'hello'))
+// {
+//     get: [Function: get hello],
+//     set: undefined,
+//         enumerable: false,
+//     configurable: true
+// }
+
 ```
 
 上面代码中，存值函数和取值函数是定义在`html`属性的描述对象上面，这与 ES5 完全一致。

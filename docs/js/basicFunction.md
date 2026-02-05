@@ -118,6 +118,83 @@ multiply(5, 10);
     console.log(doNothing()); // undefined
     ```
 
+## 3. 函数参数传递
+
+### 3.1 按值传递 (Pass by Value)
+
+这个概念适用于**原始数据类型**（Primitive Types），例如：`String`, `Number`, `Boolean`, `null`, `undefined`, `Symbol`。
+
+当一个原始类型的值作为参数传递给函数时，函数内部的参数会得到这个值的一个完整副本。在函数内部对这个参数做的任何修改，都**不会**影响到函数外部的原始变量。
+
+```js
+function changeValue(num) {
+  // 尝试在函数内部修改参数的值
+  num = 100;
+  console.log("函数内部的值: ", num); // 输出 100
+}
+
+let myNumber = 50;
+console.log("函数调用前: ", myNumber); // 输出 50
+
+changeValue(myNumber);
+
+console.log("函数调用后: ", myNumber); // 仍然输出 50
+```
+在上面的例子中，`myNumber` 的值 `50` 被复制给了参数 `num`。函数 `changeValue` 内部修改的只是 `num` 这个副本，并不会影响到外部的 `myNumber` 变量。
+
+### 3.2 按共享传递 (Pass by Sharing)
+
+这个概念适用于**引用数据类型**（Reference Types），例如：`Object`, `Array`, `Function`。
+
+当一个对象（或数组等）作为参数传递时，传递的**值**是这个对象在内存中的**引用地址**（可以理解为指针）的一个副本。
+
+这意味着：
+*   函数内部的参数和外部的变量指向的是**同一个**内存地址。
+*   如果在函数内部**修改**这个对象的属性，由于大家指向同一个对象，所以外部的变量也会反映出这个变化。
+*   但如果在函数内部给参数**重新赋值**一个全新的对象，那么这个参数就会指向一个新的内存地址，从而与外部的变量断开连接。
+
+#### 1. 修改对象属性
+```js
+function setAge(person) {
+  // 修改传入对象的属性
+  person.age = 30;
+  console.log("函数内部的对象: ", person);
+}
+
+let myFriend = { name: "张三", age: 25 };
+console.log("函数调用前: ", myFriend); // { name: '张三', age: 25 }
+
+setAge(myFriend);
+
+console.log("函数调用后: ", myFriend); // { name: '张三', age: 30 }
+```
+如你所见，函数内部对 `person.age` 的修改，影响了函数外部的 `myFriend` 对象。
+
+#### 2. 重新赋值对象
+```js
+function reassignObject(person) {
+  // 给参数重新赋一个新值
+  person = { name: "李四", age: 40 };
+  console.log("函数内部(重新赋值后): ", person);
+}
+
+let myFriend = { name: "张三", age: 25 };
+console.log("函数调用前: ", myFriend); // { name: '张三', age: 25 }
+
+reassignObject(myFriend);
+
+console.log("函数调用后: ", myFriend); // 仍然是 { name: '张三', age: 25 }
+```
+在这个例子中，当 `person = { ... }` 这行代码执行时，`person` 参数只是被赋予了一个新的引用地址，而 `myFriend` 变量仍然指向它最初的那个对象，因此它的值没有改变。
+
+**总结**
+
+| 数据类型 | 传递方式 | 描述 |
+| :--- | :--- | :--- |
+| **原始类型** | 按值传递 | 函数得到的是值的副本，内外变量完全独立。 |
+| **引用类型** | 按共享传递 | 函数得到的是引用地址的副本，内外变量指向同一个对象。修改对象**内部属性**会互相影响，但**重新赋值**则不会。 |
+
+
 ## **3. 常见问题与陷阱 (FAQ for Beginners)**
 
 ### **Q1: 为什么我的函数返回 `undefined`？**
