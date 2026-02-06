@@ -284,7 +284,21 @@ export default defineConfig({
                             {text: 'ArrayBuffer', link: '/js/arrayBuffer'},
                             // {text: 'Decorator(装饰器)', link: '/js/decorator'},
                         ]
-                    }
+                    },
+                    {
+                        text: '深入函数手写',
+                        collapsible: true, // 允许折叠 (默认true，可省略)
+                        collapsed: true, // 初始状态为“展开”
+                        items: [
+                            {text: '数组方法', link: '/js/arrayHandleWriting'},
+                            {text: '对象方法', link: '/js/objectHandleWriting'},
+                            {text: 'Function原型方法', link: '/js/functionHandleWriting'},
+                            {text: '继承', link: '/js/inherit'},
+                            {text: '常用高阶函数', link: '/js/globalMethods'},
+                            {text: '设计模式', link: '/js/designPattern'},
+                            {text: 'promise手写', link: '/js/promiseHandleWriting'},
+                        ]
+                    },
                 ]
             }
         ],
