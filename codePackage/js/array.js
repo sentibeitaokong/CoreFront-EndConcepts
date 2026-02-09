@@ -166,6 +166,8 @@ Array.prototype.MycopyWithin = function(target, start/*, end*/) {
     var direction = 1;
 
     if (from < to && to < (from + count)) {
+        console.log(from)
+        debugger
         direction = -1;
         from += count - 1;
         to += count - 1;

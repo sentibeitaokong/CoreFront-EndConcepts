@@ -549,14 +549,16 @@ console.log(Array.prototype.copyWithin.call(arrayLike, 3, 1));
 // '3' 属性被删除，因为在复制的源中是一个空槽
 ```
 
+### Array.prototype.entries
+
+* **功能:**  返回一个新的数组迭代器对象，该对象包含数组中每个索引的键/值对
+* **用法:**  Array.prototype.entries()
+* **参数:**  无
+* **返回值:**  一个新的可迭代迭代器对象。
+
 
 ```js
-
-/**
- * entries()方法  功能：返回一个新的Array Iterator对象，该对象包含数组中每个索引的键/值对。
- */
-
-Array.prototype.myEntries = function() {
+Array.prototype.entries = function() {
     if(!typeof this === 'object')return
     var arr = this
     var len = this.length || arr.length
@@ -572,8 +574,57 @@ Array.prototype.myEntries = function() {
         }
     }
 }
+```
 
+**示例**
 
+```js
+//迭代索引和元素
+const a = ["a", "b", "c"];
+
+for (const [index, element] of a.entries()) {
+  console.log(index, element);
+}
+
+// 0 'a'
+// 1 'b'
+// 2 'c'
+
+//使用 for...of 循环
+const array = ["a", "b", "c"];
+const arrayEntries = array.entries();
+
+for (const element of arrayEntries) {
+    console.log(element);
+}
+
+// [0, 'a']
+// [1, 'b']
+// [2, 'c']
+
+//迭代稀疏数组
+for (const element of [, "a"].entries()) {
+    console.log(element);
+}
+// [0, undefined]
+// [1, 'a']
+
+//在非数组对象上调用 entries()
+const arrayLike = {
+    length: 3,
+    0: "a",
+    1: "b",
+    2: "c",
+};
+for (const entry of Array.prototype.entries.call(arrayLike)) {
+    console.log(entry);
+}
+// [ 0, 'a' ]
+// [ 1, 'b' ]
+// [ 2, 'c' ]
+```
+
+```js
 /**
  * every方法  功能：测试一个数组内的所有元素是否都能通过某个指定函数的测试。它返回一个布尔值。
  * 如果为 every 提供一个 thisArg 参数，则该参数为调用 callback 时的 this 值。如果省略该参数，

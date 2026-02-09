@@ -293,8 +293,9 @@ export default defineConfig({
                             {text: '数组方法', link: '/js/arrayHandleWriting'},
                             {text: '对象方法', link: '/js/objectHandleWriting'},
                             {text: 'Function原型方法', link: '/js/functionHandleWriting'},
-                            {text: '继承', link: '/js/inherit'},
-                            {text: '常用高阶函数', link: '/js/globalMethods'},
+                            // {text: '继承', link: '/js/inherit'},
+                            {text: '常用全局方法', link: '/js/globalMethods'},
+                            {text: '高阶函数', link: '/js/highLevelFunction'},
                             {text: '设计模式', link: '/js/designPattern'},
                             {text: 'promise手写', link: '/js/promiseHandleWriting'},
                         ]

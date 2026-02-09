@@ -1,8 +1,8 @@
+# Javascript设计模式
 
-### NativeJs/designPattern.js
+## 单例模式
+
 ```js
-//单例模式
-/*
 function Singleton(name){
     this.name=name
     this.instance=null
@@ -18,11 +18,13 @@ Singleton.getInstace=function (name) {
 }
 var a=Singleton.getInstace('sven1')
 var b=Singleton.getInstace('sven2')
-console.log(a===b)*/
+console.log(a===b)
+```
 
+## 策略模式
 
-//策略模式
-/*var strategies={
+```js
+var strategies={
     'S':function(salary){
         return salary*4;
     },
@@ -37,5 +39,5 @@ var calculateBonus=function(level,salary){
     return strategies[level](salary);
 }
 console.log(calculateBonus('S',2000));
-console.log(calculateBonus('A',2000));*/
+console.log(calculateBonus('A',2000));
 ```

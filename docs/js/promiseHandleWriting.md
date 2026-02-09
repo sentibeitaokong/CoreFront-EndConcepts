@@ -1,4 +1,5 @@
-### NativeJs/Promise.js
+# Promise手写
+
 ```js
 const PENDING='PENDING',
         FULFILLED='FULFILLED',

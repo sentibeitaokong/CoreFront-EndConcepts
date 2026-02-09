@@ -181,7 +181,7 @@ const arrayLike = {
 console.log(Array.prototype.concat.call(arrayLike, 3, 4)); // [1, 2, 3, 4]*/
 
 //Array.prototype.copyWithin
-console.log([1, 2, 3, 4, 5].copyWithin(-2));
+/*console.log([1, 2, 3, 4, 5].copyWithin(-2));
 // [1, 2, 3, 1, 2]
 
 console.log([1, 2, 3, 4, 5].copyWithin(0, 3));
@@ -205,4 +205,51 @@ console.log(Array.prototype.copyWithin.call(arrayLike, 0, 3));
 // { '0': 1, '3': 1, length: 5 }
 console.log(Array.prototype.copyWithin.call(arrayLike, 3, 1));
 // { '0': 1, length: 5 }
-// '3' 属性被删除，因为在复制的源中是一个空槽
+// '3' 属性被删除，因为在复制的源中是一个空槽*/
+// console.log([1, 2, 3, 4, 5].copyWithin(-2, -3, -1));
+
+//Array.prototype.entries
+//迭代索引和元素
+/*
+const a = ["a", "b", "c"];
+
+for (const [index, element] of a.entries()) {
+    console.log(index, element);
+}
+
+// 0 'a'
+// 1 'b'
+// 2 'c'
+
+//使用 for...of 循环
+const array = ["a", "b", "c"];
+const arrayEntries = array.entries();
+
+for (const element of arrayEntries) {
+    console.log(element);
+}
+
+// [0, 'a']
+// [1, 'b']
+// [2, 'c']
+
+//迭代稀疏数组
+for (const element of [, "a"].entries()) {
+    console.log(element);
+}
+// [0, undefined]
+// [1, 'a']
+
+//在非数组对象上调用 entries()
+const arrayLike = {
+    length: 3,
+    0: "a",
+    1: "b",
+    2: "c",
+};
+for (const entry of Array.prototype.entries.call(arrayLike)) {
+    console.log(entry);
+}
+// [ 0, 'a' ]
+// [ 1, 'b' ]
+// [ 2, 'c' ]*/
