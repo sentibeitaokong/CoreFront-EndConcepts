@@ -27,13 +27,17 @@ function deepClone(target, hash = new WeakMap()) {
     if (target instanceof RegExp) return new RegExp(target)
     // if (target instanceof HTMLElement) return target // 处理 DOM元素
     if (typeof target !== 'object') return target
+    //处理循环引用
     if (hash.has(target)) {
         return hash.get(target)
     }
+    //获取数组对象的原型[]或者Object对象的原型{}
     const cloneTarget = new target.constructor()
+    //同层级创建相应的对象存储数据
     hash.set(target, cloneTarget)
+    //遍历数据进行拷贝
     Reflect.ownKeys(target).forEach(key => {
-            cloneTarget[key] = deepClone(target[key], hash)
+        cloneTarget[key] = deepClone(target[key], hash)
     })
     return cloneTarget
 }
@@ -44,6 +48,7 @@ function deepClone(target, hash = new WeakMap()) {
 ```js
 function New(){
     var obj = new Object()
+    //取出第一个参数
     var constructor = Array.prototype.shift.call(arguments)
     obj.__proto__ = constructor.prototype
     var ret = constructor.apply(obj, arguments)
@@ -56,6 +61,7 @@ function New(){
 
 ```js
 function instaceOf(target, origin) {
+    //循环遍历直到找到指定原型返回true，否则返回false
     let proto = target.__proto__
     while (true) {
         if (proto === null) {
@@ -98,9 +104,11 @@ function shuffle(arr){
 ```js
 function forOf(obj,cb) {
     let iterable,result
+    //没有遍历器函数直接抛出异常
     if(typeof obj[Symbol.iterator]!=='function'){
         throw new TypeError(result+"is not iterable")
     }
+    //取出遍历器函数循环遍历打印所有数据
     iterable=obj[Symbol.iterator]();
     result=iterable.next()
     while(!result.done){
@@ -110,7 +118,7 @@ function forOf(obj,cb) {
 }
 ```
 
-## isNaN
+## isNaN方法
 
 ```js
 // isNaN方法  功能：用来确定一个值是否为NaN
@@ -120,7 +128,25 @@ function isNaN(value) {
 }
 ```
 
-## 包含关系
+## 尾递归
+
+```js
+//尾递归斐波那契数列
+function fibonacci(n , ac1 = 1 , ac2 = 1) {
+    if( n <= 1 ) {return ac2}
+    return fibonacci(n - 1, ac2, ac1 + ac2);
+}
+
+//尾递归阶乘函数
+function factorial(n,total=1){
+    if(n===1){
+        return total
+    }
+    return factorial(n-1,n*total)
+}
+```
+
+## 子集
 ```js
  //判断是否为包含关系
 function isSuperset(set, subset) {

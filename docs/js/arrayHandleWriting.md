@@ -122,6 +122,57 @@ f(1, 2, 3);
 // [ 1, 2, 3 ]
 ```
 
+### Array.isArray
+
+* **功能:**  用于确定传递的值是否是一个数组。
+* **用法:**  Array.isArray(`value`)
+* **参数:**  `value`  需要检测的值。
+* **返回值:**  如果 `value` 是 `Array`，则为 `true`；否则为 `false`。如果 `value` 是 `TypedArray` 实例，则总是返回 `false`。
+
+```js
+Array.isArray = function(arg) {
+    return Object.prototype.toString.call(arg) === '[object Array]';
+};
+```
+
+**示例**
+
+```js
+// 下面的函数调用都返回 true
+Array.isArray([]);
+Array.isArray([1]);
+Array.isArray(new Array());
+Array.isArray(new Array("a", "b", "c", "d"));
+Array.isArray(new Array(3));
+// 鲜为人知的事实：其实 Array.prototype 也是一个数组：
+Array.isArray(Array.prototype);
+
+// 下面的函数调用都返回 false
+Array.isArray();
+Array.isArray({});
+Array.isArray(null);
+Array.isArray(undefined);
+Array.isArray(17);
+Array.isArray("Array");
+Array.isArray(true);
+Array.isArray(false);
+Array.isArray(new Uint8Array(32));
+// 这不是一个数组，因为它不是使用数组字面量语法或 Array 构造函数创建的
+Array.isArray({ __proto__: Array.prototype });
+
+//instanceof 和 Array.isArray()
+//当检测 Array 实例时，Array.isArray 优于 instanceof，因为 Array.isArray 能跨领域工作。
+const iframe = document.createElement("iframe");
+document.body.appendChild(iframe);
+const xArray = window.frames[window.frames.length - 1].Array;
+const arr = new xArray(1, 2, 3); // [1, 2, 3]
+
+// 正确检查 Array
+Array.isArray(arr); // true
+// arr 的原型是 xArray.prototype，它是一个不同于 Array.prototype 的对象
+arr instanceof Array; // false
+```
+
 ## [Array原型方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array)
 
 ### Array.prototype.push
@@ -624,14 +675,20 @@ for (const entry of Array.prototype.entries.call(arrayLike)) {
 // [ 2, 'c' ]
 ```
 
-```js
-/**
- * every方法  功能：测试一个数组内的所有元素是否都能通过某个指定函数的测试。它返回一个布尔值。
- * 如果为 every 提供一个 thisArg 参数，则该参数为调用 callback 时的 this 值。如果省略该参数，
- * 则 callback 被调用时的 this 值，在非严格模式下为全局对象，在严格模式下传入 undefined。详见 this 条目。
- */
+### Array.prototype.every
 
-Array.prototype.Myevery=function (fn,thisArg){
+* **功能:**  测试一个数组内的所有元素是否都能通过指定函数的测试。它返回一个布尔值。
+* **用法:**  every(`callbackFn`) every(`callbackFn`, `thisArg`)
+* **参数:**  
+  * `callbackFn` 为数组中的每个元素执行的函数。它应该返回一个真值以指示元素通过测试，否则返回一个假值。该函数被调用时将传入以下参数：
+      * `element` 数组中当前正在处理的元素。
+      * `index` 正在处理的元素在数组中的索引。
+      * `array` 调用了`every()`的数组本身。
+  * `thisArg`(**可选**) 执行 `callbackFn` 时用作 `this` 的值。
+* **返回值:**  如果 `callbackFn` 为每个数组元素返回真值，则为 `true`。否则为 `false`。
+
+```js
+Array.prototype.every=function (fn,thisArg){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -653,68 +710,133 @@ Array.prototype.Myevery=function (fn,thisArg){
     }
     return true
 }
+```
 
+**示例**
 
-/**
- * fill方法    功能：用一个固定值填充一个数组中从起始索引到终止索引内的全部元素。不包括终止索引
- * fill 方法接受三个参数 value, start 以及 end. start 和 end 参数是可选的，其默认值分别为 0 和 this 对象的 length 属性值。
- * 如果 start 是个负数，则开始索引会被自动计算成为 length+start, 其中 length 是 this 对象的 length 属性值。如果 end 是个负数，则结束索引会被自动计算成为 length+end。
- * fill 方法故意被设计成通用方法，该方法不要求 this 是数组对象。
- * fill 方法是个可变方法，它会改变调用它的 this 对象本身，然后返回它，而并不是返回一个副本。
- * 当一个对象被传递给 fill方法的时候，填充数组的是这个对象的引用。
- * MDN
- */
+```js
+//检查所有数组元素的大小
+function isBigEnough(element, index, array) {
+  return element >= 10;
+}
+[12, 5, 8, 130, 44].every(isBigEnough); // false
+[12, 54, 18, 130, 44].every(isBigEnough); // true
 
-Array.prototype.Myfill=function (value){
-    // Steps 1-2.
+//检查一个数组是否是另一个数组的子集
+const isSubset = (array1, array2) =>
+    array2.every((element) => array1.includes(element));
+console.log(isSubset([1, 2, 3, 4, 5, 6, 7], [5, 7, 6])); // true
+console.log(isSubset([1, 2, 3, 4, 5, 6, 7], [5, 8, 7])); // false
+
+//在稀疏数组上使用 every()  every() 不会在空槽上运行它的断言函数。
+console.log([1, , 3].every((x) => x !== undefined)); // true
+console.log([2, , 2].every((x) => x === 2)); // true
+
+//在非数组对象上调用 every()
+const arrayLike = {
+    length: 3,
+    0: "a",
+    1: "b",
+    2: "c",
+};
+console.log(
+    Array.prototype.every.call(arrayLike, (x) => typeof x === "string"),
+); // true
+```
+
+### Array.prototype.fill
+
+* **功能:**  用一个固定值填充一个数组中从起始索引（默认为 0）到终止索引（默认为 `array.length`）内的全部元素。它返回修改后的数组。
+* **用法:**  fill(`value`) fill(`value`, `start`) fill(`value`, `start`, `end`)
+* **参数:**
+    * `value`  用来填充数组元素的值。注意所有数组中的元素都将是这个确定的值：如果 `value` 是个**对象**，那么数组的每一项都会引用这个元素。
+    * `start`(**可选**)  基于零的索引，从此开始填充，转换为整数。
+       * 负索引将从数组末尾开始计数——如果 `start` < 0，则实际是 `start + array.length`。
+       * 如果省略 `start` 或 `start < -array.length`，则默认为 0。
+       * 如果 `start >= array.length`，没有索引被填充。
+    * `end`(**可选**) 基于零的索引，在此结束填充，转换为整数。`fill()` 填充到但不包含 `end` 索引。
+        * 负索引将从数组末尾开始计数——如果 `end` < 0，则实际是 `end + array.length`。
+        * 如果 `end` < `-array.length`，则使用0。
+        * 如果省略 `end` 或 `end` >= `array.length`，则默认为 `array.length`，导致所有索引都被填充。
+        * 如果 `end` 位于 `start` 之前或之上，没有索引被填充。
+* **返回值:**  经 value 填充修改后的数组。
+
+```js
+Array.prototype.fill=function (value/*,start,end*/){
     if (this == null) {
         throw new TypeError('this is null or not defined');
     }
-
     var O = Object(this);
-
-    // Steps 3-5.
     var len = O.length >>> 0;
-
-    // Steps 6-7.
     var start = arguments[1];
     var relativeStart = start >> 0;
-
-    // Step 8.
+    //序列化start
     var k = relativeStart < 0 ?
         Math.max(len + relativeStart, 0) :
         Math.min(relativeStart, len);
-
-    // Steps 9-10.
     var end = arguments[2];
+    //序列化end
     var relativeEnd = end === undefined ?
         len : end >> 0;
-
-    // Step 11.
     var final = relativeEnd < 0 ?
         Math.max(len + relativeEnd, 0) :
         Math.min(relativeEnd, len);
-
-    // Step 12.
+    //循环填充
     while (k < final) {
         O[k] = value;
         k++;
     }
-
-    // Step 13.
     return O;
 }
+```
 
+**示例**
 
+```js
+console.log([1, 2, 3].fill(4)); // [4, 4, 4]
+console.log([1, 2, 3].fill(4, 1)); // [1, 4, 4]
+console.log([1, 2, 3].fill(4, 1, 2)); // [1, 4, 3]
+console.log([1, 2, 3].fill(4, 1, 1)); // [1, 2, 3]
+console.log([1, 2, 3].fill(4, 3, 3)); // [1, 2, 3]
+console.log([1, 2, 3].fill(4, -3, -2)); // [4, 2, 3]
+console.log([1, 2, 3].fill(4, NaN, NaN)); // [1, 2, 3]
+console.log([1, 2, 3].fill(4, 3, 5)); // [1, 2, 3]
+console.log(Array(3).fill(4)); // [4, 4, 4]
 
-/**
- * filter方法   功能：filter 为数组中的每个元素调用一次 callback 函数，
- * 并利用所有使得callback 返回 true 或等价于 true 的值的元素创建一个新数组。
- * callback 只会在已经赋值的索引上被调用，对于那些已经被删除或者从未被赋值的索引不会被调用。
- * 那些没有通过 callback 测试的元素会被跳过，不会被包含在新数组中。
- */
+// 一个简单的对象，被数组的每个空槽所引用
+const arr = Array(3).fill({}); // [{}, {}, {}]
+arr[0].hi = "hi"; // [{ hi: "hi" }, { hi: "hi" }, { hi: "hi" }]
 
-Array.prototype.Myfilter=function (fn,thisArg){
+//使用 fill() 创建全 1 矩阵
+const arr = new Array(3);
+for (let i = 0; i < arr.length; i++) {
+    arr[i] = new Array(4).fill(1); // 创建一个大小为 4 的数组，填充全 1
+}
+arr[0][0] = 10;
+console.log(arr[0][0]); // 10
+console.log(arr[1][0]); // 1
+console.log(arr[2][0]); // 1
+
+//在非数组对象上调用 fill()
+const arrayLike = { length: 2 };
+console.log(Array.prototype.fill.call(arrayLike, 1));
+// { '0': 1, '1': 1, length: 2 }
+```
+
+### Array.prototype.filter
+
+* **功能:**  创建给定数组一部分的浅拷贝，其包含通过所提供函数实现的测试的所有元素。
+* **用法:**  filter(`callbackFn`) filter(`callbackFn`, `thisArg`)
+* **参数:**
+    * `callbackFn` 为数组中的每个元素执行的函数。它应该返回一个真值以将元素保留在结果数组中，否则返回一个假值。该函数被调用时将传入以下参数：
+        * `element` 数组中当前正在处理的元素。
+        * `index` 正在处理的元素在数组中的索引。
+        * `array` 调用了 `filter()` 的数组本身。
+    * `thisArg`(**可选**) 执行 `callbackFn` 时用作 `this` 的值。
+* **返回值:**  返回给定数组的一部分的浅拷贝，其中只包括通过提供的函数实现的测试的元素。如果没有元素通过测试，则返回一个空数组。
+
+```js
+Array.prototype.filter=function (fn,thisArg){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -737,16 +859,101 @@ Array.prototype.Myfilter=function (fn,thisArg){
     }
     return result
 }
+```
+
+**示例**
+
+```js
+//筛选排除所有较小的值
+function isBigEnough(value) {
+  return value >= 10;
+}
+const filtered = [12, 5, 8, 130, 44].filter(isBigEnough);
+// filtered is [12, 130, 44]
+
+//找出数组中所有的素数
+const array = [-3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+function isPrime(n) {
+    if (n < 2) {
+        return false;
+    }
+    if (n % 2 === 0) {
+        return n === 2;
+    }
+    for (let factor = 3; factor * factor <= n; factor += 2) {
+        if (n % factor === 0) {
+            return false;
+        }
+    }
+    return true;
+}
+console.log(array.filter(isPrime)); // [2, 3, 5, 7, 11, 13]
+
+//过滤 JSON 中的无效条目
+const arr = [
+    { id: 15 },
+    { id: -1 },
+    { id: 0 },
+    { id: 3 },
+    { id: 12.2 },
+    {},
+    { id: null },
+    { id: NaN },
+    { id: "undefined" },
+];
+let invalidEntries = 0;
+function filterByID(item) {
+    if (Number.isFinite(item.id) && item.id !== 0) {
+        return true;
+    }
+    invalidEntries++;
+    return false;
+}
+const arrByID = arr.filter(filterByID);
+console.log("过滤后的数组\n", arrByID);
+// 过滤后的数组
+// [{ id: 15 }, { id: -1 }, { id: 3 }, { id: 12.2 }]
+console.log("无效条目数量 =", invalidEntries);
+// 无效条目数量 = 5
+
+//在数组中搜索
+const fruits = ["apple", "banana", "grapes", "mango", "orange"];
+function filterItems(arr, query) {
+    return arr.filter((el) => el.toLowerCase().includes(query.toLowerCase()));
+}
+console.log(filterItems(fruits, "ap")); // ['apple', 'grapes']
+console.log(filterItems(fruits, "an")); // ['banana', 'mango', 'orange']
+
+//在稀疏数组上使用 filter()
+console.log([1, , undefined].filter((x) => x === undefined)); // [undefined]
+console.log([1, , undefined].filter((x) => x !== 2)); // [1, undefined]
+
+//在非数组对象上调用 filter()
+const arrayLike = {
+    length: 3,
+    0: "a",
+    1: "b",
+    2: "c",
+};
+console.log(Array.prototype.filter.call(arrayLike, (x) => x <= "b"));
+// [ 'a', 'b' ]
+```
+
+### Array.prototype.find
+
+* **功能:**  返回数组中满足提供的测试函数的第一个元素的值。否则返回 `undefined`。
+* **用法:**  find(`callbackFn`) find(`callbackFn`, `thisArg`)
+* **参数:**
+    * `callbackFn` 为数组中的每个元素执行的函数。它应该返回一个真值来表示已经找到了匹配的元素。该函数被调用时将传入以下参数：
+        * `element` 数组中当前正在处理的元素。
+        * `index` 正在处理的元素在数组中的索引。
+        * `array` 调用了 `find()` 的数组本身。
+    * `thisArg`(**可选**) 执行 `callbackFn` 时用作 `this` 的值。
+* **返回值:**  数组中第一个满足所提供测试函数的元素的值，否则返回 `undefined`。
 
 
-/**
- * find方法    功能：返回数组中满足提供的测试函数的第一个元素的值。否则返回 undefined
- * 在第一次调用 callback 函数时会确定元素的索引范围，因此在 find 方法开始执行之后添加到数组的新元素将不会被 callback 函数访问到。
- * 如果数组中一个尚未被 callback 函数访问到的元素的值被 callback 函数所改变，那么当 callback 函数访问到它时，它的值是将是根据它在数组中的索引所访问到的当前值。
- * 被删除的元素仍旧会被访问到，但是其值已经是 undefined 了。
- */
-
-Array.prototype.Myfind=function (fn,thisArg){
+```js
+Array.prototype.find=function (fn,thisArg){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -768,18 +975,110 @@ Array.prototype.Myfind=function (fn,thisArg){
     }
     return undefined
 }
+```
 
+**示例**
 
+```js
+//在对象数组中通过对象属性进行查找
+const inventory = [
+  { name: "apples", quantity: 2 },
+  { name: "bananas", quantity: 0 },
+  { name: "cherries", quantity: 5 },
+];
+function isCherries(fruit) {
+  return fruit.name === "cherries";
+}
+console.log(inventory.find(isCherries));
+// { name: 'cherries', quantity: 5 }
 
+//使用箭头函数和解构
+const inventory = [
+    { name: "apples", quantity: 2 },
+    { name: "bananas", quantity: 0 },
+    { name: "cherries", quantity: 5 },
+];
+const result = inventory.find(({ name }) => name === "cherries");
+console.log(result); // { name: 'cherries', quantity: 5 }
 
-/**
- * findIndex方法   功能：返回数组中找到的元素的值，而不是其索引。
- * 在第一次调用callback函数时会确定元素的索引范围，因此在findIndex方法开始执行之后添加到数组的新元素将不会被callback函数访问到。
- * 如果数组中一个尚未被callback函数访问到的元素的值被callback函数所改变，那么当callback函数访问到它时，
- * 它的值是将是根据它在数组中的索引所访问到的当前值。被删除的元素仍然会被访问到。
- */
+//寻找数组中的第一个素数
+function isPrime(n) {
+    if (n < 2) {
+        return false;
+    }
+    if (n % 2 === 0) {
+        return n === 2;
+    }
+    for (let factor = 3; factor * factor <= n; factor += 2) {
+        if (n % factor === 0) {
+            return false;
+        }
+    }
+    return true;
+}
+console.log([4, 6, 8, 12].find(isPrime)); // undefined，未找到
+console.log([4, 5, 8, 12].find(isPrime)); // 5
 
-Array.prototype.MyfindIndex=function (fn,thisArg){
+//在稀疏数组上使用 find()
+// 声明一个在索引 2、3 和 4 处没有元素的数组
+const array = [0, 1, , , , 5, 6];
+
+// 将会打印所有索引，而不仅仅是那些有值的非空槽
+array.find((value, index) => {
+    console.log(`访问索引 ${index}，值为 ${value}`);
+});
+// 访问索引 0，值为 0
+// 访问索引 1，值为 1
+// 访问索引 2，值为 undefined
+// 访问索引 3，值为 undefined
+// 访问索引 4，值为 undefined
+// 访问索引 5，值为 5
+// 访问索引 6，值为 6
+
+// 打印所有索引，包括已删除的
+array.find((value, index) => {
+    // 在第一次迭代时删除元素 5
+    if (index === 0) {
+        console.log(`删除 array[5] 的值 ${array[5]}`);
+        delete array[5];
+    }
+    // 即使删除了，元素 5 仍然被访问
+    console.log(`访问索引 ${index}，值为 ${value}`);
+});
+// 删除值为 array[5] 的 5
+// 访问索引 0，值为 0
+// 访问索引 1，值为 1
+// 访问索引 2，值为 undefined
+// 访问索引 3，值为 undefined
+// 访问索引 4，值为 undefined
+// 访问索引 5，值为 undefined
+// 访问索引 6，值为 6
+
+//在非数组对象上调用 find()
+const arrayLike = {
+    length: 3,
+    0: 2,
+    1: 7.3,
+    2: 4,
+};
+console.log(Array.prototype.find.call(arrayLike, (x) => !Number.isInteger(x)));
+// 7.3
+```
+
+### Array.prototype.findIndex
+
+* **功能:**  返回数组中满足提供的测试函数的第一个元素的索引。若没有找到对应元素则返回 -1。
+* **用法:**  findIndex(`callbackFn`) findIndex(`callbackFn`, `thisArg`)
+* **参数:**
+    * `callbackFn` 为数组中的每个元素执行的函数。它应该返回一个真值以指示已找到匹配元素，否则返回一个假值。该函数被调用时将传入以下参数：
+        * `element` 数组中当前正在处理的元素。
+        * `index` 正在处理的元素在数组中的索引。
+        * `array` 调用了 `findIndex()` 的数组本身。
+    * `thisArg`(**可选**) 执行 `callbackFn` 时用作 `this` 的值。
+* **返回值:**  数组中第一个满足测试条件的元素的索引。否则返回 -1。
+
+```js
+Array.prototype.findIndex=function (fn,thisArg){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -801,17 +1100,54 @@ Array.prototype.MyfindIndex=function (fn,thisArg){
     }
     return -1
 }
+```
 
+**示例**
 
+```js
+//寻找数组中的首个素数的索引
+function isPrime(n) {
+  if (n < 2) {
+    return false;
+  }
+  if (n % 2 === 0) {
+    return n === 2;
+  }
+  for (let factor = 3; factor * factor <= n; factor += 2) {
+    if (n % factor === 0) {
+      return false;
+    }
+  }
+  return true;
+}
 
+console.log([4, 6, 8, 9, 12].findIndex(isPrime)); // -1，没有找到
+console.log([4, 6, 7, 9, 12].findIndex(isPrime)); // 2（array[2] 是 7）
 
-/**
- * flat方法    功能：按照一个可指定的深度递归遍历数组，并将所有元素与遍历到的子数组中的元素合并为一个新数组返回。
- * var newArray = arr.flat([depth]) depth 可选指定要提取嵌套数组的结构深度，默认值为 1。
- * 扁平化数组 https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/flat
- */
+//在稀疏数组上使用 findIndex()
+console.log([1, , 3].findIndex((x) => x === undefined)); // 1
 
-Array.prototype.Myflat=function (depth=1){
+//在非数组对象上调用 findIndex()
+const arrayLike = {
+    length: 3,
+    0: 2,
+    1: 7.3,
+    2: 4,
+};
+console.log(
+    Array.prototype.findIndex.call(arrayLike, (x) => !Number.isInteger(x)),
+); // 1
+```
+
+### Array.prototype.flat
+
+* **功能:**  创建一个新的数组，并根据指定深度递归地将所有子数组元素拼接到新的数组中。
+* **用法:**  flat() flat(`depth`)
+* **参数:** `depth`(**可选**) 指定要提取嵌套数组的结构深度，默认值为 1。
+* **返回值:**  一个新的数组，其中包含拼接后的子数组元素。
+
+```js
+Array.prototype.flat=function (depth=1){
     const result=[];
     (function eachFlat(arr,depth){
         arr.forEach(item=>{
@@ -824,37 +1160,75 @@ Array.prototype.Myflat=function (depth=1){
     })(this,depth)
     return result
 }
+```
+
+**示例**
+
+```js
+//展平嵌套数组
+const arr1 = [1, 2, [3, 4]];
+arr1.flat();
+// [1, 2, 3, 4]
+
+const arr2 = [1, 2, [3, 4, [5, 6]]];
+arr2.flat();
+// [1, 2, 3, 4, [5, 6]]
+
+const arr3 = [1, 2, [3, 4, [5, 6]]];
+arr3.flat(2);
+// [1, 2, 3, 4, 5, 6]
+
+const arr4 = [1, 2, [3, 4, [5, 6, [7, 8, [9, 10]]]]];
+arr4.flat(Infinity);
+// [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+//在稀疏数组上使用 flat()
+const arr5 = [1, 2, , 4, 5];
+console.log(arr5.flat()); // [1, 2, 4, 5]
+
+const array = [1, , 3, ["a", , "c"]];
+console.log(array.flat()); // [ 1, 3, "a", "c" ]
+
+const array2 = [1, , 3, ["a", , ["d", , "e"]]];
+console.log(array2.flat()); // [ 1, 3, "a", ["d", empty, "e"] ]
+console.log(array2.flat(2)); // [ 1, 3, "a", "d", "e"]
+
+//在非数组对象上调用 flat()
+const arrayLike = {
+    length: 3,
+    0: [1, 2],
+    // 嵌套的类数组对象不会被展平
+    1: { length: 2, 0: 3, 1: 4 },
+    2: 5,
+};
+console.log(Array.prototype.flat.call(arrayLike));
+// [ 1, 2, { '0': 3, '1': 4, length: 2 }, 5 ]
+
 //将数组扁平化并去除其中重复数据，最终得到一个升序且不重复的数组
-/*Array.prototype.flat= function() {
+Array.prototype.flat= function() {
     return [].concat(...this.map(item => (Array.isArray(item) ? item.flat() : [item])));
 }
 Array.prototype.unique = function() {
     return [...new Set(this)]
 }
 const sort = (a, b) => a - b;
-console.log(arr.flat().unique().sort(sort)); // [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]*/
+console.log(arr.flat().unique().sort(sort)); // [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]
+```
 
+### Array.prototype.forEach
 
+* **功能:**  对数组的每个元素执行一次给定的函数。
+* **用法:**  forEach(`callbackFn`) forEach(`callbackFn`, `thisArg`)
+* **参数:**
+    * `callbackFn` 为数组中每个元素执行的函数。并会丢弃它的返回值。该函数被调用时将传入以下参数:
+        * `element` 数组中当前正在处理的元素。
+        * `index` 正在处理的元素在数组中的索引。
+        * `array` 调用了 `findIndex()` 的数组本身。
+    * `thisArg`(**可选**) 执行 `callbackFn` 时用作 `this` 的值。
+* **返回值:**  undefined。
 
-/**
- * flatMap方法   功能:首先使用映射函数映射每个元素，然后将结果压缩成一个新数组。它与 map 连着深度值为 1 的 flat 几乎相同，但 flatMap 通常在合并成一种方法的效率稍微高一些。
- * 与map方法相同，但结构深度depth值为1
- * 返回值 一个新的数组，其中每个元素都是回调函数的结果，并且结构深度 depth 值为 1.
- */
-
-
-
-
-
-/**
- * forEach方法    功能：对数组的每个元素执行一次给定的函数。返回值undefined 那些已删除或者未初始化的项将被跳过
- * forEach() 为每个数组元素执行一次 callback 函数；与 map() 或者 reduce() 不同的是，它总是返回 undefined 值，
- * 并且不可链式调用。其典型用例是在一个调用链的最后执行副作用（side effects，函数式编程上，指函数进行 返回结果值 以外的操作）。
- * 除了抛出异常以外，没有办法中止或跳出 forEach() 循环。如果你需要中止或跳出循环，forEach() 方法不是应当使用的工具。
- * 若你需要提前终止循环，你可以使用：一个简单的 for 循环，for...of / for...in 循环
- */
-
-Array.prototype.MyforEach= function (fn,thisArg){
+```js
+Array.prototype.forEach= function (fn,thisArg){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -872,29 +1246,113 @@ Array.prototype.MyforEach= function (fn,thisArg){
     }
     return undefined
 }
+```
 
+**示例**
 
+```js
+//在稀疏数组上使用 forEach()
+const arraySparse = [1, 3, /* empty */, 7];
+let numCallbackRuns = 0;
 
-/**
- *includes方法   功能：用来判断一个数组是否包含一个指定的值，根据情况，如果包含则返回 true，否则返回 false。
- * 技术上来讲，includes() 使用 零值相等 算法来确定是否找到给定的元素。
- * arr.includes(valueToFind[, fromIndex])
- * 如果 fromIndex 大于等于数组的长度，则将直接返回 false，且不搜索该数组。
- * 如果 fromIndex 为负值，计算出的索引将作为开始搜索searchElement的位置。如果计算出的索引小于 0，则整个数组都会被搜索。
- * includes() 方法有意设计为通用方法。它不要求this值是数组对象，所以它可以被用于其他类型的对象 (比如类数组对象)
- */
+arraySparse.forEach((element) => {
+    console.log({ element });
+    numCallbackRuns++;
+});
 
-Array.prototype.Myincludes=function(valueFind,fromIndex=0){
+console.log({ numCallbackRuns });
+
+// { element: 1 }
+// { element: 3 }
+// { element: 7 }
+// { numCallbackRuns: 3 }
+
+//打印出数组的内容
+const logArrayElements = (element, index /*, array */) => {
+    console.log(`a[${index}] = ${element}`);
+};
+
+// 注意，索引 2 被跳过，因为数组中这个位置没有内容
+[2, 5, , 9].forEach(logArrayElements);
+// logs:
+// a[0] = 2
+// a[1] = 5
+// a[3] = 9
+
+//使用 thisArg
+class Counter {
+    constructor() {
+        this.sum = 0;
+        this.count = 0;
+    }
+    add(array) {
+        // 只有函数表达式才有自己的 this 绑定
+        array.forEach(function countEntry(entry) {
+            this.sum += entry;
+            ++this.count;
+        }, this);
+    }
+}
+
+const obj = new Counter();
+obj.add([2, 5, 9]);
+console.log(obj.count); // 3
+console.log(obj.sum); // 16
+
+//扁平化数组
+const flatten = (arr) => {
+    const result = [];
+    arr.forEach((item) => {
+        if (Array.isArray(item)) {
+            result.push(...flatten(item));
+        } else {
+            result.push(item);
+        }
+    });
+    return result;
+};
+// 用例
+const nested = [1, 2, 3, [4, 5, [6, 7], 8, 9]];
+console.log(flatten(nested)); // [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+//在非数组对象上调用 forEach()
+const arrayLike = {
+    length: 3,
+    0: 2,
+    1: 3,
+    2: 4,
+};
+Array.prototype.forEach.call(arrayLike, (x) => console.log(x));
+// 2
+// 3
+// 4
+```
+
+### Array.prototype.includes
+
+* **功能:**  用来判断一个数组是否包含一个指定的值，根据情况，如果包含则返回 `true`，否则返回 `false`。
+* **用法:**  includes(`searchElement`) includes(`searchElement`, `fromIndex`)
+* **参数:**
+    * `searchElement` 需要查找的值。
+    * `fromIndex`(**可选**) 开始搜索的索引（从零开始），会转换为整数。
+      * 负索引从数组末尾开始计数——如果 `fromIndex` < 0，那么实际使用的是 `fromIndex + array.length`。然而在这种情况下，数组仍然从前往后进行搜索。
+      * 如果 `fromIndex < -array.length` 或者省略 `fromIndex`，则使用 0，这将导致整个数组被搜索。
+      * 如果 `fromIndex >= array.length`，则不会搜索数组并返回 `false`。
+* **返回值:**  一个布尔值，如果在数组中（或者在 `fromIndex` 所指示的数组部分中，如果指定 `fromIndex` 的话）找到 `searchElement` 值，则该值为 `true`。
+
+```js
+Array.prototype.includes=function(valueFind,fromIndex=0){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
     const O = Object(this)
     const len = O.length >>> 0
-    if(len===0){
-        return false
+   
+    if(fromIndex < 0){
+        fromIndex=Math.max(len+fromIndex, 0)
     }
-    if(fromIndex<0){
-        fromIndex=len+fromIndex
+    if(len===0||fromIndex>=len){
+        return false
     }
     function sameValueZero(x,y) {
         return x === y || (typeof x === 'number' && typeof y === 'number' && isNaN(x) && isNaN(y));
@@ -905,13 +1363,65 @@ Array.prototype.Myincludes=function(valueFind,fromIndex=0){
         }
     }
     return false
-
 }
-/**
- *indexOf方法  功能：返回在数组中可以找到一个给定元素的第一个索引，如果不存在，则返回-1。
- */
+```
 
-Array.prototype.MyindexOf=function(valueFind,fromIndex=0){
+**示例**
+
+```js
+//使用 includes() 方法
+[1, 2, 3].includes(2); // true
+[1, 2, 3].includes(4); // false
+[1, 2, 3].includes(3, 3); // false
+[1, 2, 3].includes(3, -1); // true
+[1, 2, NaN].includes(NaN); // true
+["1", "2", "3"].includes(3); // false
+
+//fromIndex 大于等于数组长度
+const arr = ["a", "b", "c"];
+arr.includes("c", 3); // false
+arr.includes("c", 100); // false
+
+//计算出的索引小于 0
+// 数组长度为 3
+// fromIndex 为 -100
+// 计算出的索引为 3 + (-100) = -97
+const arr = ["a", "b", "c"];
+arr.includes("a", -100); // true
+arr.includes("b", -100); // true
+arr.includes("c", -100); // true
+arr.includes("a", -2); // false
+
+//对稀疏数组使用 includes() 方法
+console.log([1, , 3].includes(undefined)); // true
+
+//在非数组对象上调用 includes() 方法
+const arrayLike = {
+    length: 3,
+    0: 2,
+    1: 3,
+    2: 4,
+};
+console.log(Array.prototype.includes.call(arrayLike, 2));
+// true
+console.log(Array.prototype.includes.call(arrayLike, 1));
+// false
+```
+
+### Array.prototype.indexOf
+
+* **功能:**  返回数组中第一次出现给定元素的下标，如果不存在则返回 -1。
+* **用法:**  indexOf(`searchElement`) indexOf(`searchElement`, `fromIndex`)
+* **参数:**
+    * `searchElement` 数组中要查找的元素。
+    * `fromIndex`(**可选**) 开始搜索的索引（从零开始），会转换为整数。
+        * 负索引从数组末尾开始计数——如果 `fromIndex` < 0，那么实际使用的是 `fromIndex + array.length`。然而在这种情况下，数组仍然从前往后进行搜索。
+        * 如果 `fromIndex < -array.length` 或者省略 `fromIndex`，则使用 0，这将导致整个数组被搜索。
+        * 如果 `fromIndex >= array.length`，则不会搜索数组并返回 `-1`。
+* **返回值:**  首个被找到的元素在数组中的索引位置; 若没有找到则返回 -1。
+
+```js
+Array.prototype.indexOf=function(valueFind,fromIndex=0){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -919,35 +1429,69 @@ Array.prototype.MyindexOf=function(valueFind,fromIndex=0){
         (fromIndex-=0) && fromIndex === fromIndex ? fromIndex : 0 : 0 : 0
     const O = Object(this)
     const len = O.length >>> 0
-    if(fromIndex<0){
-        fromIndex=len+fromIndex
+    if(fromIndex < 0){
+        fromIndex=Math.max(len+fromIndex, 0)
     }
     if(len===0||fromIndex>=len){
         return -1
     }
-
     for(let i=fromIndex;i<len;i++){
         if(O[i]===valueFind){
             return i
         }
     }
     return -1
-
 }
+```
 
-/**
- *isArray方法   功能：确定传递的值是否是一个 Array。
- */
+**示例**
 
-Array.MyisArray = function(arg) {
-    return Object.prototype.toString.call(arg) === '[object Array]';
+```js
+//使用 indexOf()
+const array = [2, 9, 9];
+array.indexOf(2); // 0
+array.indexOf(7); // -1
+array.indexOf(9, 2); // 2
+array.indexOf(2, -1); // -1
+array.indexOf(2, -3); // 0
+
+//找出指定元素出现的所有位置
+const indices = [];
+const array = ["a", "b", "a", "c", "a", "d"];
+const element = "a";
+let idx = array.indexOf(element);
+while (idx !== -1) {
+    indices.push(idx);
+    idx = array.indexOf(element, idx + 1);
+}
+console.log(indices);
+// [0, 2, 4]
+
+//在稀疏数组中使用 indexOf()
+console.log([1, , 3].indexOf(undefined)); // -1
+
+//在非数组对象上调用 indexOf()
+const arrayLike = {
+    length: 3,
+    0: 2,
+    1: 3,
+    2: 4,
 };
+console.log(Array.prototype.indexOf.call(arrayLike, 2));
+// 0
+console.log(Array.prototype.indexOf.call(arrayLike, 5));
+// -1
+```
 
-/**
- * join方法   功能：将一个数组（或一个类数组对象）的所有元素连接成一个字符串并返回这个字符串。如果数组只有一个项目，那么将返回该项目而不使用分隔符。
- */
+### Array.prototype.join
 
-Array.prototype.Myjoin=function(char){
+* **功能:**  将一个数组（或一个类数组对象）的所有元素连接成一个字符串并返回这个字符串，用逗号或指定的分隔符字符串分隔。如果数组只有一个元素，那么将返回该元素而不使用分隔符。
+* **用法:**  join() join(`separator`)
+* **参数:**  `separator`(**可选**) 指定一个字符串来分隔数组的每个元素。如果需要，将分隔符转换为字符串。如果省略，数组元素用逗号（,）分隔。如果 `separator` 是空字符串（""），则所有元素之间都没有任何字符。
+* **返回值:**  一个所有数组元素连接的字符串。如果 `arr.length` 为 0，则返回空字符串。
+
+```js
+Array.prototype.join=function(char){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -963,14 +1507,47 @@ Array.prototype.Myjoin=function(char){
     }
     return result
 }
-/**
- * keys方法      功能：返回一个包含数组中每个索引键的Array Iterator对象。
- * 索引迭代器会包含那些没有对应元素的索引
- */
+```
 
+**示例**
 
-Array.prototype.Mykeys=function (){
-    if(!typeof this==='object') return
+```js
+//使用用四种不同的方式连接数组
+const a = ["Wind", "Water", "Fire"];
+a.join(); // 'Wind,Water,Fire'
+a.join(", "); // 'Wind, Water, Fire'
+a.join(" + "); // 'Wind + Water + Fire'
+a.join(""); // 'WindWaterFire'
+
+//在稀疏数组上使用 join()
+console.log([1, , 3].join()); // '1,,3'
+console.log([1, undefined, 3].join()); // '1,,3'
+
+//在非数组对象上调用 join()
+const arrayLike = {
+    length: 3,
+    0: 2,
+    1: 3,
+    2: 4,
+};
+console.log(Array.prototype.join.call(arrayLike));
+// 2,3,4
+console.log(Array.prototype.join.call(arrayLike, "."));
+// 2.3.4
+```
+
+### Array.prototype.keys
+
+* **功能:**  返回一个新的数组迭代器对象，其中包含数组中每个索引的键。
+* **用法:**  keys()
+* **参数:**  无
+* **返回值:**  一个新的可迭代迭代器对象。
+
+```js
+Array.prototype.keys=function (){
+    if (this == null) {
+        throw new TypeError('this is null or not defined')
+    }
     let arr
     let length=this.length
     if(!length){
@@ -993,14 +1570,44 @@ Array.prototype.Mykeys=function (){
         }
     }
 }
-/**
- * lastIndexOf方法    功能：返回指定元素（也即有效的 JavaScript 值或变量）在数组中的最后一个的索引，如果不存在则返回 -1。从数组的后面向前查找，从 fromIndex 处开始。
- * arr.lastIndexOf(searchElement[, fromIndex])   使用严格相等进行判断
- * fromIndex 可选
- * 从此位置开始逆向查找。默认为数组的长度减 1(arr.length - 1)，即整个数组都被查找。如果该值大于或等于数组的长度，则整个数组会被查找。
- * 如果为负值，将其视为从数组末尾向前的偏移。即使该值为负，数组仍然会被从后向前查找。如果该值为负时，其绝对值大于数组长度，则方法返回 -1，即数组不会被查找。
- */
-Array.prototype.MyLastIndexOf=function(valueFind,fromIndex=this.length-1){
+```
+
+**示例**
+
+```js
+//在稀疏数组中使用 keys()
+const arr = ["a", , "c"];
+const sparseKeys = Object.keys(arr);
+const denseKeys = [...arr.keys()];
+console.log(sparseKeys); // ['0', '2']
+console.log(denseKeys); // [0, 1, 2]
+
+//在非数组对象上调用 keys()
+const arrayLike = {
+    length: 3,
+};
+for (const entry of Array.prototype.keys.call(arrayLike)) {
+    console.log(entry);
+}
+// 0
+// 1
+// 2
+```
+
+### Array.prototype.lastIndexOf
+
+* **功能:**  返回数组中第一次出现给定元素的下标，如果不存在则返回 -1。
+* **用法:**  lastIndexOf(`searchElement`) lastIndexOf(`searchElement`, `fromIndex`)
+* **参数:**
+    * `searchElement` 数组中要查找的元素。
+    * `fromIndex`(**可选**) 以 0 起始的索引，表明反向搜索的起始位置，会被转换为整数。
+        * 如果 `fromIndex` < 0，则从数组末尾开始倒数计数——即使用 `fromIndex + array.length` 的值。
+        * 如果 `fromIndex < -array.length`，则不搜索数组并返回 -1。从概念上讲，你可以把它想象成从数组开始之前不存在的位置开始反向搜索，这条路径上没有任何数组元素，因此 `searchElement` 永远不会被找到。
+        * 如果 `fromIndex >= array.length` 或者省略了 `fromIndex`，则使用 `array.length - 1`，这会导致搜索整个数组。可以将其理解为从数组尾部之后不存在的位置开始向前搜索。最终会访问到数组最后一个元素，并继续向前开始实际搜索数组元素
+* **返回值:**  数组中该元素最后一次出现的索引，如未找到返回 -1。
+
+```js
+Array.prototype.lastIndexOf=function(valueFind,fromIndex=this.length-1){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -1011,23 +1618,71 @@ Array.prototype.MyLastIndexOf=function(valueFind,fromIndex=this.length-1){
     if(len===0){
         return -1
     }
-
     for(let i=index;i>=0;i--){
         if(O[i]===valueFind){
             return i
         }
     }
     return -1
+}
+```
 
+**示例**
+
+```js
+//使用 lastIndexOf()
+const numbers = [2, 5, 9, 2];
+numbers.lastIndexOf(2); // 3
+numbers.lastIndexOf(7); // -1
+numbers.lastIndexOf(2, 3); // 3
+numbers.lastIndexOf(2, 2); // 0
+numbers.lastIndexOf(2, -2); // 0
+numbers.lastIndexOf(2, -1); // 3
+
+//查找元素出现的所有索引
+const indices = [];
+const array = ["a", "b", "a", "c", "a", "d"];
+const element = "a";
+let idx = array.lastIndexOf(element);
+while (idx !== -1) {
+    indices.push(idx);
+    idx = idx > 0 ? array.lastIndexOf(element, idx - 1) : -1;
 }
 
-/**
- * map方法  功能：创建一个新数组，这个新数组由原数组中的每个元素都调用一次提供的函数后的返回值组成。
- * map 不修改调用它的原数组本身（当然可以在 callback 执行时改变原数组）
- * map 方法处理数组元素的范围是在 callback 方法第一次调用之前就已经确定了。调用map方法之后追加的数组元素不会被callback访问。
- * 如果存在的数组元素改变了，那么传给callback的值是map访问该元素时的值。在map函数调用后但在访问该元素前，该元素被删除的话，则无法被访问到。
- * */
-Array.prototype.MyMap= function (fn,thisArg){
+console.log(indices);
+// [4, 2, 0]
+
+//在稀疏数组上使用 lastIndexOf()
+console.log([1, , 3].lastIndexOf(undefined)); // -1
+
+//在非数组对象上调用 lastIndexOf()
+const arrayLike = {
+    length: 3,
+    0: 2,
+    1: 3,
+    2: 2,
+};
+console.log(Array.prototype.lastIndexOf.call(arrayLike, 2));
+// 2
+console.log(Array.prototype.lastIndexOf.call(arrayLike, 5));
+// -1
+```
+
+### Array.prototype.map
+
+* **功能:**  创建一个新数组，这个新数组由原数组中的每个元素都调用一次提供的函数后的返回值组成。
+* **用法:**  map(`callbackFn`) map(`callbackFn`, `thisArg`)
+* **参数:**
+    * `callbackFn` 为数组中的每个元素执行的函数。它的返回值作为一个元素被添加为新数组中。该函数被调用时将传入以下参数：
+        * `element` 数组中当前正在处理的元素。
+        * `index` 正在处理的元素在数组中的索引。
+        * `array` 调用了 `findIndex()` 的数组本身。
+    * `thisArg`(**可选**) 执行 `callbackFn` 时用作 `this` 的值。
+* **返回值:**  一个新数组，每个元素都是回调函数的返回值。
+
+
+```js
+Array.prototype.map= function (fn,thisArg){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -1046,8 +1701,65 @@ Array.prototype.MyMap= function (fn,thisArg){
     }
     return arr
 }
+```
 
+**示例**
 
+```js
+//求数组中每个元素的平方根
+const numbers = [1, 4, 9];
+const roots = numbers.map((num) => Math.sqrt(num));
+
+// roots 现在是     [1, 2, 3]
+// numbers 依旧是   [1, 4, 9]
+
+//使用 map 重新格式化数组中的对象
+const kvArray = [
+    { key: 1, value: 10 },
+    { key: 2, value: 20 },
+    { key: 3, value: 30 },
+];
+
+const reformattedArray = kvArray.map(({ key, value }) => ({ [key]: value }));
+
+console.log(reformattedArray); // [{ 1: 10 }, { 2: 20 }, { 3: 30 }]
+console.log(kvArray);
+// [
+//   { key: 1, value: 10 },
+//   { key: 2, value: 20 },
+//   { key: 3, value: 30 }
+// ]
+
+//使用包含单个参数的函数来映射一个数字数组
+const numbers = [1, 4, 9];
+const doubles = numbers.map((num) => num * 2);
+
+console.log(doubles); // [2, 8, 18]
+console.log(numbers); // [1, 4, 9]
+
+//在非数组对象上调用 map()
+const arrayLike = {
+    length: 3,
+    0: 2,
+    1: 3,
+    2: 4,
+};
+console.log(Array.prototype.map.call(arrayLike, (x) => x ** 2));
+// [ 4, 9, 16 ]
+
+//在稀疏数组上使用 map()
+console.log(
+    [1, , 3].map((x, index) => {
+        console.log(`Visit ${index}`);
+        return x * 2;
+    }),
+);
+// Visit 0
+// Visit 2
+// [2, empty, 6]
+```
+
+```js
 /**
  * Array.prototype.reduce(callback,initialValue)
  * reduce() 方法对数组中的每个元素执行一个由您提供的reducer函数(升序执行)，将其结果汇总为单个返回值。

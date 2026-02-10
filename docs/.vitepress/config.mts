@@ -296,10 +296,17 @@ export default defineConfig({
                             // {text: '继承', link: '/js/inherit'},
                             {text: '常用全局方法', link: '/js/globalMethods'},
                             {text: '高阶函数', link: '/js/highLevelFunction'},
-                            {text: '设计模式', link: '/js/designPattern'},
                             {text: 'promise手写', link: '/js/promiseHandleWriting'},
                         ]
                     },
+                ]
+            },
+            {
+                text: 'js设计模式',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: false, // 初始状态为“展开”
+                items: [
+                    {text: '设计模式', link: '/js/designPattern'},
                 ]
             }
         ],
