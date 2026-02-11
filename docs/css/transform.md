@@ -2,11 +2,11 @@
 
 `transform` 属性允许你修改坐标空间，从而对元素进行旋转、缩放、倾斜或平移。
 
-## 1.1 `transform` (转换函数集合)
+## 1. 转换函数集合(`transform`)
 
 这是应用转换的主属性。你可以组合多个函数，**空格分隔**，执行顺序**从左到右**。
 
-### 2D 转换函数
+### 1.1 2D 转换函数
 | 函数 | 语法 | 描述                                                                                                  |
 | :--- | :--- |:----------------------------------------------------------------------------------------------------|
 | **`translate()`** | `translate(x, y)` | **平移**。<br>`translate(50px, 100px)`。<br>支持 `%` (相对于**自身**尺寸)。                                       |
@@ -43,7 +43,7 @@ transform: skew(x-angle, y-angle);
 
 ![Logo](/skew.png)
 
-### 3D 转换函数 (需配合 perspective)
+### 1.2 3D 转换函数 (需配合 perspective)
 | 函数 | 语法 | 描述 |
 | :--- | :--- | :--- |
 | **`translate3d()`**| `translate3d(x, y, z)` | 3D 平移。常用于开启 GPU 加速 (`translate3d(0,0,0)`)。 |
@@ -74,7 +74,7 @@ transform: perspective(n);
 ![Logo](/perspective.png)
 
 
-## 1.2 辅助属性 API (环境设置)
+## 2.  辅助属性 API (环境设置)
 
 这些属性决定了转换的基准点、3D 空间的构建方式等。
 
@@ -86,7 +86,7 @@ transform: perspective(n);
 | **`transform-style`** | **父容器** | **3D 空间保留**。<br>决定子元素是压扁在平面上，还是保持 3D 结构。 | `flat` (默认 - 2D)<br>**`preserve-3d`** (保留 3D 空间，做立方体必开) |
 | **`backface-visibility`**| **自身** | **背面可见性**。<br>当元素旋转 180 度背面朝人时，是否显示。 | `visible` (默认 - 镜像显示)<br>**`hidden`** (隐藏 - 做翻转卡片必用) |
 
-## 2. 常见问题 (FAQ) 与 避坑指南
+## 3. 常见问题 (FAQ) 与 避坑指南
 
 ### Q1: 为什么我的 `transform` 不生效？
 **原因**: `transform` 属性对 **行内元素 (`display: inline`)** 无效（如 `<span>`, `<a>`）。
@@ -133,11 +133,9 @@ transform: perspective(n);
 
 **解法**: 确保所有参与 3D 结构的父容器都加上 `transform-style: preserve-3d`。
 
----
+## 4. 经典应用场景代码
 
-# 3. 经典应用场景代码
-
-### 3.1 绝对居中 (万能方案)
+### 4.1 绝对居中 (万能方案)
 利用 `translate` 的百分比是相对于自身的特性。
 ```css
 .center-box {
@@ -148,7 +146,7 @@ transform: perspective(n);
 }
 ```
 
-### 3.2 翻转卡片 (Card Flip)
+### 4.2 翻转卡片 (Card Flip)
 ```css
 .scene { perspective: 1000px; }
 .card {
