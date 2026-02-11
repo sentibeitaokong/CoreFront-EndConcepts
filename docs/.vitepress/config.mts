@@ -3,10 +3,12 @@ import {defineConfig} from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     base: '/CoreFront-EndConcepts/',
-    title: "vitePress",
+    title: "个人博客",
     description: "vitePress",
+    head: [['link', { rel: 'icon', href: '/CoreFront-EndConcepts/myAddress.svg' }]], //要在页面 HTML 的 <head> 标签中呈现的其他元素
     cleanUrls: true,         //生成简洁的url
     themeConfig: {
+        logo: '/blog.svg',  //导航栏上显示的 Logo，位于站点标题前
         /*markdown: {
             // Shiki 主题配置
             theme: {
@@ -14,13 +16,13 @@ export default defineConfig({
                 dark: 'material-theme-palenight' // 暗色模式下的主题
             }
         },*/
-        lastUpdated: {
+        /*lastUpdated: {
             text: '最后更新于',      //自定义名称
             formatOptions: {
                 dateStyle: 'full',
                 timeStyle: 'medium'
             }
-        },    //显示最后更新时间
+        },*/    //显示最后更新时间
         editLink: {
             pattern: 'https://github.com/sentibeitaokong/CoreFront-EndConcepts/edit/main/docs/:path',
             text: 'Edit this page on GitHub'
@@ -301,14 +303,14 @@ export default defineConfig({
                     },
                 ]
             },
-            {
+           /* {
                 text: 'js设计模式',
                 collapsible: true, // 允许折叠 (默认true，可省略)
                 collapsed: false, // 初始状态为“展开”
                 items: [
                     {text: '设计模式', link: '/js/designPattern'},
                 ]
-            }
+            }*/
         ],
         socialLinks: [
             {icon: 'github', link: 'https://github.com/sentibeitaokong/CoreFront-EndConcepts'}

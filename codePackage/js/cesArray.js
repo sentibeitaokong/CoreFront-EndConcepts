@@ -780,7 +780,9 @@ console.log(Array.prototype.lastIndexOf.call(arrayLike, 2));
 console.log(Array.prototype.lastIndexOf.call(arrayLike, 5));
 // -1*/
 
-//求数组中每个元素的平方根
+
+//Array.prototype.map
+/*//求数组中每个元素的平方根
 const numbers1 = [1, 4, 9];
 const roots = numbers1.map((num) => Math.sqrt(num));
 
@@ -830,4 +832,160 @@ console.log(
 );
 // Visit 0
 // Visit 2
-// [2, empty, 6]
+// [2, empty, 6]*/
+
+//Array.prototype.reduce
+//无初始值时 reduce()
+// const array = [15, 16, 17, 18, 19];
+//
+// function reducer(accumulator, currentValue, index) {
+//     const returns = accumulator + currentValue;
+//     console.log(
+//         `accumulator: ${accumulator}, currentValue: ${currentValue}, index: ${index}, returns: ${returns}`,
+//     );
+//     return returns;
+// }
+// array.reduce(reducer);  //85
+//
+// //有初始值时 reduce()
+// [15, 16, 17, 18, 19].reduce(
+//     (accumulator, currentValue) => accumulator + currentValue,
+//     10,
+// );   //95
+//
+// //求对象数组中值的总和
+// const objects = [{ x: 1 }, { x: 2 }, { x: 3 }];
+// const sum = objects.reduce(
+//     (accumulator, currentValue) => accumulator + currentValue.x,
+//     0,
+// );
+//
+// console.log(sum); // 6
+//
+// //展平嵌套数组
+// const flattened = [
+//     [0, 1],
+//     [2, 3],
+//     [4, 5],
+// ].reduce((accumulator, currentValue) => accumulator.concat(currentValue), []);
+// // flattened 的值是 [0, 1, 2, 3, 4, 5]
+//
+// //统计对象中值的出现次数
+// const names = ["Alice", "Bob", "Tiff", "Bruce", "Alice"];
+//
+// const countedNames = names.reduce((allNames, name) => {
+//     const currCount = allNames[name] ?? 0;
+//     return {
+//         ...allNames,
+//         [name]: currCount + 1,
+//     };
+// }, {});
+// // countedNames 的值是：
+// // { 'Alice': 2, 'Bob': 1, 'Tiff': 1, 'Bruce': 1 }
+//
+// //按属性对对象进行分组
+// const people = [
+//     { name: "Alice", age: 21 },
+//     { name: "Max", age: 20 },
+//     { name: "Jane", age: 20 },
+// ];
+//
+// function groupBy(objectArray, property) {
+//     return objectArray.reduce((acc, obj) => {
+//         const key = obj[property];
+//         const curGroup = acc[key] ?? [];
+//
+//         return { ...acc, [key]: [...curGroup, obj] };
+//     }, {});
+// }
+//
+// const groupedPeople = groupBy(people, "age");
+// console.log(groupedPeople);
+// {
+//   20: [
+//     { name: 'Max', age: 20 },
+//     { name: 'Jane', age: 20 }
+//   ],
+//   21: [{ name: 'Alice', age: 21 }]
+// }
+
+//使用展开语法和 initialValue 连接包含在对象数组中的数组
+// friends——一个对象数组，其中对象字段“books”是最喜欢的书的列表
+// const friends = [
+//     {
+//         name: "Anna",
+//         books: ["Bible", "Harry Potter"],
+//         age: 21,
+//     },
+//     {
+//         name: "Bob",
+//         books: ["War and peace", "Romeo and Juliet"],
+//         age: 26,
+//     },
+//     {
+//         name: "Alice",
+//         books: ["The Lord of the Rings", "The Shining"],
+//         age: 18,
+//     },
+// ];
+//
+// // allbooks——列表，其中包含所有朋友的书籍和 initialValue 中包含的附加列表
+// const allbooks = friends.reduce(
+//     (accumulator, currentValue) => [...accumulator, ...currentValue.books],
+//     ["Alphabet"],
+// );
+// console.log(allbooks);
+// // [
+// //   'Alphabet', 'Bible', 'Harry Potter', 'War and peace',
+// //   'Romeo and Juliet', 'The Lord of the Rings',
+// //   'The Shining'
+// // ]
+//
+// //数组去重
+// const myArray = ["a", "b", "a", "b", "c", "e", "e", "c", "d", "d", "d", "d"];
+// const myArrayWithNoDuplicates = myArray.reduce((accumulator, currentValue) => {
+//     if (!accumulator.includes(currentValue)) {
+//         return [...accumulator, currentValue];
+//     }
+//     return accumulator;
+// }, []);
+//
+// console.log(myArrayWithNoDuplicates);
+//
+// //使用函数组合实现管道
+// // 组合使用的构建块
+// const double = (x) => 2 * x;
+// const triple = (x) => 3 * x;
+// const quadruple = (x) => 4 * x;
+//
+// // 函数组合，实现管道功能
+// const pipe =
+//     (...functions) =>
+//         (initialValue) =>
+//             functions.reduce((acc, fn) => fn(acc), initialValue);
+//
+// // 组合的函数，实现特定值的乘法
+// const multiply6 = pipe(double, triple);
+// const multiply9 = pipe(triple, triple);
+// const multiply16 = pipe(quadruple, quadruple);
+// const multiply24 = pipe(double, triple, quadruple);
+//
+// // 用例
+// multiply6(6); // 36
+// multiply9(9); // 81
+// multiply16(16); // 256
+// multiply24(10); // 240
+//
+// //在稀疏数组中使用 reduce()
+// console.log([1, 2, , 4].reduce((a, b) => a + b)); // 7
+// console.log([1, 2, undefined, 4].reduce((a, b) => a + b)); // NaN
+//
+// //在非数组对象上调用 reduce()
+// const arrayLike = {
+//     length: 3,
+//     0: 2,
+//     1: 3,
+//     2: 4,
+// };
+// console.log(Array.prototype.reduce.call(arrayLike, (x, y) => x + y));
+// 9

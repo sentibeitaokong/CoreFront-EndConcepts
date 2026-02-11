@@ -1676,7 +1676,7 @@ console.log(Array.prototype.lastIndexOf.call(arrayLike, 5));
     * `callbackFn` 为数组中的每个元素执行的函数。它的返回值作为一个元素被添加为新数组中。该函数被调用时将传入以下参数：
         * `element` 数组中当前正在处理的元素。
         * `index` 正在处理的元素在数组中的索引。
-        * `array` 调用了 `findIndex()` 的数组本身。
+        * `array` 调用了 `map()` 的数组本身。
     * `thisArg`(**可选**) 执行 `callbackFn` 时用作 `this` 的值。
 * **返回值:**  一个新数组，每个元素都是回调函数的返回值。
 
@@ -1759,20 +1759,22 @@ console.log(
 // [2, empty, 6]
 ```
 
+### Array.prototype.reduce
+
+* **功能:**  对数组中的每个元素按序执行一个提供的 reducer 函数，每一次运行 reducer 会将先前元素的计算结果作为参数传入，最后将其结果汇总为单个返回值。
+* **用法:**  reduce(`callbackFn`) reduce(`callbackFn`, `initialValue`)
+* **参数:**
+    * `callbackFn` 为数组中每个元素执行的函数。其返回值将作为下一次调用 `callbackFn` 时的 `accumulator` 参数。对于最后一次调用，返回值将作为 `reduce()` 的返回值。该函数被调用时将传入以下参数：
+        * `accumulator` 上一次调用 `callbackFn` 的结果。在第一次调用时，如果指定了 `initialValue` 则为指定的值，否则为 `array[0]` 的值。
+        * `currentValue` 当前元素的值。在第一次调用时，如果指定了 `initialValue`，则为 `array[0]` 的值，否则为 `array[1]`。
+        * `currentIndex` `currentValue` 在数组中的索引位置。在第一次调用时，如果指定了 `initialValue` 则为 0，否则为 1。
+        * `array` 调用了 `reduce()` 的数组本身。
+    * `initialValue`(**可选**) 第一次调用回调时初始化 `accumulator` 的值。如果指定了 `initialValue`，则 `callbackFn` 从数组中的第一个值作为 `currentValue` 开始执行。如果没有指定 `initialValue`，则 `accumulator` 初始化为数组中的第一个值，并且 `callbackFn` 从数组中的第二个值作为 `currentValue` 开始执行。在这种情况下，如果数组为空（没有第一个值可以作为 `accumulator` 返回），则会抛出错误。
+* **返回值:**  使用`reducer`回调函数遍历整个数组后的结果。
+
+
 ```js
-/**
- * Array.prototype.reduce(callback,initialValue)
- * reduce() 方法对数组中的每个元素执行一个由您提供的reducer函数(升序执行)，将其结果汇总为单个返回值。
- * https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/reduce
- * callback 执行数组中每个值的函数，包含四个参数：
-  * accumulator: 累计器累计回调的返回值; 它是上一次调用回调时返回的累积值，或initialValue（见于下方）。
-  * currentValue: 数组中正在处理的元素。
-  * currentIndex可选: 数组中正在处理的当前元素的索引。 如果提供了initialValue，则起始索引号为0，否则为1。
-  * array可选: 调用reduce()的数组
- * initialValue 可选
- * 作为第一次调用 callback函数时的第一个参数的值。 如果没有提供初始值，则将使用数组中的第一个元素。 在没有初始值的空数组上调用 reduce 将报错。
- */
-Array.prototype.MyReduce=function (fn){
+Array.prototype.reduce=function (fn){
      if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -1808,19 +1810,182 @@ Array.prototype.MyReduce=function (fn){
     }
     return initialValue
 }
-/**
- * Array.prototype.reduceRight(callback,initialValue)
- * reduceRight() 方法对数组中的每个元素执行一个由您提供的reducer函数(降序执行)，将其结果汇总为单个返回值。
- * https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/reduceRight
- * callback 执行数组中每个值的函数，包含四个参数：
-  * accumulator: 累计器累计回调的返回值; 它是上一次调用回调时返回的累积值，或initialValue（见于下方）。
-  * currentValue: 数组中正在处理的元素。
-  * currentIndex可选: 数组中正在处理的当前元素的索引。 如果提供了initialValue，则起始索引号为0，否则为1。
-  * array可选: 调用reduceRight()的数组
- * initialValue 可选
- * 作为第一次调用 callback函数时的第一个参数的值。 如果没有提供初始值，则将使用数组中的第一个元素。 在没有初始值的空数组上调用 reduceRight 将报错。
- */
-Array.prototype.MyReduceRight=function (fn){
+```
+
+**示例**
+
+```js
+//无初始值时 reduce() 
+const array = [15, 16, 17, 18, 19];
+
+function reducer(accumulator, currentValue, index) {
+  const returns = accumulator + currentValue;
+  console.log(
+    `accumulator: ${accumulator}, currentValue: ${currentValue}, index: ${index}, returns: ${returns}`,
+  );
+  return returns;
+}
+array.reduce(reducer);  //85 
+
+//有初始值时 reduce()
+[15, 16, 17, 18, 19].reduce(
+    (accumulator, currentValue) => accumulator + currentValue,
+    10,
+);   //95
+
+//求对象数组中值的总和
+const objects = [{ x: 1 }, { x: 2 }, { x: 3 }];
+const sum = objects.reduce(
+    (accumulator, currentValue) => accumulator + currentValue.x,
+    0,
+);
+
+console.log(sum); // 6
+
+//展平嵌套数组
+const flattened = [
+    [0, 1],
+    [2, 3],
+    [4, 5],
+].reduce((accumulator, currentValue) => accumulator.concat(currentValue), []);
+// flattened 的值是 [0, 1, 2, 3, 4, 5]
+
+//统计对象中值的出现次数
+const names = ["Alice", "Bob", "Tiff", "Bruce", "Alice"];
+
+const countedNames = names.reduce((allNames, name) => {
+    const currCount = allNames[name] ?? 0;
+    return {
+        ...allNames,
+        [name]: currCount + 1,
+    };
+}, {});
+// countedNames 的值是：
+// { 'Alice': 2, 'Bob': 1, 'Tiff': 1, 'Bruce': 1 }
+
+//按属性对对象进行分组
+const people = [
+    { name: "Alice", age: 21 },
+    { name: "Max", age: 20 },
+    { name: "Jane", age: 20 },
+];
+
+function groupBy(objectArray, property) {
+    return objectArray.reduce((acc, obj) => {
+        const key = obj[property];
+        const curGroup = acc[key] ?? [];
+
+        return { ...acc, [key]: [...curGroup, obj] };
+    }, {});
+}
+
+const groupedPeople = groupBy(people, "age");
+console.log(groupedPeople);
+// {
+//   20: [
+//     { name: 'Max', age: 20 },
+//     { name: 'Jane', age: 20 }
+//   ],
+//   21: [{ name: 'Alice', age: 21 }]
+// }
+
+//使用展开语法和 initialValue 连接包含在对象数组中的数组
+// friends——一个对象数组，其中对象字段“books”是最喜欢的书的列表
+const friends = [
+    {
+        name: "Anna",
+        books: ["Bible", "Harry Potter"],
+        age: 21,
+    },
+    {
+        name: "Bob",
+        books: ["War and peace", "Romeo and Juliet"],
+        age: 26,
+    },
+    {
+        name: "Alice",
+        books: ["The Lord of the Rings", "The Shining"],
+        age: 18,
+    },
+];
+
+// allbooks——列表，其中包含所有朋友的书籍和 initialValue 中包含的附加列表
+const allbooks = friends.reduce(
+    (accumulator, currentValue) => [...accumulator, ...currentValue.books],
+    ["Alphabet"],
+);
+console.log(allbooks);
+// [
+//   'Alphabet', 'Bible', 'Harry Potter', 'War and peace',
+//   'Romeo and Juliet', 'The Lord of the Rings',
+//   'The Shining'
+// ]
+
+//数组去重
+const myArray = ["a", "b", "a", "b", "c", "e", "e", "c", "d", "d", "d", "d"];
+const myArrayWithNoDuplicates = myArray.reduce((accumulator, currentValue) => {
+    if (!accumulator.includes(currentValue)) {
+        return [...accumulator, currentValue];
+    }
+    return accumulator;
+}, []);
+
+console.log(myArrayWithNoDuplicates);
+
+//使用函数组合实现管道
+// 组合使用的构建块
+const double = (x) => 2 * x;
+const triple = (x) => 3 * x;
+const quadruple = (x) => 4 * x;
+
+// 函数组合，实现管道功能
+const pipe =
+    (...functions) =>
+        (initialValue) =>
+            functions.reduce((acc, fn) => fn(acc), initialValue);
+
+// 组合的函数，实现特定值的乘法
+const multiply6 = pipe(double, triple);
+const multiply9 = pipe(triple, triple);
+const multiply16 = pipe(quadruple, quadruple);
+const multiply24 = pipe(double, triple, quadruple);
+
+// 用例
+multiply6(6); // 36
+multiply9(9); // 81
+multiply16(16); // 256
+multiply24(10); // 240
+
+//在稀疏数组中使用 reduce()
+console.log([1, 2, , 4].reduce((a, b) => a + b)); // 7
+console.log([1, 2, undefined, 4].reduce((a, b) => a + b)); // NaN
+
+//在非数组对象上调用 reduce()
+const arrayLike = {
+    length: 3,
+    0: 2,
+    1: 3,
+    2: 4,
+};
+console.log(Array.prototype.reduce.call(arrayLike, (x, y) => x + y));
+// 9
+```
+
+### Array.prototype.reduceRight
+
+* **功能:**  对累加器（accumulator）和数组的每个值（按从右到左的顺序）应用一个函数，并使其成为单个值。
+* **用法:**  reduceRight(`callbackFn`) reduceRight(`callbackFn`, `initialValue`)
+* **参数:**
+    * `callbackFn` 为数组中的每个元素执行的函数。其返回值将作为下一次调用 `callbackFn` 时的 `accumulator` 参数。对于最后一次调用，返回值将成为 `reduceRight()` 的返回值。该函数被调用时将传入以下参数
+        * `accumulator` 上一次调用 `callbackFn` 的结果。在第一次调用时，如果指定了 `initialValue` 则为指定的值，否则为数组最后一个元素的值。
+        * `currentValue` 数组中当前正在处理的元素。
+        * `index` 正在处理的元素在数组中的索引。
+        * `array` 调用了 `reduceRight()` 的数组本身。
+    * `initialValue`(**可选**) 首次调用 `callbackFn` 时累加器的值。如果不提供初始值，则将使用数组中的最后一个元素，并在迭代时跳过它。没有初始值的情况下，在空数组上调用 `reduceRight()` 会产生 `TypeError`。
+* **返回值:**  聚合后的结果值。
+
+```js
+Array.prototype.reduceRight=function (fn){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -1853,14 +2018,111 @@ Array.prototype.MyReduceRight=function (fn){
     }
     return initialValue
 }
+```
 
-/**
- * Array.prototype.reverse()
- * reverse()  方法将数组中元素的位置颠倒,并返回该数组。该方法会改变原数组。
- * https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/reverse
- * 方法颠倒数组中元素的位置，并返回该数组的引用。
- */
-Array.prototype.MyReverse=function (){
+**示例**
+
+```js
+//求一个数组中所有值的和
+const sum = [0, 1, 2, 3].reduceRight((a, b) => a + b);
+// sum 的值是 6
+
+//展平一个二维数组
+const arrays = [
+    [0, 1],
+    [2, 3],
+    [4, 5],
+];
+const flattened = arrays.reduceRight((a, b) => a.concat(b), []);
+// flattened 的值是 [4, 5, 2, 3, 0, 1]
+
+//串联运行一列异步函数，每个函数都将其结果传给下一个函数
+const waterfall =
+    (...functions) =>
+        (callback, ...args) =>
+            functions.reduceRight(
+                (composition, fn) =>
+                    (...results) =>
+                        fn(composition, ...results),
+                callback,
+            )(...args);
+
+const randInt = (max) => Math.floor(Math.random() * max);
+const add5 = (callback, x) => {
+    setTimeout(callback, randInt(1000), x + 5);
+};
+const mult3 = (callback, x) => {
+    setTimeout(callback, randInt(1000), x * 3);
+};
+const sub2 = (callback, x) => {
+    setTimeout(callback, randInt(1000), x - 2);
+};
+const split = (callback, x) => {
+    setTimeout(callback, randInt(1000), x, x);
+};
+const add = (callback, x, y) => {
+    setTimeout(callback, randInt(1000), x + y);
+};
+const div4 = (callback, x) => {
+    setTimeout(callback, randInt(1000), x / 4);
+};
+const computation = waterfall(add5, mult3, sub2, split, add, div4);
+computation(console.log, 5); // Logs 14
+// same as:
+const computation2 = (input, callback) => {
+    const f6 = (x) => div4(callback, x);
+    const f5 = (x, y) => add(f6, x, y);
+    const f4 = (x) => split(f5, x);
+    const f3 = (x) => sub2(f4, x);
+    const f2 = (x) => mult3(f3, x);
+    add5(f2, input);
+};
+
+//reduce 与 reduceRight 之间的区别
+const a = ["1", "2", "3", "4", "5"];
+const left = a.reduce((prev, cur) => prev + cur);
+const right = a.reduceRight((prev, cur) => prev + cur);
+console.log(left); // "12345"
+console.log(right); // "54321"
+
+//定义可组合函数
+const compose =
+    (...args) =>
+        (value) =>
+            args.reduceRight((acc, fn) => fn(acc), value);
+// Increment passed number
+const inc = (n) => n + 1;
+// Doubles the passed value
+const double = (n) => n * 2;
+// using composition function
+console.log(compose(double, inc)(2)); // 6
+// using composition function
+console.log(compose(inc, double)(2)); // 5
+
+//在稀疏数组中使用 reduceRight()
+console.log([1, 2, , 4].reduceRight((a, b) => a + b)); // 7
+console.log([1, 2, undefined, 4].reduceRight((a, b) => a + b)); // NaN
+
+//在非数组对象上调用 reduceRight()
+const arrayLike = {
+    length: 3,
+    0: 2,
+    1: 3,
+    2: 4,
+};
+console.log(Array.prototype.reduceRight.call(arrayLike, (x, y) => x - y));
+// -1, 即 4 - 3 - 2
+```
+
+### Array.prototype.reverse
+
+* **功能:**  就地反转数组中的元素，并返回同一数组的引用。数组的第一个元素会变成最后一个，数组的最后一个元素变成第一个。
+* **用法:**  reverse()
+* **参数:**  无
+* **返回值:**  原始数组反转后的引用。注意，数组是就地反转的，并且没有复制。
+
+```js
+Array.prototype.reverse=function (){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -1893,10 +2155,50 @@ Array.prototype.MyReverse=function (){
     }
     return O
 }
-/**
- *  shift方法      功能：从数组中删除第一个元素，并返回该元素的值。此方法更改数组的长度。
-*/
-Array.prototype.Myshift=function (){
+```
+
+**示例**
+
+```js
+//反转数组中的元素
+const items = [1, 2, 3];
+console.log(items); // [1, 2, 3]
+
+items.reverse();
+console.log(items); // [3, 2, 1]
+
+//reverse() 方法返回对同一数组的引用
+const numbers = [3, 2, 4, 1, 5];
+const reversed = numbers.reverse();
+// numbers 和 reversed 的顺序都是颠倒的 [5, 1, 4, 2, 3]
+reversed[0] = 5;
+console.log(numbers[0]); // 5
+
+//对稀疏数组使用 reverse()
+console.log([1, , 3].reverse()); // [3, empty, 1]
+console.log([1, , 3, 4].reverse()); // [4, 3, empty, 1]
+
+//对非数组对象调用 reverse()
+const arrayLike = {
+    length: 3,
+    unrelated: "foo",
+    2: 4,
+};
+console.log(Array.prototype.reverse.call(arrayLike));
+// { '0': 4, length: 3, unrelated: 'foo' }
+// 索引“2”被删除了，因为原本的数据中索引“0”不存在了
+```
+
+### Array.prototype.shift
+
+* **功能:**  从数组中删除第一个元素，并返回该元素的值。此方法更改数组的长度。
+* **用法:**  shift()
+* **参数:**  无
+* **返回值:**  从数组中删除的元素；如果数组为空则返回 undefined。
+
+
+```js
+Array.prototype.shift=function (){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -1915,18 +2217,63 @@ Array.prototype.Myshift=function (){
     --O.length
     return first
 }
-/**
- * Array.prototype.slice(begin,end)
- * 方法返回一个新的数组对象，这一对象是一个由 begin和 end（不包括end）决定的原数组的浅拷贝。原始数组不会被改变。
- * https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/slice
- * slice 不修改原数组，只会返回一个浅复制了原数组中的元素的一个新数组。原数组的元素会按照下述规则拷贝：
- * 如果该元素是个对象引用 （不是实际的对象），slice 会拷贝这个对象引用到新的数组里。
- * 两个对象引用都引用了同一个对象。如果被引用的对象发生改变，则新的和原来的数组中的这个元素也会发生改变。
- * 对于字符串、数字及布尔值来说（不是 String、Number 或者 Boolean 对象），slice 会拷贝这些值到新的数组里。
- * 在别的数组里修改这些字符串或数字或是布尔值，将不会影响另一个数组。
- *
- */
-Array.prototype.MySlice=function (begin,end){
+```
+
+**示例**
+
+```js
+//移除数组中的一个元素
+const myFish = ["angel", "clown", "mandarin", "surgeon"];
+console.log("调用 shift 之前：", myFish);
+// 调用 shift 之前： ['angel', 'clown', 'mandarin', 'surgeon']
+const shifted = myFish.shift();
+console.log("调用 shift 之后：", myFish);
+// 调用 shift 之后： ['clown', 'mandarin', 'surgeon']
+console.log("被删除的元素：" + shifted);
+// "被删除的元素：angel"
+
+//在 while 循环中使用 shift()
+const names = ["Andrew", "Tyrone", "Paul", "Maria", "Gayatri"];
+while (typeof (i = names.shift()) !== "undefined") {
+    console.log(i);
+}
+// Andrew, Tyrone, Paul, Maria, Gayatri
+
+//在非数组对象上调用 shift()
+const arrayLike = {
+    length: 3,
+    unrelated: "foo",
+    2: 4,
+};
+console.log(Array.prototype.shift.call(arrayLike));
+// undefined，因为它是一个空槽
+console.log(arrayLike);
+// { '1': 4, length: 2, unrelated: 'foo' }
+const plainObj = {};
+// 这里没有长度属性，所以长度为 0
+Array.prototype.shift.call(plainObj);
+console.log(plainObj);
+// { length: 0 }
+```
+
+### Array.prototype.slice
+
+* **功能:**  返回一个新的数组对象，这一对象是一个由 `start` 和 `end` 决定的原数组的浅拷贝（包括 `start`，不包括 `end`），其中 `start` 和 `end` 代表了数组元素的索引。原始数组不会被改变。
+* **用法:**  slice() slice(`start`) slice(`start`, `end`)
+* **参数:**  
+  * `start`(**可选**) 提取起始处的索引（从 0 开始），会转换为整数。
+      * 如果索引是负数，则从数组末尾开始计算——如果 `start` < 0，则使用 `start + array.length`。
+      * 如果 `start < -array.length` 或者省略了 `start`，则使用 0。
+      * 如果 `start >= array.length`，则不提取任何元素。
+  * `end`(**可选**) 提取终止处的索引（从 0 开始），会转换为整数。`slice()` 会提取到但不包括 `end` 的位置。
+      * 如果索引是负数，则从数组末尾开始计算——如果 `end` < 0，则使用 `end + array.length`。
+      * 如果 `end < -array.length`，则使用 0。
+      * 如果 `end >= array.length` 或者省略了 `end`，则使用 `array.length`，提取所有元素直到末尾。
+      * 如果 `end` 在规范化后小于或等于 `start`，则不提取任何元素。
+* **返回值:**  一个含有被提取元素的新数组。
+
+```js
+Array.prototype.slice=function (begin,end){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -1946,21 +2293,54 @@ Array.prototype.MySlice=function (begin,end){
     }
     return arr
 }
-/**
- * Array.prototype.some(callback,context)
- * some() 方法测试是否至少有一个元素通过由提供的函数实现的测试。
- * https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/some
- * callback 生成新数组元素的函数，使用三个参数：
- * currentValue
- * callback 数组中正在处理的当前元素。
- * index可选
- * callback 数组中正在处理的当前元素的索引。
- * array可选
- * callback  some 方法被调用的数组。
- * thisArg可选
- * 执行 callback 函数时使用的this 值。
- */
-Array.prototype.MySome=function (fn,thisArg){
+```
+
+**示例**
+
+```js
+//返回现有数组的一部分
+const fruits = ["Banana", "Orange", "Lemon", "Apple", "Mango"];
+const citrus = fruits.slice(1, 3);
+
+// fruits 包含 ['Banana', 'Orange', 'Lemon', 'Apple', 'Mango']
+// citrus 包含 ['Orange','Lemon']
+
+//在类数组对象上调用 slice()
+const arrayLike = {
+    length: 3,
+    0: 2,
+    1: 3,
+    2: 4,
+};
+console.log(Array.prototype.slice.call(arrayLike, 1, 3));
+// [ 3, 4 ]
+
+//使用 slice() 把类数组对象转化为数组
+// 调用 slice() 方法时，会将 this 对象作为第一个参数传入
+const slice = Function.prototype.call.bind(Array.prototype.slice);
+function list() {
+    return slice(arguments);
+}
+const list1 = list(1, 2, 3); // [1, 2, 3]
+
+//在稀疏数组上使用 slice()
+console.log([1, 2, , 4, 5].slice(1, 4)); // [2, empty, 4]
+```
+
+### Array.prototype.some
+
+* **功能:**  测试数组中是否至少有一个元素通过了由提供的函数实现的测试。如果在数组中找到一个元素使得提供的函数返回 `true`，则返回 `true`；否则返回 `false`。它不会修改数组。
+* **用法:**  some(`callbackFn`) some(`callbackFn`, `thisArg`)
+* **参数:**
+    * `callbackFn` 为数组中的每个元素执行的函数。它应该返回一个真值以指示元素通过测试，否则返回一个假值。该函数被调用时将传入以下参数：
+        * `element` 数组中当前正在处理的元素。
+        * `index` 正在处理的元素在数组中的索引。
+        * `array` 调用了 `some()` 的数组本身。
+    * `thisArg`(**可选**) 执行 `callbackFn` 时用作 `this` 的值。
+* **返回值:**  如果回调函数对数组中至少一个元素返回一个真值，则返回 `true`。否则返回 `false`。
+
+```js
+Array.prototype.some=function (fn,thisArg){
     if (this == null) {
         throw new TypeError('this is null or not defined')
     }
@@ -1982,14 +2362,69 @@ Array.prototype.MySome=function (fn,thisArg){
     }
     return false
 }
+```
 
-/**
- * Array.prototype.values()方法返回一个新的 Array Iterator 对象，该对象包含数组每个索引的值。
- * https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/values
- * 数组迭代器是一次性的，或者说临时对象
- * 如果数组中元素改变，那么迭代器的值也会改变
- */
-Array.prototype.MyValues=function (){
+**示例**
+
+```js
+//测试数组元素的值
+function isBiggerThan10(element, index, array) {
+  return element > 10;
+}
+
+[2, 5, 8, 1, 4].some(isBiggerThan10); // false
+[12, 5, 8, 1, 4].some(isBiggerThan10); // true
+
+//使用箭头函数测试数组元素的值
+[2, 5, 8, 1, 4].some((x) => x > 10); // false
+[12, 5, 8, 1, 4].some((x) => x > 10); // true
+
+//判断数组元素中是否存在某个值
+const fruits = ["apple", "banana", "mango", "guava"];
+function checkAvailability(arr, val) {
+    return arr.some((arrVal) => val === arrVal);
+}
+checkAvailability(fruits, "kela"); // false
+checkAvailability(fruits, "banana"); // true
+
+//将任意值转换为布尔类型
+const TRUTHY_VALUES = [true, "true", 1];
+function getBoolean(value) {
+    if (typeof value === "string") {
+        value = value.toLowerCase().trim();
+    }
+    return TRUTHY_VALUES.some((t) => t === value);
+}
+getBoolean(false); // false
+getBoolean("false"); // false
+getBoolean(1); // true
+getBoolean("true"); // true
+
+//在稀疏数组上使用 some()
+console.log([1, , 3].some((x) => x === undefined)); // false
+console.log([1, , 1].some((x) => x !== 1)); // false
+console.log([1, undefined, 1].some((x) => x !== 1)); // true
+
+//在非数组对象上调用 some()
+const arrayLike = {
+    length: 3,
+    0: "a",
+    1: "b",
+    2: "c",
+};
+console.log(Array.prototype.some.call(arrayLike, (x) => typeof x === "number"));
+// false
+```
+
+### Array.prototype.values
+
+* **功能:**  返回一个新的数组迭代器对象，该对象迭代数组中每个元素的值。
+* **用法:**  values()
+* **参数:**  无
+* **返回值:**  一个新的可迭代迭代器对象。
+
+```js
+Array.prototype.values=function (){
     if(!typeof this==='object') return
     let arr=this
     let length=this.length
@@ -2013,49 +2448,62 @@ Array.prototype.MyValues=function (){
         }
     }
 }
+```
 
-/**
- * Array.prototype.toString()方法 功能：返回一个字符串，表示指定的数组及其元素。
- * Array对象覆盖了Object的 toString 方法。对于数组对象，toString 方法连接数组并返回一个字符串，其中包含用逗号分隔的每个数组元素。
- * 当一个数组被作为文本值或者进行字符串连接操作时，将会自动调用其 toString 方法。
- * Array.prototype.toString.call({join(){ return 42 }})返回42   数组的toString()实际调用了join()
- */
+**示例**
 
+```js
+//使用 for...of 循环进行迭代
+const arr = ["a", "b", "c", "d", "e"];
+const iterator = arr.values();
+for (const letter of iterator) {
+    console.log(letter);
+} // "a" "b" "c" "d" "e"
 
+//使用 next() 迭代
+const arr = ["a", "b", "c", "d", "e"];
+const iterator = arr.values();
+iterator.next(); // { value: "a", done: false }
+iterator.next(); // { value: "b", done: false }
+iterator.next(); // { value: "c", done: false }
+iterator.next(); // { value: "d", done: false }
+iterator.next(); // { value: "e", done: false }
+iterator.next(); // { value: undefined, done: true }
+console.log(iterator.next().value); // undefined
 
-/**
- * Array.prototype.toLocaleString()方法 功能：返回一个字符串表示数组中的元素。
- * 数组中的元素将使用各自的 toLocaleString 方法转成字符串，这些字符串将使用一个特定语言环境的字符串（例如一个逗号 ","）隔开。
- *
- */
-
-/**
- * sort() 方法用原地算法对数组的元素进行排序，并返回数组。排序算法现在是稳定的。默认排序顺序是根据字符串Unicode码点。
- * https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/sort
- * compareFunction 可选
- * 用来指定按某种顺序进行排列的函数。如果省略，元素按照转换为的字符串的各个字符的Unicode位点进行排序。
- * firstEl
- * 第一个用于比较的元素。
- * secondEl
- * 第二个用于比较的元素。
- * 当排序非 ASCII 字符的字符串（如包含类似 e, é, è, a, ä 等字符的字符串）。一些非英语语言的字符串需要使用 String.localeCompare。这个函数可以将函数排序到正确的顺序。
- * 自 ES10（EcmaScript 2019）起，规范 要求 Array.prototype.sort 为稳定排序。   比较的元素相等时维持原顺序
- */
-/**
- * 快排
- * @param {*} arr 待排序数组
- * @param {*} low 起点
- * @param {*} high 终点
- * @param {*} cb 比较函数
- */
-function quickSort(arr,low,high,cb) {
-    if(low<high){
-        var mid = partition(arr,low,high,cb)
-        quickSort(arr,low,mid-1,cb)
-        quickSort(arr,mid+1,high,cb)
-    }
-    return arr
+//迭代稀疏数组
+for (const element of [, "a"].values()) {
+    console.log(element);
 }
+// undefined
+// 'a'
+
+//在非数组对象上调用 values()
+const arrayLike = {
+    length: 3,
+    0: "a",
+    1: "b",
+    2: "c",
+};
+for (const entry of Array.prototype.values.call(arrayLike)) {
+    console.log(entry);
+}
+// a
+// b
+// c
+```
+
+### Array.prototype.sort
+
+* **功能:**  对数组的元素进行排序，并返回对相同数组的引用。默认排序是将元素转换为字符串，然后按照它们的 UTF-16 码元值升序排序。
+* **用法:**  sort() sort(`compareFn`)
+* **参数:**  
+  * `compareFn`(**可选**) 定义排序顺序的函数。返回值应该是一个数字，其符号表示两个元素的相对顺序：如果 `a` 小于 `b`，返回值为负数，如果 `a` 大于 `b`，返回值为正数，如果两个元素相等，返回值为 0。NaN 被视为 0。该函数使用以下参数调用：
+    *  `a`   第一个用于比较的元素。不会是 `undefined`。
+    *  `b`   第二个用于比较的元素。不会是 `undefined`。
+* **返回值:**  经过排序的原始数组的引用。注意数组是就地排序的，不会进行复制。
+
+```js
 /**
  * 划分函数  快排算法
  */
@@ -2074,18 +2522,134 @@ function partition(arr,low,high,cb) {
     arr[low] = poivt
     return low
 }
-Array.prototype.mySort = function(cb) {
+
+function quickSort(arr,low,high,cb) {
+    if(low<high){
+        var mid = partition(arr,low,high,cb)
+        quickSort(arr,low,mid-1,cb)
+        quickSort(arr,mid+1,high,cb)
+    }
+    return arr
+}
+Array.prototype.sort = function(cb) {
     return quickSort(this,0,this.length-1,cb)
 }
+```
 
-/**
- * Array.prototype.splice(start,deleteCount,item1,...,itemN)
- * 方法通过删除或替换现有元素来修改数组,并以数组形式返回被修改的内容。此方法会改变原数组。
- * https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/splice
- * 如果添加进数组的元素个数不等于被删除的元素个数，数组的长度会发生相应的改变。
- *
- */
-Array.prototype.mySplice = function(start,deleteCount) {
+**示例**
+
+```js
+//创建、显示及排序数组
+const stringArray = ["Blue", "Humpback", "Beluga"];
+const numberArray = [40, 1, 5, 200];
+const numericStringArray = ["80", "9", "700"];
+const mixedNumericArray = ["80", "9", "700", 40, 1, 5, 200];
+
+function compareNumbers(a, b) {
+    return a - b;
+}
+stringArray.join(); // 'Blue,Humpback,Beluga'
+stringArray.sort(); // ['Beluga', 'Blue', 'Humpback']
+numberArray.join(); // '40,1,5,200'
+numberArray.sort(); // [1, 200, 40, 5]
+numberArray.sort(compareNumbers); // [1, 5, 40, 200]
+numericStringArray.join(); // '80,9,700'
+numericStringArray.sort(); // ['700', '80', '9']
+numericStringArray.sort(compareNumbers); // ['9', '80', '700']
+mixedNumericArray.join(); // '80,9,700,40,1,5,200'
+mixedNumericArray.sort(); // [1, 200, 40, 5, '700', '80', '9']
+mixedNumericArray.sort(compareNumbers); // [1, 5, '9', 40, '80', 200, '700']
+
+//对象数组的排序
+const items = [
+    { name: "Edward", value: 21 },
+    { name: "Sharpe", value: 37 },
+    { name: "And", value: 45 },
+    { name: "The", value: -12 },
+    { name: "Magnetic", value: 13 },
+    { name: "Zeros", value: 37 },
+];
+
+// 根据 value 排序
+items.sort((a, b) => a.value - b.value);
+
+// 根据 name 排序
+items.sort((a, b) => {
+    const nameA = a.name.toUpperCase(); // 忽略大小写
+    const nameB = b.name.toUpperCase(); // 忽略大小写
+    if (nameA < nameB) {
+        return -1;
+    }
+    if (nameA > nameB) {
+        return 1;
+    }
+
+    // name 必须相等
+    return 0;
+});
+
+//使用 map 改善排序
+// 需要被排序的数组
+const data = ["delta", "alpha", "charlie", "bravo"];
+
+// 用于存放位置和排序值的对象数组
+const mapped = data.map((v, i) => {
+    return { i, value: someSlowOperation(v) };
+});
+
+// 按照多个值排序数组
+mapped.sort((a, b) => {
+    if (a.value > b.value) {
+        return 1;
+    }
+    if (a.value < b.value) {
+        return -1;
+    }
+    return 0;
+});
+
+const result = mapped.map((v) => data[v.i]);
+
+//sort() 方法返回对同一数组的引用
+const numbers = [3, 1, 4, 1, 5];
+const sorted = numbers.sort((a, b) => a - b);
+// numbers 和 sorted 都是 [1, 1, 3, 4, 5]
+sorted[0] = 10;
+console.log(numbers[0]); // 10
+
+//在稀疏数组上使用 sort()
+console.log(["a", "c", , "b"].sort()); // ['a', 'b', 'c', empty]
+console.log([, undefined, "a", "b"].sort()); // ["a", "b", undefined, empty]
+
+//在类数组对象上调用 sort()
+const arrayLike = {
+    length: 3,
+    unrelated: "foo",
+    0: 5,
+    2: 4,
+};
+console.log(Array.prototype.sort.call(arrayLike));
+// { '0': 4, '1': 5, length: 3, unrelated: 'foo' }
+```
+
+### Array.prototype.splice
+
+* **功能:**  就地移除或者替换已存在的元素和/或添加新的元素。
+* **用法:**  splice(`start`) splice(`start`, `deleteCount`) splice(`start`, `deleteCount`, `item1`, `item2`, /* …, */ `itemN`)
+* **参数:**
+    * `start` 从 0 开始计算的索引，表示要开始改变数组的位置，它会被转换成整数。
+      * 负索引从数组末尾开始计算——如果 `-array.length <= start < 0`，使用 `start + array.length`。
+      * 如果 `start < -array.length`，使用 0。
+      * 如果 `start >= array.length`，则不会删除任何元素，但是该方法会表现为添加元素的函数，添加所提供的那些元素。
+      * 如果 `start` 被省略了（即调用 `splice()` 时不传递参数），则不会删除任何元素。这与传递 `undefined` 不同，后者会被转换为 0。
+    * `deleteCount`(**可选**) 一个整数，表示数组中要从 start 开始删除的元素数量。
+        * 如果省略了 `deleteCount`，或者其值大于或等于由 `start` 指定的位置到数组末尾的元素数量，那么从 `start` 到数组末尾的所有元素将被删除。但是，如果你想要传递任何 `itemN` 参数，则应向 `deleteCount` 传递 `Infinity` 值，以删除 `start` 之后的所有元素，因为显式的 `undefined` 会转换为 0。
+        * 如果 `deleteCount` 是 0 或者负数，则不会移除任何元素。在这种情况下，你应该至少指定一个新元素。
+    * `item1、…、itemN`(**可选**) 从 start 开始要加入到数组中的元素，如果不指定任何元素，splice() 将只从数组中删除元素。
+* **返回值:**  一个包含了删除的元素的数组，如果只移除一个元素，则返回一个元素的数组，如果没有删除任何元素，则返回一个空数组。
+
+```js
+Array.prototype.splice = function(start,deleteCount) {
     if(!this.length)return
     var arr = []
     /**
@@ -2111,7 +2675,7 @@ Array.prototype.mySplice = function(start,deleteCount) {
             : deleteCount : deleteCount === undefined ? this.length - start
             : 0
     //取出除去前两个参数之后的剩余参数
-    var args = arguments.length > 2 ? Array.prototype.mySlice.call(arguments,2) : []
+    var args = arguments.length > 2 ? Array.prototype.slice.call(arguments,2) : []
     var argLength = args.length
 
     //记录一下开始位置
@@ -2158,8 +2722,47 @@ Array.prototype.mySplice = function(start,deleteCount) {
     }
     return arr
 }
-module.exports = Array;
+```
 
+**示例**
+
+```js
+//在索引 2 处移除 0 个元素，并插入“drum”
+const myFish = ["angel", "clown", "mandarin", "sturgeon"];
+const removed = myFish.splice(2, 0, "drum");
+
+// myFish 是 ["angel", "clown", "drum", "mandarin", "sturgeon"]
+// removed 是 []，没有移除的元素
+
+//在索引 2 处移除 0 个元素，并插入“drum”和“guitar”
+const myFish = ["angel", "clown", "mandarin", "sturgeon"];
+const removed = myFish.splice(2, 0, "drum", "guitar");
+
+// myFish 是 ["angel", "clown", "drum", "guitar", "mandarin", "sturgeon"]
+// removed 是 []，没有移除的元素
+
+//在索引 0 处移除 0 个元素，并插入“angel”
+const myFish = ["clown", "mandarin", "sturgeon"];
+const removed = myFish.splice(0, 0, "angel");
+// myFish 是 ["angel", "clown", "mandarin", "sturgeon"]
+// 没有移除的元素
+
+//在稀疏数组中使用 splice()
+const arr = [1, , 3, 4, , 6];
+console.log(arr.splice(1, 2)); // [empty, 3]
+console.log(arr); // [1, 4, empty, 6]
+
+//在非数组对象中使用 splice()
+const arrayLike = {
+    length: 3,
+    unrelated: "foo",
+    0: 5,
+    2: 4,
+};
+console.log(Array.prototype.splice.call(arrayLike, 0, 1, 2, 3));
+// [ 5 ]
+console.log(arrayLike);
+// { '0': 2, '1': 3, '3': 4, length: 4, unrelated: 'foo' }
 ```
 
 
