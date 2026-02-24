@@ -881,7 +881,7 @@ main();
 
 `import.meta.url`返回当前模块的 `URL` 路径。举例来说，当前模块主文件的路径是`https://foo.com/main.js`，`import.meta.url`就返回这个路径。如果模块里面还有一个数据文件`data.txt`，那么就可以用下面的代码，获取这个数据文件的路径。
 
-```javascript
+```js
 new URL('data.txt', import.meta.url)
 ```
 
@@ -891,7 +891,7 @@ new URL('data.txt', import.meta.url)
 
 `import.meta.scriptElement`是浏览器特有的元属性，返回加载模块的那个`script标签`元素，相当于`document.currentScript`属性。
 
-```javascript
+```js
 // HTML 代码为
 // <script type="module" src="my-module.js" data-foo="abc"></script>
 

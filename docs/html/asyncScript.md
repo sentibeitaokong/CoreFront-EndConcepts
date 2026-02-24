@@ -54,7 +54,7 @@
 
 我们还可以使用 JavaScript 来动态创建一个 `<script>` 元素并将其添加到文档中，这也是一种实现异步加载的方式。
 
-```javascript
+```js
 // 创建一个新的 <script> 标签
 const script = document.createElement('script');
 script.src = 'my-dynamic-script.js';

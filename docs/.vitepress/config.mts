@@ -299,10 +299,27 @@ export default defineConfig({
                             {text: '常用全局方法', link: '/js/globalMethods'},
                             {text: '高阶函数', link: '/js/highLevelFunction'},
                             {text: 'promise手写', link: '/js/promiseHandleWriting'},
+                            {text: 'axios手写', link: '/js/axiosHandleWriting'},
                         ]
                     },
                 ]
             },
+            {
+                text: 'Git',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: false, // 初始状态为“展开”
+                items: [
+                    {text: 'git命令', link: '/git/git'},
+                ]
+            },
+            {
+                text: '正则表达式',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: false, // 初始状态为“展开”
+                items: [
+                    {text: 'Regexp命令', link: '/regexp/regexp'},
+                ]
+            }
            /* {
                 text: 'js设计模式',
                 collapsible: true, // 允许折叠 (默认true，可省略)
