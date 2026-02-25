@@ -319,6 +319,26 @@ export default defineConfig({
                 items: [
                     {text: 'Regexp命令', link: '/regexp/regexp'},
                 ]
+            },
+            {
+                text: '网络协议与浏览器工作原理',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: false, // 初始状态为“展开”
+                items: [
+                    {text: 'Http协议', link: '/networkAndBrowsers/http'},
+                    {text: 'Https协议', link: '/networkAndBrowsers/https'},
+                    {text: 'tcp协议', link: '/networkAndBrowsers/tcp'},
+                    {text: 'udp协议', link: '/networkAndBrowsers/udp'},
+                    {text: 'ip协议', link: '/networkAndBrowsers/ip'},
+                    {text: 'Http常见报文头', link: '/networkAndBrowsers/headers'},
+                    {text: 'DNS解析', link: '/networkAndBrowsers/dns'},
+                    {text: 'CDN加速原理', link: '/networkAndBrowsers/cdn'},
+                    {text: '浏览器缓存机制', link: '/networkAndBrowsers/browserCache'},
+                    {text: '浏览器渲染机制', link: '/networkAndBrowsers/renderingProcess'},
+                    {text: 'csrf和xss防御方式', link: '/networkAndBrowsers/csrfAndXss'},
+                    {text: '进程和线程', link: '/networkAndBrowsers/processAndThread'},
+                    {text: 'OSI七层模型', link: '/networkAndBrowsers/osi'},
+                ]
             }
            /* {
                 text: 'js设计模式',

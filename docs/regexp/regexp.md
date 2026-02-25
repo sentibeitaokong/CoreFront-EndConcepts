@@ -261,6 +261,10 @@ var n = text.match(/\b(?<!\$)\d+\b/g);
 
 正则表达式是一套强大的语法规则，用于在文本中查找、匹配和操作符合特定模式的字符串。
 
+![Logo](/regexpFirst.png)
+
+![Logo](/regexpSecond.png)
+
 ### **10.1 基础元字符**
 
 这些是构成正则表达式的最基本单元。
@@ -343,7 +347,7 @@ var n = text.match(/\b(?<!\$)\d+\b/g);
 | `(?<=...)`| 正向后顾 (Positive Lookbehind) | 断言当前位置的**前面**能匹配 `...`。 |
 | `(?<!...)`| 负向后顾 (Negative Lookbehind) | 断言当前位置的**前面不能**匹配 `...`。 |
 
-![Logo](/regexpSecond.png)
+
 
 ### **10.8 模式修饰符 / 标志 (Flags)**
 
