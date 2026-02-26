@@ -92,7 +92,7 @@ export default defineConfig({
                     {
                         text: '基础',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
                             {text: '基础结构', link: '/html/htmlBasicStructure'},
                             {text: '常用标签', link: '/html/commonTags'},
@@ -105,7 +105,7 @@ export default defineConfig({
                     {
                         text: '进阶',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
                             {text: '语义化标签', link: '/html/semanticHtml'},
                             {text: '多媒体元素', link: '/html/multimediaElements'},
@@ -125,12 +125,12 @@ export default defineConfig({
             {
                 text: 'css',
                 // collapsible: true, // 允许折叠 (默认true，可省略)
-                // collapsed: false, // 初始状态为“展开”
+                // collapsed: true, // 初始状态为“展开”
                 items: [
                     {
                         text: '基础',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
                             {text: '选择器', link: '/css/selectors'},
                             {text: '继承', link: '/css/inheritance'},
@@ -143,12 +143,12 @@ export default defineConfig({
                     {
                         text: '进阶',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
                             {
                                 text: '视觉装饰',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
-                                collapsed: false, // 初始状态为“展开”
+                                collapsed: true, // 初始状态为“展开”
                                 items:[
                                     {text: '圆角', link: '/css/borderRadius'},
                                     {text: '阴影', link: '/css/boxShadow'},
@@ -161,7 +161,7 @@ export default defineConfig({
                             {
                                 text: '现代布局系统',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
-                                collapsed: false, // 初始状态为“展开”
+                                collapsed: true, // 初始状态为“展开”
                                 items:[
                                     {text: '多列布局', link: '/css/multiColumn'},
                                     {text: 'Table表格布局', link: '/css/tableLayout'},
@@ -172,7 +172,7 @@ export default defineConfig({
                             {
                                 text: '动画与变换',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
-                                collapsed: false, // 初始状态为“展开”
+                                collapsed: true, // 初始状态为“展开”
                                 items:[
                                     {text: '变换', link: '/css/transform'},
                                     {text: '过渡', link: '/css/transitions'},
@@ -182,7 +182,7 @@ export default defineConfig({
                             {
                                 text: '响应式设计',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
-                                collapsed: false, // 初始状态为“展开”
+                                collapsed: true, // 初始状态为“展开”
                                 items:[
                                     {text: '媒体查询', link: '/css/mediaQueries'},
                                     {text: '单位', link: '/css/units'},
@@ -195,12 +195,12 @@ export default defineConfig({
             {
                 text: 'js',
                 // collapsible: true, // 允许折叠 (默认true，可省略)
-                // collapsed: false, // 初始状态为“展开”
+                // collapsed: true, // 初始状态为“展开”
                 items: [
                     {
                         text: '基础',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
                             {text: '数据类型', link: '/js/eightTypes'},
                             {text: '变量声明', link: '/js/variablesDeclare'},
@@ -220,12 +220,12 @@ export default defineConfig({
                     {
                         text: '进阶',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
                             {
                                 text: '数据类型扩展',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
-                                collapsed: false, // 初始状态为“展开”
+                                collapsed: true, // 初始状态为“展开”
                                 items:[
                                     {text: '字符串的扩展', link: '/js/string'},
                                     {text: '正则的扩展', link: '/js/regExp'},
@@ -240,7 +240,7 @@ export default defineConfig({
                             {
                                 text: '事件循环和异步',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
-                                collapsed: false, // 初始状态为“展开”
+                                collapsed: true, // 初始状态为“展开”
                                 items:[
                                     {text: 'Promise对象', link: '/js/promise'},
                                     {text: 'Iterator(遍历器)', link: '/js/iterator'},
@@ -253,7 +253,7 @@ export default defineConfig({
                             {
                                 text: '类与继承',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
-                                collapsed: false, // 初始状态为“展开”
+                                collapsed: true, // 初始状态为“展开”
                                 items:[
                                     {text: '原型、原型链、继承', link: '/js/prototype'},
                                     {text: 'Class的基本语法', link: '/js/classBasic'},
@@ -263,7 +263,7 @@ export default defineConfig({
                             {
                                 text: '元编程',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
-                                collapsed: false, // 初始状态为“展开”
+                                collapsed: true, // 初始状态为“展开”
                                 items:[
                                     {text: 'Symbol', link: '/js/symbol'},
                                     {text: 'Proxy', link: '/js/proxy'},
@@ -273,7 +273,7 @@ export default defineConfig({
                             {
                                 text: '模块化',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
-                                collapsed: false, // 初始状态为“展开”
+                                collapsed: true, // 初始状态为“展开”
                                 items:[
                                     {text: 'Module的语法', link: '/js/module'},
                                     {text: 'Module的加载实现', link: '/js/compareModule'},
@@ -290,7 +290,7 @@ export default defineConfig({
                     {
                         text: '深入函数手写',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
                             {text: '数组方法', link: '/js/arrayHandleWriting'},
                             {text: '对象方法', link: '/js/objectHandleWriting'},
@@ -305,9 +305,38 @@ export default defineConfig({
                 ]
             },
             {
+                text: '设计模式',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: true, // 初始状态为“展开”
+                items: [
+                    {text: '单例模式', link: '/designPatterns/singletonPattern'},
+                    {text: '工厂模式', link: '/designPatterns/factoryPattern'},
+                    {text: '构造器模式', link: '/designPatterns/constructorPattern'},
+                    {text: '原型模式', link: '/designPatterns/prototypePattern'},
+                    {text: '策略模式', link: '/designPatterns/strategyPattern'},
+                    {text: '状态模式', link: '/designPatterns/statePattern'},
+                    {text: '模块模式', link: '/designPatterns/modulePattern'},
+                    {text: '代理模式', link: '/designPatterns/proxyPattern'},
+                    {text: '装饰器模式', link: '/designPatterns/decoratorPattern'},
+                    {text: '适配器模式', link: '/designPatterns/adapterPattern'},
+                    {text: '迭代器模式', link: '/designPatterns/iteratorPattern'},
+                    {text: '发布订阅模式', link: '/designPatterns/pubSubPattern'},
+                    {text: '观察者模式', link: '/designPatterns/observerPattern'},
+                    {text: '中介者模式', link: '/designPatterns/mediatorPattern'},
+                    {text: '外观模式', link: '/designPatterns/facadePattern'},
+                    {text: '命令模式', link: '/designPatterns/commandPattern'},
+                    {text: '组合模式', link: '/designPatterns/compositePattern'},
+                    {text: '享元模式', link: '/designPatterns/flyweightPattern'},
+                    {text: '模板方法模式', link: '/designPatterns/templateMethodPattern'},
+                    {text: '职责链模式', link: '/designPatterns/chainofResponsibilityPattern'},
+                    {text: '核心原则', link: '/designPatterns/patternPrinciple'},
+                    {text: '总结', link: '/designPatterns/patternSummarize'},
+                ]
+            },
+            {
                 text: 'Git',
                 collapsible: true, // 允许折叠 (默认true，可省略)
-                collapsed: false, // 初始状态为“展开”
+                collapsed: true, // 初始状态为“展开”
                 items: [
                     {text: 'git命令', link: '/git/git'},
                 ]
@@ -315,7 +344,7 @@ export default defineConfig({
             {
                 text: '正则表达式',
                 collapsible: true, // 允许折叠 (默认true，可省略)
-                collapsed: false, // 初始状态为“展开”
+                collapsed: true, // 初始状态为“展开”
                 items: [
                     {text: 'Regexp命令', link: '/regexp/regexp'},
                 ]
@@ -323,7 +352,7 @@ export default defineConfig({
             {
                 text: '网络协议与浏览器工作原理',
                 collapsible: true, // 允许折叠 (默认true，可省略)
-                collapsed: false, // 初始状态为“展开”
+                collapsed: true, // 初始状态为“展开”
                 items: [
                     {text: 'Http协议', link: '/networkAndBrowsers/http'},
                     {text: 'Https协议', link: '/networkAndBrowsers/https'},
@@ -339,15 +368,8 @@ export default defineConfig({
                     {text: '进程和线程', link: '/networkAndBrowsers/processAndThread'},
                     {text: 'OSI七层模型', link: '/networkAndBrowsers/osi'},
                 ]
-            }
-           /* {
-                text: 'js设计模式',
-                collapsible: true, // 允许折叠 (默认true，可省略)
-                collapsed: false, // 初始状态为“展开”
-                items: [
-                    {text: '设计模式', link: '/js/designPattern'},
-                ]
-            }*/
+            },
+
         ],
         socialLinks: [
             {icon: 'github', link: 'https://github.com/sentibeitaokong/CoreFront-EndConcepts'}

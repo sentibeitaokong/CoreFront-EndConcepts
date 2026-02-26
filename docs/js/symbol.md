@@ -968,7 +968,7 @@ with (MyClass.prototype) {
 | **`Symbol.isConcatSpreadable`**| 一个布尔值属性。 | `[].concat(obj)` | 控制数组或类数组对象在 `concat` 操作中是否被**展开**（扁平化）。默认数组为 `true`，类数组为 `false`。 |
 
 
-## **5. 常见问题与最佳实践 (FAQ)**
+## **6. 常见问题与最佳实践 (FAQ)**
 
 *   **Q1: Symbol 是私有属性吗？**
     *   **不是真正的私有**。虽然它们不会出现在常规遍历中，但通过 `Object.getOwnPropertySymbols()` 可以轻易获取。它们主要用于防止**命名冲突**，而不是安全保护。

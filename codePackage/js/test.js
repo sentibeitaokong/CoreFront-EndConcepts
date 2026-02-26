@@ -49,4 +49,14 @@ console.log(obj.hello) //world
 console.log(Object.getOwnPropertyDescriptor(obj, 'hello'))   //undefined
 console.log(Object.getOwnPropertyDescriptor(Object.getPrototypeOf(obj), 'hello'))*/
 
-
+class User {
+    constructor(name) {
+        this.name = name;
+    }
+    sayHi = function() {
+        console.log(`你好, 我是 ${this.name}`);
+    };
+}
+const user1 = new User('Alice');
+const user2 = new User('Bob');
+console.log(user1.sayHi === user2.sayHi); // true，共享同一个函数

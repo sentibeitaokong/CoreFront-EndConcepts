@@ -47,7 +47,7 @@
 由于回流和重绘很消耗性能，浏览器其实非常聪明。它内置了一个**渲染队列**来进行批量优化。
 
 如果你用 JS 连续修改了 3 个样式：
-```javascript
+```js
 div.style.width = '100px';
 div.style.height = '100px';
 div.style.marginTop = '10px';
@@ -59,7 +59,7 @@ div.style.marginTop = '10px';
 ### 4.1 为什么“读取”某些属性会导致浏览器强制回流（性能杀手）？
 浏览器有队列优化机制。但如果你在修改样式的同时，**立刻去读取了元素的几何属性**：
 
-```javascript
+```js
 div.style.width = '100px'; // 放入队列
 console.log(div.offsetWidth); // 致命操作！
 div.style.height = '100px';
