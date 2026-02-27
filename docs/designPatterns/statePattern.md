@@ -18,7 +18,7 @@
 
 ### 1. 传统写法（难以维护）
 这种写法在增加新状态（如“黄灯闪烁”）时，需要改动整个函数逻辑。
-```javascript
+```js
 class TrafficLight {
   constructor() {
     this.state = 'red';
@@ -42,7 +42,7 @@ class TrafficLight {
 ### 2. 状态模式写法（解耦版）
 我们将行为委托给具体的状态对象。
 
-```javascript
+```js
 // 1. 定义状态对象集合
 const States = {
   red: {

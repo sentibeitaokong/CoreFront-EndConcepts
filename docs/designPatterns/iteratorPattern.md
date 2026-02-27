@@ -27,7 +27,7 @@
 ### 3.1 手写一个自定义迭代器（Range 示例）
 假设我们要创建一个逻辑上的数字序列，而不实际创建一个大数组。
 
-```javascript
+```js
 const createRangeIterator = (start, end) => {
   let nextIndex = start;
   
@@ -53,7 +53,7 @@ for (let num of range) {
 ### 3.2 使用生成器 (Generators) —— 现代写法
 生成器是实现迭代器模式的“语法糖”，它极大地简化了代码。
 
-```javascript
+```js
 function* countGenerator(start, end) {
   for (let i = start; i <= end; i++) {
     yield i; // 自动处理 value 和 done
@@ -84,7 +84,7 @@ console.log(gen.next()); // { value: 1, done: false }
 
 ### 5.3 如何判断一个对象是否是可迭代的？
 *   **答**：检查它是否有 `Symbol.iterator` 属性且是一个函数：
-    ```javascript
+    ```js
     const isIterable = obj => obj != null && typeof obj[Symbol.iterator] === 'function';
     console.log(isIterable([])); // true
     console.log(isIterable({})); // false

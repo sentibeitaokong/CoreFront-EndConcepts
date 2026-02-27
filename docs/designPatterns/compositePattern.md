@@ -21,7 +21,7 @@
 
 让我们实现一个简单的“文件扫描”功能。
 
-```javascript
+```js
 // 1. 容器对象：文件夹
 class Folder {
   constructor(name) {

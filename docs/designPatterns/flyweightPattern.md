@@ -21,7 +21,7 @@
 
 ### 2.1 传统写法（反面教材：创建 10000 个对象）
 如果要给 5000 男款和 5000 女款衣服拍照，按普通思路要请 10000 个模特，内存直接爆掉。
-```javascript
+```js
 class Model {
   constructor(sex, underwear) {
     this.sex = sex;
@@ -42,7 +42,7 @@ for (let i = 1; i <= 5000; i++) {
 ### 2.2 享元模式写法（解耦版：仅需 2 个对象）
 我们只需要一个男模特和一个女模特，让他们轮流穿不同的衣服拍照即可。
 
-```javascript
+```js
 // 1. 享元对象：只保留内部状态（性别）
 class Model {
   constructor(sex) {

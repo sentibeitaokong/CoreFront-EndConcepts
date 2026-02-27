@@ -15,7 +15,7 @@
 ### 2.1 实战场景：跨浏览器兼容性封装
 这是前端开发中最经典的“外观”。以前为了兼容 IE 和标准浏览器，我们必须写很多判断。
 
-```javascript
+```js
 // 这是一个“外观”函数
 function addEvent(el, type, fn) {
   // 隐藏底层的判断逻辑
@@ -35,7 +35,7 @@ addEvent(document.body, 'click', () => console.log('点击了'));
 ### 2.2 实战场景：子系统整合 (家庭影院示例)
 假设开启影院模式需要操作多个独立系统。
 
-```javascript
+```js
 // 子系统 A：屏幕
 class Screen {
   up() { console.log('屏幕升起'); }

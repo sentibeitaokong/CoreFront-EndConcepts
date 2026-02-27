@@ -16,7 +16,7 @@
 这种模式通过一个单一的工厂类/函数，根据传入的参数返回不同类的实例。
 
 **实战场景：用户权限系统**
-```javascript
+```js
 class Admin {
   constructor() { this.name = "管理员"; this.auth = ["read", "write", "delete"]; }
 }
@@ -49,7 +49,7 @@ console.log(myUser.name); // 输出: 编辑
 ### 2.2 工厂方法 (Factory Method)
 简单工厂的缺点是：一旦要增加新角色，就必须修改 `switch` 逻辑。**工厂方法**通过将创建过程延迟到子类中，实现了更好的扩展性。
 
-```javascript
+```js
 class Factory {
   create() { throw new Error('必须由子类实现'); }
 }

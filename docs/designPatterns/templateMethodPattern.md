@@ -18,7 +18,7 @@
 
 制作咖啡和茶的流程非常相似：`烧水 -> 冲泡 -> 倒进杯子 -> 加调料`。
 
-```javascript
+```js
 // 1. 抽象父类：定义算法骨架
 class Beverage {
   // 模板方法：封装了固定算法步骤
@@ -65,7 +65,7 @@ myCoffee.init(); // 按照 Beverage 定义的步骤执行
 
 钩子方法让子类能够对算法的某个步骤进行“有条件的控制”。
 
-```javascript
+```js
 class BeverageWithHook extends Beverage {
   async init() {
     this.boilWater();

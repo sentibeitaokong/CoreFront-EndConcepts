@@ -15,7 +15,7 @@
 ### 2.1 经典模块模式 (基于 IIFE 和闭包)
 这是最经典的形式，即使在今天的一些老旧代码库或插件开发中依然可见。
 
-```javascript
+```js
 const CounterModule = (function() {
   // 1. 私有变量
   let count = 0;
@@ -44,7 +44,7 @@ console.log(CounterModule.count); // undefined (无法访问私有变量)
 ### 2.2 现代模块化 (ES Modules)
 在 ES6 之后，JavaScript 终于有了官方原生的模块系统。这已经成为了目前工程化开发的**行业标准**。
 
-```javascript
+```js
 // math.js
 let privateValue = 10; // 默认就是模块私有的
 
@@ -63,7 +63,7 @@ import { add, version } from './math.js';
 ### 3.1 揭示模块模式 (Revealing Module Pattern)
 这种变体让公共接口的定义更加清晰，它在内部先定义好所有函数，最后在 return 对象中只写引用。
 
-```javascript
+```js
 const myModule = (function() {
   let name = 'Alice';
   function getName() { return name; }

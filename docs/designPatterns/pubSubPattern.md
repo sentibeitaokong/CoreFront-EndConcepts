@@ -24,7 +24,7 @@
 
 这是一个最经典的发布-订阅模式实现（也叫 EventEmitter）：
 
-```javascript
+```js
 class EventEmitter {
   constructor() {
     // 调度中心：存储事件名与回调函数的映射

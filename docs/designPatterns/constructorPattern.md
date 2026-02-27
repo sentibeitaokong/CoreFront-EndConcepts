@@ -15,7 +15,7 @@
 ### 2.1 传统函数式构造器 (ES5 及以前)
 在 ES6 之前，JavaScript 使用普通函数配合 `new` 关键字来实现构造器。
 
-```javascript
+```js
 function Hero(name, role) {
   // 1. 属性定义在实例上
   this.name = name;
@@ -40,7 +40,7 @@ garen.attack();
 ### 2.2 现代类写法 (ES6 Class)
 ES6 引入了 `class` 关键字，这实际上是构造函数和原型模式的**语法糖**，让代码看起来更具条理。
 
-```javascript
+```js
 class Car {
   // 构造器：负责初始化属性
   constructor(brand, price) {

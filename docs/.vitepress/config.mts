@@ -305,6 +305,22 @@ export default defineConfig({
                 ]
             },
             {
+                text: 'Git',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: true, // 初始状态为“展开”
+                items: [
+                    {text: 'git命令', link: '/git/git'},
+                ]
+            },
+            {
+                text: '正则表达式',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: true, // 初始状态为“展开”
+                items: [
+                    {text: 'Regexp命令', link: '/regexp/regexp'},
+                ]
+            },
+            {
                 text: '设计模式',
                 collapsible: true, // 允许折叠 (默认true，可省略)
                 collapsed: true, // 初始状态为“展开”
@@ -334,19 +350,34 @@ export default defineConfig({
                 ]
             },
             {
-                text: 'Git',
-                collapsible: true, // 允许折叠 (默认true，可省略)
-                collapsed: true, // 初始状态为“展开”
+                text: '数据结构和算法',
+                collapsible: false, // 允许折叠 (默认true，可省略)
                 items: [
-                    {text: 'git命令', link: '/git/git'},
-                ]
-            },
-            {
-                text: '正则表达式',
-                collapsible: true, // 允许折叠 (默认true，可省略)
-                collapsed: true, // 初始状态为“展开”
-                items: [
-                    {text: 'Regexp命令', link: '/regexp/regexp'},
+                    {
+                        text: '数据结构',
+                        collapsible: true, // 允许折叠 (默认true，可省略)
+                        collapsed: true, // 初始状态为“展开”
+                        items: [
+                            {text: '数组', link: '/dataStructuresAndAlgorithms/array'},
+                            {text: '栈', link: '/dataStructuresAndAlgorithms/stack'},
+                            {text: '队列', link: '/dataStructuresAndAlgorithms/queue'},
+                            {text: '链表', link: '/dataStructuresAndAlgorithms/linkedList'},
+                            {text: '集合', link: '/dataStructuresAndAlgorithms/set'},
+                            {text: '字典', link: '/dataStructuresAndAlgorithms/map'},
+                            {text: '树', link: '/dataStructuresAndAlgorithms/tree'},
+                            {text: '堆', link: '/dataStructuresAndAlgorithms/heap'},
+                            {text: '图', link: '/dataStructuresAndAlgorithms/graph'},
+                            {text: '哈希表', link: '/dataStructuresAndAlgorithms/hashTable'},
+                        ]
+                    },
+                    {
+                        text: '算法',
+                        collapsible: true, // 允许折叠 (默认true，可省略)
+                        collapsed: true, // 初始状态为“展开”
+                        items: [
+
+                        ]
+                    },
                 ]
             },
             {

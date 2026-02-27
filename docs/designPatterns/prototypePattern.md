@@ -17,7 +17,7 @@
 ### 2.1 使用 `Object.create()` (标准做法)
 这是最符合原型模式定义的方式，直接创建一个新对象，并指定其原型。
 
-```javascript
+```js
 const carPrototype = {
   drive() { console.log(`${this.brand} 正在行驶...`); },
   init(brand) { this.brand = brand; }
@@ -32,7 +32,7 @@ myCar.drive(); // Tesla 正在行驶...
 ### 2.2 使用构造函数的 `.prototype`
 这是 ES5 时代的经典做法，也是面试常考点。
 
-```javascript
+```js
 function User(name) {
   this.name = name;
 }
@@ -86,7 +86,7 @@ console.log(user1.sayHi === user2.sayHi); // false，函数不共享
 
 ### 4.3 在原型上定义“引用类型”属性（如数组）会有什么问题？
 *   **答：会有共享修改的问题。**
-    ```javascript
+    ```js
     function Student() {}
     Student.prototype.friends = ['Tom']; // 引用类型在原型上
     const s1 = new Student();

@@ -19,7 +19,7 @@
 
 **实例**：图片预加载。先显示一张 Loading 占位图，等图片下载完成后再替换。
 
-```javascript
+```js
 // 原对象：负责设置图片 src
 const myImage = (function() {
   const imgNode = document.createElement('img');
@@ -53,7 +53,7 @@ proxyImage.setSrc('https://example.com/big-image.png');
 
 **实例**：计算斐波那契数列或复杂的计算器。
 
-```javascript
+```js
 // 原函数：计算乘积
 const mult = function(...args) {
   console.log('开始计算...');
@@ -83,7 +83,7 @@ console.log(proxyMult(1, 2, 3)); // 直接返回缓存结果 6
 | `set(target, prop, value)` | 拦截对象属性的设置（常用于数据校验或响应式）。 |
 | `has(target, prop)` | 拦截 `in` 操作符。 |
 
-```javascript
+```js
 const user = { name: 'Alice', age: 25 };
 
 const proxyUser = new Proxy(user, {

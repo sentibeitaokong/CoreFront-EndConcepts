@@ -17,7 +17,7 @@
 
 在这个例子中，我们将实现“加粗”操作，并支持**撤销 (Undo)** 功能。
 
-```javascript
+```js
 // 1. 接受者 (Receiver)：具体的业务逻辑
 class Editor {
   constructor() { this.content = ""; }
@@ -102,7 +102,7 @@ manager.undo();        // 撤销后内容: Hello
 
 ### 5.2 在 JavaScript 中，非要写 `class` 吗？
 *   **答：不一定。** JavaScript 函数是一等公民，你可以用闭包来模拟命令模式：
-    ```javascript
+    ```js
     function createCommand(receiver, action) {
       return {
         execute: () => receiver[action](),

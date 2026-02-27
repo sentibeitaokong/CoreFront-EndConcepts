@@ -26,7 +26,7 @@
 
 ### 3.1 传统写法 (if-else 嵌套)
 这种写法非常死板，一旦增加一种会员等级，就要改动整个大函数。
-```javascript
+```js
 const order = (type, amount) => {
   if (type === 'vip500') { /* 处理逻辑 */ }
   else if (type === 'vip200') { /* 处理逻辑 */ }
@@ -36,7 +36,7 @@ const order = (type, amount) => {
 
 ### 3.2 职责链模式写法 (优雅解耦)
 
-```javascript
+```js
 // 1. 定义具体的处理逻辑
 const order500 = function(type, amount) {
   if (type === 1 && amount >= 500) {
@@ -116,7 +116,7 @@ chainOrder500.passRequest(3, 100); // 普通购买...
 
 ### 5.4 在 JavaScript 中如何实现更现代的职责链？
 *   **答**：可以参考 **AOP (面向切面编程)** 的思想。通过给函数原型添加 `after` 方法，可以非常优雅地组合函数，而不需要显式创建 `Chain` 类：
-    ```javascript
+    ```js
     Function.prototype.after = function(fn) {
       const self = this;
       return function(...args) {

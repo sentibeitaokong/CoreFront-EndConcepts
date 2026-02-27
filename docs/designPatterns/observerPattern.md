@@ -15,7 +15,7 @@
 
 在 JavaScript 中，我们通常使用 ES6 的类来实现这种结构。
 
-```javascript
+```js
 // 1. 定义目标对象 (Subject)
 class Subject {
   constructor() {

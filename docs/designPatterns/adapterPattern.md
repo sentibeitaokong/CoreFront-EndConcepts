@@ -23,7 +23,7 @@
 | **新接口 (GaodeMap)** | `show(data)` |
 | **目标需求** | 统一使用 `render` 方法调用。 |
 
-```javascript
+```js
 // 1. 旧的组件实现
 class BaiduMap {
   render(mapData) { console.log('开始渲染百度地图...', mapData); }
@@ -56,7 +56,7 @@ renderMap(new GaodeMapAdapter()); // 成功适配！
 ### 2.2 后端数据格式适配
 前端 UI 组件通常需要特定的数据格式，而后端返回的数据结构可能千奇百怪。
 
-```javascript
+```js
 // 后端返回的原始数据
 const oldData = [{ "day": "Monday", "val": 100 }, { "day": "Tuesday", "val": 200 }];
 

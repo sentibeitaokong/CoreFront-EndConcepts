@@ -17,7 +17,7 @@
 ### 2.1 传统实现：包装函数 (推荐用于普通逻辑)
 这种方式本质上是利用了闭包和高阶函数。
 
-```javascript
+```js
 // 1. 原始对象：普通咖啡
 class Coffee {
   cost() { return 10; }
@@ -51,7 +51,7 @@ console.log(myCoffee.cost()); // 输出: 17
 ### 2.2 现代实现：`@Decorator` 语法 (推荐用于类和方法)
 *注：目前该语法处于 Stage 3 提案阶段，在生产环境中通常需要 Babel 或 TypeScript 支持。*
 
-```javascript
+```js
 // 定义一个装饰器：记录日志
 function log(target, name, descriptor) {
   const original = descriptor.value;
