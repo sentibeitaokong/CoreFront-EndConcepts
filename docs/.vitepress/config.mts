@@ -375,7 +375,17 @@ export default defineConfig({
                         collapsible: true, // 允许折叠 (默认true，可省略)
                         collapsed: true, // 初始状态为“展开”
                         items: [
-
+                            {text: '排序算法', link: '/dataStructuresAndAlgorithms/sortAlgorithms'},
+                            {text: '查找算法', link: '/dataStructuresAndAlgorithms/searchAlgorithms'},
+                            {text: '递归算法', link: '/dataStructuresAndAlgorithms/recursionAlgorithms'},
+                            {text: '动态规划', link: '/dataStructuresAndAlgorithms/dynamicProgramming'},
+                            {text: '贪心算法', link: '/dataStructuresAndAlgorithms/greedyAlgorithms'},
+                            {text: '回溯算法', link: '/dataStructuresAndAlgorithms/backTrackingAlgorithms'},
+                            {text: '广度优先遍历', link: '/dataStructuresAndAlgorithms/BFS'},
+                            {text: '深度优先遍历', link: '/dataStructuresAndAlgorithms/DFS'},
+                            {text: '双指针', link: '/dataStructuresAndAlgorithms/twoPointers'},
+                            {text: '滑动窗口', link: '/dataStructuresAndAlgorithms/slideWindow'},
+                            {text: '算法复杂度', link: '/dataStructuresAndAlgorithms/algorithmComplexity'},
                         ]
                     },
                 ]

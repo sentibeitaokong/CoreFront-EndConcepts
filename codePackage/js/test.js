@@ -121,7 +121,7 @@ console.log('--- 图的结构 ---');
 console.log(myGraph.toString());*/
 
 // 假设图的结构依然使用邻接表表示
-const graph = {
+/*const graph = {
     'A': ['B', 'C'],
     'B': ['A', 'D', 'E'],
     'C': ['A', 'F'],
@@ -130,12 +130,12 @@ const graph = {
     'F': ['C', 'E']
 };
 
-/**
+/!**
  * 无权图最短路径 (BFS)
  * @param {Object} graph 邻接表图
  * @param {string} start 起点
  * @param {string} target 终点
- */
+ *!/
 function unweightedShortestPath(graph, start, target) {
     const queue = [start];
     const visited = { [start]: true };
@@ -181,4 +181,59 @@ function unweightedShortestPath(graph, start, target) {
 // === 测试 ===
 const result = unweightedShortestPath(graph, 'A', 'F');
 console.log(`最短距离: ${result.distance}`); // 最短距离: 2
-console.log(`最短路径: ${result.path.join(' -> ')}`); // 最短路径: A -> C -> F
+console.log(`最短路径: ${result.path.join(' -> ')}`); // 最短路径: A -> C -> F*/
+
+/*function coinChange(coins, amount) {
+    // 初始化 dp 数组，默认值为 amount + 1 (相当于无穷大)
+    let dp = new Array(amount + 1).fill(amount + 1);
+    dp[0] = 0; // 凑 0 元需要 0 个硬币
+
+    // 外层遍历所有金额状态
+    for (let i = 1; i <= amount; i++) {
+        // 内层遍历每种硬币
+        for (let coin of coins) {
+            // 如果当前硬币面值小于等于要凑的金额
+            if (i >= coin) {
+                // 状态转移：取当前记录的最少硬币数，和 (减去该硬币面值后的最少硬币数 + 1) 的较小值
+                dp[i] = Math.min(dp[i], dp[i - coin] + 1);
+            }
+        }
+    }
+    // 如果 dp[amount] 还是初始值，说明凑不出来，返回 -1
+    return dp[amount] === amount + 1 ? -1 : dp[amount];
+}
+coinChange([1,2,5],11)*/
+
+/**
+ * 子集
+ * @param {number[]} nums
+ * @return {number[][]}
+ */
+function subsets(nums) {
+    const result = [];
+    const path = [];
+
+    function backtrack(startIndex) {
+        // 1. 收集结果：注意，子集问题是在每次进入递归时，无条件收集当前的 path！
+        // 因为空集 [] 和过程中的每一个状态，都是一个合法子集
+        result.push([...path]);
+
+        // (终止条件其实可以省略，因为当 startIndex >= nums.length 时，下面的 for 循环根本进不去，自然会 return)
+        if (startIndex >= nums.length) return;
+
+        // 2. 遍历
+        for (let i = startIndex; i < nums.length; i++) {
+            // 3. 做选择
+            path.push(nums[i]);
+            // 4. 递归：寻找以 nums[i] 开头的所有子集，下一层只能从 i+1 开始挑 (因为不能有重复元素)
+            backtrack(i + 1);
+
+            // 5. 回溯
+            path.pop();
+        }
+    }
+
+    backtrack(0);
+    return result;
+}
+subsets([1,2,3])

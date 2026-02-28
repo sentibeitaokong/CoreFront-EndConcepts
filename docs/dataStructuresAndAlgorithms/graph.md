@@ -393,7 +393,7 @@ console.log('A到F的最短路径:', getPath(resultDijkstra.predecessors, 'F').j
 // A -> B -> C -> E -> D -> F
 ```
 
-### 5.3 单源加权图的最短路径(**权重可以为负数**):Bellman-Ford 算法详解与实现
+### 5.3 单源加权图的最短路径(**权重可以为负数**):Bellman-Ford（贝尔曼-福特） 算法详解与实现
 
 在解决“单源最短路径”问题时，Dijkstra 算法是绝对的王者，但它有一个致命的弱点：**无法处理带有负数权重的边**。一旦图中出现负权边，Dijkstra 的贪心策略就会崩溃。
 
