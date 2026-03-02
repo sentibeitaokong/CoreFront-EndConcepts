@@ -321,6 +321,35 @@ export default defineConfig({
                 ]
             },
             {
+                text: 'Typescript',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: true, // 初始状态为“展开”
+                items: [
+                    {text: '核心语法', link: '/typescript/typescript'},
+                ]
+            },
+            {
+                text: '前端工程化',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: true, // 初始状态为“展开”
+                items: [
+                    {text: '简介', link: '/forntEngineering/intro'},
+                    {text: '常用工具介绍', link: '/forntEngineering/engineerTools'},
+                    {
+                        text: '构建工具',
+                        collapsible: true, // 允许折叠 (默认true，可省略)
+                        collapsed: false, // 初始状态为“展开”
+                        items: [
+                            {text: 'webpack', link: '/forntEngineering/webpack'},
+                        ]
+                    },
+                    {text: '包管理器', link: '/forntEngineering/packageManagers'},
+                    {text: '规范与拦截', link: '/forntEngineering/linters'},
+                    {text: '代码编译器', link: '/forntEngineering/codeCompilers'},
+                    {text: '自动化测试', link: '/forntEngineering/testing'},
+                ]
+            },
+            {
                 text: '设计模式',
                 collapsible: true, // 允许折叠 (默认true，可省略)
                 collapsed: true, // 初始状态为“展开”
