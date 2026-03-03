@@ -88,6 +88,8 @@ export default defineConfig({
             },
             {
                 text: 'html',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: true, // 初始状态为“展开”
                 items: [
                     {
                         text: '基础',
@@ -124,8 +126,8 @@ export default defineConfig({
             },
             {
                 text: 'css',
-                // collapsible: true, // 允许折叠 (默认true，可省略)
-                // collapsed: true, // 初始状态为“展开”
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: true, // 初始状态为“展开”
                 items: [
                     {
                         text: '基础',
@@ -194,8 +196,8 @@ export default defineConfig({
             },
             {
                 text: 'js',
-                // collapsible: true, // 允许折叠 (默认true，可省略)
-                // collapsed: true, // 初始状态为“展开”
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: true, // 初始状态为“展开”
                 items: [
                     {
                         text: '基础',
@@ -305,6 +307,59 @@ export default defineConfig({
                 ]
             },
             {
+                text: '前端框架',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: true, // 初始状态为“展开”
+                items: [
+                    {
+                        text: 'Vue',
+                        collapsible: true, // 允许折叠 (默认true，可省略)
+                        collapsed: true, // 初始状态为“展开”
+                        items: [
+                            {
+                                text: '基础',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: true, // 初始状态为“展开”
+                                items: [
+                                    {text: '简介', link: '/frameworks/vue/intro'},
+                                    {text: '模板语法', link: '/frameworks/vue/templateSyntax'},
+                                    {text: '响应式状态', link: '/frameworks/vue/reactivityFundamentals'},
+                                    {text: '响应式状态派生', link: '/frameworks/vue/computedAndWatch'},
+                                ]
+                            },
+                            {
+                                text: '进阶',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: true, // 初始状态为“展开”
+                                items: [
+                                ]
+                            },
+                        ]
+                    },
+                    {
+                        text: 'React',
+                        collapsible: true, // 允许折叠 (默认true，可省略)
+                        collapsed: true, // 初始状态为“展开”
+                        items: [
+                            {
+                                text: '基础',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: true, // 初始状态为“展开”
+                                items: [
+                                ]
+                            },
+                            {
+                                text: '进阶',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: true, // 初始状态为“展开”
+                                items: [
+                                ]
+                            },
+                        ]
+                    },
+                ]
+            },
+            {
                 text: 'Git',
                 collapsible: true, // 允许折叠 (默认true，可省略)
                 collapsed: true, // 初始状态为“展开”
@@ -338,9 +393,12 @@ export default defineConfig({
                     {
                         text: '构建工具',
                         collapsible: true, // 允许折叠 (默认true，可省略)
-                        collapsed: false, // 初始状态为“展开”
+                        collapsed: true, // 初始状态为“展开”
                         items: [
-                            {text: 'webpack', link: '/forntEngineering/webpack'},
+                            {text: 'Webpack', link: '/forntEngineering/webpack'},
+                            {text: 'vite', link: '/forntEngineering/vite'},
+                            {text: 'Rollup', link: '/forntEngineering/rollup'},
+                            {text: 'Rspack', link: '/forntEngineering/rspack'},
                         ]
                     },
                     {text: '包管理器', link: '/forntEngineering/packageManagers'},
@@ -350,7 +408,7 @@ export default defineConfig({
                 ]
             },
             {
-                text: '设计模式',
+                text: '设计模式与架构模式',
                 collapsible: true, // 允许折叠 (默认true，可省略)
                 collapsed: true, // 初始状态为“展开”
                 items: [
@@ -374,13 +432,16 @@ export default defineConfig({
                     {text: '享元模式', link: '/designPatterns/flyweightPattern'},
                     {text: '模板方法模式', link: '/designPatterns/templateMethodPattern'},
                     {text: '职责链模式', link: '/designPatterns/chainofResponsibilityPattern'},
+                    {text: 'MVC模式', link: '/designPatterns/MVC'},
+                    {text: 'MVVM模式', link: '/designPatterns/MVVM'},
                     {text: '核心原则', link: '/designPatterns/patternPrinciple'},
                     {text: '总结', link: '/designPatterns/patternSummarize'},
                 ]
             },
             {
                 text: '数据结构和算法',
-                collapsible: false, // 允许折叠 (默认true，可省略)
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: true, // 初始状态为“展开”
                 items: [
                     {
                         text: '数据结构',

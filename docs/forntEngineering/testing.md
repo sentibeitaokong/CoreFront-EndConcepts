@@ -20,7 +20,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 ### 2.1 测试运行器与断言库 (Test Runner & Assertion)
 *   **Jest**：Facebook 出品。过去十年的前端测试霸主。开箱即用，自带断言库（`expect`）、Mock 机制和覆盖率报告。缺点是体积庞大，且在现代 ESM 环境下配置较繁琐。
-*   **Vitest**：**当前世代的绝对首选**。由 Vite 团队打造，底层直接复用你项目里的 `vite.config.js`。启动速度极快（利用 esbuild），API 100% 兼容 Jest，是现代前端架构的标配。
+*   [**Vitest**](https://cn.vitest.dev/guide/)：**当前世代的绝对首选**。由 Vite 团队打造，底层直接复用你项目里的 `vite.config.js`。启动速度极快（利用 esbuild），API 100% 兼容 Jest，是现代前端架构的标配。
 
 ### 2.2 DOM 与组件测试工具 (Component Testing)
 *   **jsdom / happy-dom**：在 Node.js 终端里“伪造”一个浏览器 DOM 环境（因为 Node 原生没有 `window` 和 `document`），让测试脚本能跑起来。
@@ -30,7 +30,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 *   **Cypress**：提供极佳的可视化 UI 调试界面，开创了现代 E2E 测试的先河。
 *   **Playwright**：微软出品的**新一代王者**。原生支持多标签页、iframes，跨浏览器（Chromium, WebKit, Firefox）并行测试能力极强，速度远超 Cypress。
 
-## 3. 核心测试场景实战
+## 3. [核心测试场景实战](https://github.com/sentibeitaokong/vitest)
 
 ### 3.1 单元测试：纯函数与 Mock (Vitest / Jest)
 

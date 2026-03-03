@@ -347,7 +347,7 @@ let house:House={
 type MyName='Mary' |'Bob'|'Nick'
 ```
 
-### 2.5 类型保护 (Type Guards)
+### 2.6 类型保护 (Type Guards)
 
 用于在条件块中缩小类型的范围。
 
