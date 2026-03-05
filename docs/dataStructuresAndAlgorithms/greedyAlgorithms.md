@@ -36,7 +36,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 #### JavaScript 代码实现 (针对标准货币体系的贪心解法)
 
-```javascript
+```js
 /**
  * 找零钱 - 贪心算法 (假设硬币系统合理)
  * 每次优先使用面值最大的硬币
@@ -78,7 +78,7 @@ console.log(coinChangeGreedy([25, 10, 5, 1], 67));
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 分发饼干
  * @param {number[]} g 孩子们胃口数组
@@ -116,7 +116,7 @@ function findContentChildren(g, s) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 跳跃游戏
  * @param {number[]} nums
@@ -153,7 +153,7 @@ function canJump(nums) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 无重叠区间
  * @param {number[][]} intervals

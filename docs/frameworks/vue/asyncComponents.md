@@ -67,7 +67,7 @@ app.component('MyComponent', defineAsyncComponent(() =>
 
 网络请求是不稳定的。组件在下载的过程中，用户可能会看到白屏；如果网络断开，组件可能下载失败。`defineAsyncComponent` 提供了一个对象配置项，用于优雅地处理这些边缘情况。
 
-```javascript
+```js
 import { defineAsyncComponent } from 'vue'
 import LoadingComponent from './Loading.vue'
 import ErrorComponent from './Error.vue'
@@ -233,7 +233,7 @@ const AsyncChart = defineAsyncComponent(() => import('./Chart.vue'))
 ### 4.1 Vue 2 和 Vue 3 的异步组件写法有什么区别？
 *   **答**：差异很大，迁移时极易报错。
     *   **Vue 2 写法**：直接返回一个 `import()` 的工厂函数即可。
-        ```javascript
+        ```js
         const AsyncComponent = () => import('./MyComponent.vue')
         ```
     *   **Vue 3 的改变**：Vue 3 内部处理普通函数和异步组件的逻辑发生了分歧。必须使用 **`defineAsyncComponent`** 包裹，否则 Vue 3 会把这个工厂函数当成一个普通的 setup 渲染函数，从而在控制台报出无法解析组件的警告。
@@ -248,7 +248,7 @@ const AsyncChart = defineAsyncComponent(() => import('./Chart.vue'))
 *   **答**：**强烈建议不要用！**
     *   Vue Router 本身在底层已经完美集成了对动态 `import()` 的支持。
     *   在配置路由表时，你**只需要直接写返回 `import` 的工厂函数即可**，Router 会自己处理懒加载的调度。如果你画蛇添足地加上 `defineAsyncComponent`，反而可能会导致路由钩子（如 `beforeEnter`）行为异常。
-    ```javascript
+    ```js
     // ✅ 正确的路由懒加载写法 (不需要 defineAsyncComponent)
     const routes = [
       {

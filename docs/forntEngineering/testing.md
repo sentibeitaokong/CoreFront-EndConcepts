@@ -36,7 +36,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 测试的核心是：给定输入，断言输出。遇到网络请求等不可控的外部依赖时，必须使用 **Mock (模拟)** 技术将其隔离。
 
-```javascript
+```js
 import { describe, it, expect, vi } from 'vitest';
 import { calculateTotal, fetchUserData } from './utils.js';
 
@@ -72,7 +72,7 @@ describe('fetchUserData', () => {
 
 模拟用户点击按钮，观察 DOM 结构是否发生变化。
 
-```javascript
+```js
 import { render, screen, fireEvent } from '@testing-library/vue';
 import Counter from './Counter.vue';
 
@@ -100,7 +100,7 @@ describe('Counter.vue', () => {
 
 完全黑盒测试，脱离代码层面，直接在无头浏览器中进行。
 
-```javascript
+```js
 import { test, expect } from '@playwright/test';
 
 test('用户登录核心主流程', async ({ page }) => {

@@ -476,7 +476,7 @@ const injected = inject(myInjectionKey)
 #### 1. 全局状态管理：Pinia (Vue 3 标准)
 将状态抽离到外部单独管理，所有组件都去订阅这个外部仓库。
 
-```javascript
+```js
 // store/user.js
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
@@ -818,7 +818,7 @@ onMounted(() => {
     *   `provide` 函数本身并不会施加魔法把普通数据变成响应式的。
     *   如果你写的是 `provide('msg', 'hello')`，孙子拿到的永远是个死字符串。
     *   **正解**：你必须传入通过 `ref` 或 `reactive` 包装过的数据。
-    ```javascript
+    ```js
     // 祖先组件
     const count = ref(0)
     provide('countObj', count) // 必须传 ref 本身，千万不要传 count.value

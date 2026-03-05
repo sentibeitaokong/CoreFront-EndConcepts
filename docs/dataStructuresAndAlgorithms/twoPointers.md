@@ -30,7 +30,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 两数之和 II - 对撞指针
  * @param {number[]} numbers (已排序)
@@ -65,7 +65,7 @@ function twoSum(numbers, target) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 原地移除元素 - 快慢指针
  * @param {number[]} nums

@@ -202,7 +202,7 @@ onMounted(() => {
 *   **答**：这涉及 Vue 核心的**异步更新队列**机制。
     *   **原理**：当你执行 `list.push(newItem)` 修改了响应式数据时，Vue **并没有立刻去更新真实 DOM**。它把这次更新放进了一个微任务队列里，等当前这段 JS 代码全部跑完后，再去统一批量打补丁更新 DOM，以追求极致性能。
     *   **避坑指南**：如果你修改了数据，且立刻需要基于更新后的真实 DOM 来计算高度或者执行动画，**必须包裹在 `nextTick` 中**。
-    ```javascript
+    ```js
     import { nextTick } from 'vue'
 
     list.value.push('New Item');

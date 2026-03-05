@@ -24,7 +24,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 **示例**
 
-```javascript
+```js
 /**
  * 顺序查找
  * @param {Array} arr 待查找数组
@@ -56,7 +56,7 @@ function linearSearch(arr, target) {
 
 **示例**
 
-```javascript
+```js
 /**
  * 二分查找 (非递归实现)
  * @param {Array} arr 已排序的数组 (假设为升序)
@@ -95,7 +95,7 @@ function binarySearch(arr, target) {
 
 **示例**
 
-```javascript
+```js
 /**
  * 插值查找
  * @param {Array} arr 已排序且分布均匀的数组
@@ -144,7 +144,7 @@ function interpolationSearch(arr, target) {
 
 ####  JavaScript 代码模拟
 
-```javascript
+```js
 /**
  * 使用 JavaScript 内置 Map 演示哈希查找的应用
  */
@@ -187,7 +187,7 @@ console.log(dict.search("EMP_001"));
 
 **示例**
 
-```javascript
+```js
 // 1. 定义树节点
 class TreeNode {
     constructor(val) {

@@ -24,7 +24,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 ### 2.1 基础范例：追踪鼠标位置 (useMouse)
 
-```javascript
+```js
 // src/composables/useMouse.js
 import { ref, onMounted, onUnmounted } from 'vue'
 
@@ -75,7 +75,7 @@ const { x, y } = useMouse()
 
 真正的业务级 Composable 需要接收外部传来的参数，并且这个参数可能是写死的字符串，也可能是动态响应式的 `ref`。
 
-```javascript
+```js
 // src/composables/useFetch.js
 import { ref, isRef, unref, watchEffect } from 'vue'
 
@@ -147,7 +147,7 @@ const { data, isFetching } = useFetch(computed(() => `/api/user/${userId.value}`
 *   **答**：**警惕异步调用陷阱。**
     *   **原则**：你必须在组件的 `setup()` 的**顶层**同步地调用 Composable 函数！
     *   **错误示范**：
-        ```javascript
+        ```js
         setTimeout(() => {
           // ❌ 灾难：在异步回调里调用 Composable
           // 此时 setup 的同步执行期早过了，当前激活的 Vue 组件实例已经丢失（currentInstance 为空）

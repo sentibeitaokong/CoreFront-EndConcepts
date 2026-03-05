@@ -38,7 +38,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 #### $O(1)$ - 常数阶
 没有循环，没有与 `n` 相关的递归，即使代码有成百上千行，只要执行次数是固定的，就是 $O(1)$。
-```javascript
+```js
 function getFirstElement(arr) {
     const a = 1 + 1;  // 1次操作
     return arr[0];    // 1次操作
@@ -47,7 +47,7 @@ function getFirstElement(arr) {
 
 #### $O(n)$ - 线性阶
 一层循环，循环次数直接受到输入规模 `n` 的影响。
-```javascript
+```js
 function findMax(arr) {
     let max = arr[0];
     for (let i = 1; i < arr.length; i++) { // 循环 n-1 次
@@ -59,7 +59,7 @@ function findMax(arr) {
 
 #### $O(n^2)$ - 平方阶
 双层嵌套循环，外层循环 `n` 次，内层也循环 `n` 次（或者 `n` 的某个比例，如 $n/2$）。
-```javascript
+```js
 function printPairs(arr) {
     for (let i = 0; i < arr.length; i++) {       // 执行 n 次
         for (let j = i; j < arr.length; j++) {   // 平均执行 n/2 次
@@ -71,7 +71,7 @@ function printPairs(arr) {
 
 #### $O(\log n)$ - 对数阶
 循环条件每次都成倍地缩小范围。这是面试中最常要求优化的目标。
-```javascript
+```js
 function binarySearch(arr, target) {
     let left = 0;
     let right = arr.length - 1;
@@ -107,7 +107,7 @@ function binarySearch(arr, target) {
 
 **在递归算法中，系统必须为每一次函数调用分配“执行栈（Call Stack）”。递归的深度有多深，空间复杂度就有多大。**
 
-```javascript
+```js
 // 示例：求 1 到 n 的和（纯递归）
 function sumRecursion(n) {
     if (n === 1) return 1;

@@ -42,7 +42,7 @@ BFS 的实现极其依赖一种基础数据结构：**队列（先进先出 FIFO
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 // 假设树节点结构如下：
 // function TreeNode(val, left, right) {
 //     this.val = (val===undefined ? 0 : val)
@@ -93,7 +93,7 @@ function levelOrder(root) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 网格迷宫的最短路径
  * @param {number[][]} grid 

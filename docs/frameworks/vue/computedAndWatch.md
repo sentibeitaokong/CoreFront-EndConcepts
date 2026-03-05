@@ -31,7 +31,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 <p>{{ publishedBooksMessage }}</p>
 ```
 
-```javascript
+```js
 // Vue 3 Composition API 示例
 import { ref, computed } from 'vue'
 
@@ -58,7 +58,7 @@ publishedBooksMessage.value;
 计算属性默认是**只读**的。当你尝试修改一个计算属性时，Vue 会在控制台发出警告。但在某些极端场景（如与表单 `v-model` 结合使用时），你需要同时提供 getter 和 setter。
 *  **Getter 不应有副作用**:计算属性的 getter 应只做计算而没有任何其他的副作用,不要改变其他状态、在 `getter` 中做异步请求或者更改 `DOM`！
 *  **避免直接修改计算属性值**:计算属性的返回值应该被视为只读的，并且永远不应该被更改——应该更新它所依赖的源状态(**形参**)以触发新的计算。
-```javascript
+```js
 import { ref, computed } from 'vue'
 
 const firstName = ref('John')
@@ -88,7 +88,7 @@ fullName.value = 'Jane Smith'
 
 `watch` 的特点是：**极其精准**。你明确告诉它要盯着哪个数据，并且它可以同时获取“新值”和“旧值”。
 
-```javascript
+```js
 import { ref, watch, reactive } from 'vue'
 
 const question = ref('')
@@ -122,7 +122,7 @@ watch(
 
 默认情况下，`watch` 是**懒执行**的：只有当数据发生第一次改变时，回调才会执行。如果希望组件一加载（数据初始化时）就立刻执行一次回调，需要开启 `immediate`。
 
-```javascript
+```js
 watch(source, (newValue, oldValue) => {
   // 立即执行一次，此时 oldValue 为 undefined
 }, { immediate: true })
@@ -133,7 +133,7 @@ watch(source, (newValue, oldValue) => {
 如果你觉得 `watch` 每次都要手动指定依赖太麻烦了，Vue 3 提供了一个杀手级 API：`watchEffect`。
 它会**立即执行一遍传入的函数，并自动追踪函数内部用到了哪些响应式状态**。只要里面用到的状态变了，它就重新执行。
 
-```javascript
+```js
 import { ref, watchEffect } from 'vue'
 
 const todoId = ref(1)
@@ -279,7 +279,7 @@ unwatch()
 *   **答**：这是 JavaScript 引用类型的物理限制导致的新手巨坑。
     *   **原因**：当你直接监听一个对象（如 `reactive` 包装的对象）时，对象的内存地址（引用）并没有发生改变。Vue 直接把这个引用同时传给了 `newValue` 和 `oldValue`，所以它们指向内存中的同一个对象，里面的值自然也是被修改后的最新值。
     *   **解决方案**：如果你确实需要对比对象改变前后的具体快照，**必须深度克隆这个对象进行监听**。
-    ```javascript
+    ```js
     watch(
       () => JSON.parse(JSON.stringify(state.obj)), // 返回一个深度拷贝的全新对象
       (newVal, oldVal) => {
@@ -298,7 +298,7 @@ unwatch()
 *   **答**：这里涉及到一个隐藏机制。
     *   由于 Vue 更新 DOM 是**异步**的（批量放入微任务队列）。当响应式数据更新导致 Watcher 回调触发时，此时的真实 DOM 还没有开始渲染！
     *   如果你需要在 `watch` 里去获取最新被渲染出来的 DOM 节点高度或数量，必须加上配置项 **`flush: 'post'`**。这告诉 Vue：“请等组件的 DOM 完全渲染并更新完毕后，再执行我的 watch 回调”。
-    ```javascript
+    ```js
     watch(listData, (newList) => {
       // 此时去拿 DOM 绝对是最新渲染出的 DOM 节点
       console.log(myListRef.value.children.length);

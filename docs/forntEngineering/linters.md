@@ -31,7 +31,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ### 2.2 核心配置文件示例
 
 **1. ESLint 配置 (`.eslintrc.js`)**
-```javascript
+```js
 module.exports = {
   env: { browser: true, es2021: true, node: true },
   // 继承推荐规范，注意 prettier 必须放在数组最后一位！
@@ -51,7 +51,7 @@ module.exports = {
 ```
 
 **2. Prettier 配置 (`.prettierrc.js`)**
-```javascript
+```js
 module.exports = {
   printWidth: 80,         // 单行代码字符数限制
   tabWidth: 2,            // 缩进空格数

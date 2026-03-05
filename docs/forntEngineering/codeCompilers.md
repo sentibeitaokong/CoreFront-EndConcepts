@@ -40,7 +40,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 Babel 的核心设计是“微内核”，它自己什么都不干，所有功能全靠 Presets（预设，即插件的集合）和 Plugins（插件）实现。
 
-```javascript
+```js
 // babel.config.js
 module.exports = {
   // Presets 是插件的合集，按从后向前的顺序执行

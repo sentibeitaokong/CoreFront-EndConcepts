@@ -23,7 +23,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 这些钩子函数的命名与 Vue 3 组件的生命周期极其相似，它们都会接收被绑定的**真实 DOM 元素 (`el`)** 作为第一个参数。
 
-```javascript
+```js
 const myDirective = {
   // 1. 在绑定元素的 attribute 前，或事件监听器应用前调用
   created(el, binding, vnode, prevVnode) {},
@@ -90,7 +90,7 @@ const vFocus = {
 ### 3.2 交互级：点击外部关闭 (`v-click-outside`)
 这是写各种 Dropdown 下拉菜单、弹窗组件时必备的神器。
 
-```javascript
+```js
 // src/directives/clickOutside.js
 export const clickOutside = {
   mounted(el, binding) {
@@ -128,7 +128,7 @@ export const clickOutside = {
 ### 3.3 系统级：按钮权限控制 (`v-permission`)
 在后台管理系统中，通过角色控制某个按钮是否显示，是极其常见的高频需求。
 
-```javascript
+```js
 // src/directives/permission.js
 export const permission = {
   mounted(el, binding) {

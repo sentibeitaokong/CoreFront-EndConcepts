@@ -19,7 +19,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 不管是求最长、最短还是固定长度，都可以套用下面这个模板。你只需要思考四个问题：进窗口更新什么？什么时候出窗口？出窗口更新什么？什么时候记录答案？
 
-```javascript
+```js
 function slidingWindowTemplate(nums) {
     let left = 0;
     let result = ...; // 根据求最大还是最小，初始化为 0 或 Infinity
@@ -63,7 +63,7 @@ function slidingWindowTemplate(nums) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 固定大小滑动窗口
  * @param {number[]} nums
@@ -99,7 +99,7 @@ function findMaxAverage(nums, k) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 可变窗口 - 求最短
  * @param {number} target
@@ -138,7 +138,7 @@ function minSubArrayLen(target, nums) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 可变窗口 - 求最长
  * @param {number[]} nums

@@ -337,6 +337,8 @@ export default defineConfig({
                                     {text: '组件缓存', link: '/frameworks/vue/keepAlive'},
                                     {text: '传送门', link: '/frameworks/vue/teleport'},
                                     {text: '异步依赖边界管理器', link: '/frameworks/vue/suspense'},
+                                    {text: '路由', link: '/frameworks/vue/vueRouter'},
+                                    {text: 'TS与组合式API', link: '/frameworks/vue/composablesTs'},
                                 ]
                             },
                             {

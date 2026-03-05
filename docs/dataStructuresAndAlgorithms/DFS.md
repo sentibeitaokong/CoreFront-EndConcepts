@@ -34,7 +34,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 #### JavaScript 代码实现 (递归版前序遍历)
 
-```javascript
+```js
 /**
  * 二叉树前序遍历 (DFS - 根、左、右)
  * @param {TreeNode} root
@@ -66,7 +66,7 @@ function preorderTraversal(root) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 岛屿数量
  * @param {character[][]} grid

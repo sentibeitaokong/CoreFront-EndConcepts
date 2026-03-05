@@ -24,7 +24,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 所有的回溯问题都可以抽象为一棵**决策树**的遍历过程（深度优先搜索 DFS）。掌握以下模板，几乎能套用所有回溯题：
 
-```javascript
+```js
 // 伪代码模板
 let result = []; // 全局结果集
 let path = [];   // 单个路径的收集数组
@@ -63,7 +63,7 @@ function backtrack(参数集) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 全排列
  * @param {number[]} nums
@@ -112,7 +112,7 @@ function permute(nums) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 组合总和
  * @param {number[]} candidates
@@ -166,7 +166,7 @@ function combinationSum(candidates, target) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 子集
  * @param {number[]} nums

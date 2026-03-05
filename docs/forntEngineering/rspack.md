@@ -31,7 +31,7 @@ Rspack 的配置文件通常命名为 `rspack.config.js`。如果你熟悉 Webpa
 
 ### 2.1 现代 Rspack 标准配置模板 (React + TS + Less 示例)
 
-```javascript
+```js
 // rspack.config.js
 const path = require('path');
 const rspack = require('@rspack/core'); // 引入 rspack 核心包
@@ -120,7 +120,7 @@ module.exports = {
 
 在本地开发时，我们需要启动一个服务器，支持页面自动刷新、热模块替换（HMR）以及解决接口跨域问题。Rspack 的 `devServer` 配置与 Webpack Dev Server 几乎 100% 兼容。
 
-```javascript
+```js
 module.exports = {
   // ...前面的基础配置
   
@@ -157,7 +157,7 @@ module.exports = {
 在传统的 Webpack 项目中，`TerserPlugin`（压缩 JS）和 `CssMinimizerPlugin`（压缩 CSS）是拖慢生产环境构建速度的绝对罪魁祸首。
 Rspack 在内部集成了基于 Rust 的强力压缩引擎（SWC 和 Lightning CSS），你只需要使用官方提供的内置插件，即可实现**10倍以上的压缩提速**。
 
-```javascript
+```js
 // rspack.config.js (生产环境配置)
 const rspack = require('@rspack/core');
 
@@ -186,7 +186,7 @@ module.exports = {
 
 将所有代码打进一个大包会导致首屏白屏。Rspack 的 `splitChunks` 配置 API 与 Webpack 5 完全保持一致。
 
-```javascript
+```js
 module.exports = {
   // ...
   optimization: {
@@ -233,7 +233,7 @@ module.exports = {
 假设我们有两个独立的项目：`Host`（基座应用）和 `Remote`（微应用）。`Remote` 想暴露出一个 `Button` 组件给 `Host` 使用。
 
 **1. 远程应用 (Remote) 配置：暴露组件**
-```javascript
+```js
 // remote/rspack.config.js
 const { ModuleFederationPlugin } = require('@rspack/core').container;
 
@@ -258,7 +258,7 @@ module.exports = {
 ```
 
 **2. 基座应用 (Host) 配置：消费组件**
-```javascript
+```js
 // host/rspack.config.js
 const { ModuleFederationPlugin } = require('@rspack/core').container;
 
@@ -319,7 +319,7 @@ module.exports = {
 ### 5.6 如果 Rspack 默认只用 `builtin:swc-loader`，那遇到老旧浏览器的兼容性要求怎么办？
 *   **答**：`swc-loader` 完全具备类似于 Babel 的语法降级能力。
     *   你只需在 `swc-loader` 的 `options` 中配置 `env: { targets: "..." }` 属性。
-    ```javascript
+    ```js
     use: {
       loader: 'builtin:swc-loader',
       options: {

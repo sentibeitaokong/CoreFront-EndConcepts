@@ -93,7 +93,7 @@ Vuex 已经被官方软性淘汰，Pinia 是现在唯一的标准。
 *   **答**：这是 Vue 面试最高频考点之一。
     *   **底层机制**：Vue 的 DOM 更新是**异步**的。当你执行 `this.msg = '新内容'` 时，DOM 并没有立刻改变。Vue 开启了一个异步微任务队列，把所有的状态修改汇总起来（去重合并），在下一次 Event Loop 的时机才会统一去更新真实 DOM。
     *   **如何避坑**：如果你修改了数据，且立刻需要基于更新后的 DOM 进行操作（比如让刚显示出来的输入框 focus），必须把 DOM 操作写在 `$nextTick` 的回调函数里：
-    ```javascript
+    ```js
     this.showInput = true;
     this.$nextTick(() => {
       this.$refs.myInput.focus(); // 此时真实 DOM 已经更新完毕，绝对安全

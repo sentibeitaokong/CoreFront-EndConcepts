@@ -132,7 +132,7 @@ function reactive(obj) {
 
 ### 3.1 `unref`：安全解包
 当你不知道传入的 `val` 到底是一个 `ref` 还是一个普通字符串时：
-```javascript
+```js
 import { ref, unref } from 'vue'
 
 const countRef = ref(10)
@@ -146,7 +146,7 @@ console.log(unref(normalCount))// 20
 ### 3.2 `toRefs` 与 `toRef`：解构不丢失响应式
 在组件通信中，如果你把 `props`（它本质上是一个 reactive 对象）直接解构，就会失去响应式。
 
-```javascript
+```js
 import { toRefs, toRef } from 'vue'
 
 // 假设传入的 props 为 { title: 'Hello', count: 1 }
@@ -170,7 +170,7 @@ export default {
 如果你的后台返回了一个包含 10 万个元素的巨大 JSON 数组用来渲染一个 Table 表格，而且你**绝不会去单独修改数组里某一个元素的某个属性**（只会重新请求接口把整个数组替换掉）。
 如果用 `ref`，Vue 会非常吃力地递归遍历这 10 万个元素去加上 Proxy。
 
-```javascript
+```js
 import { shallowRef } from 'vue'
 
 // 浅层 ref：只有 .value 被重新赋值时才会触发视图更新
@@ -191,7 +191,7 @@ setTimeout(() => {
 当你在 Vue 组件里引入了一个极其复杂的第三方库实例（比如 ECharts 的 `myChart` 实例，或者 Three.js 的 `Scene` 对象）。
 你绝对不希望 Vue 用 Proxy 去劫持这个庞大且内部逻辑错综复杂的第三方对象，这会导致严重的性能崩溃甚至库报错。
 
-```javascript
+```js
 import { markRaw, reactive } from 'vue'
 import * as echarts from 'echarts'
 
@@ -212,7 +212,7 @@ state.chartInstance = markRaw(chart)
 ### 3.5 `toRaw`：返回代理的原始对象。
 这是一个可以用于临时读取而不引起代理访问/跟踪开销，或是写入而不触发更改的特殊方法。不建议保存对原始对象的持久引用，请谨慎使用。
 
-```javascript
+```js
 const foo = {}
 const reactiveFoo = reactive(foo)
 
@@ -222,7 +222,7 @@ console.log(toRaw(reactiveFoo) === foo) // true
 ### 3.6 `readonly`：单向数据流的钢铁卫士
 当你想把顶层组件的内部状态通过 `provide` 传递给极其深层的子组件时，为了防止子组件不守规矩直接乱改你的状态，你需要给它穿上“防弹衣”。
 
-```javascript
+```js
 import { reactive, readonly, provide } from 'vue'
 
 const state = reactive({ count: 0 })
@@ -243,7 +243,7 @@ provide('sharedState', readonlyState)
 *   **答**：**会瞬间永久失去响应式！**
     *   **原理**：`reactive` 的响应式依赖于外部的那个 `Proxy` 壳子。当你执行 `let { count } = state` 时，这相当于把一个普通的数字 `0` 复制给了局部变量 `count`。它已经和原来的 Proxy 壳子物理断开了连接。你再修改 `count`，视图绝对不会更新。
     *   **避坑方案 (toRefs)**：如果你非要解构，必须使用 Vue 提供的 `toRefs` 工具函数。它会把对象里的每个属性都变成一个独立的 `ref`。
-    ```javascript
+    ```js
     import { reactive, toRefs } from 'vue'
     const state = reactive({ count: 0, name: 'Alice' })
     

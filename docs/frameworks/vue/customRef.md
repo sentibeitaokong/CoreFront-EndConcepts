@@ -18,7 +18,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 `customRef` 是一个极其底层的 API。它接收一个工厂函数，并**必须返回一个带有 `get()` 和 `set()` 方法的对象**。
 
-```javascript
+```js
 // customRef 的核心函数签名
 import { customRef } from 'vue'
 
@@ -44,7 +44,7 @@ const myRef = customRef((track, trigger) => {
 
 **第一步：编写 `useDebouncedRef` 组合式函数**
 
-```javascript
+```js
 // src/composables/useDebouncedRef.js
 import { customRef } from 'vue'
 
@@ -130,7 +130,7 @@ watch(text, (newVal) => {
 ### 3.4 怎么写一个“只执行一次”的 lazy-load ref？
 *   **答**：利用 `customRef` 的按需拦截特性。
     *   你可以在 `get()` 被第一次调用时，去 `fetch` 网络请求。拿到数据后再 `trigger()` 通知页面更新。这样只要这个变量没被用到，就永远不会发请求，节省极大带宽。
-```javascript
+```js
 export function useLazyFetch(url) {
   let value = null;
   let fetched = false;

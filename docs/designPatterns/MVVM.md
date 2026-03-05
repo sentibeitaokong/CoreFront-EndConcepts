@@ -65,7 +65,7 @@ MVVM 与 MVC/MVP 的**本质区别**在于 ViewModel 内部包含了一个强大
 </div>
 ```
 
-```javascript
+```js
 // Model 数据层
 const data = { message: 'Hello MVVM' };
 

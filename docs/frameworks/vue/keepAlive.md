@@ -218,7 +218,7 @@ onUnmounted(() => {
 *   **答**：因为 `<KeepAlive>` **只负责缓存 Vue 实例的内存状态数据，它不管原生浏览器 DOM 滚动条的事。**
     *   **原因**：当你切走时，原来的 DOM 虽然没被销毁（被暂时移出文档流，挂在虚拟节点上），但浏览器的整个视口换成了新组件。当你再切回来时，DOM 重新插回文档流，浏览器会默认将其滚动高度重置为 0。
     *   **终极解法 (Vue Router 提供)**：不要自己手动在 `onActivated` 里去写丑陋的 `window.scrollTo`。应该在 Vue Router 初始化时，利用官方提供的 **`scrollBehavior`** 配置项。它会在背后自动为你接管所有历史页面的像素级精确滚动位置管理。
-    ```javascript
+    ```js
     const router = createRouter({
       history: createWebHistory(),
       routes: [...],

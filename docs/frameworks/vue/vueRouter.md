@@ -2,13 +2,9 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# Vue Router 架构深度剖析与企业级实战
+# Vue Router 架构
 
 Vue Router 是 Vue 官方的路由管理器。在大型单页应用（SPA）中，它不仅仅负责“页面跳转”，更是**掌控整个应用状态机、权限边界和渲染性能的指挥中枢**。
-
-本文将从底层物理机制到企业级权限架构，对 Vue Router 进行最深度的剥析。
-
----
 
 ## 1. 底层路由模式：Hash vs History
 
@@ -24,6 +20,75 @@ Vue Router 提供了两种截然不同的底层物理实现来实现这一诉求
 *   **优点**：前端完全独立，兼容性极好（甚至支持 IE8），部署极其简单（丢到任何静态服务器或 CDN 都能直接跑）。
 *   **缺点**：太丑了！且在做微信分享、第三方回调（如 OAuth 登录）时，某些平台会自动过滤掉 `#` 号后面的内容，导致业务阻断。
 
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hash Router Demo</title>
+</head>
+<body>
+    <h1>Hash 模式路由</h1>
+    <nav>
+        <!-- 核心：链接使用 # 开头 -->
+        <a href="#/home">首页</a>
+        <a href="#/about">关于</a>
+    </nav>
+    <div id="app"></div>
+
+    <script>
+        class HashRouter {
+            constructor() {
+                // 存储路由配置：path -> callback
+                this.routes = {};
+                // 当前路由 URL
+                this.currentUrl = '';
+                
+                // 绑定 this，确保回调中 this 指向实例
+                this.refresh = this.refresh.bind(this);
+
+                // 监听页面加载（首次进入）
+                window.addEventListener('load', this.refresh);
+                // 监听 Hash 变化
+                window.addEventListener('hashchange', this.refresh);
+            }
+
+            // 注册路由
+            route(path, callback) {
+                this.routes[path] = callback || function() {};
+            }
+
+            // 刷新页面（核心逻辑）
+            refresh() {
+                // 获取当前 hash，去掉 # 号。如果没有 hash 默认为 /
+                this.currentUrl = location.hash.slice(1) || '/';
+                
+                // 执行对应的回调函数渲染视图
+                if(this.routes[this.currentUrl]) {
+                    this.routes[this.currentUrl]();
+                } else {
+                    console.log('404 Not Found');
+                    document.getElementById('app').innerHTML = '404';
+                }
+            }
+        }
+
+        // --- 使用示例 ---
+        const router = new HashRouter();
+        const app = document.getElementById('app');
+
+        router.route('/home', () => {
+            app.innerHTML = '<h2>我是首页内容</h2>';
+        });
+
+        router.route('/about', () => {
+            app.innerHTML = '<h2>我是关于页面</h2>';
+        });
+    </script>
+</body>
+</html>
+```
+
 ### 1.2 History 模式 (`createWebHistory`)
 *   **外观表现**：URL 干净漂亮，和传统的后端路由一模一样。例如 `https://www.app.com/user/profile`。
 *   **底层原理**：
@@ -34,7 +99,94 @@ Vue Router 提供了两种截然不同的底层物理实现来实现这一诉求
     *   浏览器此时会老老实实地拿着 `https://www.app.com/user/profile` 这个完整路径去向服务器（Nginx）发起真正的 GET 请求。
     *   服务器上只有前端打包出来的一个 `index.html`，根本没有 `/user/profile` 这个文件夹！服务器必然无情地抛出 **404 Not Found** 报错页面。
 
-### 1.3 🚀 终极解药：Nginx 兜底配置 (History 模式必配)
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>History Router Demo</title>
+</head>
+<body>
+    <h1>History 模式路由</h1>
+    <nav>
+        <!-- 链接是正常的路径 -->
+        <a href="/home" class="link">首页</a>
+        <a href="/about" class="link">关于</a>
+    </nav>
+    <div id="app"></div>
+
+    <script>
+        class HistoryRouter {
+            constructor() {
+                this.routes = {};
+                this.bindPopState();
+                this.bindLinkClick(); // 拦截 a 标签点击
+            }
+
+            // 注册路由
+            route(path, callback) {
+                this.routes[path] = callback || function() {};
+            }
+
+            // 核心：处理路由跳转
+            push(path) {
+                // 1. 修改浏览器地址栏，但不刷新页面
+                window.history.pushState({}, null, path);
+                // 2. 手动更新视图
+                this.render(path);
+            }
+
+            // 监听浏览器的前进/后退
+            bindPopState() {
+                window.addEventListener('popstate', (e) => {
+                    const path = location.pathname;
+                    this.render(path);
+                });
+            }
+
+            // 拦截全局 A 标签点击事件 (为了阻止默认刷新行为)
+            bindLinkClick() {
+                window.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'A' && e.target.classList.contains('link')) {
+                        e.preventDefault(); // 阻止 A 标签默认跳转刷新
+                        const path = e.target.getAttribute('href');
+                        this.push(path); // 使用 API 跳转
+                    }
+                });
+            }
+
+            // 渲染视图
+            render(path) {
+                if (this.routes[path]) {
+                    this.routes[path]();
+                } else {
+                    document.getElementById('app').innerHTML = '404';
+                }
+            }
+        }
+
+        // --- 使用示例 ---
+        const router = new HistoryRouter();
+        const app = document.getElementById('app');
+
+        router.route('/home', () => {
+            app.innerHTML = '<h2>Home Page (History Mode)</h2>';
+        });
+
+        router.route('/about', () => {
+            app.innerHTML = '<h2>About Page (History Mode)</h2>';
+        });
+        
+        // 初始化渲染（处理页面刚加载时的情况）
+        window.addEventListener('load', () => {
+             router.render(location.pathname);
+        });
+    </script>
+</body>
+</html>
+```
+
+### 1.3 Nginx 兜底配置 (History 模式必配)
 
 为了拯救 History 模式的 404 危机，我们必须赋予 Nginx（或其他服务器）一种“耍赖”的能力：
 
@@ -59,14 +211,12 @@ server {
 ```
 **运行机制**：Nginx 把 `index.html` 塞给用户浏览器 -> 浏览器加载里面的 JS -> Vue Router 初始化接管兵权 -> Router 读取当前地址栏的 `/user/profile` -> 在前端映射表中查到对应组件 -> 瞬间渲染出该页面！完美地骗过了浏览器。
 
----
-
 ## 2. 路由的高阶排兵布阵
 
 ### 2.1 动态路由 (Dynamic Routing)
 当我们需要渲染同一类型但数据不同的页面时（比如成千上万个用户的详情页），不可能写一万个路由配置。我们需要使用“动态路径参数”。
 
-```javascript
+```js
 const routes = [
   // 路径中的冒号 ':' 表示这是一个动态参数，它会被映射到组件内部
   { path: '/user/:id', component: UserDetail },
@@ -86,7 +236,7 @@ console.log(route.params.id) // 输出: '9527'
 ### 2.2 嵌套路由 (Nested Routes)
 现代企业级应用（如后台管理系统）普遍采用“母子嵌套”结构。外层是一个永远不变的骨架（Header + 侧边栏 Menu），内部是一个巨大的画框，随着左侧菜单点击不断切换内容。
 
-```javascript
+```js
 const routes = [
   {
     path: '/dashboard',
@@ -119,7 +269,7 @@ const routes = [
 
 ### 3.1 全局前置守卫 (`beforeEach`) 实战：登录拦截模型
 
-```javascript
+```js
 // router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '@/store/user' // 假设使用了 Pinia
@@ -170,7 +320,7 @@ router.beforeEach(async (to, from) => {
 *   **答**：这是 Vue 极其聪明的“组件复用机制”导致的新手大坑。
     *   **原因**：Vue 发现你从 A 页面跳到 B 页面，用的居然是**同一个 Vue 组件文件**（`UserDetail.vue`）。为了榨干性能，它决定**不销毁也不重新创建这个组件**，仅仅在内部更新一下 `route.params.id` 的值。既然不创建，那 `onMounted` 等钩子自然就成了死人。
     *   **终极解法 A (监听)**：在组件内部使用 `watch` 监听参数变化。
-        ```javascript
+        ```js
         import { watch } from 'vue'
         import { useRoute } from 'vue-router'
         const route = useRoute()
@@ -195,7 +345,7 @@ router.beforeEach(async (to, from) => {
 ### 4.3 `history` 模式下，Nginx 除了配置 `try_files`，如果是部署在子目录下该怎么办？
 *   **答**：如果你的前端项目不是部署在域名的根目录，而是部署在 `https://www.app.com/my-project/` 下，你必须在两处同时动刀：
     1.  **Vue Router 配置修改**：传入基础路径给 History 引擎。
-        ```javascript
+        ```js
         const router = createRouter({
           // 传入基础路径！
           history: createWebHistory('/my-project/'),

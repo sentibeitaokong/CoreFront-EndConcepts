@@ -41,7 +41,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 #### 代码实现 (基础版 O(n) 空间)
 
-```javascript
+```js
 /**
  * 爬楼梯 - 基础 DP
  * @param {number} n
@@ -66,7 +66,7 @@ function climbStairs(n) {
 
 由于 `dp[i]` 仅仅依赖于前面的两个状态，我们其实不需要维护一个长数组，只需要两个变量滚动记录即可。
 
-```javascript
+```js
 /**
  * 爬楼梯 - 状态压缩 (推荐)
  */
@@ -99,7 +99,7 @@ function climbStairsOptimized(n) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 最大子数组和
  * @param {number[]} nums
@@ -146,7 +146,7 @@ function maxSubArrayOptimized(nums) {
 
 #### JavaScript 代码实现
 
-```javascript
+```js
 /**
  * 零钱兑换 (完全背包问题变种)
  * @param {number[]} coins 硬币面值数组

@@ -34,7 +34,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ### 2.1 Model 层 (数据与业务逻辑)
 Model 是唯一拥有状态的地方。为了能通知 View 刷新，我们需要实现一个简单的发布-订阅 (Observer) 机制。
 
-```javascript
+```js
 class CounterModel {
   constructor() {
     this.count = 0; // 核心数据
@@ -73,7 +73,7 @@ class CounterModel {
 ### 2.2 View 层 (纯粹的渲染)
 View 接收 DOM 元素，并提供渲染数据的方法。它也负责将用户的 DOM 事件**委托**给 Controller。
 
-```javascript
+```js
 class CounterView {
   constructor() {
     // 假设 HTML 中有这三个元素：<div id="app"> 包含 <span id="value">, <button id="inc">, <button id="dec">
@@ -103,7 +103,7 @@ class CounterView {
 ### 2.3 Controller 层 (居中协调)
 Controller 把 Model 和 View 实例化，并将它们连接起来。
 
-```javascript
+```js
 class CounterController {
   constructor(model, view) {
     this.model = model;

@@ -19,7 +19,7 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 Vite 的配置以极简著称，通常位于根目录的 `vite.config.js` 或 `vite.config.ts`。
 
-```javascript
+```js
 import { defineConfig, loadEnv } from 'vite';
 import vue from '@vitejs/plugin-vue'; // 或 @vitejs/plugin-react
 import path from 'path';
@@ -73,7 +73,7 @@ export default defineConfig(({ command, mode }) => {
 **痛点**：Vite 是基于 ESM 的，但 `node_modules` 里有很多包依然是 CommonJS 规范（如 React）；且某些包包含成百上千个小文件（如 lodash-es）。如果不处理，浏览器会瞬间发起几千个 HTTP 请求，直接卡死。
 **原理**：Vite 在首次启动时，会用 esbuild 把这些依赖提前抓取，转成单一的 ESM 模块并缓存起来。这就是**依赖预构建 (Pre-bundling)**。
 
-```javascript
+```js
 // vite.config.js
 export default defineConfig({
   optimizeDeps: {
@@ -92,7 +92,7 @@ export default defineConfig({
 
 默认情况下，Vite 生产打包会把所有的依赖全塞进一个 `index-[hash].js` 中，导致首屏加载极慢。我们必须利用底层的 `rollupOptions` 进行代码分割。
 
-```javascript
+```js
 // vite.config.js
 export default defineConfig({
   build: {
@@ -128,7 +128,7 @@ export default defineConfig({
 
 ### 3.3 生产环境瘦身：剔除 console 与 Gzip 压缩
 
-```javascript
+```js
 import viteCompression from 'vite-plugin-compression';
 
 export default defineConfig({
@@ -170,7 +170,7 @@ export default defineConfig({
 
 ### 4.3 `require.context` (批量导入文件) 在 Vite 里不能用了怎么办？
 *   **答**：`require.context` 是 Webpack 独创的 API。在 Vite 中，你需要使用它的官方替代品：**`import.meta.glob`**。
-    ```javascript
+    ```js
     // Vite 批量导入某个目录下的所有 vue 组件
     // eager: true 表示同步直接引入；不写 eager 则是按需懒加载 (返回 Promise)
     const modules = import.meta.glob('./components/*.vue', { eager: true });
