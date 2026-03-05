@@ -148,6 +148,126 @@ watchEffect(async () => {
 })
 ```
 
+### 3.4 一次性侦听器
+
+每当被侦听源发生变化时，侦听器的回调就会执行。如果希望回调只在源变化时触发一次，请使用 once: true 选项。(仅支持 3.4 及以上版本)
+
+```js
+watch(
+  source,
+  (newValue, oldValue) => {
+    // 当 `source` 变化时，仅触发一次
+  },
+  { once: true }
+)
+```
+
+### 3.5 副作用清理
+
+但是如果在请求完成之前 id 发生了变化怎么办？当上一个请求完成时，它仍会使用已经过时的 ID 值触发回调。理想情况下，我们希望能够在 id 变为新值时取消过时的请求。
+我们可以使用 `onWatcherCleanup()`(`Vue 3.5+` 中支持) 来注册一个清理函数，当侦听器失效并准备重新运行时会被调用,并且必须在 `watchEffect` 效果函数或 `watch` 回调函数的**同步**执行期间调用：你不能在异步函数的 `await` 语句之后调用它。
+
+```js
+import { watch, onWatcherCleanup } from 'vue'
+
+watch(id, (newId) => {
+  const controller = new AbortController()
+
+  fetch(`/api/${newId}`, { signal: controller.signal }).then(() => {
+    // 回调逻辑
+  })
+
+  onWatcherCleanup(() => {
+    // 终止过期请求
+    controller.abort()
+  })
+})
+```
+
+作为替代，`onCleanup`(`Vue 3.5`之前版本都支持) 函数还作为第三个参数传递给侦听器回调，以及 `watchEffect` 作用函数的第一个参数：
+
+```js
+watch(id, (newId, oldId, onCleanup) => {
+  // ...
+  onCleanup(() => {
+    // 清理逻辑
+  })
+})
+
+watchEffect((onCleanup) => {
+  // ...
+  onCleanup(() => {
+    // 清理逻辑
+  })
+})
+```
+
+### 3.6 异步侦听器(Post Watchers)
+如果想在侦听器回调中能访问被 Vue 更新之后的所属组件的 DOM，你需要指明 `flush: 'post'` 选项：
+
+```js
+watch(source, callback, {
+  flush: 'post'
+})
+
+watchEffect(callback, {
+  flush: 'post'
+})
+
+//简写
+import { watchPostEffect } from 'vue'
+
+watchPostEffect(() => {
+    /* 在 Vue 更新后执行 */
+})
+```
+
+### 3.7 同步侦听器(sync Watchers)
+
+```js
+watch(source, callback, {
+  flush: 'sync'
+})
+
+watchEffect(callback, {
+  flush: 'sync'
+})
+
+//简写
+import { watchSyncEffect } from 'vue'
+
+watchSyncEffect(() => {
+    /* 在响应式数据变化时同步执行 */
+})
+```
+
+###  3.8 停止侦听器
+
+一个关键点是，侦听器必须用同步语句创建：如果用异步回调创建一个侦听器，那么它不会绑定到当前组件上，你必须手动停止它，以防内存泄漏。如下方这个例子：
+
+```js
+<script setup>
+import { watchEffect } from 'vue'
+
+// 它会自动停止
+watchEffect(() => {})
+
+// ...这个则不会！
+setTimeout(() => {
+  watchEffect(() => {})
+}, 100)
+</script>
+```
+
+要手动停止一个侦听器，请调用 `watch` 或 `watchEffect` 返回的函数：
+
+```js
+const unwatch = watchEffect(() => {})
+
+// ...当该侦听器不再需要时
+unwatch()
+```
+
 ## 4. 常见问题 (FAQ) 与避坑指南
 
 ### 4.1 计算属性 (Computed) 里可以发起 Axios 请求吗？

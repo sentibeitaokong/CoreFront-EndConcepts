@@ -21,16 +21,18 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 ```JS
 // 伪代码，不是真正的实现
-const myRef = {
-  _value: 0,
-  get value() {
-    track()
-    return this._value
-  },
-  set value(newValue) {
-    this._value = newValue
-    trigger()
-  }
+function ref(value) {
+    const refObject = {
+        get value() {
+            track(refObject, 'value')
+            return value
+        },
+        set value(newValue) {
+            value = newValue
+            trigger(refObject, 'value')
+        }
+    }
+    return refObject
 }
 ```
 
@@ -70,6 +72,24 @@ function increment() {
 ### 2.2 `reactive()`：对象属性的深层代理
 
 `reactive()` 使一个对象本身具有响应性。它是深层代理的：当对象的嵌套属性发生变化时，也会触发更新。
+
+```js
+// 伪代码，不是真正的实现
+function reactive(obj) {
+  return new Proxy(obj, {
+    get(target, key) {
+      track(target, key)
+      return target[key]
+    },
+    set(target, key, value) {
+      target[key] = value
+      trigger(target, key)
+    }
+  })
+}
+```
+
+**示例**
 
 ```vue
 <script setup>

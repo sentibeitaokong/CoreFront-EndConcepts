@@ -325,6 +325,18 @@ export default defineConfig({
                                     {text: '模板语法', link: '/frameworks/vue/templateSyntax'},
                                     {text: '响应式状态', link: '/frameworks/vue/reactivityFundamentals'},
                                     {text: '响应式状态派生', link: '/frameworks/vue/computedAndWatch'},
+                                    {text: '模板引用', link: '/frameworks/vue/templateRefs'},
+                                    {text: '生命周期', link: '/frameworks/vue/lifecycleHooks'},
+                                    {text: '组件通信', link: '/frameworks/vue/componentCommunication'},
+                                    {text: '异步组件', link: '/frameworks/vue/asyncComponents'},
+                                    {text: '组合式函数', link: '/frameworks/vue/customHooks'},
+                                    {text: '自定义指令', link: '/frameworks/vue/customDirectives'},
+                                    {text: '自定义Ref', link: '/frameworks/vue/customRef'},
+                                    {text: '插件', link: '/frameworks/vue/plugins'},
+                                    {text: '过渡', link: '/frameworks/vue/transition'},
+                                    {text: '组件缓存', link: '/frameworks/vue/keepAlive'},
+                                    {text: '传送门', link: '/frameworks/vue/teleport'},
+                                    {text: '异步依赖边界管理器', link: '/frameworks/vue/suspense'},
                                 ]
                             },
                             {
