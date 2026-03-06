@@ -730,7 +730,7 @@ let aWithXGetter = { ...a }; // 报错
 
 这些方法直接通过 Object. 调用。
 
-### 2.1 Object.is()
+### Object.is()
 
 ES5 比较两个值是否相等，只有两个运算符：相等运算符（`==`）和严格相等运算符（`===`）。它们都有缺点，前者会自动转换数据类型，后者的`NaN`不等于自身，以及`+0`等于`-0`。JavaScript 缺乏一种运算，在所有环境中，只要两个值是一样的，它们就应该相等。
 
@@ -771,7 +771,7 @@ Object.defineProperty(Object, 'is', {
 });
 ```
 
-###  2.2 Object.assign()
+###  Object.assign()
 
 `Object.assign()`方法用于对象的合并，将源对象（source）的所有可枚举属性，复制到目标对象（target）。
 
@@ -1032,7 +1032,7 @@ processContent({ url: {port: 8000} })
 
 上面代码的原意是将`url.port`改成 8000，`url.host`不变。实际结果却是`options.url`覆盖掉`DEFAULTS.url`，所以`url.host`就不存在了。
 
-### 2.3 Object.keys()
+### Object.keys()
 
 ES5 引入了`Object.keys`方法，返回一个数组，成员是参数对象自身的（不含继承的）所有可遍历（enumerable）属性的键名。
 
@@ -1061,7 +1061,7 @@ for (let [key, value] of entries(obj)) {
 }
 ```
 
-### 2.4 Object.values()
+### Object.values()
 
 `Object.values`方法返回一个数组，成员是参数对象自身的（不含继承的）所有可遍历（enumerable）属性的键值。
 
@@ -1123,7 +1123,7 @@ Object.values(42) // []
 Object.values(true) // []
 ```
 
-### 2.5 Object.entries()
+### Object.entries()
 
 `Object.entries()`方法返回一个数组，成员是参数对象自身的（不含继承的）所有可遍历（enumerable）属性的键值对数组。
 
@@ -1185,7 +1185,7 @@ function entries(obj) {
 }
 ```
 
-###  2.6 Object.fromEntries()
+###  Object.fromEntries()
 
 `Object.fromEntries()`方法是`Object.entries()`的逆操作，用于将一个键值对数组转为对象。
 
@@ -1222,7 +1222,7 @@ Object.fromEntries(new URLSearchParams('foo=bar&baz=qux'))
 // { foo: "bar", baz: "qux" }
 ```
 
-###  2.7 Object.hasOwn()
+###  Object.hasOwn()
 
 JavaScript 对象的属性分成两种：自身的属性和继承的属性。对象实例有一个`hasOwnProperty()`方法，可以判断某个属性是否为原生属性。ES2022 在`Object`对象上面新增了一个静态方法[`Object.hasOwn()`](https://github.com/tc39/proposal-accessible-object-hasownproperty)，也可以判断是否为自身的属性。
 
@@ -1249,7 +1249,7 @@ Object.hasOwn(obj, 'foo') // false
 
 上面示例中，`Object.create(null)`返回的对象`obj`是没有原型的，不继承任何属性，这导致调用`obj.hasOwnProperty()`会报错，但是`Object.hasOwn()`就能正确处理这种情况。
 
-###  2.8 Object.getOwnPropertyDescriptors()
+###  Object.getOwnPropertyDescriptors()
 
 ES5 的`Object.getOwnPropertyDescriptor()`方法会返回某个对象属性的描述对象（descriptor）。ES2017 引入了`Object.getOwnPropertyDescriptors()`方法，返回指定对象所有自身属性（非继承属性）的描述对象。
 
@@ -1470,7 +1470,7 @@ Object.getPrototypeOf({ __proto__: null })
 // null
 ```
 
-###  2.9 Object.setPrototypeOf()
+###  Object.setPrototypeOf()
 
 `Object.setPrototypeOf`方法的作用与`__proto__`相同，用来设置一个对象的原型对象（prototype），返回参数对象本身。它是 ES6 正式推荐的设置原型对象的方法。
 
@@ -1526,7 +1526,7 @@ Object.setPrototypeOf(null, {})
 // TypeError: Object.setPrototypeOf called on null or undefined
 ```
 
-### 2.10 Object.getPrototypeOf()
+### Object.getPrototypeOf()
 
 该方法与`Object.setPrototypeOf`方法配套，用于读取一个对象的原型对象。
 
@@ -1583,26 +1583,26 @@ Object.getPrototypeOf(undefined)
 
 ## **3. 常见问题与陷阱 (FAQ)**
 
-*   **Q1: `Object.assign` 和扩展运算符 `...` 是深拷贝吗？**
-    *   **不是，它们都是浅拷贝**。如果属性值是对象，拷贝的只是引用。如果需要深拷贝，请使用 `structuredClone()` (现代浏览器) 或 `JSON.parse(JSON.stringify())` 或 Lodash `_.cloneDeep()`。
+### 3.1 `Object.assign` 和扩展运算符 `...` 是深拷贝吗？
+*   **不是，它们都是浅拷贝**。如果属性值是对象，拷贝的只是引用。如果需要深拷贝，请使用 `structuredClone()` (现代浏览器) 或 `JSON.parse(JSON.stringify())` 或 Lodash `_.cloneDeep()`。
 
-*   **Q2: 扩展运算符 `...` 和 `Object.assign` 有区别吗？**
+### 3.2 扩展运算符 `...` 和 `Object.assign` 有区别吗？
 
-    *   **`Object.assign`**: 会触发目标对象的 `setters`。
-    *   **扩展运算符**: 定义新的属性，**不会**触发 `setters`。
-    *   在绝大多数简单合并场景下，两者效果一致，推荐使用更简洁的 `...`。
+*   **`Object.assign`**: 会触发目标对象的 `setters`。
+*   **扩展运算符**: 定义新的属性，**不会**触发 `setters`。
+*   在绝大多数简单合并场景下，两者效果一致，推荐使用更简洁的 `...`。
 
-*   **Q3: 为什么 `Object.keys` 不返回 Symbol 属性？**
-    *   `Object.keys`、`Object.values`、`for...in` 循环都会**忽略 Symbol 属性**。
-    *   如果要获取 Symbol 属性，需要使用 `Object.getOwnPropertySymbols(obj)`。
-    *   如果要获取所有属性（包括 String 和 Symbol），可以使用 `Reflect.ownKeys(obj)`。
+### 3.3 为什么 `Object.keys` 不返回 Symbol 属性？
+*   `Object.keys`、`Object.values`、`for...in` 循环都会**忽略 Symbol 属性**。
+*   如果要获取 Symbol 属性，需要使用 `Object.getOwnPropertySymbols(obj)`。
+*   如果要获取所有属性（包括 String 和 Symbol），可以使用 `Reflect.ownKeys(obj)`。
 
-*   **Q4: 如何遍历对象？哪种方式最好？**
-    *   **`for...in`**: 遍历自身和**继承**的可枚举属性。通常不推荐，除非你需要遍历原型链。
-    *   **`Object.keys(obj).forEach(...)`**: 遍历自身可枚举属性。常用。
-    *   **`for (const [key, val] of Object.entries(obj))`**: 现代、最推荐的遍历方式，可以直接解构键值。
+### 3.4 如何遍历对象？哪种方式最好？
+*   **`for...in`**: 遍历自身和**继承**的可枚举属性。通常不推荐，除非你需要遍历原型链。
+*   **`Object.keys(obj).forEach(...)`**: 遍历自身可枚举属性。常用。
+*   **`for (const [key, val] of Object.entries(obj))`**: 现代、最推荐的遍历方式，可以直接解构键值。
 
-*   **Q5: 什么是“可枚举性” (Enumerability)？**
-    *   对象的每个属性都有一个描述符 `enumerable`。如果为 `false`，该属性就不会出现在 `for...in` 循环和 `Object.keys()` 中。`class` 的原型方法默认就是不可枚举的。
+### 3.5 什么是“可枚举性” (Enumerability)？
+*   对象的每个属性都有一个描述符 `enumerable`。如果为 `false`，该属性就不会出现在 `for...in` 循环和 `Object.keys()` 中。`class` 的原型方法默认就是不可枚举的。
 
 

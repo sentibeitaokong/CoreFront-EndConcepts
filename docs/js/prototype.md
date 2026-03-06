@@ -609,34 +609,40 @@ p.__proto__.__proto__.__proto__ === null; // true
 | **7. 混入继承** | 灵活，功能组合 | 易属性冲突 | ★★★☆☆ |
 | **8. ES6 `extends`** | **语法简洁，现代 JS 最佳方案** | 只是语法糖 | ★★★★★ |
 
-*   **Q1: 为什么组合继承中，`constructor` 需要被修正？**
-    *  因为 `Dog.prototype = new Animal()` 这行代码，会用 `Animal` 的实例覆盖 `Dog` 的原型。`Animal` 实例的 `constructor` 指向 `Animal`，这导致 `Dog` 实例的 `constructor` 也错误地指向了 `Animal`。`Dog.prototype.constructor = Dog;` 就是为了把这个指向修正回来。
-
-*   **Q2: `Object.create()` 在继承中到底起了什么作用？**
-    *  在寄生组合式继承中，`Object.create(superType.prototype)` 创建了一个**新的空对象**，这个空对象的 `__proto__` 直接指向 `superType.prototype`。它完美地替代了 `new superType()`，既建立了原型链的链接，又**避免了执行父类的构造函数**，从而防止了在子类原型上创建多余的实例属性。
 
 ## **5. 常见问题 (FAQ)**
 
-*   **Q1: `__proto__` 和 `prototype` 的区别？**
-    *   `prototype` 是**函数**特有的属性，指向一个对象，用于存放实例共享的方法。
-    *   `__proto__` 是**每个对象**都有的属性（或内部链接），指向该对象的原型。
-    *   **关系**: `实例.__proto__ === 构造函数.prototype`
+### 5.1 `__proto__` 和 `prototype` 的区别？
 
-*   **Q2: 为什么修改一个实例的引用类型属性，会影响其他实例？（原型链继承的坑）**
-    *   如果父类的属性是引用类型（如 `colors` 数组），并且是通过原型链继承的，那么所有子类实例将**共享**同一个 `colors` 数组。
-        ```js
-        const dog1 = new Dog('d1');
-        const dog2 = new Dog('d2');
-        dog1.colors.push('brown');
-        console.log(dog2.colors); // ['black', 'white', 'brown'] (dog2 被影响了)
-        ```
-    *   **解决方案**: 使用**借用构造函数** (`Animal.call(this, ...)` )来继承自身属性。这样每个实例都会有自己独立的 `colors` 副本。
+*   `prototype` 是**函数**特有的属性，指向一个对象，用于存放实例共享的方法。
+*   `__proto__` 是**每个对象**都有的属性（或内部链接），指向该对象的原型。
+*   **关系**: `实例.__proto__ === 构造函数.prototype`
 
-*   **Q3: `instanceof` 是如何工作的？**
-    *   `A instanceof B` 检查的是 `B.prototype` 是否出现在 `A` 的**原型链**上。
+### 5.2 为什么修改一个实例的引用类型属性，会影响其他实例？（原型链继承的坑）
 
-*   **Q4: `Object.create(null)` 和 `{}` 有什么区别？**
-    *   `{}` (或 `new Object()`) 创建的对象，其原型是 `Object.prototype`。
-    *   `Object.create(null)` 创建一个**没有任何原型**的、纯粹的“字典”对象，它不会继承 `toString`, `hasOwnProperty` 等任何方法，非常干净。
+*   如果父类的属性是引用类型（如 `colors` 数组），并且是通过原型链继承的，那么所有子类实例将**共享**同一个 `colors` 数组。
+    ```js
+    const dog1 = new Dog('d1');
+    const dog2 = new Dog('d2');
+    dog1.colors.push('brown');
+    console.log(dog2.colors); // ['black', 'white', 'brown'] (dog2 被影响了)
+    ```
+*   **解决方案**: 使用**借用构造函数** (`Animal.call(this, ...)` )来继承自身属性。这样每个实例都会有自己独立的 `colors` 副本。
 
+### 5.3 `instanceof` 是如何工作的？
+
+*   `A instanceof B` 检查的是 `B.prototype` 是否出现在 `A` 的**原型链**上。
+
+### 5.4: `Object.create(null)` 和 `{}` 有什么区别？
+
+*   `{}` (或 `new Object()`) 创建的对象，其原型是 `Object.prototype`。
+*   `Object.create(null)` 创建一个**没有任何原型**的、纯粹的“字典”对象，它不会继承 `toString`, `hasOwnProperty` 等任何方法，非常干净。
+
+### 5.5 为什么组合继承中，`constructor` 需要被修正？
+
+*  因为 `Dog.prototype = new Animal()` 这行代码，会用 `Animal` 的实例覆盖 `Dog` 的原型。`Animal` 实例的 `constructor` 指向 `Animal`，这导致 `Dog` 实例的 `constructor` 也错误地指向了 `Animal`。`Dog.prototype.constructor = Dog;` 就是为了把这个指向修正回来。
+
+### 5.6 `Object.create()` 在继承中到底起了什么作用？
+
+*  在寄生组合式继承中，`Object.create(superType.prototype)` 创建了一个**新的空对象**，这个空对象的 `__proto__` 直接指向 `superType.prototype`。它完美地替代了 `new superType()`，既建立了原型链的链接，又**避免了执行父类的构造函数**，从而防止了在子类原型上创建多余的实例属性。
 

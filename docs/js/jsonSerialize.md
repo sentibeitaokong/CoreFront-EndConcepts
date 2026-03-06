@@ -173,48 +173,47 @@ console.log(eventObject.time instanceof Date); // true
 
 ## **3. 常见问题与技巧 (FAQ)**
 
-*   **Q1: 如何用 `JSON.stringify` 实现深拷贝？**
-    *   `const deepCopy = JSON.parse(JSON.stringify(originalObject));`
-    *   **重要**: 这是一个**有缺陷**的深拷贝。它简单快捷，但无法处理函数、`undefined`、`Date`、循环引用等情况。只应用于纯粹的、JSON 安全的数据。
+### 3.1 如何用 `JSON.stringify` 实现深拷贝？
+*   `const deepCopy = JSON.parse(JSON.stringify(originalObject));`
+*   **重要**: 这是一个**有缺陷**的深拷贝。它简单快捷，但无法处理函数、`undefined`、`Date`、循环引用等情况。只应用于纯粹的、JSON 安全的数据。
 
-*   **Q2: 如何处理 `BigInt` 的序列化？**
-    *   `BigInt` 默认不支持。你需要通过 `replacer` 或修改 `BigInt.prototype.toJSON` 来实现。
-    ```js
-    // 方法一：修改原型 (会影响全局)
-    BigInt.prototype.toJSON = function() {
-      return this.toString();
+### 3.2 如何处理 `BigInt` 的序列化？
+*   `BigInt` 默认不支持。你需要通过 `replacer` 或修改 `BigInt.prototype.toJSON` 来实现。
+```js
+// 方法一：修改原型 (会影响全局)
+BigInt.prototype.toJSON = function() {
+  return this.toString();
+};
+console.log(JSON.stringify({ value: 123n })); // '{"value":"123"}'
+
+// 方法二：使用 replacer (更安全)
+const replacer = (key, value) => {
+  return typeof value === 'bigint' ? value.toString() : value;
+};
+```
+
+### 3.3 为什么 `JSON.parse()` 报错 `SyntaxError: Unexpected token`？
+*  **键名**是否用了双引号 `"`。
+*  字符串值是否用了双引号 `"`。
+*  对象或数组的末尾是否有多余的**逗号**。
+*  字符串中是否有未正确转义的特殊字符（如换行符）。
+
+### 3.4  `JSON.stringify` 有性能问题吗？
+*   是的。对于非常巨大的对象（几 MB 或几十 MB），`JSON.stringify` 是一个**同步的、阻塞的操作**。在主线程上执行它可能会导致页面卡顿。对于大数据，可以考虑使用 `Web Worker` 在后台线程中进行序列化，或者使用流式 (streaming) JSON 库。
+
+### 3.5 `toJSON()` 方法有什么用？
+*   如果一个对象有自己的 `toJSON()` 方法，那么 `JSON.stringify()` 在序列化这个对象时，会**优先调用这个 `toJSON()` 方法**，并使用其返回值进行下一步的序列化。`Date` 对象就是一个很好的例子，它的 `toJSON()` 方法返回其 ISO 字符串。
+```js
+const user = {
+  name: 'Alice',
+  lastLogin: new Date(),
+  toJSON: function() {
+    return { // 自定义序列化结果
+      user_name: this.name,
+      login_timestamp: this.lastLogin.getTime()
     };
-    console.log(JSON.stringify({ value: 123n })); // '{"value":"123"}'
-
-    // 方法二：使用 replacer (更安全)
-    const replacer = (key, value) => {
-      return typeof value === 'bigint' ? value.toString() : value;
-    };
-    ```
-
-*   **Q3: 为什么 `JSON.parse()` 报错 `SyntaxError: Unexpected token`？**
-    *   99% 的可能性是你的 JSON 字符串格式不正确。请检查：
-        1.  **键名**是否用了双引号 `"`。
-        2.  字符串值是否用了双引号 `"`。
-        3.  对象或数组的末尾是否有多余的**逗号**。
-        4.  字符串中是否有未正确转义的特殊字符（如换行符）。
-
-*   **Q4: `JSON.stringify` 有性能问题吗？**
-    *   是的。对于非常巨大的对象（几 MB 或几十 MB），`JSON.stringify` 是一个**同步的、阻塞的操作**。在主线程上执行它可能会导致页面卡顿。对于大数据，可以考虑使用 `Web Worker` 在后台线程中进行序列化，或者使用流式 (streaming) JSON 库。
-
-*   **Q5: `toJSON()` 方法有什么用？**
-    *   如果一个对象有自己的 `toJSON()` 方法，那么 `JSON.stringify()` 在序列化这个对象时，会**优先调用这个 `toJSON()` 方法**，并使用其返回值进行下一步的序列化。`Date` 对象就是一个很好的例子，它的 `toJSON()` 方法返回其 ISO 字符串。
-    ```js
-    const user = {
-      name: 'Alice',
-      lastLogin: new Date(),
-      toJSON: function() {
-        return { // 自定义序列化结果
-          user_name: this.name,
-          login_timestamp: this.lastLogin.getTime()
-        };
-      }
-    };
-    console.log(JSON.stringify(user));
-    // '{"user_name":"Alice","login_timestamp":169839...}'
-    ```
+  }
+};
+console.log(JSON.stringify(user));
+// '{"user_name":"Alice","login_timestamp":169839...}'
+```

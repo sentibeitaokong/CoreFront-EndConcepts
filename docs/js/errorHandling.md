@@ -309,33 +309,40 @@ getUserInfo(123);   // NetworkError or User data
 
 ## **6. 最佳实践与常见陷阱**
 
-*   **1. 不要“吞噬”错误 (Don't Swallow Errors)**:
-    *   最糟糕的错误处理是捕获错误后什么也不做。这使得问题难以发现和调试。
-    *   ```js
-        try { /* ... */ } catch (e) { /* 什么都不做 */ } // Bad!
-        ```
+### 6.1. 不要“吞噬”错误 (Don't Swallow Errors):
 
-*   **2. 区分可恢复错误与不可恢复错误**:
-    *   **可恢复**: 尝试日志记录、向用户提示、提供重试选项、返回默认值。
-    *   **不可恢复**: 记录错误，执行清理，然后考虑优雅地关闭应用或重新启动。
+*   最糟糕的错误处理是捕获错误后什么也不做。这使得问题难以发现和调试。
+*   ```js
+    try { /* ... */ } catch (e) { /* 什么都不做 */ } // Bad!
+    ```
 
-*   **3. 错误上报 (Error Reporting)**:
-    *   在生产环境中，将捕获到的错误（包括 `window.onerror` 和 `onunhandledrejection` 捕获的）上报到专业的错误监控服务（如 Sentry, Bugsnag, Datadog）非常重要。
+### 6.2. 区分可恢复错误与不可恢复错误:
+* **可恢复**: 尝试日志记录、向用户提示、提供重试选项、返回默认值。
+* **不可恢复**: 记录错误，执行清理，然后考虑优雅地关闭应用或重新启动。
 
-*   **4. 错误边界 (Error Boundaries - 针对 UI 框架)**:
-    *   在 React 等 UI 框架中，使用错误边界组件可以捕获子组件树中渲染阶段的错误，防止整个应用崩溃，并展示备用 UI。
+### 6.3. 错误上报 (Error Reporting):
 
-*   **5. 避免使用 `try...catch` 进行控制流**:
-    *   `try...catch` 的开销相对较高，不应将其用于处理预期内的、可以通过条件判断解决的“异常”情况。
+*   在生产环境中，将捕获到的错误（包括 `window.onerror` 和 `onunhandledrejection` 捕获的）上报到专业的错误监控服务（如 Sentry, Bugsnag, Datadog）非常重要。
 
-*   **6. 总是使用 `Promise.catch()` 链式处理错误**:
-    *   避免在每个 `.then()` 后面都写一个 `.catch()`，这会导致错误处理过于分散。通常将 `.catch()` 放在链的末尾。
+### 6.4. 错误边界 (Error Boundaries - 针对 UI 框架):
 
-*   **7. 区分 `throw new Error()` 和 `Promise.reject()`**:
-    *   `throw new Error()`: 立即中断当前同步执行流。
-    *   `Promise.reject()`: 将 Promise 状态置为 rejected，但不会中断当前同步执行流。
+*   在 React 等 UI 框架中，使用错误边界组件可以捕获子组件树中渲染阶段的错误，防止整个应用崩溃，并展示备用 UI。
 
-*   **8. `finally` 块的返回值**:
-    *   `finally` 块中的 `return` 语句会**覆盖** `try` 块或 `catch` 块中的 `return` 语句。
-    *   `finally` 块中抛出的错误会**覆盖** `try` 块或 `catch` 块中抛出的错误。
+### 6.5. 避免使用 `try...catch` 进行控制流:
+
+*   `try...catch` 的开销相对较高，不应将其用于处理预期内的、可以通过条件判断解决的“异常”情况。
+
+### 6.6. 总是使用 `Promise.catch()` 链式处理错误:
+
+*   避免在每个 `.then()` 后面都写一个 `.catch()`，这会导致错误处理过于分散。通常将 `.catch()` 放在链的末尾。
+
+### 6.7. 区分 `throw new Error()` 和 `Promise.reject()`:
+
+*   `throw new Error()`: 立即中断当前同步执行流。
+*   `Promise.reject()`: 将 Promise 状态置为 rejected，但不会中断当前同步执行流。
+
+### 6.8. `finally` 块的返回值:
+
+*   `finally` 块中的 `return` 语句会**覆盖** `try` 块或 `catch` 块中的 `return` 语句。
+*   `finally` 块中抛出的错误会**覆盖** `try` 块或 `catch` 块中抛出的错误。
 

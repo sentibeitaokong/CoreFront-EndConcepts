@@ -182,7 +182,7 @@ displayList.removeAllChildren();
 ```
 在上面代码中，`div` 元素已经从 DOM 树中清除，但是该 `div` 元素还绑定在 `email` 对象中。所以，如果 `email` 对象存在，那么该 `div` 元素就会一直保存在内存中。
 
-## 7.常见的 JavaScript 内存泄漏场景及处理方法
+## 7. 常见的 JavaScript 内存泄漏场景及处理方法
 
 以下是一些在 JavaScript 开发中最常见的内存泄漏场景，以及如何避免和修复它们。
 

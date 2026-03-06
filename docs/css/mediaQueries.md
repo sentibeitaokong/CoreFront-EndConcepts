@@ -102,7 +102,7 @@
 
 ## 5. 常见问题 (FAQ) 与 避坑指南
 
-### Q1: 为什么我的媒体查询在手机上完全无效？
+### 5.1 为什么我的媒体查询在手机上完全无效？
 **现象**: 模拟器里正常，真机上网页看起来像缩小版的桌面网页，字很小。
 
 **原因**: 99.9% 是因为忘记加 **Viewport Meta 标签**。如果没有这行代码，手机浏览器会默认模拟 980px 的桌面宽度。
@@ -112,7 +112,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 ```
 
-### Q2: 为什么 `min-width` 和 `max-width` 样式冲突了？
+### 5.2 为什么 `min-width` 和 `max-width` 样式冲突了？
 **原因**: **CSS 书写顺序错误**。
 在 CSS 中，如果优先级权重相同，**后写的覆盖先写的**。
 *   **移动优先 (min-width)**: 必须**从小到大**写。
@@ -120,14 +120,14 @@
 *   **桌面优先 (max-width)**: 必须**从大到小**写。
     *   (base) -> (max: 992) -> (max: 768) -> (max: 576)
 
-### Q3: 断点处的“1px 冲突”怎么处理？
+### 5.3 断点处的“1px 冲突”怎么处理？
 **现象**: `max-width: 768px` 和 `min-width: 768px` 在刚好 768px 的设备上会同时生效，导致冲突。
 **解法**:
 1.  **错开 1px**: 使用 `max-width: 767px` 和 `min-width: 768px`。
 2.  **小数精度**: `max-width: 767.98px` (Bootstrap 的做法)。
 3.  **使用新语法**: `@media (width < 768px)` (小于，不包含等于)。
 
-### Q4: 如何针对“高清屏/视网膜屏”写样式？
+### 5.4 如何针对“高清屏/视网膜屏”写样式？
 **场景**: 为了让 Logo 在 2x/3x 屏上更清晰。
 ```css
 @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 2dppx) {
@@ -137,7 +137,7 @@
 }
 ```
 
-### Q5: 能不能在 HTML 链接 CSS 时就用媒体查询？
+### 5.5 能不能在 HTML 链接 CSS 时就用媒体查询？
 **可以**。这是一种性能优化手段。如果条件不满足，浏览器依然会下载该 CSS 文件，但**不会阻塞渲染**，优先级非常低。
 ```html
 <link rel="stylesheet" href="mobile.css" media="screen and (max-width: 600px)">

@@ -88,25 +88,25 @@ transform: perspective(n);
 
 ## 3. 常见问题 (FAQ) 与 避坑指南
 
-### Q1: 为什么我的 `transform` 不生效？
+### 3.1 为什么我的 `transform` 不生效？
 **原因**: `transform` 属性对 **行内元素 (`display: inline`)** 无效（如 `<span>`, `<a>`）。
 
 **解法**: 将其改为 `display: inline-block` 或 `display: block`。
 
-### Q2: `position: fixed` 在 `transform` 元素内部失效（降级为 absolute）？
+### 3.2 `position: fixed` 在 `transform` 元素内部失效（降级为 absolute）？
 **现象**: 设置了固定定位的弹窗，如果它的父级有 `transform` (非 none)，它会跟着父级滚动，而不是固定在屏幕上。
 
 **原因**: 规范规定，任何非 `none` 的 `transform` 值都会为该元素及其子元素创建一个新的**包含块 (Containing Block)**。`fixed` 子元素会相对于这个变换的父元素定位，而不是视口 (Viewport)。
 
 **解法**: **将 fixed 元素移出 transform 容器**，直接放在 `<body>` 下层。
 
-### Q3: 为什么 3D 旋转看起来像 2D 压扁的？
+### 3.3 为什么 3D 旋转看起来像 2D 压扁的？
 **原因**: 缺少 **透视 (`perspective`)**。
 如果没有设置透视，Z 轴的变化只是简单的数学投影，看起来就像是宽/高变小了，没有“近大远小”的效果。
 
 **解法**: 在父容器上添加 `perspective: 1000px;`。
 
-### Q4: 变换后的文字/图片边缘模糊？
+### 3.4 变换后的文字/图片边缘模糊？
 **原因**:
 1.  **非整数像素**: `translate` 用了百分比或小数，导致元素落在 0.5px 的位置，屏幕渲染时产生抗锯齿模糊。
 2.  **缩放失真**: 放大图片或文字。
@@ -116,18 +116,18 @@ transform: perspective(n);
 2.  尝试开启 GPU 加速: `transform: translateZ(0);` 或 `will-change: transform;`。
 3.  如果是缩小模糊，可以尝试先放大 2 倍再 `scale(0.5)`。
 
-### Q5: `z-index` 失效？
+### 3.5 `z-index` 失效？
 **原因**: `transform` 会创建一个新的 **层叠上下文 (Stacking Context)**。
 这意味着该元素内部的 `z-index` 无论多大，都无法超越该元素**外部**的兄弟元素（如果兄弟元素的层级比该元素高）。
 
-### Q6: 先旋转再平移，还是先平移再旋转？(顺序问题)
+### 3.6 先旋转再平移，还是先平移再旋转？(顺序问题)
 `transform` 的执行顺序是从左到右，且坐标系会跟随变换。
 *   `translateX(100px) rotate(90deg)`: 先向右移 100px，然后在**新位置**旋转。
 *   `rotate(90deg) translateX(100px)`: 先旋转坐标轴，X轴现在指向下方。然后沿 X 轴移动（视觉上是**向下**移了）。
 
 **结论**: 顺序极其重要，结果完全不同。
 
-### Q7: 为什么我的 3D 立方体散架了？
+### 3.7 为什么我的 3D 立方体散架了？
 **原因**: 嵌套层级中，中间层的父元素没有开启 `transform-style: preserve-3d`。
 默认是 `flat`，这意味着中间层把子元素的 3D 变换“拍扁”在自己的 2D 平面上，导致 Z 轴信息丢失。
 

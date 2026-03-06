@@ -1,14 +1,18 @@
+---
+outline: [2,3]
+---
+
 # HTML/JavaScript AJAX (Asynchronous JavaScript and XML)
 
 虽然名字里有 XML，但现代 AJAX 主要使用 **JSON** 数据格式。在 HTML 开发中，实现 AJAX 主要有两种原生方式：
-1.  **`Fetch API`** (现代标准，推荐，基于 Promise)。
-2.  **`XMLHttpRequest` (XHR)** (老标准，兼容性极好，基于回调)。
+*  **`Fetch API`** (现代标准，推荐，基于 Promise)。
+*  **`XMLHttpRequest` (XHR)** (老标准，兼容性极好，基于回调)。
 
-## 第一部分：Fetch API (现代标准)
+## 1. Fetch API (现代标准)
 
 `fetch()` 是浏览器原生提供的 API，语法简洁，基于 **Promise**，完美配合 `async/await`。
 
-### 1. 基础语法
+### 1.1 基础语法
 
 ```js
 fetch(url, [options])
@@ -17,7 +21,7 @@ fetch(url, [options])
   .catch(error => console.error(error)); // 捕获网络错误
 ```
 
-### 2. API 参数详解 (`options` 对象)
+### 1.2 API 参数详解 (`options` 对象)
 
 | 属性 | 描述 | 常用值 |
 | :--- | :--- | :--- |
@@ -28,7 +32,7 @@ fetch(url, [options])
 | **`credentials`**| **Cookie 策略** | `'omit'` (默认，不带Cookie), `'include'` (跨域带Cookie), `'same-origin'` |
 | **`cache`** | 缓存策略 | `'default'`, `'no-store'`, `'reload'`, `'force-cache'` |
 
-### 3. Response 对象方法
+### 1.3 Response 对象方法
 
 `fetch` 返回的 Promise 解析后是一个 `Response` 对象，需要调用特定方法才能拿到内容。
 
@@ -41,11 +45,11 @@ fetch(url, [options])
 | **`.ok`** | **Boolean 属性**。如果状态码在 200-299 之间，则为 `true`。 |
 | **`.status`** | HTTP 状态码 (如 200, 404, 500)。 |
 
-## 第二部分：XMLHttpRequest (传统标准)
+## 2. XMLHttpRequest (传统标准)
 
 虽然 `fetch` 是主流，但了解 XHR 对维护旧项目或实现特定功能（如**上传进度监控**）依然很有必要。
 
-### 1. 核心属性和方法
+### 2.1 核心属性和方法
 | 属性/方法 | 描述 |
 | :--- | :--- |
 | **`open(method, url, async)`** | 初始化。`async` 默认为 `true`。 |
@@ -76,7 +80,7 @@ xhr.onreadystatechange = function() {
 xhr.send();
 ```
 
-### 2. 异常处理事件
+### 2.2 异常处理事件
 
 | 事件名 | 触发时机 |
 | :--- | :--- |
@@ -120,7 +124,7 @@ xhr.send();
 
 ```
 
-### 3. 进度监控事件 (Progress)
+### 2.3 进度监控事件 (Progress)
 
 XHR 将进度分为 **下载 (Download)** 和 **上传 (Upload)** 两个对象。
 
@@ -147,9 +151,9 @@ xhr.upload.onprogress = function(event) {
 xhr.send(formData);
 ```
 
-## 第三部分：实战代码示例
+## 3. 实战代码示例
 
-### 1.使用 `async/await` 发送 POST 请求 (推荐)
+### 3.1 使用 `async/await` 发送 POST 请求 (推荐)
 
 这是目前最优雅的写法。
 
@@ -181,7 +185,7 @@ async function postUser() {
 }
 ```
 
-### 2.文件上传 (`FormData`)
+### 3.2 文件上传 (`FormData`)
 
 利用 `FormData` 对象，浏览器会自动设置 `Content-Type: multipart/form-data`，**千万不要手动设置 Content-Type**。
 
@@ -196,11 +200,11 @@ fetch('/upload', {
 });
 ```
 
-### 3. 取消重复请求处理
+### 3.3  取消重复请求处理
 
 取消重复请求是对于减少HTTP请求的一个处理、相比于防抖节流来说是更加自动化的、这篇文章会从`xhr`、`fetch`、`axios`三个方向来实现这个需求、并会基于原生的`xhr`实现取消重复请求
 
-#### 3.1 `xhr`的取消原理
+#### 1. `xhr`的取消原理
 
 `xhr`也就是`XMLHttpRequest`类的实例、提供了一个`api abort`取消请求
 
@@ -217,7 +221,7 @@ xhr.onreadystatechange = (state) => {
 xhr.abort()
 ```
 
-#### 3.2 `Fetch`的取消原理
+#### 2. `Fetch`的取消原理
 
 与上面类似、提供了一个`AbortController`类、并且具有`abort api`
 
@@ -244,7 +248,7 @@ controller.abort({
 
 
 
-#### 3.3 `Axios`的取消原理
+#### 3. `Axios`的取消原理
 
 `Axios`库利用`axios.CancelToken`来取消请求
 
@@ -271,7 +275,7 @@ controller.abort({
   }
 ```
 
-#### 3.4 手动实现取消重复请求
+#### 4. 手动实现取消重复请求
 
 重复请求的特点肯定是`url`是一样的、参数是一样的、所以我们只需要判断这两样东西是不是相等即可
 
@@ -316,9 +320,9 @@ setTimeout(() => {
 }, 3000);
 ```
 
-## 第四部分：常见问题 (FAQ) 与 避坑指南
+## 4. 常见问题 (FAQ) 与 避坑指南
 
-### Q1: 什么是 CORS (跨域) 错误？
+### 4.1 什么是 CORS (跨域) 错误？
 **现象**: 控制台报错 `Access to fetch at '...' from origin '...' has been blocked by CORS policy`.
 
 **原因**: 浏览器的安全策略。你的网页 (`a.com`) 试图请求另一个域名 (`b.com`) 的接口，但 `b.com` 没有明确许可你访问。
@@ -327,7 +331,7 @@ setTimeout(() => {
 1.  **正解**: 联系后端开发，在服务端响应头中添加 `Access-Control-Allow-Origin: *` (或你的域名)。
 2.  **开发期**: 使用 Webpack/Vite 的 Proxy 代理，或者 Nginx 反向代理。**前端代码里设置 `mode: 'no-cors'` 是没用的**（那只能发请求，拿不到响应）。
 
-### Q2: 为什么 `fetch` 没有自动带上 Cookie？
+### 4.2 为什么 `fetch` 没有自动带上 Cookie？
 **原因**: 为了隐私，Fetch 默认不发送 Cookie。
 
 **解法**: 添加配置 `credentials: 'include'`。
@@ -335,26 +339,26 @@ setTimeout(() => {
 fetch(url, { credentials: 'include' });
 ```
 
-### Q3: 为什么请求成功了，但后端收到的 Body 是空的？
+### 4.3 为什么请求成功了，但后端收到的 Body 是空的？
 **原因**: 90% 是因为请求头和数据格式不匹配。
 
 **检查**:
 1.  如果发送 JSON，必须设置 header: `'Content-Type': 'application/json'`。
 2.  **且** `body` 必须用 `JSON.stringify()` 包裹，不能直接传 JS 对象。
 
-### Q4: 为什么 `fetch` 遇到 404 或 500 不走 `catch`？
+### 4.4 为什么 `fetch` 遇到 404 或 500 不走 `catch`？
 **机制**: `fetch` 的 Promise 只有在**网络断开**或**DNS 解析失败**时才会 Reject (走 catch)。HTTP 状态码错误（如 404 Not Found）被认为是请求“成功”完成了。
 
 **解法**: 必须在 `then` 或 `await` 之后手动判断 `if (!response.ok)`.
 
-### Q5: 怎么获取上传进度？
+### 4.5 怎么获取上传进度？
 **Fetch API**: 目前原生 Fetch 获取上传进度非常麻烦（需要读流）。
 
 **XMLHttpRequest**: 原生支持。
 
 **Axios**: 推荐使用 Axios 库，它封装了 XHR，获取进度很简单 (`onUploadProgress`)。
 
-### Q6: 异步陷阱：为什么变量是 `undefined`？
+### 4.6 异步陷阱：为什么变量是 `undefined`？
 ```js
 let data;
 fetch(url).then(res => res.json()).then(res => {

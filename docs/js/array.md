@@ -362,7 +362,7 @@ let arr = [...obj]; // TypeError: Cannot spread non-iterable object
 ```
 ## 2.数组的静态方法
 
-### 2.1 Array.from()
+### Array.from()
 
 `Array.from()`方法用于将两类对象转为真正的数组：类似数组的对象（array-like object）和可遍历（iterable）的对象（包括 ES6 新增的数据结构 Set 和 Map）。
 
@@ -508,7 +508,7 @@ function countSymbols(string) {
 }
 ```
 
-### 2.2 Array.of()
+### Array.of()
 
 `Array.of()`方法用于将一组值，转换为数组。
 
@@ -549,7 +549,7 @@ function ArrayOf(){
 
 ## 3.数组的原型方法
 
-###  3.1 copyWithin()
+###  copyWithin()
 
 数组实例的`copyWithin()`方法，在当前数组内部，将指定位置的成员复制到其他位置（会覆盖原有成员），然后返回当前数组。也就是说，使用这个方法，会修改当前数组。
 
@@ -598,7 +598,7 @@ i32a.copyWithin(0, 2);
 // Int32Array [4, 2, 3, 4, 5]
 ```
 
-###  3.2 find()，findIndex()，findLast()，findLastIndex()
+###  find()，findIndex()，findLast()，findLastIndex()
 
 数组实例的`find()`方法，用于找出第一个符合条件的数组成员。它的参数是一个回调函数，所有数组成员依次执行该回调函数，直到找出第一个返回值为`true`的成员，然后返回该成员。如果没有符合条件的成员，则返回`undefined`。
 
@@ -665,7 +665,7 @@ array.findLastIndex(n => n.value % 2 === 1); // 2
 
 上面示例中，`findLast()`和`findLastIndex()`从数组结尾开始，寻找第一个`value`属性为奇数的成员。结果，该成员是`{ value: 3 }`，位置是2号位。
 
-###  3.3 fill()
+###  fill()
 
 `fill`方法使用给定值，填充一个数组。
 
@@ -702,7 +702,7 @@ arr
 // [[5], [5], [5]]
 ```
 
-###  3.4 entries()，keys() 和 values()
+### entries()，keys() 和 values()
 
 ES6 提供三个新的方法——`entries()`，`keys()`和`values()`——用于遍历数组。它们都返回一个遍历器对象（详见《Iterator》一章），可以用`for...of`循环进行遍历，唯一的区别是`keys()`是对键名的遍历、`values()`是对键值的遍历，`entries()`是对键值对的遍历。
 
@@ -736,7 +736,7 @@ console.log(entries.next().value); // [1, 'b']
 console.log(entries.next().value); // [2, 'c']
 ```
 
-###  3.5 includes()
+###  includes()
 
 `Array.prototype.includes`方法返回一个布尔值，表示某个数组是否包含给定的值，与字符串的`includes`方法类似。ES2016 引入了该方法。
 
@@ -791,7 +791,7 @@ contains(['foo', 'bar'], 'baz'); // => false
 - Map 结构的`has`方法，是用来查找键名的，比如`Map.prototype.has(key)`、`WeakMap.prototype.has(key)`、`Reflect.has(target, propertyKey)`。
 - Set 结构的`has`方法，是用来查找值的，比如`Set.prototype.has(value)`、`WeakSet.prototype.has(value)`。
 
-###  3.6 flat()，flatMap()
+###  flat()，flatMap()
 
 数组的成员有时还是数组，`Array.prototype.flat()`用于将嵌套的数组“拉平”，变成一维的数组。该方法返回一个新数组，对原数据没有影响。
 
@@ -856,7 +856,7 @@ arr.flatMap(function callback(currentValue[, index[, array]]) {
 
 `flatMap()`方法还可以有第二个参数，用来绑定遍历函数里面的`this`。
 
-###  3.7 at()
+###  at()
 
 长久以来，JavaScript 不支持数组的负索引，如果要引用数组的最后一个成员，不能写成`arr[-1]`，只能使用`arr[arr.length - 1]`。
 
@@ -882,7 +882,7 @@ sentence.at(-100) // undefined
 sentence.at(100) // undefined
 ```
 
-###  3.8 toReversed()，toSorted()，toSpliced()，with()
+###  toReversed()，toSorted()，toSpliced()，with()
 
 很多数组的传统方法会改变原数组，比如`push()`、`pop()`、`shift()`、`unshift()`等等。数组只要调用了这些方法，它的值就变了。[ES2023](https://github.com/tc39/proposal-change-array-by-copy)引入了四个新方法，对数组进行操作时，不改变原数组，而返回一个原数组的拷贝。
 
@@ -920,7 +920,7 @@ correctionNeeded.with(1, 2) // [1, 2, 3]
 correctionNeeded // [1, 1, 3]
 ```
 
-###  3.9 group()，groupToMap()
+### group()，groupToMap()
 
 数组成员分组是一个常见需求，比如 SQL 有`GROUP BY`子句和函数式编程有 MapReduce 方法。现在有一个[提案](https://github.com/tc39/proposal-array-grouping)，为 JavaScript 新增了数组实例方法`group()`和`groupToMap()`，它们可以根据分组函数的运行结果，将数组成员分组。
 
@@ -1083,87 +1083,92 @@ for (let i of arr) {
 
 ## **5. 常见问题与陷阱 (FAQ)**
 
-* **Q1: `includes` 和 `indexOf` 有什么区别？我该用哪个？**
+### 5.1 `includes` 和 `indexOf` 有什么区别？我该用哪个？
 
   *   **区别 1 (NaN 处理)**: `indexOf` 无法找到 `NaN`（返回 -1），而 `includes` **可以正确找到** `NaN`（返回 true）。这是最大的区别。
   *   **区别 2 (返回值)**: `indexOf` 返回**索引**（数字），`includes` 返回**布尔值**。
   *   **建议**: 如果你只需要判断元素**是否存在**，首选 `includes`，语义更清晰。如果你需要**索引**，用 `indexOf`。
 
-* **Q2: `find` 和 `filter` 有什么区别？**        
+### 5.2 `find` 和 `filter` 有什么区别？   
 
   *   **`find`**: 找到**第一个**满足条件的元素后**立即停止**，并返回该**元素**。如果没找到，返回 `undefined`。
   *   **`filter`**: 遍历**整个数组**，返回一个包含**所有**满足条件元素的**新数组**。
   *   **性能**: 如果你只需要一个结果，`find` 性能更好，因为它不需要遍历完整个数组。
 
-* **Q3: `forEach` 和 `map` 的核心区别是什么？**
+### 5.3 `forEach` 和 `map` 的核心区别是什么？
 
   *   **`forEach`**: 用于**执行副作用**（如打印日志、修改外部变量、DOM 操作）。它**没有返回值**（返回 `undefined`），且**不可链式调用**。
   *   **`map`**: 用于**数据转换**。它对每个元素执行回调，并**返回一个新数组**（长度与原数组一致）。它**不应**用于执行副作用。
 
-* **Q4: 为什么不能在 `forEach` 中使用 `break` 或 `continue`？**
+### 5.4 为什么不能在 `forEach` 中使用 `break` 或 `continue`？
   * `forEach` 是一个函数调用，传递给它的是一个回调函数。在回调函数中使用 `break`/`continue` 是语法错误的。
   *   **解决**: 如果需要中途跳出循环，请使用 `for...of` 循环，或者使用 `find` / `some` / `every` 来模拟。
 
-* **Q5: `map` 也是浅拷贝吗？**
+### 5.5 `map` 也是浅拷贝吗？
+
   * 是的。`map` 返回的是一个新数组，但如果原数组的元素是**对象**，新数组中的元素仍然指向同一个对象引用（除非你在 `map` 回调中显式创建了新对象）。
 
-* **Q6: `flat()` 默认拉平几层？如何拉平无限层？**
+### 5.6 `flat()` 默认拉平几层？如何拉平无限层？
 
   *   `flat()` 默认只拉平 **1 层**。
   *   要拉平任意深度的嵌套数组，使用 `flat(Infinity)`。
 
-* **Q7: `flat` 会如何处理数组中的“空位” (Empty slots)？**
+### 5.7 `flat` 会如何处理数组中的“空位” (Empty slots)？
 
-    * `flat()` 会**自动移除**数组中的空位。
+* `flat()` 会**自动移除**数组中的空位。
 
-        ```js
-        [1, 2, , 4, 5].flat(); // [1, 2, 4, 5]
-        ```
+    ```js
+    [1, 2, , 4, 5].flat(); // [1, 2, 4, 5]
+    ```
 
-* **Q8: `flatMap` 和先 `map` 再 `flat` 有什么区别？**
+### 5.8 `flatMap` 和先 `map` 再 `flat` 有什么区别？
 
   * 结果是一样的，但 `flatMap` **效率更高**。因为它在一次遍历中同时完成了映射和扁平化操作，避免了创建中间的临时数组。
   *   **注意**: `flatMap` 只能拉平 **1 层**。
 
 
-* **Q9: `Array.from` 到底有什么用？**
-    * 它是将**类数组对象**（如 `arguments`、DOM `NodeList`）或**可迭代对象**（如 `Set`, `Map`, `String`）转换为**真正数组**的最佳方式。
-    * 它还可以接受第二个参数（map 函数），在转换的同时处理数据：
-          ```js
-          Array.from({ length: 3 }, (_, i) => i); // [0, 1, 2]
-          ```
+### 5.9 `Array.from` 到底有什么用？
 
-* **Q10: 为什么需要 `Array.of`？**
+* 它是将**类数组对象**（如 `arguments`、DOM `NodeList`）或**可迭代对象**（如 `Set`, `Map`, `String`）转换为**真正数组**的最佳方式。
+* 它还可以接受第二个参数（map 函数），在转换的同时处理数据：
+      ```js
+      Array.from({ length: 3 }, (_, i) => i); // [0, 1, 2]
+      ```
 
-     * 它是为了修复 `new Array()` 的怪异行为。
-        *   `new Array(3)`: 创建一个长度为 3 的**空数组**。
-        *   `new Array(1, 2)`: 创建数组 `[1, 2]`。
-        *   `Array.of(3)`: 始终创建包含该元素的数组 `[3]`。`Array.of` 行为更一致。
+### 5.10 为什么需要 `Array.of`？
+
+ * 它是为了修复 `new Array()` 的怪异行为。
+    *   `new Array(3)`: 创建一个长度为 3 的**空数组**。
+    *   `new Array(1, 2)`: 创建数组 `[1, 2]`。
+    *   `Array.of(3)`: 始终创建包含该元素的数组 `[3]`。`Array.of` 行为更一致。
 
 
-* **Q11: 扩展运算符是深拷贝吗？**
+### 5.11 扩展运算符是深拷贝吗？
 
-    * **不是**。`[...arr]` 是**浅拷贝**。它只复制了第一层，如果数组元素是对象，复制的依然是引用。
+* **不是**。`[...arr]` 是**浅拷贝**。它只复制了第一层，如果数组元素是对象，复制的依然是引用。
 
-* **Q12: 在处理大数据量时，链式调用（如 `.map().filter()`）有性能问题吗？**
+### 5.12 在处理大数据量时，链式调用（如 `.map().filter()`）有性能问题吗？
 
-     * **有**。每次链式调用（`.map`, `.filter`）都会创建一个**完整的临时新数组**并遍历一次。对于大数据量，这会增加内存消耗和 CPU 时间。
-     *   **优化**: 使用 `reduce` 在一次遍历中同时完成过滤和映射，或者使用 `for` 循环。
+ * **有**。每次链式调用（`.map`, `.filter`）都会创建一个**完整的临时新数组**并遍历一次。对于大数据量，这会增加内存消耗和 CPU 时间。
+ *   **优化**: 使用 `reduce` 在一次遍历中同时完成过滤和映射，或者使用 `for` 循环。
 
-* **Q13: ES6 的数组方法性能一定比 `for` 循环好吗？**
+### 5.13 ES6 的数组方法性能一定比 `for` 循环好吗？
 
-    *   **通常不是**。原生 `for` 循环（特别是 `for...of` 或经典的 `for(i=0...)`）在纯计算性能上往往是最快的。ES6 方法（`map`, `forEach`）因为有函数调用开销，通常会慢一些。
-    *   **但是**：除非在极端性能敏感的代码中（如游戏渲染、数万次操作），否则**优先选择 ES6 方法**，因为它们的可读性、维护性远高于 `for` 循环。
+*   **通常不是**。原生 `for` 循环（特别是 `for...of` 或经典的 `for(i=0...)`）在纯计算性能上往往是最快的。ES6 方法（`map`, `forEach`）因为有函数调用开销，通常会慢一些。
+*   **但是**：除非在极端性能敏感的代码中（如游戏渲染、数万次操作），否则**优先选择 ES6 方法**，因为它们的可读性、维护性远高于 `for` 循环。
 
-* **Q14: 通过给元素赋值来填充数组,可以给数组操作符一个非整形数值吗？**
-    *  **可以**,但是会作为数组的**属性**创建，而非数组的**元素**，不会记录进数组的`length`,`length`不变
+### 5.14 通过给元素赋值来填充数组,可以给数组操作符一个非整形数值吗？
+
+*  **可以**,但是会作为数组的**属性**创建，而非数组的**元素**，不会记录进数组的`length`,`length`不变
+
 ```js
 let arr=[]
 arr[3.4]='orange'
 console.log(arr.length)  //0
 console.log(arr.hasOwnProperty(3.4))  //true
 ```
-* **Q15: 如果数组在迭代时被修改了，数组内其他的元素会如何？**
+
+### 5.15 如果数组在迭代时被修改了，数组内其他的元素会如何？
   *  数组内其他的元素会**跳过**
 ```js
 //遍历时删除了一个元素，导致数组所有项上移了一个单元，当准备遍历到第三个元素的时候，原本的元素'three'已经变成'four'了,'three'被跳过
@@ -1179,7 +1184,7 @@ words.forEach(item=>{
 //four
 ```
 
-* **Q16:如何让类数组也具备数组的原型方法？**
+### 5.16 如何让类数组也具备数组的原型方法？
 ```js
 let  obj={
     '2':3,

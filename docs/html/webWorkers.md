@@ -130,56 +130,7 @@ worker.postMessage(hugeBuffer, [hugeBuffer]);
 console.log(hugeBuffer.byteLength); // 0 (主线程已经失去了它)
 ```
 
-## 4. 常见问题 (FAQ) 与 避坑指南
-
-### Q1: Worker 里能操作 DOM 吗？
-**绝对不能**。这是 Worker 最大的限制。
-*   **❌ 不可用**: `window`, `document`, `parent`, alert(), confirm(), DOM 元素操作。
-*   **✅ 可用**:
-    *   `navigator` (获取浏览器信息)
-    *   `location` (只读)
-    *   `XMLHttpRequest` / `fetch` (发送网络请求)
-    *   `setTimeout` / `setInterval`
-    *   `importScripts`
-    *   `Cache` / `IndexedDB`
-
-### Q2: 为什么本地运行报错 "SecurityError"？
-**现象**: 双击打开 html 文件 (`file://...`)，控制台报错 `SecurityError` 或 `Script at '...' cannot be accessed from origin 'null'`.
-
-**原因**: 浏览器的同源策略限制。Worker 脚本必须通过 **HTTP/HTTPS** 协议加载。
-
-**解法**: 使用本地服务器运行（如 VS Code 的 Live Server 插件，或 `npm install -g http-server`）。
-
-### Q3: 如何在 Vue / React / Webpack 中使用 Worker？
-现代构建工具（Webpack 5+, Vite）不再需要 `worker-loader`，直接使用原生 URL 构造函数即可。
-
-**Vite / Webpack 5 标准写法**:
-```js
-// 这里的 import.meta.url 指向当前文件的路径
-const worker = new Worker(new URL('./worker.js', import.meta.url), {
-  type: 'module' // 如果 worker 内部用了 import/export，需要加这个
-});
-```
-
-### Q4: 怎么调试 Worker 代码？
-Worker 是独立的线程，不在常规的 Console 里。
-1.  打开 Chrome DevTools。
-2.  点击 **Sources** (源代码) 面板。
-3.  在左侧列表中，你会看到一个 **Threads** (线程) 区域，或者在 `top` 下方看到你的 worker 文件。
-4.  你可以像调试普通 JS 一样在里面打断点。
-5.  *提示*：Worker 内部的 `console.log` 会输出到主线程的控制台。
-
-### Q5: Worker 越多越好吗？
-**不是**。
-*   每个 Worker 都会消耗系统内存和 CPU 资源。
-*   通常建议 Worker 的数量不要超过 **CPU 核心数** (`navigator.hardwareConcurrency`)。
-*   对于 IO 密集型任务（如下载），数量可以稍多；对于计算密集型任务，保持与核心数一致最佳。
-
-### Q6: `importScripts` 和 `import` 的区别？
-*   **`importScripts('a.js')`**: 老式 Worker 加载脚本的方法，是**同步**阻塞的，加载完才继续执行下面代码。
-*   **`import { func } from './a.js'`**: ES Module 写法。需要创建 Worker 时指定 `type: 'module'`。现代开发推荐用这个。
-
-## 5. 实战代码：图片滤镜处理
+## 4. 实战代码：图片滤镜处理
 
 这是一个典型场景：主线程负责显示 UI，Worker 负责处理像素级计算。
 
@@ -222,4 +173,54 @@ self.onmessage = (e) => {
 };
 ```
 :::
+
+
+## 5. 常见问题 (FAQ) 与 避坑指南
+
+### 5.1 Worker 里能操作 DOM 吗？
+**绝对不能**。这是 Worker 最大的限制。
+*   **❌ 不可用**: `window`, `document`, `parent`, alert(), confirm(), DOM 元素操作。
+*   **✅ 可用**:
+    *   `navigator` (获取浏览器信息)
+    *   `location` (只读)
+    *   `XMLHttpRequest` / `fetch` (发送网络请求)
+    *   `setTimeout` / `setInterval`
+    *   `importScripts`
+    *   `Cache` / `IndexedDB`
+
+### 5.2 为什么本地运行报错 "SecurityError"？
+**现象**: 双击打开 html 文件 (`file://...`)，控制台报错 `SecurityError` 或 `Script at '...' cannot be accessed from origin 'null'`.
+
+**原因**: 浏览器的同源策略限制。Worker 脚本必须通过 **HTTP/HTTPS** 协议加载。
+
+**解法**: 使用本地服务器运行（如 VS Code 的 Live Server 插件，或 `npm install -g http-server`）。
+
+### 5.3 如何在 Vue / React / Webpack 中使用 Worker？
+现代构建工具（Webpack 5+, Vite）不再需要 `worker-loader`，直接使用原生 URL 构造函数即可。
+
+**Vite / Webpack 5 标准写法**:
+```js
+// 这里的 import.meta.url 指向当前文件的路径
+const worker = new Worker(new URL('./worker.js', import.meta.url), {
+  type: 'module' // 如果 worker 内部用了 import/export，需要加这个
+});
+```
+
+### 5.4 怎么调试 Worker 代码？
+Worker 是独立的线程，不在常规的 Console 里。
+1.  打开 Chrome DevTools。
+2.  点击 **Sources** (源代码) 面板。
+3.  在左侧列表中，你会看到一个 **Threads** (线程) 区域，或者在 `top` 下方看到你的 worker 文件。
+4.  你可以像调试普通 JS 一样在里面打断点。
+5.  *提示*：Worker 内部的 `console.log` 会输出到主线程的控制台。
+
+### 5.5 Worker 越多越好吗？
+**不是**。
+*   每个 Worker 都会消耗系统内存和 CPU 资源。
+*   通常建议 Worker 的数量不要超过 **CPU 核心数** (`navigator.hardwareConcurrency`)。
+*   对于 IO 密集型任务（如下载），数量可以稍多；对于计算密集型任务，保持与核心数一致最佳。
+
+### 5.6 `importScripts` 和 `import` 的区别？
+*   **`importScripts('a.js')`**: 老式 Worker 加载脚本的方法，是**同步**阻塞的，加载完才继续执行下面代码。
+*   **`import { func } from './a.js'`**: ES Module 写法。需要创建 Worker 时指定 `type: 'module'`。现代开发推荐用这个。
 

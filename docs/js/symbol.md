@@ -510,7 +510,7 @@ const FOO_KEY = Symbol('foo');
 
 ES6 暴露了11个内置的 Symbol 常量，允许开发者自定义对象在语言内部的行为（如迭代、转换、匹配等）。这是 Symbol 最强大的功能。E
 
-### 4.1 Symbol.hasInstance
+### Symbol.hasInstance
 
 对象的`Symbol.hasInstance`属性，指向一个内部方法。当其他对象使用`instanceof`运算符，判断是否为该对象的实例时，会调用这个方法。比如，`foo instanceof Foo`在语言内部，实际调用的是`Foo[Symbol.hasInstance](foo)`。
 
@@ -547,7 +547,7 @@ const Even = {
 12345 instanceof Even // false
 ```
 
-### 4.2 Symbol.isConcatSpreadable
+### Symbol.isConcatSpreadable
 
 对象的`Symbol.isConcatSpreadable`属性等于一个布尔值，表示该对象用于`Array.prototype.concat()`时，是否可以展开。
 
@@ -604,7 +604,7 @@ a2[1] = 6;
 
 注意，`Symbol.isConcatSpreadable`的位置差异，`A1`是定义在实例上，`A2`是定义在类本身，效果相同。
 
-### 4.3 Symbol.species
+### Symbol.species
 
 对象的`Symbol.species`属性，指向一个构造函数。创建衍生对象时，会使用该属性。
 
@@ -674,7 +674,7 @@ new T2(r => r()).then(v => v) instanceof T2 // false
 
 总之，`Symbol.species`的作用在于，实例对象在运行过程中，需要再次调用自身的构造函数时，会调用该属性指定的构造函数。它主要的用途是，有些类库是在基类的基础上修改的，那么子类使用继承的方法时，作者可能希望返回基类的实例，而不是子类的实例。
 
-### 4.4 Symbol.match
+### Symbol.match
 
 对象的`Symbol.match`属性，指向一个函数。当执行`str.match(myObject)`时，如果该属性存在，会调用它，返回该方法的返回值。
 
@@ -692,7 +692,7 @@ class MyMatcher {
 'e'.match(new MyMatcher()) // 1
 ```
 
-### 4.5 Symbol.replace
+### Symbol.replace
 
 对象的`Symbol.replace`属性，指向一个方法，当该对象被`String.prototype.replace`方法调用时，会返回该方法的返回值。
 
@@ -713,7 +713,7 @@ x[Symbol.replace] = (...s) => console.log(s);
 
 `Symbol.replace`方法会收到两个参数，第一个参数是`replace`方法正在作用的对象，上面例子是`Hello`，第二个参数是替换后的值，上面例子是`World`。
 
-### 4.6 Symbol.search
+### Symbol.search
 
 对象的`Symbol.search`属性，指向一个方法，当该对象被`String.prototype.search`方法调用时，会返回该方法的返回值。
 
@@ -733,7 +733,7 @@ class MySearch {
 'foobar'.search(new MySearch('foo')) // 0
 ```
 
-### 4.7 Symbol.split
+### Symbol.split
 
 对象的`Symbol.split`属性，指向一个方法，当该对象被`String.prototype.split`方法调用时，会返回该方法的返回值。
 
@@ -774,7 +774,7 @@ class MySplitter {
 
 上面方法使用`Symbol.split`方法，重新定义了字符串对象的`split`方法的行为，
 
-### 4.8 Symbol.iterator
+### Symbol.iterator
 
 对象的`Symbol.iterator`属性，指向该对象的默认遍历器方法。
 
@@ -813,7 +813,7 @@ for(let value of myCollection) {
 // 2
 ```
 
-### 4.9 Symbol.toPrimitive
+### Symbol.toPrimitive
 
 对象的`Symbol.toPrimitive`属性，指向一个方法。该对象被转为原始类型的值时，会调用这个方法，返回该对象对应的原始类型值。
 
@@ -845,7 +845,7 @@ obj == 'default' // true
 String(obj) // 'str'
 ```
 
-### 4.10 Symbol.toStringTag
+### Symbol.toStringTag
 
 对象的`Symbol.toStringTag`属性，用来设定一个字符串（设为其他类型的值无效，但不报错）。在目标对象上面调用`Object.prototype.toString()`方法时，如果`Symbol.toStringTag`属性存在，该属性设定的字符串会出现在`toString()`方法返回的字符串之中，表示对象的类型。也就是说，这个属性可以用来定制`[object Object]`或`[object Array]`中`object`后面的那个大写字符串。
 
@@ -884,7 +884,7 @@ ES6 新增内置对象的`Symbol.toStringTag`属性值如下。
 - `Generator.prototype[Symbol.toStringTag]`：'Generator'
 - `GeneratorFunction.prototype[Symbol.toStringTag]`：'GeneratorFunction'
 
-### 4.11 Symbol.unscopables
+### Symbol.unscopables
 
 对象的`Symbol.unscopables`属性，指向一个对象。该对象指定了使用`with`关键字时，哪些属性会被`with`环境排除。
 
@@ -934,14 +934,14 @@ with (MyClass.prototype) {
 ```
 ## **5. Symbol内置常量总结**
 
-#### **1. 迭代与展开**
+#### **5.1 迭代与展开**
 
 | Symbol | 描述 | 触发场景 | 示例用途 |
 | :--- | :--- | :--- | :--- |
 | **`Symbol.iterator`** | 指向一个方法，该方法返回对象的**默认迭代器**。 | `for...of`, `...` (扩展运算符), `Array.from()` | 自定义对象如何被遍历。例如让一个普通对象 `obj` 可以像数组一样被遍历。 |
 | **`Symbol.asyncIterator`** | 指向一个方法，该方法返回对象的**默认异步迭代器**。 | `for await...of` | 处理异步数据流（如 Node.js 的 Readable Stream）。 |
 
-#### **2. 类型检测与转换**
+#### **5.2 类型检测与转换**
 
 | Symbol | 描述 | 触发场景 | 示例用途 |
 | :--- | :--- | :--- | :--- |
@@ -949,7 +949,7 @@ with (MyClass.prototype) {
 | **`Symbol.toPrimitive`** | 指向一个方法，将对象转换为**原始值**。 | `+obj`, `${obj}`, `obj == 1` (类型转换) | 替代 `toString` 和 `valueOf`，更精细地控制对象在转为 `number`、`string` 或 `default` 时的表现。 |
 | **`Symbol.toStringTag`** | 指向一个字符串值，用于创建对象的默认字符串描述。 | `Object.prototype.toString.call(obj)` | 自定义对象的类型标签。例如：`[object MyCustomType]`。 |
 
-#### **3. 正则表达式操作**
+#### **5.3 正则表达式操作**
 
 这些 Symbol 允许任何对象模拟正则表达式的行为。
 
@@ -960,7 +960,7 @@ with (MyClass.prototype) {
 | **`Symbol.search`** | 指向一个方法，返回匹配项的索引。 | `str.search(obj)` | 让自定义对象支持字符串的 `search` 方法。 |
 | **`Symbol.split`** | 指向一个方法，执行分割操作。 | `str.split(obj)` | 让自定义对象支持字符串的 `split` 方法。 |
 
-#### **4. 其他行为控制**
+#### **5.4 其他行为控制**
 
 | Symbol | 描述 | 触发场景 | 示例用途 |
 | :--- | :--- | :--- | :--- |
@@ -970,16 +970,18 @@ with (MyClass.prototype) {
 
 ## **6. 常见问题与最佳实践 (FAQ)**
 
-*   **Q1: Symbol 是私有属性吗？**
-    *   **不是真正的私有**。虽然它们不会出现在常规遍历中，但通过 `Object.getOwnPropertySymbols()` 可以轻易获取。它们主要用于防止**命名冲突**，而不是安全保护。
+### 6.1 Symbol 是私有属性吗？
 
-*   **Q2: 为什么 `JSON.stringify` 会忽略 Symbol？**
-    *   这是规范设计的。JSON 是一种数据交换格式，而 Symbol 是语言内部的标识符，通常没有对应的字符串表示，也不适合跨语言传输。
+*   **不是真正的私有**。虽然它们不会出现在常规遍历中，但通过 `Object.getOwnPropertySymbols()` 可以轻易获取。它们主要用于防止**命名冲突**，而不是安全保护。
 
-*   **Q3: 什么时候应该使用 Symbol？**
+### 6.2 为什么 `JSON.stringify` 会忽略 Symbol？
 
-    *    1.  当你需要给对象添加属性，但又不想与现有属性名冲突（特别是对于第三方库的对象）。
-    *    2.  当你需要自定义对象的迭代行为 (`Symbol.iterator`)。
-    *    3.  当你需要定义常量枚举值，且只关心值的唯一性，不关心具体值时。
+*   这是规范设计的。JSON 是一种数据交换格式，而 Symbol 是语言内部的标识符，通常没有对应的字符串表示，也不适合跨语言传输。
+
+### 6.3: 什么时候应该使用 Symbol？
+
+*    当你需要给对象添加属性，但又不想与现有属性名冲突（特别是对于第三方库的对象）。
+*    当你需要自定义对象的迭代行为 (`Symbol.iterator`)。
+*    当你需要定义常量枚举值，且只关心值的唯一性，不关心具体值时。
 
 

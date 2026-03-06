@@ -205,7 +205,7 @@ new Promise((resolve, reject) => {
 })
 ```
 
-### 1. Promise.prototype.then()
+### Promise.prototype.then()
 
 Promise 实例具有`then`方法，也就是说，`then`方法是定义在原型对象`Promise.prototype`上的。它的作用是为 Promise 实例添加状态改变时的回调函数。前面说过，`then`方法的第一个参数是`resolved`状态的回调函数，第二个参数是`rejected`状态的回调函数，它们都是可选的。
 
@@ -246,7 +246,7 @@ getJSON("/post/1.json").then(
 );
 ```
 
-### 2. Promise.prototype.catch()
+### Promise.prototype.catch()
 
 `Promise.prototype.catch()`方法是`.then(null, rejection)`或`.then(undefined, rejection)`的别名，用于指定发生错误时的回调函数。
 
@@ -483,7 +483,7 @@ someAsyncThing().then(function() {
 
 上面代码中，第二个`catch()`方法用来捕获前一个`catch()`方法抛出的错误。
 
-### 3. Promise.prototype.finally()
+### Promise.prototype.finally()
 
 `finally()`方法用于指定不管 Promise 对象最后状态如何，都会执行的操作。该方法是 ES2018 引入标准的。
 
@@ -562,7 +562,7 @@ Promise.reject(3).then(() => {}, () => {})
 Promise.reject(3).finally(() => {})
 ```
 
-### 4. Promise.all()
+### Promise.all()
 
 `Promise.all()`方法用于将多个 Promise 实例，包装成一个新的 Promise 实例。
 
@@ -657,7 +657,7 @@ Promise.all([p1, p2])
 // Error: 报错了
 ```
 
-### 5. Promise.race()
+### Promise.race()
 
 `Promise.race()`方法同样是将多个 Promise 实例，包装成一个新的 Promise 实例。
 
@@ -686,7 +686,7 @@ p
 
 上面代码中，如果 5 秒之内`fetch`方法无法返回结果，变量`p`的状态就会变为`rejected`，从而触发`catch`方法指定的回调函数。
 
-### 6. Promise.allSettled()
+### Promise.allSettled()
 
 有时候，我们希望等到一组异步操作都结束了，不管每一个操作是成功还是失败，再进行下一步操作。但是，现有的 Promise 方法很难实现这个要求。
 
@@ -769,7 +769,7 @@ const errors = results
   .map(p => p.reason);
 ```
 
-### 7. Promise.any()
+### Promise.any()
 
 ES2021 引入了[`Promise.any()`方法](https://github.com/tc39/proposal-promise-any)。该方法接受一组 Promise 实例作为参数，包装成一个新的 Promise 实例返回。
 
@@ -827,7 +827,7 @@ Promise.any([rejected, alsoRejected]).catch(function (results) {
 });
 ```
 
-### 8. Promise.resolve()
+### Promise.resolve()
 
 有时需要将现有对象转为 Promise 对象，`Promise.resolve()`方法就起到这个作用。
 
@@ -931,7 +931,7 @@ console.log('one');
 
 上面代码中，`setTimeout(fn, 0)`在下一轮“事件循环”开始时执行，`Promise.resolve()`在本轮“事件循环”结束时执行，`console.log('one')`则是立即执行，因此最先输出。
 
-### 9. Promise.reject()
+### Promise.reject()
 
 `Promise.reject(reason)`方法也会返回一个新的 Promise 实例，该实例的状态为`rejected`。
 
@@ -960,7 +960,7 @@ Promise.reject('出错了')
 
 上面代码中，`Promise.reject()`方法的参数是一个字符串，后面`catch()`方法的参数`e`就是这个字符串。
 
-### 10. Promise.try()
+### Promise.try()
 
 实际开发中，经常遇到一种情况：不知道或者不想区分，函数`f`是同步函数还是异步操作，但是想用 Promise 来处理它。因为这样就可以不管`f`是否包含异步操作，都用`then`方法指定下一步流程，用`catch`方法处理`f`抛出的错误。一般就会采用下面的写法。
 
@@ -1076,7 +1076,7 @@ Promise.try(() => database.users.get({id: userId}))
 
 ## 3. 应用
 
-### 加载图片
+**加载图片**
 
 我们可以将图片的加载写成一个`Promise`，一旦加载完成，`Promise`的状态就发生变化。
 
@@ -1091,7 +1091,7 @@ const preloadImage = function (path) {
 };
 ```
 
-### Generator 函数与 Promise 的结合
+**Generator 函数与 Promise 的结合**
 
 使用 Generator 函数管理流程，遇到异步操作的时候，通常返回一个`Promise`对象。
 
@@ -1219,23 +1219,23 @@ myPromise
 
 ## **5. 常见问题 (FAQ)**
 
-*   **Q1: `Promise` 解决了什么问题？**
-    *   主要解决了**回调地狱 (Callback Hell)**。它通过链式调用 `.then()`，将嵌套的回调结构扁平化，使代码逻辑更清晰、更易于维护。同时，它提供了统一的错误处理机制 (`.catch`)。
+### 5.1 `Promise` 解决了什么问题？
+*   主要解决了**回调地狱 (Callback Hell)**。它通过链式调用 `.then()`，将嵌套的回调结构扁平化，使代码逻辑更清晰、更易于维护。同时，它提供了统一的错误处理机制 (`.catch`)。
 
-*   **Q2: `Promise` 是同步的还是异步的？**
-    *   `Promise` 本身是**同步**的，`new Promise(...)` 的执行器函数会立即同步执行。但是，它所代表的**操作**通常是**异步**的。`.then`, `.catch`, `.finally` 的回调函数都属于**微任务 (Microtask)**，会在当前同步代码执行完毕后立即异步执行。
+### 5.2 `Promise` 是同步的还是异步的？
+*   `Promise` 本身是**同步**的，`new Promise(...)` 的执行器函数会立即同步执行。但是，它所代表的**操作**通常是**异步**的。`.then`, `.catch`, `.finally` 的回调函数都属于**微任务 (Microtask)**，会在当前同步代码执行完毕后立即异步执行。
 
-*   **Q3: 如何中断一个 `Promise`？**
-    *   `Promise` 一旦创建，其状态改变就不可逆，**无法从外部直接中断**。但是可以通过一些模式来模拟中断：
-        1.  **AbortController (现代标准)**: `fetch` API 原生支持。你可以创建一个 `AbortController`，将其 `signal` 传递给 `fetch`，然后在需要时调用 `controller.abort()`。
-        2.  **“竞速”模式**: 将你的 `Promise` 和一个可以被 `reject` 的“取消 `Promise`”一起放入 `Promise.race()`。
+### 5.3 如何中断一个 `Promise`？
+*   `Promise` 一旦创建，其状态改变就不可逆，**无法从外部直接中断**。但是可以通过一些模式来模拟中断：
+    1.  **AbortController (现代标准)**: `fetch` API 原生支持。你可以创建一个 `AbortController`，将其 `signal` 传递给 `fetch`，然后在需要时调用 `controller.abort()`。
+    2.  **“竞速”模式**: 将你的 `Promise` 和一个可以被 `reject` 的“取消 `Promise`”一起放入 `Promise.race()`。
 
-*   **Q4: `.then(null, onRejected)` 和 `.catch(onRejected)` 有什么区别？**
-    *   `p.then(onFulfilled, onRejected)`: 只能捕获 `p` 本身的 `rejected` 状态。
-    *   `p.then(onFulfilled).catch(onRejected)`: **可以捕获 `p` 的 `rejected` 状态，也可以捕获 `onFulfilled` 回调中抛出的错误**。因此，将 `.catch` 放在链的末尾是更健壮、更推荐的做法。
+### 5.4 `.then(null, onRejected)` 和 `.catch(onRejected)` 有什么区别？
+*   `p.then(onFulfilled, onRejected)`: 只能捕获 `p` 本身的 `rejected` 状态。
+*   `p.then(onFulfilled).catch(onRejected)`: **可以捕获 `p` 的 `rejected` 状态，也可以捕获 `onFulfilled` 回调中抛出的错误**。因此，将 `.catch` 放在链的末尾是更健壮、更推荐的做法。
 
-*   **Q5: 为什么 `async/await` 比 `.then` 链更好？**
-    1.  **可读性**: 代码看起来更像同步逻辑，更容易理解。
-    2.  **错误处理**: `try...catch` 结构可以同时捕获同步错误和异步错误，比 `.catch` 更统一。
-    3.  **调试**: 在 `async` 函数中可以像同步代码一样设置断点，单步调试。
-    4.  **条件和循环**: 在 `async` 函数中处理复杂的条件判断和循环比在 `.then` 链中简单得多。
+### 5.5: 为什么 `async/await` 比 `.then` 链更好？
+*  **可读性**: 代码看起来更像同步逻辑，更容易理解。
+*  **错误处理**: `try...catch` 结构可以同时捕获同步错误和异步错误，比 `.catch` 更统一。
+*  **调试**: 在 `async` 函数中可以像同步代码一样设置断点，单步调试。
+*  **条件和循环**: 在 `async` 函数中处理复杂的条件判断和循环比在 `.then` 链中简单得多。

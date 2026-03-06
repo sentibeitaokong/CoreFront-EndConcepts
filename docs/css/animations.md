@@ -55,14 +55,14 @@ animation: move 2s 1s linear infinite alternate;
 
 ## 3. 常见问题 (FAQ) 与 避坑指南
 
-### Q1: 动画结束后，元素为什么“闪”回了原地？
+### 3.1 动画结束后，元素为什么“闪”回了原地？
 **现象**: 一个方块从左移到右，动画一结束，它瞬间跳回了左边。
 
 **原因**: 默认情况下 (`fill-mode: none`)，动画结束后，元素会移除所有动画样式，恢复到 CSS 初始定义的状态。
 
 **解法**: 设置 **`animation-fill-mode: forwards;`**。这会让元素在动画结束后，**保持**在最后一帧（100%）的状态。
 
-### Q2: 如何实现“逐帧动画” (像 GIF 一样)？
+### 3.2 如何实现“逐帧动画” (像 GIF 一样)？
 **场景**: 雪碧图动画、打字机效果。
 
 **问题**: 默认的 `linear` 或 `ease` 会让图片位置平滑移动，导致看到图片滑动的过程，而不是切换。
@@ -80,7 +80,7 @@ animation: move 2s 1s linear infinite alternate;
 }
 ```
 
-### Q3: 动画太卡顿，CPU 占用高？
+### 3.3 动画太卡顿，CPU 占用高？
 **原因**: 你可能在 `@keyframes` 里改变了 `margin`, `top`, `left`, `width`, `box-shadow` 等属性。这些会触发 **重排 (Reflow)**，每一帧都要重新计算布局。
 
 **解法**: **只做 `transform` 和 `opacity` 的动画**。
@@ -88,7 +88,7 @@ animation: move 2s 1s linear infinite alternate;
 *   用 `transform: scale()` 代替 `width/height`。
 *   这些属性由 GPU 处理 (Composite)，性能极高。
 
-### Q4: 如何用 JS 重新触发动画 (Replay)？
+### 3.4 如何用 JS 重新触发动画 (Replay)？
 **痛点**: 简单的 `classList.add` 和 `remove` 如果在同一帧执行，浏览器会合并操作，导致动画不重播。
 
 **解法**: **强制重绘 (Force Reflow)**。
@@ -105,7 +105,7 @@ void box.offsetWidth;
 box.classList.add('anim');
 ```
 
-### Q5: `display: none` 的元素显示时没有动画？
+### 3.5 `display: none` 的元素显示时没有动画？
 **原因**: 元素从 `none` 变 `block` 时，浏览器没有“之前的状态”来做过渡。
 
 **解法**: 使用关键帧控制 `opacity` 从 0 到 1。

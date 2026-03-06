@@ -145,7 +145,7 @@ fproxy.foo === "Hello, foo" // true
 
 下面是上面这些拦截方法的详细介绍。
 
-### 2.1 get()
+### get()
 
 `get`方法用于拦截某个属性的读取操作，可以接受三个参数，依次为目标对象、属性名和 proxy 实例本身（严格地说，是操作行为所针对的对象），其中最后一个参数可选。
 
@@ -326,7 +326,7 @@ proxy.foo
 // TypeError: Invariant check failed
 ```
 
-### 2.2 set()
+### set()
 
 `set`方法用来拦截某个属性的赋值操作，可以接受四个参数，依次为目标对象、属性名、属性值和 Proxy 实例本身，其中最后一个参数可选。
 
@@ -464,7 +464,7 @@ proxy.foo = 'bar';
 
 上面代码中，严格模式下，`set`代理返回`false`或者`undefined`，都会报错。
 
-### 2.3 apply()
+### apply()
 
 `apply`方法拦截函数的调用、`call`和`apply`操作。
 
@@ -521,7 +521,7 @@ proxy.apply(null, [7, 8]) // 30
 Reflect.apply(proxy, null, [9, 10]) // 38
 ```
 
-### 2.4 has()
+### has()
 
 `has()`方法用来拦截`HasProperty`操作，即判断对象是否具有某个属性时，这个方法会生效。典型的操作就是`in`运算符。
 
@@ -605,7 +605,7 @@ for (let b in oproxy2) {
 
 上面代码中，`has()`拦截只对`in`运算符生效，对`for...in`循环不生效，导致不符合要求的属性没有被`for...in`循环所排除。
 
-### 2.5 construct()
+###  construct()
 
 `construct()`方法用于拦截`new`命令，下面是拦截对象的写法。
 
@@ -678,7 +678,7 @@ let p = new Proxy(function () {}, handler);
 new p() // true
 ```
 
-### 2.6 deleteProperty()
+### deleteProperty()
 
 `deleteProperty`方法用于拦截`delete`操作，如果这个方法抛出错误或者返回`false`，当前属性就无法被`delete`命令删除。
 
@@ -706,7 +706,7 @@ delete proxy._prop
 
 注意，目标对象自身的不可配置（configurable）的属性，不能被`deleteProperty`方法删除，否则报错。
 
-### 2.7 defineProperty()
+### defineProperty()
 
 `defineProperty()`方法拦截了`Object.defineProperty()`操作。
 
@@ -725,7 +725,7 @@ proxy.foo = 'bar' // 不会生效
 
 注意，如果目标对象不可扩展（non-extensible），则`defineProperty()`不能增加目标对象上不存在的属性，否则会报错。另外，如果目标对象的某个属性不可写（writable）或不可配置（configurable），则`defineProperty()`方法不得改变这两个设置。
 
-### 2.8 getOwnPropertyDescriptor()
+### getOwnPropertyDescriptor()
 
 `getOwnPropertyDescriptor()`方法拦截`Object.getOwnPropertyDescriptor()`，返回一个属性描述对象或者`undefined`。
 
@@ -750,7 +750,7 @@ Object.getOwnPropertyDescriptor(proxy, 'baz')
 
 上面代码中，`handler.getOwnPropertyDescriptor()`方法对于第一个字符为下划线的属性名会返回`undefined`。
 
-### 2.9 getPrototypeOf()
+### getPrototypeOf()
 
 `getPrototypeOf()`方法主要用来拦截获取对象原型。具体来说，拦截下面这些操作。
 
@@ -776,7 +776,7 @@ Object.getPrototypeOf(p) === proto // true
 
 注意，`getPrototypeOf()`方法的返回值必须是对象或者`null`，否则报错。另外，如果目标对象不可扩展（non-extensible）， `getPrototypeOf()`方法必须返回目标对象的原型对象。
 
-### 2.10 isExtensible()
+### isExtensible()
 
 `isExtensible()`方法拦截`Object.isExtensible()`操作。
 
@@ -816,7 +816,7 @@ Object.isExtensible(p)
 // Uncaught TypeError: 'isExtensible' on proxy: trap result does not reflect extensibility of proxy target (which is 'true')
 ```
 
-### 2.11 ownKeys()
+### ownKeys()
 
 `ownKeys()`方法用来拦截对象自身属性的读取操作。具体来说，拦截以下操作。
 
@@ -995,7 +995,7 @@ Object.getOwnPropertyNames(p)
 
 上面代码中，`obj`对象是不可扩展的，这时`ownKeys()`方法返回的数组之中，包含了`obj`对象的多余属性`b`，所以导致了报错。
 
-### 2.12 preventExtensions()
+### preventExtensions()
 
 `preventExtensions()`方法拦截`Object.preventExtensions()`。该方法必须返回一个布尔值，否则会被自动转为布尔值。
 
@@ -1030,7 +1030,7 @@ Object.preventExtensions(proxy)
 // Proxy {}
 ```
 
-### 2.13 setPrototypeOf()
+### setPrototypeOf()
 
 `setPrototypeOf()`方法主要用来拦截`Object.setPrototypeOf()`方法。
 
@@ -1174,10 +1174,10 @@ proxy.foo = 1
 
 ## 5. 常见应用场景
 
-1.  **数据绑定与观察者模式**: 现代前端框架（如 Vue 3）的核心响应式系统就是基于 `Proxy` 实现的。通过 `get` 陷阱收集依赖，通过 `set` 陷阱触发更新。
-2.  **数据验证**: 如 `set` 示例所示，确保赋给对象属性的值符合预设的格式或范围。
-3.  **API 增强与兼容性**: 为现有 API 提供更友好的接口，例如给属性不存在时提供默认值，或者将旧 API 的方法名映射为新名称。
-4.  **安全沙箱**: 创建一个代理来限制对某些敏感对象或 API 的访问，防止未经授权的修改或读取。
-5.  **日志与性能监控**: 在 `apply`、`get`、`set` 等陷阱中加入日志记录或性能计时器，用于调试和分析代码。
-6.  **实现负索引**: 通过 `get` 陷阱，让数组支持类似 `array[-1]` 的负索引访问。
+*  **数据绑定与观察者模式**: 现代前端框架（如 Vue 3）的核心响应式系统就是基于 `Proxy` 实现的。通过 `get` 陷阱收集依赖，通过 `set` 陷阱触发更新。
+*  **数据验证**: 如 `set` 示例所示，确保赋给对象属性的值符合预设的格式或范围。
+*  **API 增强与兼容性**: 为现有 API 提供更友好的接口，例如给属性不存在时提供默认值，或者将旧 API 的方法名映射为新名称。
+*  **安全沙箱**: 创建一个代理来限制对某些敏感对象或 API 的访问，防止未经授权的修改或读取。
+*  **日志与性能监控**: 在 `apply`、`get`、`set` 等陷阱中加入日志记录或性能计时器，用于调试和分析代码。
+*  **实现负索引**: 通过 `get` 陷阱，让数组支持类似 `array[-1]` 的负索引访问。
 

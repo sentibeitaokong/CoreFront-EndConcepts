@@ -305,69 +305,80 @@ setTimeout in readFile
 | **与渲染的关系**| 宏任务与微任务之间可能穿插 UI 渲染 | **无 UI 渲染**概念 |
 
 ## **6. 常见问题 (FAQ)**
-*   **Q1: 为什么要有微任务？**
-    *   微任务提供了一种“插队”的能力。它允许我们在当前宏任务结束后、下一次 UI 渲染或下一个宏任务开始前，立即执行一些高优先级的、与状态更新相关的逻辑（如 `Promise` 的决议）。这确保了操作的**原子性**和**及时性**，避免了在等待下一个宏任务期间可能出现的 UI 状态不一致。
-*   **Q2: 如果微任务队列一直有新任务加入，会发生什么？**
-    *  会导致**主线程阻塞**，因为事件循环会一直“卡”在清空微任务队列的阶段，无法进入下一个宏任务或 UI 渲染。这被称为“微任务饥饿”(Microtask starvation)。
-    ```js
-    // 危险！不要在生产环境运行
-    Promise.resolve().then(function microtask() {
-      console.log('Microtask running...');
-      Promise.resolve().then(microtask); // 无限地添加新的微任务
-    });
-    ```
-    这个页面将永远无法执行任何 `setTimeout` 或响应用户点击。
-*   **Q3: `setTimeout(fn, 0)` 是不是立即执行？**
-    *   **不是**。`0` 毫秒的含义是“尽快执行”，而不是“立即执行”。它仍然会将回调函数 `fn` 放入**宏任务队列**。它必须等待**当前调用栈**中的所有同步代码和**所有微任务**都执行完毕后，才有机会被事件循环选中并执行。
 
-*   **Q4: `async/await` 在事件循环中是如何工作的？**
-    *  `async/await` 是 `Promise` 的语法糖，其行为与 `Promise` 完全一致。
-        *   `async` 函数在被调用时，其内部的代码会**同步执行**，直到遇到第一个 `await`。
-        *   `await` 后面的表达式会立即执行。
-        *   `await` 会“暂停” `async` 函数的执行，并将 `await` **之后的所有代码**封装成一个 `.then()` 回调，放入**微任务队列**。
-        *   `async` 函数本身会立即返回一个 `Promise` 对象。
+### 6.1 为什么要有微任务？
 
-    **示例**:
-    ```js
-    async function async1() {
-      console.log('2. async1 start');
-      await async2(); // await 后面的代码会进入微任务队列
-      console.log('6. async1 end');
-    }
-    async function async2() {
-      console.log('3. async2');
-    }
+*   微任务提供了一种“插队”的能力。它允许我们在当前宏任务结束后、下一次 UI 渲染或下一个宏任务开始前，立即执行一些高优先级的、与状态更新相关的逻辑（如 `Promise` 的决议）。这确保了操作的**原子性**和**及时性**，避免了在等待下一个宏任务期间可能出现的 UI 状态不一致。
 
-    console.log('1. script start');
-    async1();
-    console.log('4. script end');
+### 6.2 如果微任务队列一直有新任务加入，会发生什么？
 
-    // 输出: 1, 2, 3, 4, 6
-    // 5. then's log is missing in the example
-    ```
+*  会导致**主线程阻塞**，因为事件循环会一直“卡”在清空微任务队列的阶段，无法进入下一个宏任务或 UI 渲染。这被称为“微任务饥饿”(Microtask starvation)。
+```js
+// 危险！不要在生产环境运行
+Promise.resolve().then(function microtask() {
+  console.log('Microtask running...');
+  Promise.resolve().then(microtask); // 无限地添加新的微任务
+});
+```
+这个页面将永远无法执行任何 `setTimeout` 或响应用户点击。
 
-*   **Q5: 如何理解“JS是单线程的，但浏览器是多线程的”？**
-    *   **JS 主线程 (单线程)**: 负责执行 JavaScript 代码、解析 HTML、计算 CSS、渲染页面。所有这些都在一个线程上完成。
-    *   **浏览器其他线程 (多线程)**:
-        *   **定时器线程**: 负责 `setTimeout` 和 `setInterval` 的计时。
-        *   **HTTP 请求线程**: 负责处理网络请求。
-        *   **事件触发线程**: 负责管理和触发 DOM 事件。
-        *   **Web Worker 线程**: 允许你在后台运行 JS 代码。
-            JavaScript 通过事件循环机制，巧妙地利用了这些浏览器提供的多线程能力，实现了非阻塞的异步操作。
-*   **Q6: 为什么 Node.js 需要这么复杂的阶段模型？**
-    *    这种分阶段的模型是为了**优化 I/O 性能**和**区分不同类型的异步任务**。例如，将 `timers` 和 I/O 操作分开处理，可以更高效地管理系统资源。`check` 阶段的存在为 `setImmediate` 提供了一个可预测的执行时机，专门用于在 I/O 操作后立即执行代码。
-*   **Q7: Node.js 的事件循环和浏览器有什么不同？**
-    *    总体架构相似，但细节和 API 不同。
-        *   **API**: Node.js 有 `process.nextTick()` 和 `setImmediate()`。
-        *   **`process.nextTick()`**: 拥有**最高优先级**，它的队列会在**所有其他微任务**（如 `Promise.then`）执行前被清空。
-        *   **`setImmediate()`**: 它的回调被放入一个特殊的“check”阶段的队列，其执行时机在 I/O 事件回调之后、`setTimeout` 之前（在某些边界情况下）。`setTimeout(fn, 0)` 和 `setImmediate` 的执行顺序在某些情况下是不确定的。
+### 6.3 `setTimeout(fn, 0)` 是不是立即执行？
 
-*   **Q8: `setTimeout(fn, 0)` 和 `setImmediate(fn)` 哪个先执行？**
-    *    **不确定**。这取决于 Node.js 进程的性能和事件循环启动时所花费的时间。
-        *   如果事件循环进入 `timers` 阶段时，`0ms` 已经过去，那么 `setTimeout` 会先执行。
-        *   如果事件循环准备 `timers` 阶段花费了超过 `0ms`，那么可能会先跳过 `timers`，进入 `poll` -> `check`，导致 `setImmediate` 先执行。
-        *   **但是**，如果它们是在一个 **I/O 回调**中被调用的，那么 `setImmediate` **总是**先于 `setTimeout(fn, 0)` 执行，因为 I/O 所在的 `poll` 阶段之后紧接着就是 `check` 阶段。
+*   **不是**。`0` 毫秒的含义是“尽快执行”，而不是“立即执行”。它仍然会将回调函数 `fn` 放入**宏任务队列**。它必须等待**当前调用栈**中的所有同步代码和**所有微任务**都执行完毕后，才有机会被事件循环选中并执行。
 
-*   **Q9: 为什么 `process.nextTick` 不是事件循环的一部分，但优先级这么高？**
-    *   `nextTick` 的设计初衷是提供一个“尽快”执行异步操作的机制，允许开发者在当前操作完成后、事件循环继续进行之前，执行一些“紧急”任务。它的高优先级可以用来确保某些状态在 I/O 操作前被正确设置，或者在事件触发器返回前处理错误。但滥用它会导致 I/O “饥饿”，因为 `nextTick` 队列会阻塞事件循环进入 `poll` 阶段。
+### 6.4 `async/await` 在事件循环中是如何工作的？
+
+*  `async/await` 是 `Promise` 的语法糖，其行为与 `Promise` 完全一致。
+    *   `async` 函数在被调用时，其内部的代码会**同步执行**，直到遇到第一个 `await`。
+    *   `await` 后面的表达式会立即执行。
+    *   `await` 会“暂停” `async` 函数的执行，并将 `await` **之后的所有代码**封装成一个 `.then()` 回调，放入**微任务队列**。
+    *   `async` 函数本身会立即返回一个 `Promise` 对象。
+
+**示例**:
+```js
+async function async1() {
+  console.log('2. async1 start');
+  await async2(); // await 后面的代码会进入微任务队列
+  console.log('6. async1 end');
+}
+async function async2() {
+  console.log('3. async2');
+}
+
+console.log('1. script start');
+async1();
+console.log('4. script end');
+
+// 输出: 1, 2, 3, 4, 6
+// 5. then's log is missing in the example
+```
+
+### 6.5 如何理解“JS是单线程的，但浏览器是多线程的”？
+
+*   **JS 主线程 (单线程)**: 负责执行 JavaScript 代码、解析 HTML、计算 CSS、渲染页面。所有这些都在一个线程上完成。
+*   **浏览器其他线程 (多线程)**:
+    *   **定时器线程**: 负责 `setTimeout` 和 `setInterval` 的计时。
+    *   **HTTP 请求线程**: 负责处理网络请求。
+    *   **事件触发线程**: 负责管理和触发 DOM 事件。
+    *   **Web Worker 线程**: 允许你在后台运行 JS 代码。
+        JavaScript 通过事件循环机制，巧妙地利用了这些浏览器提供的多线程能力，实现了非阻塞的异步操作。
+
+### 6.6 为什么 Node.js 需要这么复杂的阶段模型？
+
+*    这种分阶段的模型是为了**优化 I/O 性能**和**区分不同类型的异步任务**。例如，将 `timers` 和 I/O 操作分开处理，可以更高效地管理系统资源。`check` 阶段的存在为 `setImmediate` 提供了一个可预测的执行时机，专门用于在 I/O 操作后立即执行代码。
+
+### 6.7 Node.js 的事件循环和浏览器有什么不同？
+*    总体架构相似，但细节和 API 不同。
+    *   **API**: Node.js 有 `process.nextTick()` 和 `setImmediate()`。
+    *   **`process.nextTick()`**: 拥有**最高优先级**，它的队列会在**所有其他微任务**（如 `Promise.then`）执行前被清空。
+    *   **`setImmediate()`**: 它的回调被放入一个特殊的“check”阶段的队列，其执行时机在 I/O 事件回调之后、`setTimeout` 之前（在某些边界情况下）。`setTimeout(fn, 0)` 和 `setImmediate` 的执行顺序在某些情况下是不确定的。
+
+### 6.8 `setTimeout(fn, 0)` 和 `setImmediate(fn)` 哪个先执行？
+*    **不确定**。这取决于 Node.js 进程的性能和事件循环启动时所花费的时间。
+    *   如果事件循环进入 `timers` 阶段时，`0ms` 已经过去，那么 `setTimeout` 会先执行。
+    *   如果事件循环准备 `timers` 阶段花费了超过 `0ms`，那么可能会先跳过 `timers`，进入 `poll` -> `check`，导致 `setImmediate` 先执行。
+    *   **但是**，如果它们是在一个 **I/O 回调**中被调用的，那么 `setImmediate` **总是**先于 `setTimeout(fn, 0)` 执行，因为 I/O 所在的 `poll` 阶段之后紧接着就是 `check` 阶段。
+
+### 6.9 为什么 `process.nextTick` 不是事件循环的一部分，但优先级这么高？
+*   `nextTick` 的设计初衷是提供一个“尽快”执行异步操作的机制，允许开发者在当前操作完成后、事件循环继续进行之前，执行一些“紧急”任务。它的高优先级可以用来确保某些状态在 I/O 操作前被正确设置，或者在事件触发器返回前处理错误。但滥用它会导致 I/O “饥饿”，因为 `nextTick` 队列会阻塞事件循环进入 `poll` 阶段。
 

@@ -71,20 +71,20 @@ window.addEventListener('storage', (event) => {
 
 ## 3. 常见问题 (FAQ) 与 避坑指南
 
-### Q1: Web Storage 有多大容量限制？
+### 3.1 Web Storage 有多大容量限制？
 通常是 **5MB** (每个域名)。
 *   相比之下，Cookies 只有 4KB。
 *   注意：这是 UTF-16 字符数限制，不是字节数。如果存纯中文，实际能存的字符数会减半。
 *   超过限制时，`setItem` 会抛出 `QuotaExceededError` 异常。**建议在 setItem 外面包一层 try-catch。**
 
-### Q2: 为什么 `sessionStorage` 在新标签页里是空的？
+### 3.2 为什么 `sessionStorage` 在新标签页里是空的？
 很多开发者误以为 `sessionStorage` 像 Cookie 一样在同域下共享。
 **错！** `sessionStorage` 是绑定到 **Window (标签页)** 的。
 *   你在 Tab A 存了数据。
 *   你在浏览器里新建 Tab B 打开同一个网址 -> **数据为空**。
 *   *特例*：如果你在 Tab A 通过 `window.open` 或右键“在新标签页打开”链接，Tab B 会**复制**一份 Tab A 的 sessionStorage（之后两者独立）。
 
-### Q3: 如何给 localStorage 设置过期时间？
+### 3.3 如何给 localStorage 设置过期时间？
 原生 API 不支持过期时间（它是永久的）。必须手动封装。
 **实现思路**：存数据时，把当前时间戳也存进去。取数据时，判断时间是否超时。
 
@@ -110,17 +110,17 @@ const myStorage = {
 };
 ```
 
-### Q4: 隐私模式 (Incognito) 下能用吗？
+### 3.4 隐私模式 (Incognito) 下能用吗？
 *   在**隐身模式**下，`localStorage` 和 `sessionStorage` 依然**可以使用**。
 *   但是，当用户**关闭隐身窗口**时，所有存储的数据（包括 localStorage）都会被**立即清除**。
 *   *注：极少数旧版浏览器（如老 Safari）在隐身模式下调用 `setItem` 会直接报错，建议 try-catch。*
 
-### Q5: Web Storage 和 Cookie 有什么区别？(面试必问)
+### 3.5 Web Storage 和 Cookie 有什么区别？(面试必问)
 1.  **大小**: Storage 5MB vs Cookie 4KB。
 2.  **传输**: Cookie 会自动随每个 HTTP 请求**发送到服务器**（浪费带宽）；Storage 数据仅存在浏览器本地，**不与服务器通信**。
 3.  **操作**: Storage API 简单 (`setItem`)；Cookie 原生 API 很难用（需要解析字符串 `document.cookie`）。
 
-### Q6: 为什么 `localStorage` 存布尔值 `false` 取出来变成了 `"false"` (字符串)？
+### 3.6 为什么 `localStorage` 存布尔值 `false` 取出来变成了 `"false"` (字符串)？
 因为 Web Storage 只能存字符串。
 ```js
 localStorage.setItem('isLogin', false);

@@ -1,3 +1,6 @@
+---
+outline: [2,3]
+---
 # 表格布局 (Table Layout)
 
 在 CSS 领域，“表格布局”通常指两个截然不同的概念：
@@ -5,11 +8,11 @@
 2.  **模拟表格布局**：使用 `display: table` 系列属性，让 `div` 等元素像表格一样排版（在 Flexbox/Grid 诞生前，这是实现等高列和垂直居中的主要手段）。
 
 
-## 一、原生表格布局与样式化 (`<table>`)
+## 1. 原生表格布局与样式化 (`<table>`)
 
 处理数据报表、财务清单时必用。
 
-### 1. 核心属性：表格布局算法 (`table-layout`)
+### 1.1 核心属性：表格布局算法 (`table-layout`)
 
 这是决定表格渲染性能和列宽表现的最关键属性。
 
@@ -29,7 +32,7 @@ table {
 
 ![Logo](/tableFixed.png)
 
-### 2. 边框模型 (`border-collapse`)
+### 1.2 边框模型 (`border-collapse`)
 
 控制单元格边框的合并方式。
 
@@ -59,7 +62,7 @@ th, td {
 
 ![Logo](/tableSeparate.png)
 
-### 3. 间距与位置
+### 1.3 间距与位置
 
 *   **`border-spacing`**: 单元格之间的距离。**仅在** `border-collapse: separate` 时有效。
     *   `border-spacing: 10px;` (水平垂直均为 10px)
@@ -97,11 +100,11 @@ th, td {
 
 ![Logo](/tableCaption.png)
 
-## 二、CSS 模拟表格布局 (`display: table`)
+## 2. CSS 模拟表格布局 (`display: table`)
 
 利用 CSS 属性让非表格元素（如 `div`）拥有表格的特性。
 
-### 1. 属性映射表
+### 2.1 属性映射表
 
 | HTML 标签 | CSS 对应属性 | 作用 |
 | :--- | :--- | :--- |
@@ -112,11 +115,11 @@ th, td {
 | `<tfoot>` | `display: table-footer-group`| 表脚组 |
 | `<caption>` | `display: table-caption` | 表格标题 |
 
-### 2. 经典应用场景
+### 2.2 经典应用场景
 
 虽然 Flexbox 是主流，但在某些场景（如**HTML 邮件模板**、**兼容极老旧浏览器**、**动态内容等高**）下，`display: table` 依然有用。
 
-### A. 垂直居中 (Vertical Centering)
+#### 垂直居中 (Vertical Centering)
 `table-cell` 是唯一支持 `vertical-align: middle` 真正生效的块级环境。
 ```css
 .parent {
@@ -130,7 +133,7 @@ th, td {
 }
 ```
 
-### B. 多列等高布局 (Equal Height Columns)
+#### 多列等高布局 (Equal Height Columns)
 同一行内的 `table-cell` 无论内容多少，高度永远自动保持一致。
 ```css
 .row {
@@ -143,9 +146,9 @@ th, td {
 }
 ```
 
-## 三、常见问题 (FAQ) 与 解决方案
+## 3. 常见问题 (FAQ) 与 解决方案
 
-### Q1: 表格里的文字怎么实现“单行省略号” (`...`)？
+### 3.1 表格里的文字怎么实现“单行省略号” (`...`)？
 **这是表格布局最常见的大坑**。如果只写 `text-overflow: ellipsis` 是无效的。
 **必须满足 4 个条件**：
 1.  表格必须是 `table-layout: fixed`。
@@ -166,7 +169,7 @@ td.truncate {
 }
 ```
 
-### Q2: 如何做响应式表格 (适配手机端)？
+### 3.2 如何做响应式表格 (适配手机端)？
 表格天生抗拒变窄。常用的两种方案：
 
 **方案 A：容器横向滚动 (Scroll)**
@@ -200,13 +203,13 @@ td.truncate {
 }
 ```
 
-### Q3: `margin` 对 `tr` 和 `td` 无效？
+### 3.3 `margin` 对 `tr` 和 `td` 无效？
 是的。
 *   表格行 (`tr`) 和单元格 (`td`) **不支持** `margin` 属性。
 *   如果想增加单元格内容的间距，请使用 `padding`。
 *   如果想增加单元格之间的间距，请使用 `border-spacing` (需 `border-collapse: separate`)。
 
-### Q4: 如何固定表头 (Sticky Header)？
+### 3.4 如何固定表头 (Sticky Header)？
 让表格滚动时表头吸顶。
 ```css
 th {
@@ -218,7 +221,7 @@ th {
 ```
 *注意：如果表格的父容器设置了 `overflow: hidden`，`sticky` 可能会失效。*
 
-### Q5: `visibility: collapse` 在表格里的特殊表现？
+### 3.5 `visibility: collapse` 在表格里的特殊表现？
 *   `display: none`: 彻底移除，不占空间，后面的行会补上来（表格结构可能重算）。
 *   `visibility: hidden`: 隐藏内容，但保留空白占位。
 *   **`visibility: collapse`**: 专为表格设计。隐藏该行，且**不保留**高度（像 display: none），但**不触发**表格列宽的重新计算（性能更好）。

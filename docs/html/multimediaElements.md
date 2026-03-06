@@ -94,7 +94,7 @@ HTML5 最强大的标签之一。
 
 ##  5. 常见问题 (FAQ) 与 避坑指南
 
-### Q1: 为什么我的 `<video autoplay>` 不自动播放？
+### 5.1 为什么我的 `<video autoplay>` 不自动播放？
 **原因**: 现代浏览器（Chrome/Safari/Firefox）为了用户体验，**默认禁止**带声音的媒体自动播放。
 **解法**: 必须加上 `muted` 属性。
 ```html
@@ -103,7 +103,7 @@ HTML5 最强大的标签之一。
 ```
 *注: `playsinline` 是为了兼容 iOS Safari，防止视频自动全屏播放。*
 
-### Q2: 视频在 iPhone 上点击播放就自动全屏了？
+### 5.2 视频在 iPhone 上点击播放就自动全屏了？
 **原因**: iOS 的默认行为。
 
 **解法**: 添加 `playsinline` 属性（如果是 webview 还需 APP 端配合配置）。
@@ -111,14 +111,14 @@ HTML5 最强大的标签之一。
 <video playsinline ...>
 ```
 
-### Q3: 为什么 `<img>` 下方有 3px 的空白缝隙？
+### 5.3 为什么 `<img>` 下方有 3px 的空白缝隙？
 **原因**: 图片默认是 `inline-block`，对齐文本基线 (baseline)。缝隙是给字母下伸部分留的。
 
 **解法**:
 1.  `img { display: block; }` (推荐)
 2.  `img { vertical-align: bottom; }`
 
-### Q4: 怎么禁止用户下载我的图片/视频？
+### 5.4 怎么禁止用户下载我的图片/视频？
 **没有绝对的方法**。只要浏览器能显示，用户就能拿到资源（F12、抓包）。
 
 **防君子不防小人**:
@@ -128,7 +128,7 @@ HTML5 最强大的标签之一。
     <video controls controlsList="nodownload">
     ```
 
-### Q5: 为什么 GIF 图加载这么慢？
+### 5.5 为什么 GIF 图加载这么慢？
 GIF 格式非常古老且压缩率低。
 
 **解法**: 使用 `<video>` 播放静音的 `.mp4` 或 `.webm` 循环视频来代替 GIF。体积通常能减小 90%。
@@ -136,7 +136,7 @@ GIF 格式非常古老且压缩率低。
 <video autoplay loop muted playsinline src="animation.mp4"></video>
 ```
 
-### Q6: `object-fit` 是什么？
+### 5.6 `object-fit` 是什么？
 这是 CSS 属性，专门解决图片/视频变形问题。
 *   `object-fit: cover;`: 保持比例填满容器（裁切多余部分）。
 *   `object-fit: contain;`: 保持比例完整显示（留黑边）。

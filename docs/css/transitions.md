@@ -2,7 +2,6 @@
 
 CSS 过渡是网页动效的入门基石。它允许元素从一种样式状态**平滑地**改变为另一种样式状态，而不是瞬间突变。
 
-
 ## 1. 核心概念
 
 过渡必须满足两个条件才能触发：
@@ -42,7 +41,7 @@ transition: all 0.3s ease-in-out;
 
 ## 3. 常见问题 (FAQ) 与 避坑指南
 
-### Q1: 为什么 `display: none` 变 `block` 没有过渡效果？
+### 3.1 为什么 `display: none` 变 `block` 没有过渡效果？
 **原因**：`display` 属性不是一个可动画的属性。当元素从 `none` 变为 `block` 时，浏览器会立即绘制它，过渡系统来不及捕捉起始状态。
 
 **解法**：
@@ -60,7 +59,7 @@ transition: all 0.3s ease-in-out;
     ```
 2.  使用 JS 配合 `requestAnimationFrame` 强制重绘（较复杂）。
 
-### Q2: `height: 0` 变 `height: auto` 为什么没动画？
+### 3.2 `height: 0` 变 `height: auto` 为什么没动画？
 **原因**：CSS 动画引擎无法计算 `auto` 的具体高度值，所以无法建立从 0 到 auto 的补间动画。
 
 **解法**：
@@ -71,12 +70,12 @@ transition: all 0.3s ease-in-out;
 2.  **使用 `grid-template-rows`** (现代方案)。
     *   `0fr` -> `1fr`. (需父容器是 Grid 布局)。
 
-### Q3: 为什么过渡结束后 `z-index` 突然跳变？
+### 3.3 为什么过渡结束后 `z-index` 突然跳变？
 **原因**：`z-index` 是离散的整数，它支持过渡，但不是平滑的。它会在过渡时间的中点或者终点直接突变。
 
 **解法**：如果需要层级动效，通常配合 `opacity` 或 `transform` 来视觉欺骗。
 
-### Q4: 怎么让过渡只在“移入”时生效，“移出”时立即恢复？
+### 3.4 怎么让过渡只在“移入”时生效，“移出”时立即恢复？
 **技巧**：将 `transition` 属性写在**触发状态**（如 `:hover`）里，而不是默认状态里。
 
 ```css
@@ -94,7 +93,7 @@ transition: all 0.3s ease-in-out;
 ```
 *反之，如果想“移入”快，“移出”慢，可以在默认状态和 hover 状态分别写不同的 `transition-duration`。*
 
-### Q5: 性能优化？
+### 3.5 性能优化？
 尽量只过渡 **`transform`** 和 **`opacity`**。
 *   `width`, `height`, `top`, `left`, `margin`: 会触发 **Layout (回流)**，每帧都要重排版，CPU 压力大，容易掉帧。
 *   `transform`, `opacity`: 仅触发 **Composite (合成)**，由 GPU 处理，极度流畅。
@@ -111,7 +110,3 @@ transition: all 0.3s ease-in-out;
   will-change: transform;
 }
 ```
-
-## 5. 调试技巧
-
-在 Chrome DevTools 中，有一个 **Animations** 面板。它可以录制页面上的所有过渡和动画，允许你慢速回放 (10% 速度) 来检查细节。

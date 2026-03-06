@@ -113,7 +113,7 @@ background: repeating-linear-gradient(
 
 ## 5. 常见问题 (FAQ) 与 避坑指南
 
-### Q1: 为什么 `background-color` 和 `gradient` 一起写会失效？
+### 5.1 为什么 `background-color` 和 `gradient` 一起写会失效？
 **错误写法**：
 ```css
 background: linear-gradient(red, blue);
@@ -129,7 +129,7 @@ background-color: green; /* 这句覆盖了上一句 */
     background-image: linear-gradient(red, blue);
     ```
 
-### Q2: 渐变色出现明显的“波纹”或“色带” (Color Banding)？
+### 5.2 渐变色出现明显的“波纹”或“色带” (Color Banding)？
 **现象**：在大屏幕上，颜色过渡不平滑，有一条条的横纹。
 
 **原因**：屏幕能显示的颜色数量是有限的（8-bit）。当两个颜色太接近且过渡距离太长时，中间就没有足够的颜色级数来填充了。
@@ -139,7 +139,7 @@ background-color: green; /* 这句覆盖了上一句 */
 2.  **添加噪点**：给背景叠加一张透明的噪点图片，打破规则的条纹感。
 3.  **不规则角度**：使用 `linear-gradient(133deg, ...)` 而不是标准的 90 度，有助于视觉欺骗。
 
-### Q3: 如何做“文字渐变色”？
+### 5.3 如何做“文字渐变色”？
 这是一个经典技巧，结合 `background-clip`。
 
 ```css
@@ -156,7 +156,7 @@ background-color: green; /* 这句覆盖了上一句 */
 }
 ```
 
-### Q4: 渐变边框怎么做？
+### 5.4 渐变边框怎么做？
 `border-color` 不支持渐变。
 **解法 A：使用 `border-image`** (不支持圆角 `border-radius`)。
 ```css
@@ -178,7 +178,7 @@ border-image: linear-gradient(red, blue) 1;
 }
 ```
 
-### Q5: 为什么在 Safari 上透明渐变会变黑？
+### 5.5 为什么在 Safari 上透明渐变会变黑？
 **现象**：`linear-gradient(white, transparent)` 在旧版 Safari 中，中间过渡区会变得灰黑。
 
 **原因**：`transparent` 本质是 `rgba(0,0,0,0)`（黑色透明）。所以它是从白色过渡到黑色透明。

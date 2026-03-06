@@ -148,11 +148,11 @@ function connect() {
 
 ## 4. 常见问题 (FAQ) 与 避坑指南
 
-### Q1: 可以在 HTTP 页面连接 `wss://` 吗？可以在 HTTPS 页面连接 `ws://` 吗？
+### 4.1 可以在 HTTP 页面连接 `wss://` 吗？可以在 HTTPS 页面连接 `ws://` 吗？
 *   **HTTP 页面** -> 连接 `ws://` (可行) 或 `wss://` (可行)。
 *   **HTTPS 页面** -> **必须连接 `wss://`**。连接 `ws://` 会被浏览器作为“混合内容 (Mixed Content)”拦截并报错。
 
-### Q2: 怎么在建立连接时添加自定义 Headers（如 Token）？
+### 4.2 怎么在建立连接时添加自定义 Headers（如 Token）？
 **WebSocket 标准 API 不支持自定义 Headers。**
 这是 WebSocket API 设计的一大痛点。你不能像 Ajax 那样设置 `Authorization` 头。
 **替代方案**：
@@ -160,12 +160,12 @@ function connect() {
 2.  **子协议数组**: `new WebSocket(url, ["access_token", "xyz"])` (需要服务端配合解析)。
 3.  **握手后发送**: 连接成功后，第一条消息发送 Token 进行认证。
 
-### Q3: 为什么连接过一会就自动断开了？
+### 4.3 为什么连接过一会就自动断开了？
 **原因**: 网络设备（Nginx, 负载均衡, 防火墙）通常有超时设置（如 60秒无数据传输自动切断 TCP 连接）。
 
 **解法**: 必须实现 **心跳机制 (Ping/Pong)**，每隔 30-50 秒发送一个空包保持连接活跃。
 
-### Q4: 怎么发送图片或文件？
+### 4.4 怎么发送图片或文件？
 不要把文件转成 Base64 字符串发送（体积会变大 33%）。
 请直接发送 `Blob` 或 `ArrayBuffer`。
 ```js
@@ -174,12 +174,12 @@ const file = fileInput.files[0];
 ws.send(file); // 浏览器会自动处理二进制流
 ```
 
-### Q5: WebSocket 会跨域吗 (CORS)？
+### 4.5 WebSocket 会跨域吗 (CORS)？
 **会，但机制不同**。
 WebSocket 没有浏览器的同源策略限制（你可以随便连别人的 WebSocket 服务）。
 **但是**，浏览器会在握手请求中自动带上 `Origin` 头。服务端通常会检查这个 `Origin` 决定是否允许连接。如果服务端返回 403，连接就会失败。
 
-### Q6: `bufferedAmount` 有什么用？
+### 4.6 `bufferedAmount` 有什么用？
 **场景**: 当你上传大文件时，如果不加限制地 `while` 循环调用 `ws.send()`，浏览器的内存会被撑爆，因为数据发不出去全堆在缓冲区。
     
 **用法**:

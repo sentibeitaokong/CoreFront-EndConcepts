@@ -107,7 +107,7 @@ Canvas 中唯一能直接绘制的形状。
 ## 2. SVG
 SVG 直接写在 HTML 里，像写 div 一样简单。
 
-### 1.1 基础图形
+### 2.1 基础图形
 *   **`<rect>`**: 矩形。
     *   `<rect x="10" y="10" width="100" height="50" fill="red" rx="10" />` (rx 是圆角)。
 *   **`<circle>`**: 圆。
@@ -131,7 +131,7 @@ SVG 直接写在 HTML 里，像写 div 一样简单。
 
 ```
 ![Logo](/svg.png)
-### 1.2 万能路径 (`<path>`)
+### 2.2 万能路径 (`<path>`)
 这是 SVG 最强大的标签。通过 `d` 属性的一串指令来绘画。
 
 | 指令 | 含义 | 参数示例 |
@@ -150,7 +150,7 @@ SVG 直接写在 HTML 里，像写 div 一样简单。
 <path d="M 10 10 L 50 50 H 90 V 10 Z" fill="none" stroke="black" />
 ```
 ![Logo](/svgPath.png)
-### 1.3 样式 (CSS)
+### 2.3 样式 (CSS)
 SVG 可以像 HTML 一样加 class，用 CSS 控制颜色。
 ```html
 <!DOCTYPE html>
@@ -181,7 +181,7 @@ SVG 可以像 HTML 一样加 class，用 CSS 控制颜色。
 
 ## 3. 常见问题 (FAQ) 与 避坑指南
 
-### Q1: Canvas 绘制图片有时是空白的？
+### 3.1 Canvas 绘制图片有时是空白的？
 **原因**: 图片还没加载完，你就调用了 `drawImage`。
 
 **解法**: 必须在 `onload` 回调里画。
@@ -193,7 +193,7 @@ img.onload = () => {
 };
 ```
 
-### Q2: 如何解决 Canvas 在高清屏 (Retina) 模糊的问题？
+### 3.2 如何解决 Canvas 在高清屏 (Retina) 模糊的问题？
 **核心原理**: 1个 CSS 像素在 Retina 屏上对应 2个或 3个物理像素。如果 Canvas 的 `width` 属性是 100，它只有 100 个物理像素，被拉伸显示就会糊。
 
 **标准解法**:
@@ -217,7 +217,7 @@ function setupCanvas(canvas) {
 }
 ```
 
-### Q3: SVG 图片引入后无法用 CSS 修改颜色？
+### 3.3 SVG 图片引入后无法用 CSS 修改颜色？
 **场景**: `<img src="icon.svg" class="icon">`，CSS 写 `.icon { fill: red }` 无效。
 
 **原因**: `<img>` 标签引入的 SVG 是作为一个独立文档存在的，外部 CSS 无法穿透进去。
@@ -226,7 +226,7 @@ function setupCanvas(canvas) {
 1.  **内联 SVG (推荐)**: 直接把 `<svg>...</svg>` 代码粘贴到 HTML 里。
 2.  **SVG Sprite (雪碧图)**: 使用 `<use xlink:href="#symbol-id">`。
 
-### Q4: Canvas 如何实现“点击图形”交互？
+### 3.4 Canvas 如何实现“点击图形”交互？
 Canvas 本身只是一张图片，没有 DOM 节点。
 
 **方案**:
@@ -237,7 +237,7 @@ Canvas 本身只是一张图片，没有 DOM 节点。
     *   在隐藏 Canvas 上画一遍。
     *   获取鼠标位置的像素颜色 `getImageData`，根据颜色 ID 找到对应的图形对象。
 
-### Q5: SVG `viewBox` 是什么？
+### 3.5 SVG `viewBox` 是什么？
 **这是 SVG 最难理解也是最重要的属性**。
 `<svg width="100" height="100" viewBox="0 0 50 50">`
 *   `width/height`: **视口 (Viewport)**。墙上挂画框的大小（100x100）。

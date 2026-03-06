@@ -79,9 +79,9 @@ count(816); //816
 
 ## **3. 闭包产生的三个必要条件**
 
-1.  **函数嵌套**: 必须有一个内部函数嵌套在外部函数中。
-2.  **内部函数引用外部变量**: 内部函数必须访问其外部函数的变量或参数。
-3.  **外部函数返回内部函数**: 外部函数必须 `return` 这个内部函数。
+*  **函数嵌套**: 必须有一个内部函数嵌套在外部函数中。
+*  **内部函数引用外部变量**: 内部函数必须访问其外部函数的变量或参数。
+*  **外部函数返回内部函数**: 外部函数必须 `return` 这个内部函数。
 
 ## **4. 闭包九大应用场景**
 
@@ -100,7 +100,7 @@ count(816); //816
 | **8** | **实现模块化 (Module Pattern)** | 使用 IIFE 创建不污染全局的独立作用域，并选择性地暴露接口。 |
 | **9** | **缓存函数结果 (Memoization)** | 在闭包中创建一个缓存对象，存储函数对给定参数的计算结果。 |
 
-### **1. 模拟私有变量 (Private Variables)**
+### **4.1 模拟私有变量 (Private Variables)**
 
 这是闭包最基础、最重要的应用，用于实现数据的封装。
 
@@ -121,7 +121,7 @@ alice.greet(); // "Hello, I'm Alice, I am 30 years old."
 // console.log(alice._age); // undefined
 ```
 
-### **2. 创建函数工厂 (Function Factories)**
+### **4.2 创建函数工厂 (Function Factories)**
 
 闭包可以“记住”创建它时的配置，用于生成定制化的函数。
 
@@ -138,7 +138,7 @@ console.log(double(10)); // 20
 console.log(triple(10)); // 30
 ```
 
-### **3. 实现柯里化 (Currying)**
+### **4.3 实现柯里化 (Currying)**
 
 通过闭包，将一个多参数函数分解，使其可以分步接收参数。
 
@@ -162,7 +162,7 @@ console.log(curriedSum(1)(2)(3)); // 6
 console.log(curriedSum(1, 2)(3)); // 6
 ```
 
-### **4. 循环与异步 (setTimeout & Event Listeners)**
+### **4.4 循环与异步 (setTimeout & Event Listeners)**
 
 这是经典的闭包“陷阱”与应用场景，核心是在异步回调中访问到正确的循环变量。
 
@@ -191,7 +191,7 @@ items.forEach((itemText, index) => {
 });
 ```
 
-### **5. 实现防抖 (Debounce)**
+### **4.5 实现防抖 (Debounce)**
 
 防止函数在高频触发下被无限制调用，只在最后一次触发后的一段时间内执行。
 
@@ -212,7 +212,7 @@ window.addEventListener('scroll', debounce(() => {
 }, 300));
 ```
 
-### **6. 实现节流 (Throttle)**
+### **4.6 实现节流 (Throttle)**
 
 保证一个函数在固定时间间隔内最多只执行一次。
 
@@ -234,7 +234,7 @@ window.addEventListener('resize', throttle(() => {
 }, 200));
 ```
 
-### **7. 实现一次性函数 (Once Function)**
+### **4.7 实现一次性函数 (Once Function)**
 
 确保一个函数在程序的生命周期中只被成功调用一次。
 
@@ -262,7 +262,7 @@ initialize(); // (无任何输出)
 initialize(); // (无任何输出)
 ```
 
-### **8. 实现模块化 (Module Pattern)**
+### **4.8 实现模块化 (Module Pattern)**
 
 在 ES6 模块出现前，这是创建独立、可复用代码块的主要方式，避免污染全局作用域。
 
@@ -285,7 +285,7 @@ myAwesomeModule.publicMethod(); // "Accessing private stuff...", "I am secret"
 // console.log(myAwesomeModule.privateVar); // undefined
 ```
 
-### **9. 缓存函数结果 (Memoization)**
+### **4.9 缓存函数结果 (Memoization)**
 
 对于计算成本高的纯函数，可以将输入和结果缓存起来，避免重复计算。
 
