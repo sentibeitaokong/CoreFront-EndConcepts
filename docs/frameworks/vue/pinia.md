@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# Vue 全局状态管理：从 Vuex 到 Pinia
+# Vue 全局状态管理：从 [Vuex](https://vuex.vuejs.org/zh/) 到 [Pinia](https://pinia.vuejs.org/zh/introduction.html)
 
 ## 1. 核心概念与应用边界
 
@@ -121,9 +121,59 @@ export const useCartStore = defineStore('cart', () => {
 })
 ```
 
-## 3. 进阶特性与工程化应用
+## 3. 终极扩展：Plugins (插件系统) 深度定制
 
-### 3.1 状态持久化 (Pinia Plugin Persistedstate)
+插件系统是 Pinia 提供给高级工程师的一把“手术刀”。通过编写插件，你可以在**每一个 Store 被创建的那一刻**进行拦截，往里面动态挂载全局属性、改写方法、甚至重构底层逻辑。
+
+### 3.1 编写插件的核心 API (`context`)
+
+当你向 `pinia.use(plugin)` 传入一个函数时，这个函数会在每个 Store 初始化时执行，并收到一个极其强大的 `context` 对象。
+
+```javascript
+// MyPiniaPlugin.js
+export function myPiniaPlugin(context) {
+  // 你可以从 context 中剥离出四个核心对象：
+  const { 
+    pinia,   // 整个 pinia 根实例
+    app,     // 当前 Vue app 的实例 (能拿到 app.config.globalProperties)
+    store,   // 🚨 此时正在被创建的那个目标 Store 实例！
+    options  // 这个 Store 原始的配置选项 (包括你自定义的各种参数)
+  } = context
+  
+  // 你可以根据 options 判断是否要对这个 store 动刀
+  // 或者直接返回一个对象，里面的属性会被合并到所有 store 中！
+}
+```
+
+### 3.2 动态挂载全局工具 (如 Router)
+
+为了避免在 Store 的业务代码里写恶心的 `import router from '@/router'` 从而导致循环依赖，我们可以在最顶层用插件把 router “硬塞”进每一个 Store 里。
+
+```javascript
+// main.js
+import { createApp, markRaw } from 'vue'
+import { createPinia } from 'pinia'
+import router from './router'
+import App from './App.vue'
+
+const pinia = createPinia()
+
+// 注入路由插件
+pinia.use(({ store }) => {
+  // 🚨 致命防坑：因为 router 内部逻辑极其复杂且对象庞大，
+  // 绝不能让 Pinia 的响应式系统去深度劫持它 (会导致死循环爆炸)！
+  // 必须使用 markRaw 给它穿上绝缘服，告诉 Vue 不要代理它。
+  store.router = markRaw(router)
+})
+
+const app = createApp(App)
+app.use(router) // 注意挂载顺序，通常先 router 后 pinia
+app.use(pinia)
+app.mount('#app')
+```
+*现在，在任意的 Options Store 中你就可以直接 `this.router.push` 了。(注：在 Setup Store 中无法通过 `this` 访问，通常直接 `import router` 更符合现代 ESM 规范)。*
+
+### 3.3  状态持久化 (Pinia Plugin Persistedstate)
 这是真实业务中最刚性的需求：**用户一刷新页面，存在 Pinia 内存里的状态全没了（比如登录 token 丢失）**。
 以前我们需要手动写 `localStorage.setItem`。现在只需要装一个官方推荐的插件即可。
 
@@ -152,6 +202,29 @@ export const useUserStore = defineStore('user', () => {
   persist: true 
 })
 ```
+
+**基于 `$subscribe` 实现终极持久化**
+
+```javascript
+// 自定义持久化插件 (简易版原理)
+export function persistPlugin({ store }) {
+  // 1. Store 刚创建时，先去 localStorage 翻一翻有没有它的“前世记忆”
+  const savedState = localStorage.getItem(store.$id)
+  if (savedState) {
+    // 如果有，使用 $patch 强行把记忆覆盖到现在的 state 里
+    store.$patch(JSON.parse(savedState))
+  }
+
+  // 2. 在它未来的生命中，利用内置的 $subscribe 挂载一个"幽灵监听器"
+  // 只要它的 state 发生了哪怕一丝一毫的改变，就会立刻触发这个回调
+  store.$subscribe((mutation, state) => {
+    // mutation 对象里包含了：是哪个变量变了、怎么变的、新值是多少
+    // 立刻将最新的 state 序列化后存入硬盘
+    localStorage.setItem(store.$id, JSON.stringify(state))
+  }, { detached: true }) // detached: true 保证即使注册插件的组件被销毁了，监听器依然在后台全天候运行！
+}
+```
+
 
 ## 4. 常见问题 (FAQ) 与避坑指南
 
@@ -194,3 +267,6 @@ export const useUserStore = defineStore('user', () => {
     *   **Composable (如 `useMouse`)**：是**局部状态**。你在组件 A 调用一次，组件 B 调用一次，它们会在内存里创建**两份相互独立的**状态副本，互不干扰。
     *   **Pinia Store (如 `useUserStore`)**：是**全局单例 (Singleton) 状态**。不管你在 100 个组件里调用了多少次，Pinia 底层都会保证它们指向的是**内存里同一份数据**。
     *   **选型结论**：如果是可复用的纯逻辑（比如防抖、获取滚动位置），用 Composable；如果是必须跨页面共享的业务数据（比如购物车商品列表），用 Pinia。
+
+
+

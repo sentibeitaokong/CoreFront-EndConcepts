@@ -334,6 +334,7 @@ export default defineConfig({
                                     {text: '自定义Ref', link: '/frameworks/vue/customRef'},
                                     {text: '插件', link: '/frameworks/vue/plugins'},
                                     {text: '过渡', link: '/frameworks/vue/transition'},
+                                    {text: '列表过渡', link: '/frameworks/vue/transitionGroup'},
                                     {text: '组件缓存', link: '/frameworks/vue/keepAlive'},
                                     {text: '传送门', link: '/frameworks/vue/teleport'},
                                     {text: '异步依赖边界管理器', link: '/frameworks/vue/suspense'},
