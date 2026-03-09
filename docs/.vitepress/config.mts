@@ -362,6 +362,15 @@ export default defineConfig({
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
                                 items: [
+                                    {text: 'JSX语法', link: '/frameworks/react/jsx'},
+                                    {text: '元素渲染', link: '/frameworks/react/elementRendering'},
+                                    {text: '组件和props', link: '/frameworks/react/componentAndProps'},
+                                    {text: 'state和生命周期', link: '/frameworks/react/stateAndLifecycle'},
+                                    {text: '组件的导入和导出', link: '/frameworks/react/importAndExport'},
+                                    {text: '事件处理', link: '/frameworks/react/handlingEvents'},
+                                    {text: '条件渲染', link: '/frameworks/react/conditionalRendering'},
+                                    {text: '列表渲染', link: '/frameworks/react/listRendering'},
+                                    {text: '表单', link: '/frameworks/react/form'},
                                 ]
                             },
                             {
