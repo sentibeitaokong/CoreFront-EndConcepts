@@ -506,8 +506,146 @@ userStore.login('Admin')             // 改数据
 
 **现代替代方案**：
 1. 优先使用 Pinia 存储标记状态。
-2. 如果只想要纯粹的事件触发，需安装第三方轻量库，如 `mitt` 或 `tiny-emitter`。
+2. 如果只想要纯粹的事件触发，需安装第三方轻量库，如 `mitt` 或 `tiny-emitter`。 
 
+**1. 安装 mitt**
+
+```bash
+npm install mitt
+```
+
+**2. 封装并导出全局的 Event Bus (推荐单例模式)**
+
+为了防止在代码里到处写死魔法字符串（Magic Strings），强烈建议把事件名称统一定义成常量。
+
+```javascript
+// src/utils/eventBus.js
+import mitt from 'mitt'
+
+// 1. 创建 mitt 实例 (单例)
+export const bus = mitt()
+
+// 2. 集中管理所有事件名称，防止手抖拼错
+export const EVENTS = {
+  USER_LOGOUT: 'USER_LOGOUT',           // 用户退出登录
+  REFRESH_DATA: 'REFRESH_DATA',         // 刷新某列表数据
+  SHOW_NOTIFICATION: 'SHOW_NOTIFICATION' // 触发全局通知弹窗
+}
+```
+
+**3. 接收方组件 (挂载与销毁监听 🚨)**
+
+接收方组件负责监听事件。**极其重要：必须在组件销毁前 (`onBeforeUnmount`) 手动卸载监听，否则会造成严重的内存泄漏和重复触发！**
+
+```vue
+<!-- src/components/NotificationToast.vue -->
+<script setup>
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { bus, EVENTS } from '@/utils/eventBus'
+
+const isVisible = ref(false)
+const message = ref('')
+
+// 1. 定义极其明确的回调函数
+// 为什么要把回调抽出来？因为 off() 卸载时必须传入和 on() 完全相同的函数引用！
+const handleShowNotification = (payload) => {
+  message.value = payload.text
+  isVisible.value = true
+  
+  // 3秒后自动关闭
+  setTimeout(() => {
+    isVisible.value = false
+  }, 3000)
+}
+
+// 2. 组件挂载时，开启监听
+onMounted(() => {
+  bus.on(EVENTS.SHOW_NOTIFICATION, handleShowNotification)
+  
+  // mitt 还支持监听所有事件 (常用于开发调试)
+  // bus.on('*', (type, e) => console.log(type, e))
+})
+
+// 3. 🚨 必须：组件卸载前，关闭监听
+onBeforeUnmount(() => {
+  bus.off(EVENTS.SHOW_NOTIFICATION, handleShowNotification)
+})
+</script>
+
+<template>
+  <div v-if="isVisible" class="toast-box">
+    📢 收到广播：{{ message }}
+  </div>
+</template>
+
+<style scoped>
+.toast-box {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #ff4d4f;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+}
+</style>
+```
+
+**4. 发送方组件 / 纯 JS 文件 (触发事件)**
+
+发送方可以是 Vue 组件，也可以是**纯纯的普通 JS/TS 文件**（比如 Axios 的拦截器，这正是 Event Bus 最不可替代的场景）。
+
+**在普通 Vue 组件中触发**
+
+```vue
+<!-- src/views/Dashboard.vue -->
+<script setup>
+import { bus, EVENTS } from '@/utils/eventBus'
+
+const triggerToast = () => {
+  // 发射事件，并携带 payload 参数 (第二个参数)
+  bus.emit(EVENTS.SHOW_NOTIFICATION, {
+    text: '服务器已完成备份！'
+  })
+}
+</script>
+
+<template>
+  <div>
+    <h2>控制台概览</h2>
+    <button @click="triggerToast">向全局发送警告广播</button>
+  </div>
+</template>
+```
+
+**在纯 JS 中触发 (如 Axios 响应拦截器)**
+
+这是 Pinia 或 Props 很难优雅解决的场景。
+
+```javascript
+// src/utils/request.js
+import axios from 'axios'
+import { bus, EVENTS } from '@/utils/eventBus'
+
+const api = axios.create({
+  baseURL: '/api'
+})
+
+api.interceptors.response.use(
+  (response) => response.data,
+  (error) => {
+    // 💡 绝杀场景：当后端返回 401 身份过期时，
+    // 我们在这个没有 Vue 上下文的纯 JS 文件里，直接用 bus 呼叫全局退出弹窗
+    if (error.response && error.response.status === 401) {
+      bus.emit(EVENTS.USER_LOGOUT, { reason: 'Token 已过期，请重新登录' })
+    }
+    
+    return Promise.reject(error)
+  }
+)
+
+export default api
+```
 
 ### 2.5 透传(Attributes)
 
