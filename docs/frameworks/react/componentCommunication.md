@@ -242,6 +242,84 @@ function App() {
 }
 ```
 
+### 1.7 父传子： Portals（传送门）
+它允许你将子组件的**真实物理 DOM 节点**，直接“传送”并插入到 HTML 文档中**任意一个独立于 React 根节点之外的真实 DOM 容器中**（通常是 `<body>` 的最底层）。
+
+`createPortal` 是 `react-dom` 包提供的一个极其轻量、却又拥有降维打击能力的 API。
+
+```javascript
+// 核心签名
+import { createPortal } from 'react-dom';
+createPortal(child, container)
+```
+*   **`child`**: 任何可渲染的 React 子元素（一段 JSX，字符串或数组）。
+*   **`container`**: 一个存在于真实浏览器 HTML 中的**原生 DOM 节点**（它就是传送的目的地）。
+
+#### **工业级实战：编写一个绝对无敌的 Modal 组件**
+
+**在 `public/index.html` 准备降落点**
+为了防止把乱七八糟的东西全丢进 `body`，我们通常在 React 应用的根节点 `div#root` 旁边，开辟一个专属的弹窗降落场。
+
+```html
+<body>
+  <div id="root"></div> <!-- 你所有的普通 React 组件都在这儿 -->
+  
+  <!-- 🕳️ 专属降落点：所有的全屏弹窗都会被传送到这里 -->
+  <div id="modal-root"></div>
+</body>
+```
+
+**封装 `<Modal>` 传送门组件**
+
+```jsx
+import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
+import './Modal.css'; // 弹窗的 fixed 全屏遮罩样式写在这里
+
+export default function Modal({ isOpen, onClose, children }) {
+  // 1. 如果控制开关为 false，连渲染都不要做
+  if (!isOpen) return null;
+
+  // 2. 核心：使用 createPortal 将 UI 传送到 #modal-root
+  return createPortal(
+    // 遮罩层，点击遮罩触发关闭
+    <div className="modal-overlay" onClick={onClose}>
+      {/* 内容弹窗：🚨 极其重要！阻止点击冒泡，防止点击弹窗内容时触发遮罩关闭！ */}
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>,
+    // 3. 传送的目的地 (强行获取 HTML 里的真实节点)
+    document.getElementById('modal-root')
+  );
+}
+```
+
+**在深渊地狱中召唤弹窗**
+
+```jsx
+import { useState } from 'react';
+import Modal from './Modal';
+
+export default function DeepWidget() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  return (
+    // 这是一个充满恶意 CSS 限制的容器
+    <div style={{ overflow: 'hidden', position: 'relative', zIndex: 1, transform: 'scale(1)' }}>
+      <button onClick={() => setIsModalOpen(true)}>打开无敌弹窗</button>
+
+      {/* 逻辑上，它作为子组件写在这里，方便接收 state 传值和控制 */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <h2>我成功逃出来了！</h2>
+        <button onClick={() => setIsModalOpen(false)}>确认</button>
+      </Modal>
+    </div>
+  );
+}
+```
+
+
 ## 2. 跨越层级的深度通信 (进阶)
 
 ### 2.1 跨多层级：Context API (官方原生)

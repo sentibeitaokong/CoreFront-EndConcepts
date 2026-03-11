@@ -373,11 +373,29 @@ export default defineConfig({
                                     {text: '组件通信', link: '/frameworks/react/componentCommunication'},
                                     {text: '表单', link: '/frameworks/react/form'},
                                     {text: '性能优化', link: '/frameworks/react/performanceOptimization'},
-                                    {text: 'Refs的使用', link: '/frameworks/react/refs'},
                                     {text: '高阶组件', link: '/frameworks/react/hoc'},
                                     {text: 'CSS样式工程化', link: '/frameworks/react/style'},
                                     {text: '动画', link: '/frameworks/react/reactTransitionGroup'},
-                                    {text: 'React Redux', link: '/frameworks/react/react_redux'},
+                                    {text: 'Portals', link: '/frameworks/react/portals'},
+                                    {text: 'Redux和中间件', link: '/frameworks/react/react_redux'},
+                                    {text: '路由', link: '/frameworks/react/react_router'},
+                                    {
+                                        text: 'Hooks',
+                                        collapsible: true, // 允许折叠 (默认true，可省略)
+                                        collapsed: true, // 初始状态为“展开”
+                                        items: [
+                                            {text: 'useState', link: '/frameworks/react/useState'},
+                                            {text: 'useReducer', link: '/frameworks/react/useReducer'},
+                                            {text: 'useEffect', link: '/frameworks/react/useEffect'},
+                                            {text: 'useLayoutEffect', link: '/frameworks/react/useLayoutEffect'},
+                                            {text: 'useContext', link: '/frameworks/react/useContext'},
+                                            {text: 'useCallback', link: '/frameworks/react/useCallback'},
+                                            {text: 'useMemo', link: '/frameworks/react/useMemo'},
+                                            {text: 'useRef', link: '/frameworks/react/useRef'},
+                                            {text: 'useImperativeHandle', link: '/frameworks/react/useImperativeHandle'},
+                                        ]
+                                    },
+                                    {text: '自定义Hook', link: '/frameworks/react/customHook'},
                                     {text: '环境配置和打包', link: '/frameworks/react/buildTools'},
                                 ]
                             },
