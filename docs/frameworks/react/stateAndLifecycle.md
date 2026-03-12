@@ -116,6 +116,91 @@ function Counter() {
 }
 ```
 
+### 2.3 state状态与位置相关
+
+React 通过**组件在渲染树中的位置**来关联和管理 state，而非 JSX 标签本身。
+
+-   **独立状态**：同一组件在树中不同位置渲染，拥有完全独立的状态。
+-   **状态关联**：只要组件在**相同位置**渲染**相同组件**，React 就会**保留其 state**。
+-   **状态销毁**：当组件被移除，或**不同组件**被渲染在相同位置，React 会**销毁其 state**。
+
+> 💡 **关键理解**：React 关注的是 UI 树结构，而不是你的条件判断逻辑。
+
+#### 1. 相同位置 + 相同组件 = 状态保留
+
+即使组件通过复杂的条件渲染，只要最终渲染树的结构不变（相同父组件下的相同子组件位置），状态就会被保留。
+
+```jsx
+// 示例：两种条件下都渲染 <Counter /> 在第一个子组件位置，状态保留
+{isFancy ? <Counter isFancy={true} /> : <Counter isFancy={false} />}
+```
+
+#### 2. 相同位置 + 不同组件 = 状态重置
+
+当相同位置渲染的组件类型发生变化（如从 `<Counter>` 变为 `<p>`），React 会移除原组件及其整个子树，状态被销毁。
+
+```jsx
+// 示例：组件类型从 <Counter> 变为 <p>，状态重置
+{isPaused ? <p>待会见！</p> : <Counter />}
+```
+
+#### 3. 重要陷阱：组件嵌套定义导致意外重置
+
+**切勿将组件定义嵌套在另一个组件内部！** 每次父组件渲染都会创建**新的函数**，导致子组件类型“不同”，从而引发状态重置。
+
+```jsx
+// ❌ 错误示例：每次渲染都会重置 MyTextField 的状态
+function MyComponent() {
+  function MyTextField() { /* ... */ } // 每次都是新组件
+  return <MyTextField />;
+}
+
+// ✅ 正确做法：始终在顶层定义组件
+function MyTextField() { /* ... */ }
+function MyComponent() {
+  return <MyTextField />;
+}
+```
+
+### 2.4 state在相同位置重置状态
+
+有时我们希望相同位置的组件拥有独立状态（如切换不同用户），React 提供了两种方法。
+
+#### 1. 渲染在不同位置
+
+通过条件判断，让组件出现在不同的分支位置，从而自然销毁和重建。
+
+```jsx
+// 示例：两个 Counter 在不同分支，切换时会重置
+{isPlayerA && <Counter person="Taylor" />}
+{!isPlayerA && <Counter person="Sarah" />}
+```
+
+**适用场景**：只有少数几个组件需要独立渲染，结构简单。
+
+#### 2. 方法二：使用 `key` 属性（推荐）
+
+`key` 不仅用于列表，它能让 React 区分**相同位置的相同组件**。不同的 `key` 值让 React 视为不同组件，从而重置状态。
+
+```jsx
+// 示例：为两个可能出现的 Counter 指定不同 key
+{isPlayerA ? (
+  <Counter key="Taylor" person="Taylor" />
+) : (
+  <Counter key="Sarah" person="Sarah" />
+)}
+```
+
+> 🔑 **原理**：`key` 成为了组件在父组件内“位置”的一部分，React 通过 `key` + 位置来唯一标识组件。
+
+#### 3. 典型应用：重置表单
+
+在切换不同实体（如不同联系人）时，通常需要重置表单输入。使用 `key` 是最简洁的方案。
+
+```jsx
+// 当 to.id 变化时，整个 <Chat> 组件会重新创建，状态重置
+<Chat key={to.id} contact={to} />
+```
 
 ## 3. Class 组件：经典的生命周期图谱
 
