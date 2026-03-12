@@ -13,16 +13,16 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 但 React 认为：**渲染逻辑本质上与其他 UI 逻辑内在耦合**。比如，在 UI 中绑定处理事件、在某些时刻状态发生变化时 UI 需要做出响应。因此，React 并没有把标记语言和逻辑分离到不同的文件里，而是将它们共同存放在称之为“**组件 (Component)**”的松散耦合单元之中。JSX 就是让这种结合变得优雅的利器。
 
 ### 1.2 JSX 的编译本质
-浏览器是不认识 JSX 的。在项目打包（如使用 Vite/Webpack + Babel）时，所有的 JSX 代码都会被编译器转换成标准的 JavaScript 函数调用。
+浏览器是不认识 `JSX` 的。在项目打包（如使用 Vite/Webpack + Babel）时，所有的 JSX 代码都会被编译器转换成标准的 JavaScript 函数调用,JSX 仅仅只是 `React.createElement(component, props, ...children)` 函数的语法糖。
 
-**现代 React (17+) 编译模式 (New JSX Transform)：**
+**现代 React编译：**
 ```jsx
 // 你写的 JSX
 const element = <h1 className="title">Hello World</h1>;
 
-// 编译器转换后的纯 JS（由编译器自动引入 jsx-runtime，你不再需要手动 import React）
-import { jsx as _jsx } from 'react/jsx-runtime';
-const element = _jsx("h1", { className: "title", children: "Hello World" });
+// 编译器转换后的纯 JS
+import React from 'react';
+const element = React.createElement("h1", { className: "title", children: "Hello World" });
 ```
 
 ## 2. JSX 核心语法规则与实战
