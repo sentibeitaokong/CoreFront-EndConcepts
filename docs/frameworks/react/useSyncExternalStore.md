@@ -1,4 +1,4 @@
-# React useSyncExternalStore
+# useSyncExternalStore
 
 ## 1. 概览：什么是 useSyncExternalStore？
 

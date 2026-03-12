@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# React 元素渲染与重绘机制 (Element Rendering)
+# 元素渲染与重绘机制 (Element Rendering)
 
 ## 1. 核心概念与本质
 

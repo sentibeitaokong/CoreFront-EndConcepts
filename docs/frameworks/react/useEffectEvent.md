@@ -2,7 +2,7 @@
 outline: [2,3]
 ---
 
-# React 实验性特性：useEffectEvent 深度解析
+# useEffectEvent
 
 ::: warning 实验性特性
 `useEffectEvent` 目前仍处于 React 的 **Experimental（实验性）** 频道中。在稳定版 React（如 18.2.0）中尚不可用，预计将在未来版本中正式发布。

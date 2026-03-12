@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# React 高阶组件 (Higher-Order Components, HOC)
+# 高阶组件 (Higher-Order Components, HOC)
 
 ## 1. 核心概念与时代背景
 

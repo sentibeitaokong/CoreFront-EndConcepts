@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **React 性能优化(`memo`, `useMemo`, `useCallback`)**
+# **性能优化(`memo`, `useMemo`, `useCallback`)**
 
 ## 1. 核心概念与性能陷阱
 

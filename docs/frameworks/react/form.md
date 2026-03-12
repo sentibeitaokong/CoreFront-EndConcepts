@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# React 表单处理(Forms: Controlled vs Uncontrolled)
+# 表单处理(Forms: Controlled vs Uncontrolled)
 
 ## 1. 核心概念与理念
 

@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# React 环境配置与打包选型(Configuration & Build Tools)
+# 环境配置与打包选型(Configuration & Build Tools)
 
 ## 1. 核心概念与生态变迁
 

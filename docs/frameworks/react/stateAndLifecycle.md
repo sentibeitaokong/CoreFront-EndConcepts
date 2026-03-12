@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# React State 与全生命周期(State & Lifecycle)
+# State与全生命周期(State & Lifecycle)
 
 ## 1. 核心概念与范式演进
 

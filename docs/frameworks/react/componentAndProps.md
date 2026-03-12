@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# React 组件与 Props(Components and Props)
+# 组件与 Props(Components and Props)
 
 ## 1. 核心概念与本质
 

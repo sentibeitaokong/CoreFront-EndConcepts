@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# React 组件的导入与导出 (Import & Export)
+# 组件的导入与导出 (Import & Export)
 
 ## 1. 核心概念与本质
 

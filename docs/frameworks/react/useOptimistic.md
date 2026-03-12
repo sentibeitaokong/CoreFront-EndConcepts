@@ -1,4 +1,4 @@
-# React useOptimistic 
+# useOptimistic 
 
 ## 1. 概览：什么是 useOptimistic？
 

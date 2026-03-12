@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# React 条件渲染(Conditional Rendering)
+# 条件渲染(Conditional Rendering)
 
 ## 1. 核心概念与思维转换
 

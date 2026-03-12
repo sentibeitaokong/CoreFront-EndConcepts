@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **React 动画库王者：`react-transition-group`**
+# **动画库王者：`react-transition-group`**
 
 ## 1. 核心概念与痛点背景
 

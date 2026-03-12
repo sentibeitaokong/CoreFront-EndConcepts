@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# React 列表渲染与 Key 原理(List Rendering & Keys)
+# 列表渲染与 Key 原理(List Rendering & Keys)
 
 ## 1. 核心概念与工作流
 

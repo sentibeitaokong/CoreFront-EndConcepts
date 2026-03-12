@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# React CSS 样式工程化(Styling in React)
+# CSS 样式工程化(Styling in React)
 
 ## 1. 核心概念与痛点演进
 

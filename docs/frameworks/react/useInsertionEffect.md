@@ -1,4 +1,4 @@
-# React useInsertionEffect
+# useInsertionEffect
 
 ## 1. 概览：什么是 useInsertionEffect？
 
