@@ -11,26 +11,30 @@ hero:
     alt: VitePress
   actions:
     - theme: brand
-      text: 快速开始
+      text: 前端知识体系介绍
       link: /intro
-   
+    - theme: alt
+      text: GitHub
+      link: https://github.com/sentibeitaokong/CoreFront-EndConcepts
 
 features:
   - icon:
-     src:  /markdown.svg
-    title: 专注内容
-    details: 只需 Markdown 即可轻松创建美观的文档站点。
+     src:  /handleWriting.svg
+    title: 深入函数手写
+    details: 理解原理的最佳方式，就是亲手实现一遍。
   - icon:
-     src:  /light.svg
-    title: 享受 Vite 无可比拟的体验
-    details: 服务器即时启动，闪电般的热更新，还可以使用基于 Vite 生态的插件。
+     src:  /frameworks.svg
+    title: 前端主流框架
+    details: 你是追求快速开发与优雅简洁的 Vue，还是偏爱灵活可控与函数式思维的 React。
   - icon:
-     src:  /Vue.svg
-    title: 使用 Vue 自定义
-    details: 直接在 Markdown 中使用 Vue 语法和组件，或者使用 Vue 组件构建自定义主题。
+     src:  /designPatterns.svg
+    title: 设计模式和架构模式
+    details: 不再只是“写”代码，而是在“设计”代码。
   - icon:
-     src:  /rocket.svg
-    title: 速度真的很快！
-    details: 采用静态 HTML 实现快速的页面初次加载，使用客户端路由实现快速的页面切换导航。
+     src:  /algorithms.svg
+    title: 数据结构和算法
+    details: 深入数据结构和算法是一场受益终身的修行。它们不是冰冷的公式，而是解决问题的思维工具。
+
+
 ---
 

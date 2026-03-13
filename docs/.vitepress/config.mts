@@ -3,7 +3,7 @@ import {defineConfig} from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     base: '/CoreFront-EndConcepts/',
-    title: "个人博客",
+    title: "千寻之下想你",
     description: "vitePress",
     head: [['link', { rel: 'icon', href: '/CoreFront-EndConcepts/myAddress.svg' }]], //要在页面 HTML 的 <head> 标签中呈现的其他元素
     cleanUrls: true,         //生成简洁的url
@@ -336,7 +336,7 @@ export default defineConfig({
                                     {text: '过渡', link: '/frameworks/vue/transition'},
                                     {text: '列表过渡', link: '/frameworks/vue/transitionGroup'},
                                     {text: '组件缓存', link: '/frameworks/vue/keepAlive'},
-                                    {text: '传送门', link: '/frameworks/vue/teleport'},
+                                    {text: 'Teleport', link: '/frameworks/vue/teleport'},
                                     {text: '异步依赖边界管理器', link: '/frameworks/vue/suspense'},
                                     {text: '路由', link: '/frameworks/vue/vueRouter'},
                                     {text: 'pinia', link: '/frameworks/vue/pinia'},
