@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **`useRef`：跨越渲染的秘密通道**
+# **[`useRef`](https://zh-hans.react.dev/reference/react/useRef)：跨越渲染的秘密通道**
 
 ## 1. 核心概念与“叛逆”哲学
 

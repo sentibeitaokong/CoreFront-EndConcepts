@@ -81,6 +81,8 @@ function Child({ onMsgSend }) {
 ### 1.3 兄弟组件：状态提升 (Lifting State Up)
 两个平级的组件（A 和 B）不能直接对话。如果 A 里的按钮需要控制 B 里的文字，必须**把这个共享的状态剥离出来，提升到它们共同的最小父组件中管理**。
 
+![Logo](/liftState.webp)
+
 **代码实现：**
 ```jsx
 import { useState } from 'react';
@@ -326,6 +328,8 @@ export default function DeepWidget() {
 
 ####  1. Context 实战与代码实现
 当数据需要从第 1 层传到第 10 层时，一层层写 props 会导致极其痛苦的 **Prop Drilling (属性透传地狱)**。Context 允许你在组件树的高处建立一个“广播站”，底层的任何组件可以直接接收广播。
+
+![Logo](/reactPropsDrilling.webp)
 
 **代码实现：**
 ```jsx

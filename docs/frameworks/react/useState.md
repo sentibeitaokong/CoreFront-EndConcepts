@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **`useState`:状态快照与驱动引擎**
+# **[`useState`](https://zh-hans.react.dev/reference/react/useState):状态快照与驱动引擎**
 
 在 React 函数组件中，`useState` 是最核心、最基础的 Hook。它是组件的“记忆引擎”，负责记录并在组件的整个生命周期中维护数据的状态，更是驱动 React 视图重新渲染（Re-render）的唯一内建触发器。
 

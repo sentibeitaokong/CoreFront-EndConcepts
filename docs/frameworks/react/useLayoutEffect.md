@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **`useLayoutEffect`：同步阻塞与视觉闪烁的终结者**
+# **[`useLayoutEffect`](https://zh-hans.react.dev/reference/react/useLayoutEffect)：同步阻塞与视觉闪烁的终结者**
 
 ## 1. 核心概念与底层时序
 

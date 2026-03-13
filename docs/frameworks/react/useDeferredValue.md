@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **`useDeferredValue`：响应式性能防线**
+# **[`useDeferredValue`](https://zh-hans.react.dev/reference/react/useDeferredValue)：响应式性能防线**
 
 ## 1. 核心概念：让慢速组件“慢下来”
 

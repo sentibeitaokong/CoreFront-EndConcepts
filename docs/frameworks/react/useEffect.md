@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **`useEffect`:驾驭组件的副作用**
+# **[`useEffect`](https://zh-hans.react.dev/reference/react/useEffect):驾驭组件的副作用**
 
 ## 1. 核心概念与“副作用”哲学
 

@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **`useImperativeHandle`：逆向控制核心**
+# **[`useImperativeHandle`](https://zh-hans.react.dev/reference/react/useImperativeHandle)：逆向控制核心**
 
 ## 1. 核心概念与“打破禁忌”的哲学
 

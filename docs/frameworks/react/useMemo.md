@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **`useMemo`：计算缓存与引用锁**
+# **[`useMemo`](https://zh-hans.react.dev/reference/react/useMemo)：计算缓存与引用锁**
 
 ## 1. 核心概念与痛点背景
 

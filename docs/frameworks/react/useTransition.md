@@ -2,7 +2,7 @@
 outline: [2,3]
 ---
 
-# **`useTransition`:并发特性**
+# **[`useTransition`](https://zh-hans.react.dev/reference/react/useTransition):并发特性**
 
 ## 1. 核心概念：紧急与非紧急更新
 

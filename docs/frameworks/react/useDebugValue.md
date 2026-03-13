@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **`useDebugValue`：自定义 Hook 的专属“透视眼”**
+# **[`useDebugValue`](https://zh-hans.react.dev/reference/react/useDebugValue)：自定义 Hook 的专属“透视眼”**
 
 ## 1. 核心概念与痛点背景
 

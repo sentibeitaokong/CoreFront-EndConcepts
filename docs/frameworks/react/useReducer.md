@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **`useReducer`:驾驭复杂状态逻辑**
+# **[`useReducer`](https://zh-hans.react.dev/reference/react/useReducer) :驾驭复杂状态逻辑**
 
 ## 1. 核心概念与痛点背景
 

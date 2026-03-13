@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **`useContext`：跨越层级的状态广播**
+# **[`useContext`](https://zh-hans.react.dev/reference/react/useContext)：跨越层级的状态广播**
 
 ## 1. 核心概念与痛点背景
 
