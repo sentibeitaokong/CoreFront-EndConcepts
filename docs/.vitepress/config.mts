@@ -82,6 +82,8 @@ export default defineConfig({
         sidebar: [
             {
                 text: '简介',
+                collapsible: true, // 允许折叠 (默认true，可省略)
+                collapsed: true, // 初始状态为“展开”
                 items: [
                     {text: '前端知识体系介绍', link: '/intro'},
                 ]
@@ -341,6 +343,7 @@ export default defineConfig({
                                     {text: '路由', link: '/frameworks/vue/vueRouter'},
                                     {text: 'pinia', link: '/frameworks/vue/pinia'},
                                     {text: 'TS与组合式API', link: '/frameworks/vue/composablesTs'},
+                                    {text: '环境配置和打包', link: '/frameworks/vue/buildTools'},
                                 ]
                             },
                             {
@@ -362,6 +365,7 @@ export default defineConfig({
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
                                 items: [
+                                    {text: '简介', link: '/frameworks/react/intro'},
                                     {text: 'JSX语法', link: '/frameworks/react/jsx'},
                                     {text: '元素渲染', link: '/frameworks/react/elementRendering'},
                                     {text: '事件处理', link: '/frameworks/react/handlingEvents'},
