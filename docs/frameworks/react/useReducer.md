@@ -28,8 +28,13 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 ## 2. 核心 API 实战：从零手写状态机
 
-`useReducer` 接收两个参数：一个是纯函数 reducer，另一个是初始状态。
-它返回一个数组：第一个是当前的状态 `state`，第二个是派发命令的 `dispatch` 函数。
+`useReducer` 接收一个 `reducer` 函数和一个初始状态 `initialArg`（可选传入第三个参数`init`作为惰性初始化函数），并返回一个包含两个元素的数组：
+* **当前的状态 (`State`)**
+* **触发状态更新的派发函数 (`Dispatch`)**
+
+```js
+const [state, dispatch] = useReducer(reducer, initialArg, init?)
+```
 
 ### 2.1 编写纯洁无瑕的 Reducer 函数
 

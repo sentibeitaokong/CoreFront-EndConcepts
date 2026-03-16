@@ -8,6 +8,12 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 ## 1. 核心概念与基础语法
 
+`useState` 是一个 `React Hook`，它允许你向组件添加一个 状态变量。
+
+```js
+const [state, setState] = useState(initialState)
+```
+
 ### 1.1 基本定义与数组解构
 
 `useState` 函数接收一个参数作为状态的**初始值**，并返回一个包含两个元素的数组：

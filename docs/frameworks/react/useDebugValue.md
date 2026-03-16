@@ -23,6 +23,10 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 `useDebugValue` 的用法极其简单，但它**只能在自定义 Hook 的顶层调用**。如果在普通的函数组件里调用它，React 会直接无视它。
 
+```js
+useDebugValue(value, format?)
+```
+
 ### 2.1 基础实战：给 Hook 贴上明确的标签
 
 ```jsx

@@ -1,281 +1,141 @@
-# [useSyncExternalStore](https://zh-hans.react.dev/reference/react/useSyncExternalStore)
+---
+outline: [2,3] # 这个页面将显示 h2 和 h3 标题
+---
 
-## 1. 概览：什么是 useSyncExternalStore？
+# **[`useSyncExternalStore`](https://zh-hans.react.dev/reference/react/useSyncExternalStore): 彻底终结并发渲染“撕裂”的外部状态订阅**
 
-`useSyncExternalStore` 是 React 18 引入的一个 Hook，它提供了一种标准化的方式，让 React 组件能够**订阅外部数据源**，并保证在 React 并发渲染特性（如 `startTransition`、`useDeferredValue` 等）下，组件读取的数据始终是**一致的**，避免出现 UI 撕裂（tearing）的问题。
+在 React 18 引入并发渲染（Concurrent Rendering）之后，React 获得了暂停、恢复和放弃渲染的能力。然而，这也带来了一个致命的副作用：如果组件依赖于 React 外部的状态（如 Redux、Zustand Store、甚至浏览器的 `window` 对象），在 React 暂停渲染的间隙，外部状态发生了改变，就会导致同一个页面上渲染出新旧不一致的 UI，这种现象被称为**“UI 撕裂（Tearing）”**。
 
-### 1.1 核心作用
-- **安全地读取外部存储**：使 React 组件能够订阅任何遵循特定接口的外部数据源（例如 Redux store、Zustand store、浏览器 API 如 `navigator.onLine`、`window.innerWidth` 等）。
-- **解决并发渲染下的撕裂（tearing）**：在并发渲染中，一个组件可能在多次渲染中看到不同版本的外部状态，导致 UI 不一致。`useSyncExternalStore` 通过强制在渲染期间使用一致的状态快照来解决这个问题。
-- **替代 `useSubscription`**：官方推荐的用于替代第三方库（如 `use-subscription`）和手动在 `useEffect` 中订阅外部源的模式。
+`useSyncExternalStore` 正是 React 官方为了拯救各大状态管理库、安全订阅外部数据源而量身定制的终极解决方案。
 
-### 1.2 什么是“撕裂（tearing）”？
-撕裂是指在同一渲染周期内，UI 的不同部分基于不同时刻的状态渲染，导致显示不一致的现象。例如：
-- 一个组件在渲染开始时读取了 store 的值 `x = 1`，但在渲染过程中 store 更新为 `x = 2`，后续组件可能读取到 `x = 2`。
-- 最终结果：页面一部分显示基于旧状态，另一部分显示基于新状态，UI 出现“撕裂”。
+## 1. 核心概念与基础语法
 
-React 并发渲染允许渲染可中断，如果没有 `useSyncExternalStore`，撕裂问题会更易出现。这个 Hook 确保在单次渲染中，所有组件都看到**相同版本**的 store 快照。
+```js
+const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot?)
+```
 
-## 2. API 语法与基本使用
+* `subscribe`：一个函数，接收一个单独的 callback 参数并把它订阅到 store 上。当 store 发生改变时应该调用提供的 callback，这将使 React 重新调用 getSnapshot 并在需要的时候重新渲染组件。subscribe 函数会返回清除订阅的函数。
+* `getSnapshot`：一个函数，返回组件需要的 store 中的数据快照。在 store 不变的情况下，重复调用 getSnapshot 必须返回同一个值。如果 store 改变，并且返回值也不同了（用 Object.is 比较），React 就会重新渲染组件。
+* `getServerSnapshot`(**可选**)：一个函数，返回 store 中数据的初始快照。它只会在服务端渲染时，以及在客户端进行服务端渲染内容的激活时被用到。快照在服务端与客户端之间必须相同，它通常是从服务端序列化并传到客户端的。如果你忽略此参数，在服务端渲染这个组件会抛出一个错误。
 
-### 2.1 基本语法
+### 1.1 基本定义与应用场景
+
+`useSyncExternalStore` 是一个让你完美订阅外部 store 的 Hook。它接受三个参数，并返回该 store 的当前快照（Snapshot）。
+
+**核心应用场景**：订阅第三方状态管理库（Zustand、Redux）、订阅浏览器全局 API（如网络状态、窗口尺寸、媒体查询等）、跨组件的非 React 状态共享。
 
 ```jsx
 import { useSyncExternalStore } from 'react';
 
-function MyComponent() {
-  const state = useSyncExternalStore(
-    subscribe,   // 订阅函数
-    getSnapshot, // 获取当前快照的函数
-    getServerSnapshot? // 可选的服务器端快照（用于 SSR）
-  );
+// 1. 订阅函数：当外部状态变化时，调用 callback 通知 React 重新渲染
+function subscribe(callback) {
+  window.addEventListener('online', callback);
+  window.addEventListener('offline', callback);
+  return () => {
+    window.removeEventListener('online', callback);
+    window.removeEventListener('offline', callback);
+  };
+}
+
+// 2. 获取快照函数：返回当前的状态值
+function getSnapshot() {
+  return navigator.onLine;
+}
+
+function NetworkStatus() {
+  // 3. 将外部的浏览器网络状态，安全地同步到 React 组件中
+  const isOnline = useSyncExternalStore(subscribe, getSnapshot);
+
+  return <div>当前网络状态: {isOnline ? '🟢 在线' : '🔴 离线'}</div>;
 }
 ```
 
-### 2.2 API 速览
+## 2. 核心进阶：解决并发渲染下的“UI 撕裂（Tearing）”难题
 
-| 参数 | 类型 | 说明 |
-| :--- | :--- | :--- |
-| **`subscribe`** | `(callback) => () => void` | 接收一个 `callback` 函数，当外部存储发生变化时调用该 `callback`。返回一个清除订阅的函数。 |
-| **`getSnapshot`** | `() => State` | 返回外部存储当前状态的快照。该函数会被 React 缓存，并在每次存储变化时调用以比较状态是否真的变化。 |
-| **`getServerSnapshot`** | `() => State` | （可选）用于 SSR 时获取初始快照的函数，确保服务端和客户端初始渲染一致。在客户端初次渲染时也会被调用（如果提供）。 |
+在 `useSyncExternalStore` 出现之前，开发者通常使用 `useEffect` 配合 `useState` 来订阅外部状态。在传统的同步渲染中这没有问题，但在并发模式下，这会引发灾难。
 
-| 返回值 | 类型 | 说明 |
-| :--- | :--- | :--- |
-| **`state`** | `State` | 当前外部存储的快照值，可用于组件的渲染。 |
+### 2.1 痛点场景：Concurrent React 的副作用
 
-### 2.3 基础使用示例：订阅浏览器网络状态
+**痛点场景**：假设有一个外部的全局变量 `let count = 0`。React 正在并发渲染一个包含 100 个列表项的长列表。渲染到第 50 项时，React 暂停了渲染去处理用户高优先级的点击事件；此时点击事件修改了 `count = 1`。当 React 恢复渲染剩下的 50 项时，下半部分的组件读取到了 `1`，而上半部分渲染的还是 `0`。这就造成了同一时刻 UI 的精神分裂（撕裂）。
+
+**解决原则**：**将读取外部状态的动作变为“强制同步”。**
+`useSyncExternalStore` 底层做了一件非常霸道的事情：如果在并发渲染期间，它检测到 `getSnapshot` 返回的值发生了变化，它会立刻**放弃当前的并发渲染，强制以同步（Synchronous）的方式从头重新渲染整个树**。这虽然损失了一点并发的性能，但绝对保证了 UI 的一致性和正确性。
 
 ```jsx
-import { useSyncExternalStore } from 'react';
-
-// 订阅浏览器在线状态
-function useOnlineStatus() {
-  const isOnline = useSyncExternalStore(
-    // 订阅函数
-    (callback) => {
-      window.addEventListener('online', callback);
-      window.addEventListener('offline', callback);
-      return () => {
-        window.removeEventListener('online', callback);
-        window.removeEventListener('offline', callback);
-      };
-    },
-    // 获取当前快照
-    () => navigator.onLine,
-    // 服务器端快照（可选），可假设初始为 true
-    () => true
-  );
-  return isOnline;
+// ❌ 错误/过时的示范 (极易导致 UI 撕裂)：
+function BadStoreReader() {
+  const [state, setState] = useState(store.getState());
+  useEffect(() => {
+    return store.subscribe(() => setState(store.getState()));
+  }, []);
+  return <div>{state}</div>;
 }
 
-function StatusBar() {
-  const isOnline = useOnlineStatus();
-  return <div>{isOnline ? '✅ 在线' : '❌ 离线'}</div>;
+// ✅ 正确示范 (防止撕裂)：
+function GoodStoreReader() {
+  // 交由 React 内部机制接管，保证渲染期间状态绝对一致
+  const state = useSyncExternalStore(store.subscribe, store.getState);
+  return <div>{state}</div>;
 }
 ```
 
-### 2.4 订阅自定义 Store
+## 3. 高阶进阶：自定义状态管理库的核心基石
 
-假设有一个简单的状态管理库：
+### 3.1 突破死穴：如何正确编写 `getSnapshot` 函数？
+
+**痛点场景**：很多开发者在使用 `useSyncExternalStore` 订阅复杂对象时，发现应用陷入了无限重渲染（Infinite Loop），甚至控制台报错 `Maximum update depth exceeded`。这是因为他们没有理解 React 对“快照（Snapshot）”的不可变性（Immutability）要求。
+
+**解决原则**：**`getSnapshot` 必须返回一个缓存的值。如果底层数据没有发生突变，`getSnapshot` 多次调用必须返回严格相等（`Object.is`）的同一个引用。绝对不能在 `getSnapshot` 中动态生成新对象或新数组！**
 
 ```jsx
-// 外部 store
-const myStore = {
-  state: { count: 0 },
-  listeners: new Set(),
-  subscribe(listener) {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
+// 假设这是一个我们手写的全局 Store
+let globalData = { todos: ['学习 React'] };
+let listeners = new Set();
+
+const store = {
+  subscribe(callback) {
+    listeners.add(callback);
+    return () => listeners.delete(callback);
   },
-  getState() {
-    return this.state;
+  
+  // ❌ 致命错误：每次都返回一个新数组！React 会认为状态一直在变，导致无限渲染。
+  getBadSnapshot() {
+    return [...globalData.todos]; 
   },
-  setState(newState) {
-    this.state = newState;
-    this.listeners.forEach(l => l());
+
+  // ✅ 正确做法：直接返回原有引用。只有在执行更新操作时，才去改变引用。
+  getGoodSnapshot() {
+    return globalData.todos; 
+  },
+
+  addTodo(text) {
+    // 更新时，创建新的引用（Immutable 更新）
+    globalData = { todos: [...globalData.todos, text] };
+    listeners.forEach(l => l()); // 通知所有组件
   }
 };
-
-// 在组件中使用
-function Counter() {
-  const state = useSyncExternalStore(
-    myStore.subscribe.bind(myStore),
-    myStore.getState.bind(myStore)
-  );
-
-  return <div>计数：{state.count}</div>;
-}
 ```
 
-## 3. 深入理解：为什么需要 useSyncExternalStore？
+## 4. 常见问题 (FAQ) 与避坑指南
 
-### 3.1 传统订阅方式的缺陷
+### 4.1 我可以把它完全当作 `useState` 的替代品来做全局状态管理吗？
+*   **答**：**不建议本末倒置。**
+    *   `useSyncExternalStore` 是为了连接“已经存在于 React 外部的状态”（比如浏览器 API、现有的 Redux 逻辑）而设计的。
+    *   如果你的状态本身就是为 React UI 服务的，首选方案永远是 React 原生的 `useState`、`useReducer` 和 `Context`，因为它们能够完美享受并发渲染带来的性能红利，而 `useSyncExternalStore` 在状态变化时会强制同步渲染（De-opt to synchronous），可能会引发卡顿。
 
-在 `useSyncExternalStore` 出现之前，开发者通常这样订阅外部数据：
+### 4.2 在 Next.js / Remix 等 SSR (服务器端渲染) 框架中报错 "Hydration Mismatch" 怎么解决？
+*   **答**：**你需要提供第三个参数 `getServerSnapshot`。**
+    *   在 SSR 环境中，服务器上没有 `window` 对象，也无法订阅浏览器的网络状态。如果服务器渲染出的 HTML 和客户端初次接管（Hydration）时的状态不一致，就会报错。
+    *   **避坑方案**：传入第三个参数，为服务器和客户端初次渲染提供一个**绝对一致的静态初始值**。
+    ```jsx
+    // 在服务器端和客户端水合阶段，统一假定为 true
+    function getServerSnapshot() {
+      return true; 
+    }
+    const isOnline = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+    ```
 
-```jsx
-// ❌ 有缺陷的方式
-function Component() {
-  const [state, setState] = useState(myStore.getState());
-  
-  useEffect(() => {
-    return myStore.subscribe(() => {
-      setState(myStore.getState());
-    });
-  }, []);
-  
-  return <div>{state.count}</div>;
-}
-```
-
-**问题：**
-1. **撕裂风险**：在并发渲染中，组件可能在渲染期间看到多个不同的 store 版本。
-2. **内存泄漏**：如果订阅函数未正确清理，可能造成内存泄漏。
-3. **无法处理服务端渲染**：没有服务端快照的支持。
-4. **不必要的重新渲染**：即使 store 变化后状态未变（如引用相等），也可能触发重渲染。
-
-### 3.2 useSyncExternalStore 的解决方案
-
-- **保证一致性**：React 在渲染期间会调用 `getSnapshot` 两次，确保返回相同的值（通过 `Object.is` 比较），如果不相同则触发错误或重新渲染。
-- **自动管理订阅**：当组件卸载或依赖变化时，React 会自动调用取消订阅函数。
-- **SSR 支持**：通过第三个参数提供服务器端快照，避免水合不匹配。
-- **内置优化**：仅当快照值真正变化时才触发组件重新渲染。
-
-## 4. 实战案例：更复杂的场景
-
-### 4.1 订阅多个 store
-
-```jsx
-function useMultipleStores(storeA, storeB) {
-  const a = useSyncExternalStore(storeA.subscribe, storeA.getState);
-  const b = useSyncExternalStore(storeB.subscribe, storeB.getState);
-  return { a, b };
-}
-```
-
-### 4.2 带选择器的 store 订阅
-
-为避免不必要的重渲染，可以传入选择器函数：
-
-```jsx
-function useStoreSelector(store, selector) {
-  const state = useSyncExternalStore(store.subscribe, () => selector(store.getState()));
-  return state;
-}
-
-// 使用
-const count = useStoreSelector(myStore, state => state.count);
-```
-
-但要注意：选择器应在 `getSnapshot` 中应用，以便 React 可以比较选择后的值。如果选择器返回新对象，会导致每次重渲染。推荐使用 `useCallback` 或 memoized 选择器。
-
-### 4.3 结合 useDebugValue 增强开发体验
-
-```jsx
-function useOnlineStatus() {
-  const isOnline = useSyncExternalStore(/* ... */);
-  useDebugValue(isOnline ? 'Online' : 'Offline');
-  return isOnline;
-}
-```
-
-## 5. 深度对比：useSyncExternalStore vs 其他方案
-
-| 方案 | 优点 | 缺点 | 适用场景 |
-| :--- | :--- | :--- | :--- |
-| **`useSyncExternalStore`** | 并发安全、SSR 支持、内置优化 | 需要手动实现订阅逻辑 | 连接任何外部存储（包括浏览器 API） |
-| **`useState` + `useEffect`** | 简单直观 | 并发不安全、SSR 问题 | 仅内部状态或一次性读取 |
-| **第三方库（如 Redux）** | 封装完善、自带选择器优化 | 增加了依赖和复杂度 | 大型应用状态管理 |
-| **`useSubscription`（社区库）** | 专为订阅设计 | 不再官方维护，未完全处理并发 | 旧项目迁移 |
-
-## 6. 常见问题 (FAQ)
-
-### 6.1 我应该在什么时候使用 useSyncExternalStore？
-
-**答**：当你需要从 **React 外部的数据源**读取状态并实时更新时，就应该考虑 `useSyncExternalStore`。典型场景包括：
-- 连接第三方状态管理库（如 Redux、Zustand、MobX）。
-- 订阅浏览器全局对象（`window.innerWidth`、`navigator.onLine`、`document.hidden` 等）。
-- 连接 WebSocket、事件总线或任何非 React 的数据流。
-
-如果你只需要组件内部状态，请继续使用 `useState` 或 `useReducer`。
-
-### 6.2 useSyncExternalStore 和 useSubscription 有什么区别？
-
-**答**：`useSubscription` 是一个第三方库，主要用于 React 16/17 中订阅外部源。`useSyncExternalStore` 是 React 18 内置的官方解决方案，它专门针对并发渲染做了优化，避免了撕裂问题，并且支持 SSR。**新应用应优先使用 `useSyncExternalStore`**。
-
-### 6.3 在 useSyncExternalStore 中如何处理服务器端渲染（SSR）？
-
-**答**：需要提供第三个参数 `getServerSnapshot`。这个函数在服务器端和客户端初次渲染时调用，用于获取初始快照。它必须返回与客户端初始状态一致的序列化值，以避免水合不匹配。
-
-```jsx
-function useWindowWidth() {
-  const width = useSyncExternalStore(
-    (callback) => {
-      window.addEventListener('resize', callback);
-      return () => window.removeEventListener('resize', callback);
-    },
-    () => window.innerWidth,
-    // 服务器端快照：因为服务器上没有 window，可以返回一个默认值（如 1024）
-    () => 1024
-  );
-  return width;
-}
-```
-
-### 6.4 getSnapshot 应该返回一个值还是引用？如何避免不必要的重渲染？
-
-**答**：`getSnapshot` 应返回一个**不可变**的快照（通常是一个值或一个稳定的对象引用）。React 使用 `Object.is` 比较前后两次快照来决定是否重渲染。因此，如果 store 更新但快照值未变，组件不会重渲染。
-
-如果你的 store 状态是可变对象，应该在 `getSnapshot` 中返回一个新拷贝（例如通过 selector 选择值），以确保只有数据变化时才触发更新。
-
-### 6.5 为什么我的组件在 store 更新后没有重新渲染？
-
-**答**：可能原因：
-- `subscribe` 函数没有正确调用 `callback`。检查是否在 store 变化时调用了传入的 `callback`。
-- `getSnapshot` 返回的值与之前相同（`Object.is` 为 `true`），React 认为状态未变。
-- 忘记在 `subscribe` 返回的函数中取消订阅，导致组件重新渲染时订阅未正确重置。
-
-### 6.6 如何测试使用了 useSyncExternalStore 的组件？
-
-**答**：可以采用模拟（mock）外部 store 的方式：
-
-```jsx
-// 测试示例
-let mockState = { count: 0 };
-const mockStore = {
-  subscribe: jest.fn(cb => {
-    // 存储回调以便手动触发
-    mockStore.callback = cb;
-    return () => {};
-  }),
-  getState: jest.fn(() => mockState),
-};
-
-function TestComponent() {
-  const state = useSyncExternalStore(mockStore.subscribe, mockStore.getState);
-  return <div>{state.count}</div>;
-}
-
-// 在测试中更新 mockState 并触发回调
-mockState = { count: 1 };
-mockStore.callback(); // 触发重新渲染
-```
-
-### 6.7 我可以用 useSyncExternalStore 订阅 Redux store 吗？
-
-**答**：可以，但通常你不需要直接这样做。Redux 已经通过 `react-redux` 库封装了 `useSyncExternalStore` 在其 `useSelector` 内部。如果你在使用 Redux，请继续使用 `useSelector`；如果你在编写自定义 store，或者需要直接集成 Redux 但不使用 `react-redux`，可以手动调用。
-
-### 6.8 如何处理 getSnapshot 中抛出错误的情况？
-
-**答**：`getSnapshot` 应该是一个纯函数，不应抛出异常。如果外部 store 尚未初始化，可以在 `getSnapshot` 中返回一个初始状态（例如 `null` 或默认值），并在组件中处理该状态。如果必须抛错，可以使用错误边界来捕获。
-
-### 6.9 可以在一个组件中使用多个 useSyncExternalStore 吗？
-
-**答**：当然可以，就像使用多个 `useState` 一样。React 会为每个调用独立管理订阅和更新。
-
-### 6.10 useSyncExternalStore 和 useTransition 一起用会冲突吗？
-
-**答**：不会冲突。`useSyncExternalStore` 专为并发特性设计，与 `useTransition` 等配合良好。当过渡更新发生时，组件会基于一致的 store 快照渲染，而不会撕裂。如果 store 在过渡期间更新，React 会采用新的快照，但过渡仍然可以保持之前的 UI 状态（如果使用 `useDeferredValue` 等）。
-
-
+### 4.3 为什么我必须把 `subscribe` 函数定义在组件外部或使用 `useCallback` 包裹？
+*   **答**：**为了防止重新订阅引发的性能问题。**
+    *   如果每次组件渲染时你都传入一个全新的 `subscribe` 函数引用，React 会在每次渲染后先执行清理函数（unsubscribe），然后再重新订阅（subscribe）。这不仅消耗性能，还可能丢失期间发生的状态变更。
+    *   **避坑方案**：始终将 `subscribe` 和 `getSnapshot` 函数提取到组件外部（模块级别作用域）；如果必须依赖组件内部的 props，请务必使用 `useCallback` 将其缓存起来。

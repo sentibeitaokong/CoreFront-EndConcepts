@@ -18,7 +18,9 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 ## 2. 核心 API 实战：如何优雅地开后门？
 
-要实现父组件调用子组件内部的方法，必须经过极其严密的两个步骤。
+```js
+useImperativeHandle(ref, createHandle, dependencies?)
+```
 
 ### 2.1 `forwardRef` (允许子组件接收 ref)
 

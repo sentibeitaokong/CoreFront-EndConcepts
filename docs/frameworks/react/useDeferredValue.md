@@ -17,6 +17,10 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 ## 2. 核心 API 实战
 
+```js
+const deferredValue = useDeferredValue(value)
+```
+
 ### 2.1 基础实战：拯救搜索过滤卡顿
 
 这是 `useDeferredValue` 最经典的实战案例。

@@ -14,6 +14,10 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 使用 Context 只需要极其模式化的三个步骤：创建、提供、消费。
 
+```js
+const value = useContext(SomeContext)
+```
+
 ### 2.1 创建上下文 (`createContext`)
 
 最佳实践：将 Context 放在一个单独的文件中，以便于在全局任意地方导入。

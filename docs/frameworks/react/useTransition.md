@@ -1,130 +1,139 @@
 ---
-outline: [2,3]
+outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **[`useTransition`](https://zh-hans.react.dev/reference/react/useTransition):并发特性**
+# **[`useTransition`](https://zh-hans.react.dev/reference/react/useTransition):非阻塞 UI 与并发渲染的钥匙**
 
-## 1. 核心概念：紧急与非紧急更新
+在 `React 18` 引入并发模式（`Concurrent Mode`）之前，React 的渲染是“单车道”且不可中断的。一旦开始渲染一个包含成千上万个节点的复杂组件，主线程就会被死死锁住，导致用户的输入、点击等操作毫无反应（页面卡死）。
 
-在 React 18 之前，所有的状态更新都被视为“紧急更新”。这意味着，如果你在一个复杂的页面中同时更新了搜索框的文字和数万条数据的列表过滤，耗时的列表渲染会直接“锁死”主线程，导致搜索框打字出现明显的卡顿。
+`useTransition` 正是 React 赋予开发者调度“渲染优先级”的终极武器，它允许你将某些状态更新标记为“非紧急（过渡）”，从而保证用户交互的绝对流畅。
 
-**`useTransition`** 的引入，正式在 React 引擎中建立了一套**优先级调度机制**。它允许开发者显式地告诉 React：“某些状态更新是不紧急的，你可以先让位给高优先级的交互（如输入、点击），在后台空闲时再去处理这些慢更新。”
+## 1. 核心概念与基础语法
 
-## 2. API 语法与返回值铁律
-
-`useTransition` 返回一个包含两个成员的数组，每个成员都承担着特定的并发控制职责。
-
-| 返回成员 | 类型 | 核心职责 |
-| :--- | :--- | :--- |
-| **`isPending`** | `boolean` | **视觉状态指示器**。当过渡更新正在后台进行（尚未完成渲染）时，其值为 `true`。你可以利用它给用户展示 Loading 状态或降低旧界面的透明度。 |
-| **`startTransition`** | `Function` | **执行器**。接受一个回调函数，你需要在该回调中调用耗时的 `setState`。被包裹的更新会被标记为“过渡更新”。 |
-
-### 2.1 startTransition 的执行机制
-使用 `startTransition` 时，必须理解它的调度逻辑，否则会导致优化失效：
-
-```javascript
-const [isPending, startTransition] = useTransition();
-
-const handleChange = (e) => {
-  // 1. 紧急更新：必须立即反馈在 UI 上
-  setInputValue(e.target.value);
-
-  // 2. 非紧急更新：告诉 React 这个更新可以稍后处理，且过程可被中断
-  startTransition(() => {
-    setFilterTerm(e.target.value); 
-  });
-};
+```js
+const [isPending, startTransition] = useTransition()
 ```
 
-## 3. 实战案例：极致流畅的万级列表过滤
+### 1.1 基本定义与返回值
 
-在处理复杂大数据展示时，`useTransition` 配合 `useMemo` 是解决掉帧的终极方案。
+`useTransition` 不需要传递任何参数。它返回一个包含两个元素的数组：
+* **`isPending` (布尔值)**：告诉你这个被标记为过渡的任务**是否还在后台处理中**。常用于显示 Loading 提示。
+* **`startTransition` (函数)**：这是一个包裹函数。把你的状态更新函数（`setState`）放进它的回调里，React 就会把这次更新降级为“非紧急”。
 
 ```jsx
-import React, { useState, useTransition, useMemo } from 'react';
+import { useState, useTransition } from 'react';
 
-// 模拟一个包含 20,000 条数据的巨大列表
-const hugeData = Array.from({ length: 20000 }, (_, i) => `Product - ${i}`);
-
-function PerformanceDemo() {
-  const [query, setQuery] = useState('');       // 紧急状态
-  const [deferredQuery, setDeferredQuery] = useState(''); // 过渡状态
+function App() {
   const [isPending, startTransition] = useTransition();
+  const [tab, setTab] = useState('about');
 
-  const handleSearch = (e) => {
-    // 立即反馈输入框
-    setQuery(e.target.value);
-
-    // 将耗时的过滤操作降级
+  function selectTab(nextTab) {
+    // 告诉 React：“切换 Tab 是一个可以慢慢来的过渡任务，不要阻塞页面”
     startTransition(() => {
-      setDeferredQuery(e.target.value);
+      setTab(nextTab);
     });
-  };
-
-  // 只有当非紧急状态 deferredQuery 变化时，才会重新计算过滤
-  const filteredList = useMemo(() => {
-    return hugeData.filter(item => item.includes(deferredQuery));
-  }, [deferredQuery]);
+  }
 
   return (
-    <div style={{ padding: '20px' }}>
-      <input 
-        value={query} 
-        onChange={handleSearch} 
-        placeholder="搜索万级列表..."
-        style={{ padding: '8px', width: '300px' }}
-      />
-
-      {/* 使用 isPending 提供反馈 */}
-      {isPending && <span style={{ marginLeft: '10px', color: '#666' }}>正在后台计算...</span>}
-
-      <ul style={{ 
-        opacity: isPending ? 0.4 : 1, 
-        transition: 'opacity 0.2s', // 平滑过渡
-        maxHeight: '400px', 
-        overflowY: 'auto' 
-      }}>
-        {filteredList.map(item => <li key={item}>{item}</li>)}
-      </ul>
+    <div>
+      <button onClick={() => selectTab('heavy-chart')}>查看复杂图表</button>
+      {/* isPending 为 true 时，说明复杂图表正在后台疯狂渲染，此时可以给按钮加个菊花图 */}
+      {isPending && <span> 正在加载庞大的视图...</span>}
     </div>
   );
 }
 ```
 
-## 4. 技术方案对比：useTransition vs useDeferredValue
+## 2. 核心进阶：打断卡顿，保持 UI 响应
 
-两者都服务于并发渲染，但应用的角度完全对称。
+### 2.1 痛点场景：输入框连击导致的页面主线程阻塞
 
-| 特性 | useTransition | useDeferredValue |
-| :--- | :--- | :--- |
-| **控制对象** | **控制“写” (Setter)**。你控制何时触发状态更新。 | **控制“读” (Value)**。你接收一个值，并希望得到它的延迟版本。 |
-| **适用场景** | 你有权限访问 `setCount` 这种更新函数时。 | 你只拿到了 `props` 或计算结果，无法控制源头更新时。 |
-| **状态反馈** | 自带 `isPending`，无需额外逻辑。 | 不带状态，需手动比对 `value !== deferredValue` 来判断。 |
+**痛点场景**：你有一个搜索框，下方是一个包含 10,000 条数据的列表。每次在搜索框打字，都要根据输入内容重新过滤并渲染这 10,000 条数据。如果你不使用并发特性，你在搜索框连续快速打字时，输入框会严重卡顿，甚至掉帧，因为每次按键都在等待下面 10,000 个 DOM 节点渲染完。
 
-## 5. 常见问题 (FAQ) 与避坑指南
+**解决原则**：**将状态一分为二。控制输入框显示的状态（紧急），和控制大列表渲染的状态（非紧急）。用 `startTransition` 包裹大列表的更新！**
 
-### 5.1 为什么我把 `fetch` 或 `setTimeout` 放在 `startTransition` 里没效果？
-*   **答**：这是一个极其普遍的认知误区。
-    *   **真相**：`startTransition` **只能包裹状态更新函数 (setXxx)**。它无法将异步请求本身标记为低优先级。
-    *   如果你在里面写了异步代码，React 将无法同步捕获到其中的状态更新，导致优化完全失效。
-    *   **错误写法**：`startTransition(() => { setTimeout(() => setX(1), 100) })` —— 无效。
+```jsx
+import { useState, useTransition } from 'react';
 
-### 5.2 `useTransition` 与防抖 (Debounce) 相比，优势在哪里？
-*   **答**：防抖是“死等”，`useTransition` 是“智能调度”。
-    *   **防抖/节流**：无论用户设备多快，都必须强行等待 300ms 才能执行。这是一种对高性能设备的性能浪费。
-    *   **useTransition**：它是**响应式**的。如果用户设备快，React 会立即处理；如果设备慢或正在处理高优任务，它会自动延后。更重要的是，它是**可中断的**——如果后台渲染到一半用户又输入了新字符，React 会丢弃旧任务直接开始新任务，而防抖无法取消已经发出的计算。
+function SearchPage() {
+  const [isPending, startTransition] = useTransition();
+  
+  // 1. 紧急状态：负责输入框的瞬间回显，绝不能卡顿
+  const [inputValue, setInputValue] = useState('');
+  // 2. 过渡状态：负责庞大列表的渲染，可以被打断和延后
+  const [searchQuery, setSearchQuery] = useState('');
 
-### 5.3 为什么标记了 Transition 后，页面渲染次数好像变多了？
-*   **答**：这是正常现象。
-    *   为了实现 `isPending` 的反馈，React 必须进行**两次渲染**。
-    *   **第一次渲染**：同步触发。React 将 `isPending` 设为 `true`，并渲染当前紧急状态下的 UI（此时耗时的状态还没变）。
-    *   **第二次渲染**：在后台异步触发。React 处理被包裹的耗时状态更新，完成后将 `isPending` 设为 `false`。
+  const handleChange = (e) => {
+    const text = e.target.value;
+    
+    // ❌ 错误示范：把两个更新混在一起，React 会认为它们一样紧急。
+    // 输入法打字会卡到怀疑人生，因为要等万条列表渲染完才能显示输入的字母。
+    // setInputValue(text);
+    // setSearchQuery(text); 
 
-### 5.4 我可以把所有的 `setState` 都包在 `startTransition` 里吗？
-*   **答**：**绝对不可以！**
-    *   如果你把像“输入框回显”、“下拉框展开”、“点赞按钮高亮”这种基础交互都降级，用户会感觉到明显的“软件不跟手”或操作滞后感。
-    *   **准则**：只对那些**确实会导致 UI 阻塞超过 100ms** 的重度计算或大规模 DOM 渲染使用该 Hook。
+    // ✅ 黄金法则：分离优先级。
+    // 第一步：立刻更新输入框状态（最高优先级）
+    setInputValue(text);
+    
+    // 第二步：将列表的过滤查询标记为过渡（低优先级）
+    startTransition(() => {
+      setSearchQuery(text);
+    });
+  };
 
-### 5.5 `startTransition` 的回调函数是异步的吗？
-*   **答**：**不是，它是同步执行的。**
-    *   React 会立即执行 `startTransition` 里的回调函数。在执行期间，所有被触发的 `setXxx` 都会被贴上一个“Transition”标签。等回调执行完后，React 才会根据这些标签去调度后台渲染。不要试图在里面写 `async/await`。
+  return (
+    <div>
+      <input value={inputValue} onChange={handleChange} />
+      {isPending ? <p>正在拼命搜索中...</p> : <HugeList query={searchQuery} />}
+    </div>
+  );
+}
+```
+
+## 3. 高阶进阶：并发渲染的底层逻辑与禁区
+
+### 3.1 为什么它能保持流畅？(Interruptible Rendering)
+
+当你调用 `startTransition` 时，React 会在内存中开启一个“后台分支”去渲染那个庞大的 `<HugeList />`。
+
+在这期间，如果用户在输入框里又敲了一个字母（触发了紧急的 `setInputValue`），**React 会立刻极其无情地直接丢弃后台正在渲染了一半的旧列表，马上回过头来处理输入框的显示，等输入框渲染完了，再用最新的搜索词重新开始渲染列表。** 这就是“可中断渲染”的魅力。
+
+### 3.2 突破死穴：不能用于控制输入框的值 (Controlled Inputs)
+
+**铁律：绝不能将控制表单输入框（`<input>`、`<textarea>`、`<select>`）的状态更新放进 `startTransition` 中！**
+
+```jsx
+const [text, setText] = useState('');
+
+function handleChange(e) {
+  // ❌ 致命错误：这会让你的输入框彻底坏掉！
+  // 因为输入框期望你按键后立刻且同步地更新它的 value。如果被降级为过渡，
+  // 用户的按键事件会和 React 的延迟更新发生严重的竞态冲突，导致光标乱跳或吞字。
+  startTransition(() => {
+    setText(e.target.value);
+  });
+}
+
+return <input value={text} onChange={handleChange} />
+```
+
+## 4. 常见问题 (FAQ) 与避坑指南
+
+### 4.1 `useTransition` 和我以前用的防抖 (Debounce) / 节流 (Throttle) 有什么区别？哪个好？
+*   **答**：**这是维度的降维打击，`useTransition` 在渲染层面完胜防抖。**
+    *   **防抖 (Debounce)**：本质是“死等”。设置了 500ms 防抖，用户打完字必须傻等 500ms 后才**开始**渲染列表。如果列表渲染本身需要 1 秒，那这 1 秒内页面依然是死机状态。
+    *   **`useTransition`**：没有人为等待。用户打完字，React **立刻**开始在后台渲染列表。更强的是，渲染过程中如果用户继续打字，React 不会死机，而是打断渲染响应打字。它榨干了 CPU 的空闲性能，而不是强行让用户等待。
+
+### 4.2 为什么我用了 `startTransition`，页面还是卡死了？
+*   **答**：**React 的并发只能中断“组件的渲染”，无法中断“同步的 JavaScript 繁重计算”。**
+    *   如果你在组件里写了一个耗时 3 秒的 `for` 循环（纯 CPU 原生计算，比如极其复杂的 `Array.sort` 或正则匹配），JavaScript 的主线程照样被锁死，React 毫无办法。
+    *   **避坑方案**：`startTransition` 解决的是 **React 虚拟 DOM 计算和 DOM 挂载** 导致的卡顿。对于原生的重度 CPU 运算，你需要使用 Web Worker 将计算移出主线程。
+
+### 4.3 可以把异步请求 (`await fetch`) 放在 `startTransition` 的回调里吗？
+*   **答**：**在 React 18 中不行，在 React 19 中可以。**
+    *   **React 18**：`startTransition` 的回调必须是**同步**的。你必须先把 `await fetch` 拿到的数据存下来，然后只把 `setState(data)` 这一步包在 `startTransition` 里。
+    *   **React 19 (最新)**：官方全面引入了异步转换（Async Transitions）。你可以直接把完整的 `async` 操作放进去，`isPending` 会极其智能地等待你的网络请求完成，并且等待后续的组件渲染也完成，在此期间一直保持 `true` 状态，极大简化了全链路的 Loading 状态管理。
+
+### 4.4 我想把路由跳转做成过渡效果，可以用它吗？
+*   **答**：**可以，但这通常不需要你手动写。**
+    *   现代的 React 路由库（如 React Router v6.4+、Next.js App Router）内部已经深度集成了并发特性。当你在这些框架中调用 `navigate()` 切换页面时，它们底层默认就是包裹在 `startTransition` 中的，这意味着路由跳转天生不会阻塞当前页面的交互。

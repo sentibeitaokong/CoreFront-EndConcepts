@@ -95,48 +95,132 @@ useEffect(() => {
 
 这是 React 官方目前最为强调的工程化原则。**如果你能用在渲染期间计算的值（衍生状态）或者在事件处理函数中解决问题，就绝对不要使用 `useEffect`。**
 
-滥用 Effect 会导致不必要的重复渲染（瀑布流渲染），让代码逻辑难以追踪，甚至引发严重的性能灾难。
+### 3.1 突破闭包：在 Effect 中根据先前 state 更新 state
 
-### 3.1 使用 Effect 根据 props 更新 state
-❌ **错误做法**：将传入的 props 存入内部 state，并用 effect 监听同步。
-```javascript
-// 🚨 极其糟糕：会导致组件多渲染一次（渲染 -> 触发 effect -> 修改 state -> 再次渲染）
-const [fullName, setFullName] = useState('');
-useEffect(() => {
-  setFullName(firstName + ' ' + lastName);
-}, [firstName, lastName]);
-```
+**痛点场景**：当你需要在 Effect 中设置一个定时器（如 `setInterval`），每秒让 `count` 加 1 时。如果你直接读取组件作用域的 `count`，Linter 会要求你把 `count` 加入依赖数组。但这会导致**每次 `count` 改变时，定时器都被清理并重新创建**，这不仅性能极差，甚至可能导致定时器节律错乱。
 
-✅ **正确做法：渲染期间计算（衍生状态 Computed State）**
-```javascript
-// 💡 高效优雅：直接在渲染函数中计算。React 会自动在变量改变时重新计算视图。
-const fullName = firstName + ' ' + lastName;
-```
+**解决原则**：**如果你只需要用旧 state 来计算新 state，请使用状态的“函数式更新”！这能让你从依赖项中安全地移除该 state。**
 
-### 3.2 使用 Effect 处理用户事件
-❌ **错误做法**：在 effect 里处理诸如“购买按钮被点击”、“表单提交”这类明确的用户动作。
-```javascript
-// 🚨 错误：不应该用 effect 监听状态变化来发请求，它掩盖了请求的真正触发原因。
-const [isBuying, setIsBuying] = useState(false);
-useEffect(() => {
-  if (isBuying) {
-    post('/api/buy').then(() => setIsBuying(false));
-  }
-}, [isBuying]);
-```
+```jsx
+import { useState, useEffect } from 'react';
 
-✅ **正确做法：在事件处理函数 (Event Handlers) 中直接处理副作用**
-```javascript
-// 💡 正确：用户的行为导致的副作用，应该直接写在触发该行为的函数里。
-function handleBuyClick() {
-  post('/api/buy');
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    // ❌ 错误示范：依赖了 count。
+    // 每次 setCount 后，组件重渲染，Effect 重新执行 -> 销毁旧定时器 -> 创建新定时器。
+    // const id = setInterval(() => { setCount(count + 1); }, 1000);
+    // return () => clearInterval(id);
+    
+    // ✅ 正确示范 (传递状态更新函数)：
+    // 你向 setCount 传递了 c => c + 1。
+    // 你的 Effect 不再需要读取外层的 count，因此 count 被移出依赖项。定时器永远只创建一次！
+    const id = setInterval(() => {
+      setCount(c => c + 1); 
+    }, 1000);
+    return () => clearInterval(id);
+  }, []); // 🟢 完美的空依赖数组
+
+  return <h1>{count}</h1>;
 }
 ```
 
-### 3.3 当 prop 变化时重置所有状态
-❌ **错误做法**：监听一个 ID，当 ID 变化时手动将 state 清空。
-✅ **正确做法：给组件提供 `key` 属性**。
-当给组件传入不同的 `key` 时，React 会将它们视为完全不同的两个实例，自动销毁旧实例并重建新实例，其内部所有的 `useState` 会自然重置，无需任何 effect 干预。
+### 3.2 引用陷阱：删除不必要的对象依赖项
+
+**痛点场景**：在 React 中，组件每次重渲染时，内部的所有对象字面量（`{}`）都会分配一个**全新的内存地址**。如果你的 Effect 依赖了这个对象，尽管对象的内容一模一样，React 也会认为“依赖项变了”，从而强行重新运行 Effect。
+
+**解决原则**：**避免将每次渲染都会新建的对象作为依赖项。你可以将其移到 Effect 内部，或者只提取对象中的基础类型值（字符串、数字、布尔值）作为依赖。**
+
+```jsx
+function ChatRoom({ roomId }) {
+  const [message, setMessage] = useState('');
+
+  // ❌ 错误示范：options 每次渲染都是一个全新对象！
+  // 哪怕只是输入框打字改变了 message，options 也会重生，导致 WebSocket 疯狂重连！
+  // const options = { serverUrl: 'https://localhost:1234', roomId };
+
+  useEffect(() => {
+    // ✅ 黄金法则 1 (移入 Effect 内部)：
+    // 如果这个对象只在 Effect 里用，直接把它写在 Effect 里面。
+    // 此时依赖项只需要 roomId 即可。
+    const options = { serverUrl: 'https://localhost:1234', roomId };
+    const connection = createConnection(options);
+    connection.connect();
+    
+    return () => connection.disconnect();
+  }, [roomId]); // 🟢 options 不再是依赖项
+}
+```
+
+### 3.3 函数重现：删除不必要的函数依赖项
+
+**痛点场景**：与对象同理，在组件内部定义的函数，每次重渲染时都会是一个**全新的函数实例**。如果你在 Effect 中调用了它，Linter 会逼你把它加入依赖数组，这同样会导致 Effect 毫无意义地频繁重跑。
+
+**解决原则**：**如果一个函数不依赖组件内的任何状态，请把它移到组件外部！如果它依赖了，请把它直接写在 Effect 内部！**
+
+```jsx
+// ✅ 黄金法则 1 (移到组件外)：
+// 这个函数不依赖 props 或 state，移到顶层，它永远只会创建一次。
+function createOptions() {
+  return { serverUrl: 'https://localhost:1234' };
+}
+
+function ChatRoom({ roomId }) {
+  const [message, setMessage] = useState('');
+
+  // ❌ 错误示范：在组件内定义的函数，每次渲染都会重新创建。
+  // function createOptions() { return { serverUrl: 'https://localhost:1234', roomId }; }
+
+  useEffect(() => {
+    // ✅ 黄金法则 2 (移入 Effect 内部)：
+    // 如果函数必须依赖 roomId，那就把它定义在 Effect 内部。
+    // 这样不仅不用把函数加进依赖，还能清楚看到 Effect 到底依赖了什么具体数据。
+    function createOptions() {
+      return { serverUrl: 'https://localhost:1234', roomId };
+    }
+
+    const connection = createConnection(createOptions());
+    connection.connect();
+    return () => connection.disconnect();
+  }, [roomId]); // 🟢 只需要依赖实际的数据 roomId
+}
+```
+
+### 3.4 响应隔离：从 Effect 读取最新的 props 和 state
+
+**痛点场景**：有时候你想在 Effect 中读取一个最新的 state（比如当前的 `theme` 颜色，用于打印日志），但你**绝对不想**因为这个 state 的改变而导致 Effect 重新运行（比如你不想因为切了个暗黑模式，就导致聊天室断开重连）。
+
+**解决原则**：在传统的 React 中，我们经常会遇到“想读最新值，又不想被它触发”的尴尬境地。React 官方正在引入（目前为实验性 API）**`useEffectEvent`** 来将非响应式逻辑从响应式的 Effect 中抽离出来。
+
+```jsx
+import { useEffect, useState } from 'react';
+// 注意：useEffectEvent 目前是实验性 API，需在支持的环境中使用
+import { experimental_useEffectEvent as useEffectEvent } from 'react';
+
+function ChatRoom({ roomId, theme }) {
+  // ✅ 使用 useEffectEvent 封装备忘逻辑
+  // 这个 Hook 返回的函数永远能读到最新的 theme，但它本身的引用永远不变
+  const onConnected = useEffectEvent(() => {
+    showNotification('已连接！当前主题是：' + theme);
+  });
+
+  useEffect(() => {
+    const connection = createConnection(roomId);
+    connection.on('connected', () => {
+      // ❌ 如果你直接在这里读 theme，就必须把 theme 加进底部的依赖数组。
+      // 这会导致切换主题时，聊天室断开重连。
+      
+      // ✅ 正确示范：调用 Event 函数。
+      // onConnected 函数并非响应式依赖，不需要加入依赖数组。
+      onConnected();
+    });
+    connection.connect();
+    
+    return () => connection.disconnect();
+  }, [roomId]); // 🟢 完美：只有 roomId 改变才会重连，theme 改变不会触发。
+}
+```
 
 ## 4. 清理函数 (Cleanup) 的绝对重要性
 
@@ -235,3 +319,5 @@ function UserProfile({ userId }) {
     *   虽然上文教了你怎么在 `useEffect` 里发请求和防竞态，但在真实的巨型业务中，你还要处理 loading 状态骨架屏、接口抛错的 Error Boundary、相同接口的缓存去重（SWR）、服务端渲染（SSR）的水合等无数个深坑。
     *   如果纯靠手写 `useEffect`，你会写出极其庞大且恶心的“面条代码”。
     *   **官方钦定方向**：对于单纯的数据拉取，现代 React 极其推崇将这些脏活全部下放给专业的**数据请求框架（如 React Query, SWR）**，或者交由**全栈框架的数据层（如 React Router v6.4+ 的 Loader, Next.js 的 Server Components）**来处理。让你的组件彻底回归纯粹的 UI 渲染本质。
+
+    

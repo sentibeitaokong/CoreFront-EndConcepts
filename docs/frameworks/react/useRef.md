@@ -11,6 +11,10 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 **Ref (Reference 的简写)**，就是 React 官方为你留下的合法“后门”。
 
+```js
+const ref = useRef(initialValue)
+```
+
 ### 1.1 `useRef` 的双重人格
 在函数组件中，我们使用 `useRef` Hook。它有两个截然不同、却又殊途同归的用法：
 

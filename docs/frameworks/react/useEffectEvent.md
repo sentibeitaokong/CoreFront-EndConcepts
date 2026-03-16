@@ -2,7 +2,7 @@
 outline: [2,3]
 ---
 
-# [useEffectEvent](https://zh-hans.react.dev/reference/react/useEffectEvent)
+# **[useEffectEvent](https://zh-hans.react.dev/reference/react/useEffectEvent):`Effect`专属的“事件处理函数”**
 
 ::: warning 实验性特性
 `useEffectEvent` 目前仍处于 React 的 **Experimental（实验性）** 频道中。在稳定版 React（如 18.2.0）中尚不可用，预计将在未来版本中正式发布。
@@ -23,6 +23,10 @@ outline: [2,3]
 
 `useEffectEvent` 接受一个函数作为参数，并返回一个该函数的增强版本。
 
+```js
+const onSomething = useEffectEvent(callback)
+```
+
 | 特性 | 说明 |
 | :--- | :--- |
 | **定义位置** | 必须在组件函数的顶层定义。 |
@@ -30,7 +34,7 @@ outline: [2,3]
 | **反应性** | **非反应性**。它永远不会出现在 `useEffect` 的依赖数组中。 |
 | **状态获取** | 内部永远能获取到调用那一刻的 **最新** Props 和 State。 |
 
-### 2.1 基础代码对比
+**基础代码对比**
 
 ```jsx
 // ❌ 传统写法：逻辑耦合

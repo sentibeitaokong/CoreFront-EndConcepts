@@ -16,6 +16,10 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 * **要缓存的函数体**。
 * **依赖数组 (Dependencies Array)**：和 `useEffect` 的逻辑一模一样。
 
+```js
+const cachedFn = useCallback(fn, dependencies)
+```
+
 ### 2.1 基础实战：保护 `React.memo` 护城河
 
 ```jsx

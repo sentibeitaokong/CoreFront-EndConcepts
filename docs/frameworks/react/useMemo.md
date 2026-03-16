@@ -8,13 +8,17 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 在 React 的函数组件中，每一次状态 (State) 改变导致重新渲染时，**组件函数内部的所有代码都会从头到尾被重新执行一遍。**
 
-**`useMemo`的核心作用是：**在多次渲染之间，缓存（Memoize）一个昂贵计算的结果，或者锁死一个引用类型（对象/数组）的内存地址。**
+**`useMemo`的核心作用是：**在多次渲染之间，缓存（Memoize）一个昂贵计算的结果，或者锁死一个引用类型（对象/数组）的内存地址。
 
 ## 2. 核心 API 实战：计算缓存与引用锁定
 
 `useMemo` 接收两个参数：
 * **一个工厂函数（必须有 `return` 返回值）**，React 会在渲染期间执行它，并把返回值缓存起来。
 * **依赖数组 (Dependencies Array)**。逻辑与 `useEffect` 相同，只有当数组里的依赖项发生物理改变时，工厂函数才会重新执行。
+
+```js
+const cachedValue = useMemo(calculateValue, dependencies)
+```
 
 ### 2.1 跳过昂贵的重新计算 (Expensive Calculations)
 

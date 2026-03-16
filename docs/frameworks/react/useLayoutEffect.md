@@ -14,6 +14,10 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 为了解决这个物理级的问题，React 提供了 **`useLayoutEffect`**。
 
+```js
+useLayoutEffect(setup, dependencies?)
+```
+
 | 对比维度 | `useEffect` (异步非阻塞) | `useLayoutEffect` (同步阻塞) |
 | :--- | :--- | :--- |
 | **触发时机** | 浏览器**完成**屏幕绘制 (Paint) **之后**。 | React 将 DOM 变动写进内存后，**但在浏览器把像素真正画到屏幕上之前！** |

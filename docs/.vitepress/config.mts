@@ -3,7 +3,7 @@ import {defineConfig} from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     base: '/CoreFront-EndConcepts/',
-    title: "千寻之下想你",
+    title: "山背后的山",
     description: "vitePress",
     head: [['link', { rel: 'icon', href: '/CoreFront-EndConcepts/myAddress.svg' }]], //要在页面 HTML 的 <head> 标签中呈现的其他元素
     cleanUrls: true,         //生成简洁的url
