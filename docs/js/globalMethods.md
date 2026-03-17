@@ -187,9 +187,8 @@ function intersection(setA, setB) {
 
 ## 补集  
 
-AB的并集减去AB的交集
-
 ```js
+//AB的并集减去AB的交集
 function symmetricDifference(setA, setB) {
     let _difference = new Set(setA);
     for (let elem of setB) {
@@ -205,9 +204,8 @@ function symmetricDifference(setA, setB) {
 
 ## 差集 
 
-属于A但不属于B的
-
 ```js
+//属于A但不属于B的
 function difference(setA, setB) {
     let _difference = new Set(setA);
     for (let elem of setB) {

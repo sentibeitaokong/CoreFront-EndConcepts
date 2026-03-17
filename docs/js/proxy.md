@@ -1181,3 +1181,83 @@ proxy.foo = 1
 *  **日志与性能监控**: 在 `apply`、`get`、`set` 等陷阱中加入日志记录或性能计时器，用于调试和分析代码。
 *  **实现负索引**: 通过 `get` 陷阱，让数组支持类似 `array[-1]` 的负索引访问。
 
+## 6. 常见问题 (FAQ)
+
+### 6.1 为什么 `this` 指向会出问题？
+
+**问题描述**:
+当代理一个包含方法的对象时，如果在方法内部使用 `this`，这个 `this` 会指向代理对象 `proxy` 而不是原始对象 `target`。对于某些依赖内部 `[[this]]` 值的原生对象（如 DOM 元素），这可能会导致错误。
+
+**示例**:
+```javascript
+const target = {
+  name: 'target',
+  getName() {
+    return this.name;
+  }
+};
+
+const proxy = new Proxy(target, {});
+
+console.log(proxy.getName()); // 输出 'target' (因为this指向proxy，proxy上没有name，会转发到target)
+
+// 棘手的情况
+const date = new Date();
+const proxyDate = new Proxy(date, {});
+
+// proxyDate.getDate(); // TypeError: this is not a Date object.
+```
+
+**解决方案**:
+在 `get` 陷阱中，如果发现被访问的属性是一个函数，应该使用 `Reflect.get` 并明确将 `target` 作为 `receiver`（接收者），或者手动 `bind` `this` 到原始的 `target` 对象。
+
+```javascript
+const handler = {
+  get(target, property, receiver) {
+    // 解决方法：将 this 绑定回原始对象
+    const value = Reflect.get(target, property, receiver);
+    if (typeof value === 'function') {
+      return value.bind(target);
+    }
+    return value;
+  }
+};
+```
+**最佳实践**: 始终在陷阱函数中使用 `Reflect` 对象。`Reflect` 上的方法与 `Proxy` 的陷阱一一对应，并且能正确处理 `this` 的指向问题，确保操作的默认行为得以保留。
+
+### 6.2 Proxy 的性能如何？为什么会比原生对象慢？
+
+**问题描述**:
+Proxy 相比于直接操作原生对象，存在明显的性能开销，尤其是在高频操作的场景下（如循环）。
+
+**原因**:
+1.  **破坏引擎优化**: 现代 JavaScript 引擎（如 V8）对普通对象的属性访问有高度优化的机制（如内联缓存、隐藏类）。Proxy 的存在相当于增加了一个中间层，使得这些优化无法生效。
+2.  **函数调用开销**: 每次对代理对象的操作都需要调用 `handler` 中的陷阱函数，这比直接的内存访问要慢得多。
+3.  **内部复杂性**: 引擎需要维护额外的内部状态来管理代理，增加了处理的复杂性。
+
+**基准测试**:
+一个简单的属性自增循环，使用 Proxy 的版本可能会比直接访问对象慢 **10 到 100 倍**。
+
+**建议**:
+*   **避免在性能热点使用**: 对于性能要求极高的代码路径（如游戏循环、大数据处理），应避免使用 Proxy。
+*   **权衡利弊**: Proxy 提供了强大的元编程能力，但在决定使用它时，必须权衡其灵活性带来的好处与潜在的性能损失。
+
+### 6.3 Proxy 是否存在兼容性问题？
+
+**问题描述**:
+Proxy 是 ES6 (ECMAScript 2015) 的特性，在一些非常老旧的浏览器环境中（如 IE11）不受支持。
+
+**解决方案**:
+*   **没有 Polyfill**: Proxy 的底层机制无法通过 Polyfill（代码垫片）在旧版浏览器中完全模拟。
+*   **检查环境**: 在使用前，应检查目标运行环境的兼容性。对于现代浏览器和 Node.js 环境，Proxy 已经得到了很好的支持。
+
+### 6.4 为什么我需要 `Reflect`？
+
+**问题描述**:
+在 `handler` 陷阱中，可以直接操作 `target` 对象（例如 `target[prop] = value`），为什么推荐使用 `Reflect`（例如 `Reflect.set(target, prop, value)`）？
+
+**原因**:
+1.  **确保正确的 `this` 指向**：如问题1所述，`Reflect` 方法能正确处理 `this` 上下文。
+2.  **提供操作的默认行为**: `Reflect` 上的每个方法都对应一个陷阱，并提供了该操作的默认、标准行为。这使得在自定义逻辑之后，可以简单地调用 `Reflect` 来执行原始操作。
+3.  **提供布尔值反馈**: 某些操作（如 `Reflect.set`, `Reflect.deleteProperty`）会返回一个布尔值来表示操作是否成功，而直接操作（如 `delete target[prop]`）则不会。`Proxy` 的 `set` 和 `deleteProperty` 陷阱要求返回一个布尔值，`Reflect` 能完美契合。
+

@@ -561,3 +561,78 @@ function set(target, key, value, receiver) {
 *  **函数式编程风格**: 它将命令式的对象操作转变为函数调用，使代码风格更加统一。
 *  **更健壮的错误处理**: 通过返回布尔值而不是抛出错误，`Reflect` 让你能用更流畅的方式（如 `if` 语句）来处理操作失败的情况。
 
+## 5. 常见问题 (FAQ)
+
+### 5.1 既然有 `Object` 上的方法，为什么还需要 `Reflect`？
+
+**问题描述**:
+很多 `Reflect` 的方法在 `Object` 上都有同名或类似功能的方法，例如 `Reflect.defineProperty` 和 `Object.defineProperty`，为什么需要重复？
+
+**解答**:
+`Reflect` 旨在成为未来语言内部方法的统一存放地，并提供更优的开发者体验。
+
+*   **更合理的返回值**：`Reflect.defineProperty` 在失败时返回 `false`，而 `Object.defineProperty` 会抛出 `TypeError`。前者允许使用简单的条件判断来处理失败情况，而后者则需要 `try...catch` 块。
+*   **函数式替代操作符**：`Reflect.has` 和 `Reflect.deleteProperty` 将 `in` 和 `delete` 这两个命令式操作符变成了函数调用，使代码风格更统一。
+*   **职责分离**：`Object` 的主要职责是作为所有对象的基类和构造函数，而 `Reflect` 则专注于提供一套与语言底层操作对应的 API，这种分离使 API 设计更加清晰。
+
+### 5.2 在 `Proxy` 的 `handler` 中，为什么必须使用 `Reflect`？
+
+**问题描述**:
+在 `Proxy` 的 `handler` 中，我可以直接操作 `target` 对象，比如 `target[prop]`，为什么推荐使用 `Reflect.get(target, prop, receiver)`？
+
+**解答**:
+这是 `Reflect` 最核心的用途。在 `Proxy` 陷阱中，使用 `Reflect` 不是强制的，但却是 **最佳实践**，主要原因是为了正确处理 `this` 指向（即 `receiver`）。
+
+**示例**：
+```javascript
+const target = {
+  _name: 'Alice',
+  get name() {
+    return this._name;
+  }
+};
+
+const handler = {
+  get(target, prop, receiver) {
+    console.log(`Getting ${prop}`);
+    // 错误的做法：直接访问 target，`this` 指向 target
+    // return target[prop];
+
+    // 正确的做法：使用 Reflect.get，并将 receiver 传入
+    // 这能确保当通过代理访问 getter 时，getter 内部的 `this` 指向代理对象本身
+    return Reflect.get(target, prop, receiver);
+  }
+};
+
+const proxy = new Proxy(target, handler);
+
+// 如果 handler 中用 target[prop]，`proxy.name` 访问 `name` 这个 getter 时，
+// getter 内部的 `this` 是 `target`，`this._name` 没问题。
+// 但如果 getter 依赖于代理的其他行为，就会出错。
+// 使用 Reflect.get 并传入 receiver，可以保证 `this` 永远指向触发操作的对象（即 proxy），
+// 从而确保代理行为的一致性和可预测性。
+console.log(proxy.name); // 输出: "Getting name", "Alice"
+```
+简而言之，`Reflect` 确保了在代理场景下，操作的默认行为能够被正确地“转发”到目标对象，同时保留了正确的上下文（`receiver`）。
+
+### 5.3 `Reflect.has` 的 `non-object` 错误是什么？
+
+**问题描述**:
+调用 `Reflect.has()` 时，有时会遇到 `TypeError: Reflect.has called on non-object` 的错误。
+
+**原因**:
+`Reflect` 的许多方法（包括 `Reflect.has`）的第一个参数 `target` 必须是一个对象。如果你传入了原始类型的值（如 `null`, `undefined`, `number`, `string`, `boolean`），就会抛出这个类型错误。
+
+**解决方案**:
+在调用 `Reflect.has()` 之前，确保第一个参数是对象。
+```javascript
+const target = null;
+const prop = 'toString';
+
+if (typeof target === 'object' && target !== null) {
+  console.log(Reflect.has(target, prop));
+} else {
+  console.error('Target is not an object'); // 错误会在这里被捕获
+}
+```
+

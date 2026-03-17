@@ -103,7 +103,13 @@ Array.prototype.at = function (index) {
 
 
 Array.prototype.concat=function (){
-    let newArr=this.slice()
+    const O = Object(this);
+    let newArr = []
+    if(Array.isArray(O)){
+        newArr=[...O]
+    }else{
+        return [O,...arguments]
+    }
     Array.prototype.slice.apply(arguments).forEach(item=>{
         if(Array.isArray(item)){
             item.forEach(item1=>{
@@ -166,8 +172,6 @@ Array.prototype.copyWithin = function(target, start/*, end*/) {
     var direction = 1;
 
     if (from < to && to < (from + count)) {
-        console.log(from)
-        debugger
         direction = -1;
         from += count - 1;
         to += count - 1;
@@ -229,10 +233,14 @@ Array.prototype.every=function (fn,thisArg){
     const len = O.length >>> 0
     for(let i=0;i<len;i++){
         let res
-        if(typeof thisArg === 'undefined'){
-            res=fn(this[i],i,this)
+        if(i in O){
+            if(typeof thisArg === 'undefined'){
+                res=fn(this[i],i,this)
+            }else{
+                res=fn.call(thisArg,this[i],i,this)
+            }
         }else{
-            res=fn.call(thisArg,this[i],i,this)
+            res=true
         }
         if (!res) {
             return false
@@ -313,10 +321,14 @@ Array.prototype.filter=function (fn,thisArg){
     let result=[]
     for(let i=0;i<len;i++){
         let res
-        if(typeof thisArg === 'undefined'){
-            res=fn(this[i],i,this)
+        if(i in O){
+            if(typeof thisArg === 'undefined'){
+                res=fn(this[i],i,this)
+            }else{
+                res=fn.call(thisArg,this[i],i,this)
+            }
         }else{
-            res=fn.call(thisArg,this[i],i,this)
+            res=false
         }
         if(res){
             result.push(this[i])
@@ -400,15 +412,24 @@ Array.prototype.findIndex=function (fn,thisArg){
 
 Array.prototype.flat=function (depth=1){
     const result=[];
+    const O = Object(this);
+    let newArr = []
+    if(Array.isArray(O)){
+        newArr=[...O]
+    }else{
+        return [O]
+    }
     (function eachFlat(arr,depth){
         arr.forEach(item=>{
             if(Array.isArray(item)&&depth>0){
                 eachFlat(item,depth-1)
             }else{
-                result.push(item)
+                if(item){
+                    result.push(item)
+                }
             }
         })
-    })(this,depth)
+    })(newArr,depth)
     return result
 }
 //将数组扁平化并去除其中重复数据，最终得到一个升序且不重复的数组
@@ -451,11 +472,13 @@ Array.prototype.forEach= function (fn,thisArg){
     const O = Object(this)
     const len = O.length >>> 0
     for(let i=0;i<len;i++){
-        if(typeof thisArg === 'undefined'){
-            fn(this[i],i,this)
-        }else{
-            fn.call(thisArg,this[i],i,this)
-        }
+       if(i in O){
+           if(typeof thisArg === 'undefined'){
+               fn(this[i],i,this)
+           }else{
+               fn.call(thisArg,this[i],i,this)
+           }
+       }
     }
     return undefined
 }
@@ -467,62 +490,88 @@ Array.prototype.forEach= function (fn,thisArg){
  * 参数：arrayLike想要转换成数组的伪数组对象或可迭代对象,mapFn 可选如果指定了该参数，新数组中的每个元素会执行该回调函数,thisArg 可选参数，执行回调函数 mapFn 时 this 对象。
  * from() 的 length 属性为 1 ，即 Array.from.length === 1。
  */
-Array.from=(function() {
-    const isCallable = function(fn) {
-        return typeof fn === 'function' && Object.prototype.toString.call(fn) === '[object Function]';
+Array.from=(function () {
+    const toStr = Object.prototype.toString;
+    const isCallable = (fn) => typeof fn === 'function' || toStr.call(fn) === '[object Function]';
+    const toInteger = (value) => {
+        const number = Number(value);
+        if (isNaN(number)) { return 0; }
+        if (number === 0 || !isFinite(number)) { return number; }
+        return (number > 0 ? 1 : -1) * Math.floor(Math.abs(number));
     };
-    // 返回一个value的整数
-    const toInteger = function(value) {
-        const v = Number(value);
-        if (isNaN(v)) {
-            return 0;
-        }
-        // 0或者无穷大的数，直接返回
-        if (v === 0 || !isFinite(v)) {
-            return v;
-        }
-        return ( v > 0 ? 1 : -1 ) * Math.floor(Math.abs(v));
-    }
     const maxSafeInteger = Math.pow(2, 53) - 1;
-    const toLength = function(value) {
+    const toLength = (value) => {
         const len = toInteger(value);
-        // len的最小值不能比0小。最大值不能比maxSafeInteger大。
         return Math.min(Math.max(len, 0), maxSafeInteger);
-    }
-    return function (arrayLike/*, mapFn, thisArg*/) {
+    };
+
+    // `from` 方法主体
+    return function from(arrayLike /*, mapFn, thisArg */) {
+        // 1. 获取 `this`，也就是调用 Array.from 的构造函数 (通常是 Array)
         const C = this;
-        // 如果没有第一个参数，throw error。
-        if (arrayLike == null) {
-            throw new TypeError("Array.from requires an array-like object - not null or undefined");
-        }
+
+        // 2. 获取源对象
         const items = Object(arrayLike);
-        let thisArg = '';
-        const mapFn = arguments.length > 1 ? arguments[1] : void undefined;
+
+        // 3. 检查源对象是否为 null 或 undefined
+        if (arrayLike == null) {
+            throw new TypeError('Array.from requires an array-like object - not null or undefined');
+        }
+
+        // 4. 处理 mapFn 和 thisArg 参数
+        const mapFn = arguments.length > 1 ? arguments[1] : undefined;
+        let thisArg;
         if (typeof mapFn !== 'undefined') {
-            // 如果有第二个参数，判断是第二个参数类型如果不是构造函数，throw error
             if (!isCallable(mapFn)) {
-                throw new TypeError("Array.from when provided mapFn must be a function");
+                throw new TypeError('Array.from: when provided, the second argument must be a function');
             }
             if (arguments.length > 2) {
                 thisArg = arguments[2];
             }
         }
-        const len = toLength(items.length);
-        const arr = isCallable(C) ? Object(new C(len)) : new Array(len);
-        let i = 0;
-        var iValue
-        while(i < len) {
-            iValue = items[i];
-            if (mapFn) {
-                arr[i] = typeof thisArg === 'undefined' ? mapFn(iValue, i) : mapFn.call(thisArg, iValue, i);
-            } else {
-                arr[i] = iValue;
+
+        // 5. 判断源对象是否是可迭代对象，并获取其长度
+        const usingIterator = typeof items[Symbol.iterator] === 'function';
+        let len;
+
+        let result; // 最终要返回的数组
+        let k = 0; // 迭代索引
+
+        if (usingIterator) {
+            // 5a. 如果是可迭代对象
+            result = isCallable(C) ? new C() : []; // 创建一个新实例
+            const iterator = items[Symbol.iterator]();
+            let next;
+
+            while (!(next = iterator.next()).done) {
+                const kValue = next.value;
+                const mappedValue = mapFn ? mapFn.call(thisArg, kValue, k) : kValue;
+                result[k] = mappedValue;
+                k += 1;
             }
-            i++;
+            // 对于可迭代对象，长度在迭代结束后确定
+            result.length = k;
+            return result;
+        } else {
+            // 5b. 如果是类数组对象
+            len = toLength(items.length);
+
+            // 6. 创建新的数组实例
+            result = isCallable(C) ? new C(len) : new Array(len);
+
+            // 7. 迭代并填充数组
+            while (k < len) {
+                const kValue = items[k];
+                const mappedValue = mapFn ? mapFn.call(thisArg, kValue, k) : kValue;
+                result[k] = mappedValue;
+                k += 1;
+            }
+
+            result.length = len;
+            return result;
         }
-        return arr;
-    }
-})();
+    };
+}());
 
 /**
  *includes方法   功能：用来判断一个数组是否包含一个指定的值，根据情况，如果包含则返回 true，否则返回 false。
@@ -577,8 +626,10 @@ Array.prototype.indexOf=function(valueFind,fromIndex=0){
     }
 
     for(let i=fromIndex;i<len;i++){
-        if(O[i]===valueFind){
-            return i
+        if(i in O){
+            if(O[i]===valueFind){
+                return i
+            }
         }
     }
     return -1
@@ -663,8 +714,10 @@ Array.prototype.lastIndexOf=function(valueFind,fromIndex=this.length-1){
     }
 
     for(let i=index;i>=0;i--){
-        if(O[i]===valueFind){
-            return i
+        if(i in O){
+            if(O[i]===valueFind){
+                return i
+            }
         }
     }
     return -1
@@ -688,10 +741,12 @@ Array.prototype.map= function (fn,thisArg){
     const len = O.length >>> 0
     let arr=[]
     for(let i=0;i<len;i++){
-        if(typeof thisArg === 'undefined'){
-            arr.push(fn(this[i],i,this))
-        }else{
-            arr.push(fn.call(thisArg,this[i],i,this))
+        if(i in O){
+            if(typeof thisArg === 'undefined'){
+                arr.push(fn(this[i],i,this))
+            }else{
+                arr.push(fn.call(thisArg,this[i],i,this))
+            }
         }
     }
     return arr
@@ -713,42 +768,51 @@ Array.of = function() {
  * initialValue 可选
  * 作为第一次调用 callback函数时的第一个参数的值。 如果没有提供初始值，则将使用数组中的第一个元素。 在没有初始值的空数组上调用 reduce 将报错。
  */
-Array.prototype.reduce=function (fn){
-    if (this == null) {
-        throw new TypeError('this is null or not defined')
+
+Array.prototype.reduce = function(callback /*, initialValue */) {
+    'use strict';
+
+    if (typeof callback !== 'function') {
+        throw new TypeError(callback + ' is not a function');
     }
-    if (typeof fn !== "function") {
-        throw new TypeError(fn + ' is not a function')
+
+    const O = Object(this);
+    const len = O.length >>> 0;
+
+    let k = 0;
+    let accumulator;
+    let kPresent = false; // 用于标记是否找到了起始累加值
+
+    // 场景一：提供了初始值
+    if (arguments.length >= 2) {
+        accumulator = arguments[1];
     }
-    const O = Object(this)
-    const len = O.length >>> 0
-    var index=0
-    var initialValue
-    if(arguments.length>=2){
-        //如果给了默认值则取默认值
-        initialValue=arguments[1]
-    }else{
-        //    如果没有默认值，则取第一个有值的索引
-        while(index<len&&!(O[index] in O)){
-            ++index
+    // 场景二：未提供初始值
+    else {
+        while (k < len) {
+            if (k in O) {
+                accumulator = O[k++];
+                kPresent = true;
+                break;
+            }
+            k++;
         }
-        if(index>len){
-            return
+        // 如果跑完循环都没找到一个有效值，则数组为空或全为空位
+        if (!kPresent) {
+            throw new TypeError('Reduce of empty array with no initial value');
         }
-        if(len<=0){
-            throw new TypeError('reduce of empty array with no initial value');
-        }
-        initialValue=O[index++]
     }
-    while(index<len){
-        if(O[index] in O){
-            //    值存在才走进来
-            initialValue=fn.call(null,initialValue,O[index],index,O)
+
+    // 主循环，从 k 开始（k 的值取决于上面是否提供了初始值）
+    while (k < len) {
+        if (k in O) {
+            accumulator = callback(accumulator, O[k], k, O);
         }
-        ++index
+        k++;
     }
-    return initialValue
-}
+
+    return accumulator;
+};
 /**
  * Array.prototype.reduceRight(callback,initialValue)
  * reduceRight() 方法对数组中的每个元素执行一个由您提供的reducer函数(降序执行)，将其结果汇总为单个返回值。
@@ -761,40 +825,59 @@ Array.prototype.reduce=function (fn){
  * initialValue 可选
  * 作为第一次调用 callback函数时的第一个参数的值。 如果没有提供初始值，则将使用数组中的第一个元素。 在没有初始值的空数组上调用 reduceRight 将报错。
  */
-Array.prototype.reduceRight=function (fn){
-    if (this == null) {
-        throw new TypeError('this is null or not defined')
+/**
+ * Array.prototype.reduceRight 的 Polyfill 实现
+ * 遵循 ECMAScript 规范
+ */
+Array.prototype.reduceRight = function(callback /*, initialValue */) {
+    'use strict';
+    // 1. 检查 callback 是否是函数
+    if (typeof callback !== 'function') {
+        throw new TypeError(callback + ' is not a function');
     }
-    if (typeof fn !== "function") {
-        throw new TypeError(fn + ' is not a function')
-    }
-    const O = Object(this)
-    const len = O.length >>> 0
-    var index=len-1
-    var initialValue
-    if(arguments.length>=2){
-        //如果给了默认值则取默认值
-        initialValue=arguments[1]
-    }else{
-        //    如果没有默认值，则取第一个有值的索引
-        while(index>0&&!(O[index] in O)){
-            --index
-        }
-        if(index<=0){
-            throw new TypeError('reduce of empty array with no initial value');
-        }
-        initialValue=O[index--]
-    }
-    while(index>=0){
-        if(O[index] in O){
-            //    值存在才走进来
-            initialValue=fn.call(null,initialValue,O[index],index,O)
-        }
-        index--
-    }
-    return initialValue
-}
 
+    // 2. 将 `this` 转换为对象，并获取其长度
+    const O = Object(this);
+    const len = O.length >>> 0;
+
+    // 3. 初始化 accumulator (acc) 和起始索引 (k)
+    // 这是与 reduce 的第一个核心区别：k 从末尾开始
+    let k = len - 1;
+    let acc;
+
+    // 4. 处理 initialValue 是否存在的情况
+    if (arguments.length >= 2) {
+        // 4a. 如果提供了 initialValue
+        acc = arguments[1];
+    } else {
+        // 4b. 如果没有提供 initialValue
+        // 从右向左找到数组中第一个实际存在的元素作为初始值
+        while (k >= 0 && !(k in O)) {
+            k--;
+        }
+
+        // 如果循环结束后 k < 0，说明数组是空的或全是空位
+        if (k < 0) {
+            throw new TypeError('Reduce of empty array with no initial value');
+        }
+
+        // 将第一个有效元素（从右边看）作为初始 accumulator，并从前一个索引开始迭代
+        acc = O[k--];
+    }
+
+    // 5. 主循环：从右向左遍历数组的剩余部分
+    while (k >= 0) {
+        // 只有当索引 k 真实存在于对象 O 中时，才调用 callback
+        if (k in O) {
+            acc = callback(acc, O[k], k, O);
+        }
+        // 这是与 reduce 的第二个核心区别：k 递减
+        k--;
+    }
+
+    // 6. 返回最终的累计值
+    return acc;
+};
 /**
  * Array.prototype.reverse()
  * reverse()  方法将数组中元素的位置颠倒,并返回该数组。该方法会改变原数组。
@@ -912,10 +995,14 @@ Array.prototype.some=function (fn,thisArg){
     const len = O.length >>> 0
     for(let i=0;i<len;i++){
         let res
-        if(typeof thisArg === 'undefined'){
-            res=fn(this[i],i,this)
+        if(i in O){
+            if(typeof thisArg === 'undefined'){
+                res=fn(this[i],i,this)
+            }else{
+                res=fn.call(thisArg,this[i],i,this)
+            }
         }else{
-            res=fn.call(thisArg,this[i],i,this)
+            res=false
         }
         if (res) {
             return true
@@ -930,30 +1017,51 @@ Array.prototype.some=function (fn,thisArg){
  * 数组迭代器是一次性的，或者说临时对象
  * 如果数组中元素改变，那么迭代器的值也会改变
  */
-Array.prototype.values=function (){
-    if(!typeof this==='object') return
-    let arr=this
-    let length=this.length
-    if(!length){
-        arr=[]
-        for(const key in this){
-            if(this.hasOwnProperty(key)){
-                arr.push(this[key])
+/**
+ * Array.prototype.values 的 Polyfill 实现
+ * 遵循 ECMAScript 规范
+ */
+Array.prototype.values = function() {
+    // 1. 获取调用该方法的数组对象。
+    const O = Object(this);
+    let k = 0; // 2. 初始化当前迭代的索引。
+
+    // 3. 返回一个迭代器对象。
+    // 这个对象包含了 next 方法，用于逐个提供数组的值。
+    const iterator = {
+        // 4. 实现 next 方法，这是迭代器协议的核心。
+        next: function() {
+            // 5. 检查是否已经遍历完所有元素。
+            // `>>> 0` 确保 length 是一个非负整数。
+            const len = O.length >>> 0;
+            if (k >= len) {
+                // 如果索引超出了范围，表示迭代完成。
+                return { value: undefined, done: true };
+            } else {
+                // 如果仍在范围内，获取当前值。
+                const kValue = O[k];
+                k++; // 索引递增，为下一次调用 next() 做准备。
+
+                // 返回当前值，并标记迭代未完成。
+                return { value: kValue, done: false };
             }
         }
-    }
-    let len=this.length||arr.length
-    let nextIndex=0
-    return {
-        [Symbol.iterator]:function (){
-            return {
-                next:function (){
-                    return nextIndex<len?{value: arr[nextIndex++],done: false}:{value:undefined,done:true}
-                }
-            }
-        }
-    }
-}
+    };
+
+    // 6. 使迭代器本身也成为可迭代的。
+    // 这允许你在一个已经创建的迭代器上使用 for...of。
+    // 例如：for (const val of iterator) { ... }
+    Object.defineProperty(iterator, Symbol.iterator, {
+        value: function() {
+            // 根据规范，一个迭代器的 [Symbol.iterator] 方法应该返回它自身。
+            return this;
+        },
+        writable: true,
+        configurable: true
+    });
+
+    return iterator;
+};
 
 /**
  * Array.prototype.toString()方法 功能：返回一个字符串，表示指定的数组及其元素。

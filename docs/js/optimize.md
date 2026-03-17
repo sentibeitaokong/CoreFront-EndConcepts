@@ -190,7 +190,7 @@ DOM 操作是 JavaScript 中最昂贵的操作之一。
 
 *   Webpack 4 引入的优化，将多个模块合并到同一个作用域，减少函数包装，提升执行速度。
 
-### **7.  性能分析工具 (Performance Analysis Tools)**
+## **7.  性能分析工具 (Performance Analysis Tools)**
 
 *   **浏览器开发者工具**:
     *   **Performance (性能)** 面板: 记录页面加载和运行时的 CPU、网络、渲染活动。

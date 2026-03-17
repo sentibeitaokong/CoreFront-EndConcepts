@@ -3,7 +3,7 @@ import {defineConfig} from 'vitepress'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     base: '/CoreFront-EndConcepts/',
-    title: "山背后的山",
+    title: "寻北",
     description: "vitePress",
     head: [['link', { rel: 'icon', href: '/CoreFront-EndConcepts/myAddress.svg' }]], //要在页面 HTML 的 <head> 标签中呈现的其他元素
     cleanUrls: true,         //生成简洁的url
@@ -411,6 +411,7 @@ export default defineConfig({
                                     },
                                     {text: '自定义Hooks', link: '/frameworks/react/customHook'},
                                     {text: '环境配置和打包', link: '/frameworks/react/buildTools'},
+                                    {text: 'React注意点', link: '/frameworks/react/importantInfo'},
                                 ]
                             },
                             {
