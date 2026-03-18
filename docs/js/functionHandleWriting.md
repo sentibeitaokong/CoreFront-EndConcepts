@@ -146,7 +146,6 @@ let min = Math.min.apply(null, numbers);
 
 ```
 
-
 ### Function.prototype.bind
 
 * **功能:**  创建一个新函数，当调用该新函数时，它会调用原始函数并将其 `this` 关键字设置为给定的值，同时，还可以传入一系列指定的参数，这些参数会插入到调用新函数时传入的参数的前面。
@@ -172,7 +171,9 @@ Function.prototype.bind=function (context) {
         return self.apply(this instanceof fNOP?this:context,args.concat(bindArgs))
     }
     //js 圣杯模式 继承
-    fNOP.prototype=this.prototype
+    if(this.prototype){
+        fNOP.prototype=this.prototype
+    }
     newFn.prototype=new fNOP()
     return newFn
 }

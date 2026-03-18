@@ -752,8 +752,7 @@ let promise=new MyPromise((resolve,reject)=>{   //executor执行器
     },2000)*/
 });
 let promise2=promise.then((value)=>{
-    // return new Error('Error')
-    // return Promise.resolve('Promise resolve')
+    console.log(value)                 //promise1
     return new MyPromise((resolve,reject)=>{
         setTimeout(()=>{
            resolve(new MyPromise((resolve,reject)=>{
@@ -771,27 +770,25 @@ let promise2=promise.then((value)=>{
 })
 
 promise2.then().then().then().then().then().then((res)=>{
-   MyPromise.resolve(MyPromise.resolve(res))
+    console.log(res)                    //new Promise3
 }).catch((error)=>{
     console.log('Error:'+error)
-}).then(res=>{
-    console.log('resolve:'+res)
 })
 
 
 const resolved = MyPromise.resolve(2);
 resolved.then(val => {
-    console.log('resolved', val)
+    console.log('resolved', val)             //resolved 2
 }).finally(res=>{
-    console.log('finally'+res)
+    console.log('finally'+res)               //finallyundefined
 })
 
 
 const rejected = MyPromise.reject(1);
 rejected.catch(val => {
-    console.log('reject', val)
+    console.log('reject', val)              //reject 1
 }).finally(res=>{
-    console.log('finally'+res)
+    console.log('finally'+res)             //finallyundefined
 })
 
 const resolved = MyPromise.resolve(1);
@@ -799,18 +796,19 @@ const rejected = MyPromise.reject(-1);
 const rejected1 = MyPromise.reject(-2);
 const resolved1 = MyPromise.resolve(17);
 
-const p = Promise.race([rejected,resolved,resolved1]);
-const p = Promise.any([rejected,resolved,resolved1]);
-const p = Promise.all([rejected,resolved,resolved1,rejected1]);
+const p = Promise.race([rejected,resolved,resolved1]);    //err1 -1
+const p = Promise.any([rejected,resolved,resolved1]);     // result 1
+const p = Promise.all([rejected,resolved,resolved1,rejected1]);  //err1 -1
+//result [{ status: 'Fulfilled', value: 1 },
+// { status: 'Fulfilled', value: 17 },
+// { status: 'Rejected', value: -1 }]
 const p = MyPromise.allSettled([resolved,resolved1,rejected]);
 p.then((result) => {
     console.log('result', result)
 }).catch(err => {
     console.log('err1', err)
-}).finally((res) => {
-    console.log('finally'+res)
 })
-const p =MyPromise.deferred()
-console.log(p)
+// const p =MyPromise.deferred()
+// console.log(p)
 
 ```

@@ -348,41 +348,28 @@ console.log(object2);
 * **返回值:**  在给定对象上找到的自有属性对应的字符串数组。
 
 ```js
-// Object.getOwnPropertyNames 的最基础 ES5 实现
 Object.getOwnPropertyNames = function(obj) {
-    // 1. 参数检查
+    // 模拟 Object.getOwnPropertyNames 的行为
+    // 1. 处理 null 或 undefined 报错
     if (obj === null || obj === undefined) {
         throw new TypeError('Cannot convert undefined or null to object');
     }
 
-    // 2. 转换为对象
-    obj = Object(obj);
+    // 2. 将基础类型包装为对象
+    const target = Object(obj);
 
-    // 3. 收集所有自身属性名
-    var result = [];
+    // 3. 获取所有自身属性的键 (包含 Symbol 和 不可枚举属性)
+    // 注意：在没有 Reflect.ownKeys 的 ES5 时代，纯 JS 无法实现这一步，因为无法获取隐式不可枚举属性。
+    const allKeys = Reflect.ownKeys(target);
 
-    // 遍历所有可枚举属性
-    for (var key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-            result.push(key);
+    // 4. 过滤掉 Symbol，只保留 String 类型（包括数字字符串）
+    const stringKeys = [];
+    for (let i = 0; i < allKeys.length; i++) {
+        if (typeof allKeys[i] === 'string') {
+            stringKeys.push(allKeys[i]);
         }
     }
-
-    // 4. 处理不可枚举属性（ES5 需要包含不可枚举属性）
-    // 需要特殊处理 constructor 和其他不可枚举属性
-    var nonEnumerableProps = ['constructor', 'prototype', '__proto__', '__defineGetter__',
-        '__defineSetter__', '__lookupGetter__', '__lookupSetter__'];
-
-    for (var i = 0; i < nonEnumerableProps.length; i++) {
-        var prop = nonEnumerableProps[i];
-        if (Object.prototype.hasOwnProperty.call(obj, prop) &&
-            result.indexOf(prop) === -1) {
-            result.push(prop);
-        }
-    }
-
-    // 5. 返回结果数组
-    return result;
+    return stringKeys;
 };
 ```
 
@@ -495,20 +482,47 @@ console.log(objectSymbols[0]); // Symbol(a)
 
 ```js
 MyObject.assign=function(target,...source){
-    if(target==null){
-        throw new TypeError('Cannot convert undefined or null to object')
+    // 1. 目标对象基础校验：null 和 undefined 无法转换成对象，直接抛错
+    if (target === null || target === undefined) {
+        throw new TypeError('Cannot convert undefined or null to object');
     }
-    let ret=Object(target)
-    source.forEach(obj=>{
-        if(obj!=null){
-            for(let key in obj){
-                if(Object.prototype.hasOwnProperty.call(obj, key)){
-                    ret[key]=obj[key]
-                }
+
+    // 2. 将目标对象包装成真正的 Object（处理传入基础类型的情况，如 myAssign(1, {a: 2})）
+    const to = Object(target);
+
+    // 3. 遍历所有的源对象
+    for (let i = 0; i < source.length; i++) {
+        const nextSource = source[i];
+
+        // 4. 忽略 null 或 undefined 的源对象（规范规定直接跳过，不报错）
+        if (nextSource === null || nextSource === undefined) {
+            continue;
+        }
+
+        // 将源对象也包装成对象（处理 source 中包含字符串的情况，如 "abc" -> {0:'a', 1:'b', 2:'c'}）
+        const from = Object(nextSource);
+
+        // 5. 获取源对象所有的 字符串键 和 Symbol 键 (Reflect.ownKeys 能同时拿到这两者)
+        const keys = Reflect.ownKeys(from);
+
+        // 6. 遍历所有的键进行赋值
+        for (let j = 0; j < keys.length; j++) {
+            const nextKey = keys[j];
+
+            // 7. 核心过滤条件：只拷贝【可枚举】的【自身】属性
+            // Object.getOwnPropertyDescriptor 可以获取该属性的具体描述符
+            const desc = Object.getOwnPropertyDescriptor(from, nextKey);
+
+            if (desc !== undefined && desc.enumerable) {
+                // 8. 执行赋值操作
+                // 注意：这里用的是普通的 `=` 赋值，这意味着如果 target 上有 setter，会被触发！
+                to[nextKey] = from[nextKey];
             }
         }
-    })
-    return ret
+    }
+
+    // 9. 返回被修改的目标对象
+    return to;
    // MDN官方
    /* Object.defineProperty(Object, "assign", {
         value: function assign(target, varArgs) { // .length of function is 2
@@ -927,55 +941,40 @@ Object.deepPreventExtensions=function(o){
 ```js
 // Object.freeze 的最基础实现
 Object.freeze = function(obj) {
-    // 1. 参数检查
-    if (obj === null || obj === undefined) {
-        throw new TypeError('Cannot convert undefined or null to object');
+    // 1. ES6 规范：如果传入的不是对象（包括 null），直接返回原值，不报错
+    if (typeof obj !== 'object' && typeof obj !== 'function' || obj === null) {
+        return obj;
     }
-    // 2. 处理原始类型（包装对象）
-    if (typeof obj !== 'object' && typeof obj !== 'function') {
-        return obj; // 原始类型直接返回
-    }
-    // 3. 设置对象不可扩展
-    Object.preventExtensions(obj);
-    // 4. 冻结所有自身属性
-    const properties = Object.getOwnPropertyNames(obj);
-    for (let i = 0; i < properties.length; i++) {
-        const prop = properties[i];
-        const descriptor = Object.getOwnPropertyDescriptor(obj, prop);
-        // 如果属性是可配置的或可写的，将其设置为不可配置且不可写
-        if (descriptor) {
-            if (descriptor.configurable || descriptor.writable) {
-                Object.defineProperty(obj, prop, {
-                    configurable: false,
-                    writable: false
-                });
-            }
-        }
-    }
-    // 5. 冻结 Symbol 属性（ES6+）
-    if (typeof Object.getOwnPropertySymbols === 'function') {
-        const symbols = Object.getOwnPropertySymbols(obj);
-        for (let i = 0; i < symbols.length; i++) {
-            const sym = symbols[i];
-            const descriptor = Object.getOwnPropertyDescriptor(obj, sym);
 
-            if (descriptor) {
-                if (descriptor.configurable || descriptor.writable) {
-                    Object.defineProperty(obj, sym, {
-                        configurable: false,
-                        writable: false
-                    });
-                }
+    // 2. 获取对象所有的自身属性键（包括不可枚举属性和 Symbol）
+    const keys = Reflect.ownKeys(obj);
+
+    // 3. 遍历所有属性，修改它们的描述符 (Descriptor)
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        const desc = Object.getOwnPropertyDescriptor(obj, key);
+
+        // 确保属性存在
+        if (desc) {
+            // 如果是数据属性（有 value），则将其设置为不可写 (writable: false)
+            // 如果是访问器属性（有 getter/setter），则不修改 writable，因为访问器没有 writable 属性
+            if ('value' in desc) {
+                desc.writable = false;
             }
+
+            // 无论哪种属性，都设置为不可配置 (configurable: false)
+            // 这意味着不能被删除，也不能再修改它的描述符
+            desc.configurable = false;
+
+            // 应用修改
+            Object.defineProperty(obj, key, desc);
         }
     }
-    // 3. 标记为已冻结
-    Object.defineProperty(obj, '__frozenFlag', {
-        value: true,
-        writable: false,
-        enumerable: false,
-        configurable: false
-    });
+
+    // 4. 核心步骤：阻止对象扩展（不能添加新属性，也不能修改原型 __proto__）
+    Object.preventExtensions(obj);
+
+    // 5. 返回被冻结的对象本身
     return obj;
 };
 ```
@@ -1080,67 +1079,30 @@ obj2.internal.a; // null
 ```js
 // Object.seal 的最基础实现  //可修改、不可删除、不可添加
 Object.seal = function(obj) {
-  // 1. 参数检查
-  if (obj === null || obj === undefined) {
-    throw new TypeError('Cannot convert undefined or null to object');
-  }
-  
-  // 2. 处理原始类型（包装对象）
-  if (typeof obj !== 'object' && typeof obj !== 'function') {
-    return obj; // 原始类型直接返回
-  }
-  
-  // 3. 设置对象不可扩展
-  Object.preventExtensions(obj);
-  
-  // 4. 密封所有自身属性（设为不可配置）
-  const properties = Object.getOwnPropertyNames(obj);
-  
-  for (let i = 0; i < properties.length; i++) {
-    const prop = properties[i];
-    const descriptor = Object.getOwnPropertyDescriptor(obj, prop);
-    
-    // 如果属性是可配置的，将其设置为不可配置
-    if (descriptor && descriptor.configurable) {
-      Object.defineProperty(obj, prop, {
-        configurable: false,
-        writable: descriptor.writable,
-        enumerable: descriptor.enumerable,
-        value: descriptor.value,
-        get: descriptor.get,
-        set: descriptor.set
-      });
+    // 1. 基础校验：非对象类型直接返回原值
+    if (typeof obj !== 'object' && typeof obj !== 'function' || obj === null) {
+        return obj;
     }
-  }
-  
-  // 5. 密封 Symbol 属性（ES6+）
-  if (typeof Object.getOwnPropertySymbols === 'function') {
-    const symbols = Object.getOwnPropertySymbols(obj);
-    
-    for (let i = 0; i < symbols.length; i++) {
-      const sym = symbols[i];
-      const descriptor = Object.getOwnPropertyDescriptor(obj, sym);
-      
-      if (descriptor && descriptor.configurable) {
-        Object.defineProperty(obj, sym, {
-          configurable: false,
-          writable: descriptor.writable,
-          enumerable: descriptor.enumerable,
-          value: descriptor.value,
-          get: descriptor.get,
-          set: descriptor.set
+
+    // 2. 获取所有的自身属性键（包括不可枚举属性和 Symbol）
+    const keys = Reflect.ownKeys(obj);
+
+    // 3. 遍历并修改所有属性的描述符
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+
+        // 核心差异点：只把 configurable 设为 false
+        // 注意：这里没有去修改 writable 属性！这就是它和 freeze 的唯一区别。
+        Object.defineProperty(obj, key, {
+            configurable: false
         });
-      }
     }
-  }
-  // 3. 标记为已密封
-  Object.defineProperty(obj, '__sealedFlag', {
-     value: true,
-     writable: false,
-     enumerable: false,
-     configurable: false
-  });
-  return obj;
+
+    // 4. 调用底层能力：阻止对象扩展（不能添加新属性，不能修改原型）
+    Object.preventExtensions(obj);
+
+    // 5. 返回被密封的对象
+    return obj;
 };
 
 ```

@@ -84,7 +84,9 @@ Function.prototype.MyBind=function (context) {
         return self.apply(this instanceof fNOP?this:context,args.concat(bindArgs))
     }
     //js 圣杯模式 继承
-    fNOP.prototype=this.prototype
+    if(this.prototype){
+        fNOP.prototype=this.prototype
+    }
     newFn.prototype=new fNOP()
     return newFn
 }

@@ -323,9 +323,9 @@ let obj = { foo: 123 };
 Object.getOwnPropertyDescriptor(obj, 'foo')
 //  {
 //    value: 123,
-//    writable: true,
-//    enumerable: true,
-//    configurable: true
+//    writable: true,    //可读写(读取和修改改数据)
+//    enumerable: true,  //可枚举(for循环遍历)
+//    configurable: true  //可扩展(新增和删除)
 //  }
 ```
 
