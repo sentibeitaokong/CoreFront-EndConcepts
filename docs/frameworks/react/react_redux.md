@@ -8,6 +8,8 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 **Redux** 是 React 社区最正统、最老牌、架构最严密的全局状态管理工具。它的核心设计哲学是：**严格限制状态的修改路径，使一切状态的变更都绝对可预测、可追溯（Time Travel Debugging）。**
 
+![Logo](/react_redux.gif)
+
 | 核心构造块 | 架构角色与职责 |
 | :--- | :--- |
 | **Store (金库)** | 整个应用的唯一的、全局的数据中心。所有共享数据都存在这一个巨大的对象树里。 |
@@ -17,7 +19,11 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 | **Reducer (审批员)** | **一个绝对纯净的函数 (Pure Function)**。它接收当前的 State 和传来的 Action，根据 Action 计算并返回一个**全新的 State**。 |
 
 ## 2. Redux Toolkit (RTK) 核心 API
+
 *这是现代业务开发中 95% 以上时间你会用到的 API，它极大地减少了模板代码（Boilerplate）。*
+```bash
+npm install @reduxjs/toolkit react-redux
+```
 
 ### 2.1 `configureStore(options)`
 **取代了传统的 `createStore`，用于创建一个 Redux 全局仓库。它在底层自动为你配置好了 Redux DevTools 并且内置了 redux-thunk 中间件。**
