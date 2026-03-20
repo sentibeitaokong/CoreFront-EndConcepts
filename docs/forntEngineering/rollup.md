@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# Rollup (下一代 ES 模块打包器)
+# [Rollup](https://rollup.nodejs.cn/) (下一代 ES 模块打包器)
 
 ## 1. 核心概念与配置全景
 

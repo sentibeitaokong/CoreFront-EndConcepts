@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# Rspack 核心配置详解 (Rust-based Webpack Alternative)
+# [Rspack](https://www.rspack.dev/zh/guide/start/introduction) 核心配置详解 (Rust-based Webpack Alternative)
 
 ## 1. 核心概念与特性
 

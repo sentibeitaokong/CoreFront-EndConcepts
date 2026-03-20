@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# Vite 核心配置与性能优化
+# [Vite](https://cn.vitejs.dev/guide/) 核心配置与性能优化
 
 ## 1. 核心概念与底层原理
 

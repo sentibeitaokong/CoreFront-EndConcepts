@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# Webpack (静态模块打包器)
+# [Webpack](https://webpack.docschina.org/concepts/) (静态模块打包器)
 
 ## 1. 核心概念与特性
 
