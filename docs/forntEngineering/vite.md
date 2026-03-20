@@ -71,6 +71,7 @@ export default defineConfig(({ command, mode }) => {
 ### 3.1 开发环境提速：精确控制 `optimizeDeps` (预构建)
 
 **痛点**：Vite 是基于 ESM 的，但 `node_modules` 里有很多包依然是 CommonJS 规范（如 React）；且某些包包含成百上千个小文件（如 lodash-es）。如果不处理，浏览器会瞬间发起几千个 HTTP 请求，直接卡死。
+
 **原理**：Vite 在首次启动时，会用 esbuild 把这些依赖提前抓取，转成单一的 ESM 模块并缓存起来。这就是**依赖预构建 (Pre-bundling)**。
 
 ```js

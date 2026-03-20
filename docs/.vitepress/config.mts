@@ -25,7 +25,7 @@ export default defineConfig({
         },*/    //显示最后更新时间
         editLink: {
             pattern: 'https://github.com/sentibeitaokong/CoreFront-EndConcepts/edit/main/docs/:path',
-            text: 'Edit this page on GitHub'
+            text: '为此页提供修改建议'
         },    //显示链接修改这个页面的github地址
         // carbonAds: {
         //     code: 'your-carbon-code',
