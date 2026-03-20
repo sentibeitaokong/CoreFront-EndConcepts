@@ -28,9 +28,6 @@
 
 无论你是刚踏入编程世界的新手，还是希望扩展技能栈的开发者，掌握前端核心概念都将为你打开一扇通往创意表达与技术实践的大门。
 
-<div style="display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: linear-gradient(145deg, #f0f3f8, #d9e0eb);">
-  <a href="https://sentibeitaokong.github.io/CoreFront-EndConcepts/" style="display: inline-block; background: linear-gradient(145deg, #4f6df5, #2a3eb0); color: white; font-size: 1.5rem; font-weight: 600; padding: 1rem 2.8rem; border-radius: 60px; text-decoration: none; box-shadow: 0 15px 25px -8px rgba(34,50,120,0.35), 0 4px 8px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.4); transition: all 0.25s ease; border: 1px solid rgba(255,255,255,0.25); cursor: pointer;" onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 20px 30px -6px rgba(30,45,120,0.5), 0 8px 12px rgba(0,0,0,0.15)'; this.style.background='linear-gradient(145deg, #5b77f9, #3147c7)';" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 15px 25px -8px rgba(34,50,120,0.35), 0 4px 8px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.4)'; this.style.background='linear-gradient(145deg, #4f6df5, #2a3eb0)';">
-    开始探索
-  </a>
-</div>
+<div align="center"><a href="https://sentibeitaokong.github.io/CoreFront-EndConcepts/" target="_blank">开始探索</a></div>
 
+</div>
