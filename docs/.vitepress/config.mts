@@ -465,6 +465,8 @@ export default defineConfig({
                             {text: 'vite', link: '/forntEngineering/vite'},
                             {text: 'Rollup', link: '/forntEngineering/rollup'},
                             {text: 'Rspack', link: '/forntEngineering/rspack'},
+                            {text: 'gulp', link: '/forntEngineering/gulp'},
+                            {text: 'parcel', link: '/forntEngineering/parcel'},
                         ]
                     },
                     {text: '包管理器', link: '/forntEngineering/packageManagers'},
