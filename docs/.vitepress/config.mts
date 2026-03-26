@@ -1,21 +1,40 @@
 import {defineConfig} from 'vitepress'
-
+import { containerPreview, componentPreview } from '@vitepress-demo-preview/plugin'
+import vue from '@vitejs/plugin-vue'
+import { fileURLToPath, URL } from 'node:url'
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
+    vite: {
+        // plugins: [vue()],
+        resolve: {
+            alias: {
+                '@': fileURLToPath(new URL('../../src', import.meta.url))
+            },
+        },
+    },
     base: '/CoreFront-EndConcepts/',
     title: "寻北",
     description: "vitePress",
     head: [['link', { rel: 'icon', href: '/CoreFront-EndConcepts/myAddress.svg' }]], //要在页面 HTML 的 <head> 标签中呈现的其他元素
     cleanUrls: true,         //生成简洁的url
+    // 🚨 2. 必须配置 markdown 字段
+    markdown: {
+        config(md) {
+            // 注册插件，让 VitePress 认识 :::preview 和 <preview>
+            md.use(containerPreview)
+            md.use(componentPreview)
+        }
+    },
     themeConfig: {
         logo: '/blog.svg',  //导航栏上显示的 Logo，位于站点标题前
-        /*markdown: {
+
+        markdown: {
             // Shiki 主题配置
-            theme: {
-                light: 'material-theme-lighter', // 亮色模式下的主题
-                dark: 'material-theme-palenight' // 暗色模式下的主题
-            }
-        },*/
+            // theme: {
+            //     light: 'material-theme-lighter', // 亮色模式下的主题
+            //     dark: 'material-theme-palenight' // 暗色模式下的主题
+            // }
+        },
         /*lastUpdated: {
             text: '最后更新于',      //自定义名称
             formatOptions: {
@@ -69,9 +88,9 @@ export default defineConfig({
                         // 该部分的标题
                         items: [
                             {
-                                text: '简体中文', link: (PageData) => {
-                                    return false
-                                }, activeMatch: `^/`
+                                text: '简体中文',
+                                link:'',
+                                activeMatch: `^/`
                             },
                         ],
                     }
@@ -353,6 +372,15 @@ export default defineConfig({
                                 items: [
                                 ]
                             },
+                            {
+                                text: '自定义组件库',
+                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                collapsed: true, // 初始状态为“展开”
+                                items: [
+                                    {text: 'Button 按钮', link: '/frameworks/vue/button'},
+                                    {text: 'Collapse 折叠面板', link: '/frameworks/vue/collapse'},
+                                ]
+                            }
                         ]
                     },
                     {

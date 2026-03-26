@@ -1,0 +1,84 @@
+.vk-tooltip {
+  --vk-popover-bg-color: var(--vk-bg-color-overlay);
+  --vk-popover-font-size: var(--vk-font-size-base);
+  --vk-popover-border-color: var(--vk-border-color);
+  --vk-popover-padding: 12px;
+  --vk-popover-border-radius: 4px;
+  display: inline-block;
+}
+
+.vk-tooltip {
+  .vk-tooltip__popper {
+    background: var(--vk-popover-bg-color);
+    border-radius: var(--vk-popover-border-radius);
+    border: 1px solid var(--vk-popover-border-color);
+    padding: var(--vk-popover-padding);
+    color: var(--vk-text-color-regular);
+    line-height: 1.4;
+    text-align: justify;
+    font-size: var(--vk-popover-font-size);
+    box-shadow: var(--vk-box-shadow-light);
+    word-break: break-all;
+    box-sizing: border-box;
+    z-index: 10;
+    position: absolute;
+    #arrow,
+    #arrow::before {
+      /* 箭头必须是 absolute 定位 */
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background-color: #ffffff;
+      z-index: 1;
+      /* 将方形旋转 45 度形成菱形（箭头） */
+      transform: rotate(45deg);
+    }
+/*    #arrow::before {
+      visibility: visible;
+      content: "";
+      transform: rotate(45deg);
+    }
+    &[data-popper-placement^='top'] > #arrow {
+      bottom: -5px;
+    }
+
+    &[data-popper-placement^='bottom'] > #arrow {
+      top: -5px;
+    }
+
+    &[data-popper-placement^='left'] > #arrow {
+      right: -5px;
+    }
+
+    &[data-popper-placement^='right'] > #arrow {
+      left: -5px;
+    }*/
+    .arrow-top{
+      border-right: 1px solid var(--vk-popover-border-color);
+      border-bottom: 1px solid var(--vk-popover-border-color);
+    }
+    .arrow-bottom {
+      border-left: 1px solid var(--vk-popover-border-color);
+      border-top: 1px solid var(--vk-popover-border-color);
+    }
+    .arrow-left {
+      border-right: 1px solid var(--vk-popover-border-color);
+      border-top: 1px solid var(--vk-popover-border-color);
+    }
+    .arrow-right {
+      border-left: 1px solid var(--vk-popover-border-color);
+      border-bottom: 1px solid var(--vk-popover-border-color);
+    }
+  }
+
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: opacity var(--vk-transition-duration);
+  }
+
+  .fade-enter-from,
+  .fade-leave-to {
+    opacity: 0;
+  }
+}
+

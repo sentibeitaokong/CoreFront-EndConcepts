@@ -3,6 +3,13 @@ import { h } from 'vue'
 import type { Theme } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
 import './style.css'
+import '../../../src/styles/index.css'
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { fas } from '@fortawesome/free-solid-svg-icons'
+import { ElementPlusContainer } from '@vitepress-demo-preview/component'
+import '@vitepress-demo-preview/component/dist/style.css'
+import './custom.css'
+library.add(fas)
 
 export default {
   extends: DefaultTheme,
@@ -12,6 +19,6 @@ export default {
     })
   },
   enhanceApp({ app, router, siteData }) {
-    // ...
+      app.component('demo-preview', ElementPlusContainer)
   }
 } satisfies Theme

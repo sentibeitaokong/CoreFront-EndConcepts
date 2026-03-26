@@ -1,0 +1,48 @@
+:root {
+  --vp-c-brand: var(--vk-color-primary);
+  --vp-c-brand-light: var(--vk-color-primary-light-3);
+  --vp-c-brand-lighter: var(--vk-color-primary-light-5);
+  --vp-c-brand-dark: var(--vk-color-primary-dark-2);
+  --vp-c-brand-darker: #265F99;
+
+  --component-preview-bg: var(--vp-code-block-bg);
+  --component-preview-soft: var(--vp-code-block-bg-light);
+}
+
+/* .vitepress/theme/custom.css */
+
+/* 移除 FontAwesome 图标的默认间距 */
+.fa,
+.fas,
+.far,
+.fal,
+.fab,
+.fa-solid,
+.fa-regular,
+.fa-light,
+.fa-thin,
+.fa-duotone {
+    margin-right: 0 !important;
+    margin-left: 0 !important;
+}
+
+/* 或者针对特定情况 */
+.icon {
+    margin-right: 0 !important;
+}
+
+/* 如果图标是行内元素，设置为 inline-flex 来更好地控制间距 */
+i[class^="fa-"],
+i[class*=" fa-"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 0 !important;
+}
+
+body {
+  color: var(--vp-c-text-1);
+}
+h1, h2, h3, h4, h5, h6, p {
+  color: var(--vp-c-text-1);
+}
