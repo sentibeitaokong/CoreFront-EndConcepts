@@ -29,7 +29,7 @@ defineOptions({
 })
 const {
   placement = 'right',
-  trigger = 'click',
+  trigger = 'hover',
   transition = 'fade',
   openDelay = 0,
   closeDelay = 0,

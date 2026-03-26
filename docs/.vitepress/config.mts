@@ -379,6 +379,7 @@ export default defineConfig({
                                 items: [
                                     {text: 'Button 按钮', link: '/frameworks/vue/button'},
                                     {text: 'Collapse 折叠面板', link: '/frameworks/vue/collapse'},
+                                    {text: 'Tooltip 文字提示', link: '/frameworks/vue/tooltip'},
                                 ]
                             }
                         ]
