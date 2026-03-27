@@ -1,5 +1,5 @@
 <template>
-  <Dropdown
+  <DropDown
       :menu-options="menuOptions"
       placement="bottom"
       ref="dropdownRef"
@@ -7,11 +7,11 @@
   >
     <Button @click="open">open</Button>
     <Button @click="close">close</Button>
-  </Dropdown>
+  </DropDown>
 </template>
 
 <script lang="ts" setup>
-import Dropdown from "@/components/Dropdown/Dropdown.vue";
+import DropDown from "@/components/Dropdown/Dropdown.vue";
 import type {MenuOptions} from '@/components/Dropdown/types.ts'
 import Button from "@/components/Button";
 import {h, ref} from "vue";

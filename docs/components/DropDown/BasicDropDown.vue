@@ -1,14 +1,14 @@
 <template>
-  <Dropdown
+  <DropDown
       :menu-options="menuOptions"
       placement="bottom"
   >
     Dropdown List
-  </Dropdown>
+  </DropDown>
 </template>
 
 <script lang="ts" setup>
-import Dropdown from "@/components/Dropdown/Dropdown.vue";
+import DropDown from "@/components/Dropdown/Dropdown.vue";
 import type {MenuOptions} from '@/components/Dropdown/types.ts'
 import {h, ref} from "vue";
 const menuOptions:MenuOptions[]=[

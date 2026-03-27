@@ -18,7 +18,7 @@
 </template>
 
 <script lang="ts" setup>
-import DropDown from '@/components/DropDown/DropDown.vue'
+import DropDown from "@/components/Dropdown/Dropdown.vue";
 import Button from "@/components/Button";
 const clickTrigger = ref('click');
 const hoverTrigger = ref('hover');

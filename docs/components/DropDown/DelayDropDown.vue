@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts" setup>
-import DropDown from '@/components/DropDown/DropDown.vue'
+import DropDown from "@/components/Dropdown/Dropdown.vue";
 import Button from "@/components/Button";
 import type {MenuOptions} from '@/components/Dropdown/types.ts'
 import {h, ref} from "vue";

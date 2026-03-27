@@ -29,7 +29,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import Dropdown from "@/components/Dropdown/Dropdown";
+import DropDown from "@/components/Dropdown/Dropdown.vue";
 import Button from "@/components/Button"
 import type {MenuOptions} from "@/components/Dropdown/types";
 import {h, ref} from "vue";
