@@ -42,7 +42,7 @@ description: Button 组件的文档
 
 使用 `size` 属性额外配置尺寸，可使用`large`和`small`两种值。
 
-<preview path="../../components/Button/ButtonSize.vue" title="加载按钮用法" description="Button 组件的加载按钮用法"></preview>
+<preview path="../../components/Button/ButtonSize.vue" title="按钮尺寸用法" description="Button 组件的按钮尺寸用法"></preview>
 
 
 ## Button API

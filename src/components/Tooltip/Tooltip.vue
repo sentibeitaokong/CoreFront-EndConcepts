@@ -43,10 +43,10 @@ const popperChangeOptions = computed(() => {
     whileElementsMounted: autoUpdate,
     middleware: [
       offset(10), // 将 Tooltip 推远一点，给箭头留出空间
-      flip({
-        // 可选配置：翻转的备选顺序，默认会自动寻找可用空间
-        fallbackPlacements: ['bottom', 'right', 'left']
-      }),
+      // flip({
+      //   // 可选配置：翻转的备选顺序，默认会自动寻找可用空间
+      //   fallbackPlacements: ['bottom', 'right', 'left']
+      // }),
       shift({ padding: 8 }), // 防止 Tooltip 溢出屏幕侧边
       arrow({ element: arrowRef, padding: 4 }), // padding 防止箭头贴到 Tooltip 的圆角上
     ],

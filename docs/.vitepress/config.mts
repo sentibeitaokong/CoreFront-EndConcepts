@@ -380,6 +380,8 @@ export default defineConfig({
                                     {text: 'Button 按钮', link: '/frameworks/vue/button'},
                                     {text: 'Collapse 折叠面板', link: '/frameworks/vue/collapse'},
                                     {text: 'Tooltip 文字提示', link: '/frameworks/vue/tooltip'},
+                                    {text: 'Dropdown 下拉菜单', link: '/frameworks/vue/dropdown'},
+                                    {text: 'Message 消息提示', link: '/frameworks/vue/message'},
                                 ]
                             }
                         ]

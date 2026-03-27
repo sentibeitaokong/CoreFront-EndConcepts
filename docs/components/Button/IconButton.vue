@@ -9,7 +9,26 @@ import Button from "@/components/Button";
       <Button type="success"  icon="fa-angle-double-right"></Button>
       <Button type="info"   icon="fa-shuttle-van"></Button>
       <Button type="warning"  icon="fa-sync-alt"></Button>
-      <Button type="danger"  icon="address-card"></Button><br /><br />
+      <Button type="danger"  icon="address-card"></Button>
     </div>
   </div>
 </template>
+
+<style scoped>
+.button-example {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.button-row > * {
+  margin: 0;
+}
+</style>

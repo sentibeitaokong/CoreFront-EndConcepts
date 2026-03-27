@@ -1,0 +1,26 @@
+<template>
+  <Dropdown
+      :menu-options="menuOptions"
+      placement="bottom"
+      :trigger="click"
+      :hideAfterClick="false"
+  >
+    Dropdown List
+  </Dropdown>
+</template>
+
+<script lang="ts" setup>
+import Dropdown from "@/components/Dropdown/Dropdown.vue";
+import type {MenuOptions} from '@/components/Dropdown/types.ts'
+import {h, ref} from "vue";
+const menuOptions:MenuOptions[]=[
+  { key: 1, label:h('b', 'this is bold') },
+  { key: 2, label: 'item2', disabled: true },
+  { key: 3, label: 'item3', divided: true },
+  { key: 4, label: 'item4' }
+]
+</script>
+
+<style scoped>
+
+</style>

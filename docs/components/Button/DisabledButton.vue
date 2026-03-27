@@ -9,15 +9,26 @@ import Button from "@/components/Button";
       <Button type="success" disabled>Success</Button>
       <Button type="info" disabled>Info</Button>
       <Button type="warning" disabled>Warning</Button>
-      <Button type="danger" disabled>Danger</Button><br /><br />
-    </div>
-    <div class="button-row">
-      <Button  plain disabled>Plain</Button>
-      <Button type="primary" plain disabled>Primary</Button>
-      <Button type="success" plain disabled>Success</Button>
-      <Button type="info" plain disabled>Info</Button>
-      <Button type="warning" plain disabled>Warning</Button>
-      <Button type="danger" plain disabled>Danger</Button><br /><br />
+      <Button type="danger" disabled>Danger</Button>
     </div>
   </div>
 </template>
+
+<style scoped>
+.button-example {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+}
+
+.button-row > * {
+  margin: 0;
+}
+</style>

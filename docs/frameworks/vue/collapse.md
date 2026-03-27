@@ -18,7 +18,7 @@ description: Collapse 组件的文档
 
 通过 `accordion` 属性来设置是否以手风琴模式显示。
 
-<preview path="../../components/Collapse/AccordionCollapse.vue" title="按钮禁用用法" description="Button 组件的按钮禁用用法"></preview>
+<preview path="../../components/Collapse/AccordionCollapse.vue" title="手风琴用法" description="Collapse 组件的手风琴用法"></preview>
 
 
 ## Collapse API
@@ -53,11 +53,11 @@ description: Collapse 组件的文档
 
 ### Collapse Item Attributes
 
-| 属性名            | 详情       | 类型        | 默认值      |
-|----------------|----------|-----------|----------|
-| name  | 唯一标志符  | `string`| `number` | -   |
+| 属性名            | 详情       | 类型        | 默认值    |
+|----------------|----------|-----------|--------|
+| name  | 唯一标志符  | `string`| number |
 | title      | 面板标题    | `string` | ''    |
-| disabled      | 是否禁用    | `boolean` | false    |
+| disabled      | 是否禁用    | `boolean` | false  |
 
 ### Collapse Item Slot
 
