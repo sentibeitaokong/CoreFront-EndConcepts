@@ -88,6 +88,8 @@ fullName.value = 'Jane Smith'
 
 `watch` 的特点是：**极其精准**。你明确告诉它要盯着哪个数据，并且它可以同时获取“新值”和“旧值”。
 
+`watch` 的第一个参数可以是不同形式的“数据源”：它可以是一个 `ref` (包括计算属性)、一个响应式对象、一个 `getter` 函数、或多个数据源组成的数组：
+
 ```js
 import { ref, watch, reactive } from 'vue'
 
@@ -116,6 +118,11 @@ watch(
     // 只有 age 变了才触发，性能更好，且能精准拿到新老值
   }
 )
+
+// 4. 多个来源组成的数组
+watch([question, () => state.user.age], ([newX, newY]) => {
+    console.log(`x is ${newX} and y is ${newY}`)
+})
 ```
 
 ### 3.2 立即执行 (`immediate`)
