@@ -383,6 +383,7 @@ export default defineConfig({
                                     {text: 'Dropdown 下拉菜单', link: '/frameworks/vue/dropdown'},
                                     {text: 'Message 消息提示', link: '/frameworks/vue/message'},
                                     {text: 'Input 输入框', link: '/frameworks/vue/input'},
+                                    {text: 'Switch 开关', link: '/frameworks/vue/switch'},
                                 ]
                             }
                         ]
