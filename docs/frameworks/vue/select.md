@@ -90,9 +90,9 @@ description: Select 组件的文档
 | visible-change        | 下拉框出现/隐藏时触发 | `Function`                                     |
 
 
-## Option Group API
+## Option API
 
-### Option Group Attributes
+### Option Attributes
 
 | 属性名          | 说明                                                          | 类型         | 默认值    |
 |--------------|-------------------------------------------------------------|------------|--------|
