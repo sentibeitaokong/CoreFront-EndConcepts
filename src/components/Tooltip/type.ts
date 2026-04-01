@@ -1,4 +1,5 @@
 import type { Placement, UseFloatingOptions } from '@floating-ui/vue'
+import type { Middleware } from '@floating-ui/vue';
 
 export interface TooltipProps {
     content?: string;
@@ -6,6 +7,7 @@ export interface TooltipProps {
     placement?:Placement;
     manual?: boolean;
     popperOptions?:UseFloatingOptions|undefined;
+    externalMiddleware?:[];
     transition?:string;
     openDelay?:number;
     closeDelay?:number;

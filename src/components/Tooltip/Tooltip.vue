@@ -8,10 +8,7 @@
         <slot name="content">
           {{ content }}
         </slot>
-        <div ref="arrowRef"
-             id="arrow"
-             :class="`arrow-${basePlacement}`"
-             :style="arrowStyles"></div>
+        <div ref="arrowRef" id="arrow" :class="`arrow-${basePlacement}`" :style="arrowStyles"></div>
       </div>
     </Transition>
   </div>
@@ -20,8 +17,8 @@
 <script lang="ts" setup>
 
 import type { TooltipProps, TooltipEmits, TooltipInstance } from '@/components/Tooltip/type.ts'
-import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
-import { useFloating, autoUpdate, arrow, offset, flip, shift } from '@floating-ui/vue'
+import { computed, onUnmounted, reactive, ref, watch } from 'vue'
+import { useFloating, autoUpdate, arrow, offset, flip, shift, size } from '@floating-ui/vue'
 import useClickOutside from '@/hooks/useClickOutside.ts'
 import { debounce } from 'lodash-es'
 defineOptions({
@@ -29,7 +26,7 @@ defineOptions({
 })
 const {
   placement = 'right',
-  trigger = 'hover',
+  trigger = 'click',
   transition = 'fade',
   openDelay = 0,
   closeDelay = 0,
@@ -38,19 +35,30 @@ const {
 } = defineProps<TooltipProps>()
 
 const popperChangeOptions = computed(() => {
+  const middleware=[
+    offset(10),
+    shift({ padding: 8 }),
+    // flip({
+    //   // 可选配置：翻转的备选顺序，默认会自动寻找可用空间
+    //   fallbackPlacements: ['bottom', 'right', 'left']
+    // }),
+    arrow({ element: arrowRef, padding: 4 })
+  ]
+  let middlewareFilter
+  //合并middleware
+  if(popperOptions?.middleware){
+    middlewareFilter = [
+      ...middleware,
+      ...(Array.isArray(popperOptions?.middleware) ? popperOptions.middleware : [])
+    ]
+  }else{
+    middlewareFilter=[...middleware]
+  }
   return {
     placement: placement,
     whileElementsMounted: autoUpdate,
-    middleware: [
-      offset(10), // 将 Tooltip 推远一点，给箭头留出空间
-      // flip({
-      //   // 可选配置：翻转的备选顺序，默认会自动寻找可用空间
-      //   fallbackPlacements: ['bottom', 'right', 'left']
-      // }),
-      shift({ padding: 8 }), // 防止 Tooltip 溢出屏幕侧边
-      arrow({ element: arrowRef, padding: 4 }), // padding 防止箭头贴到 Tooltip 的圆角上
-    ],
     ...popperOptions,
+    middleware: middlewareFilter,
   }
 })
 
