@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import Select from '@/components/Select/Select.vue'
 const test = ref('')
-const options2 = [
+const options = [
   { label: 'hello', value: '1' },
   { label: 'xyz', value: '2' },
   { label: 'testing', value: '3' },
@@ -10,5 +10,5 @@ const options2 = [
 ]
 </script>
 <template>
-  <Select v-model="test" placeholder="可以过滤的选择器，请输入" :options="options2" filterable />
+  <Select v-model="test" placeholder="可以过滤的选择器，请输入" :options="options" filterable clearable />
 </template>

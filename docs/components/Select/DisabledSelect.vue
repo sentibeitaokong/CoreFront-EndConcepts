@@ -8,7 +8,8 @@ const options = [
   { label: 'option3', value: '3' },
   { label: 'option4', value: '4' }
 ]
+
 </script>
 <template>
-  <Select v-model="test" placeholder="可清空选择器，请选择" :options="options" clearable />
+  <Select v-model="test" placeholder="基础选择器，请选择" :options="options" disabled />
 </template>

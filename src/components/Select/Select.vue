@@ -192,6 +192,9 @@ const controlDropdown = (show: boolean) => {
     if (filterable && states.selectedOption) {
       states.inputValue = ''
     }
+    if (filterable) {
+      generateFilterOptions(states.inputValue)
+    }
     tooltipRef.value!.show()
   } else {
     tooltipRef.value!.hide()

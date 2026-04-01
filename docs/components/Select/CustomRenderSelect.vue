@@ -2,11 +2,11 @@
 import { ref, h } from 'vue'
 import Select from '@/components/Select/Select.vue'
 const test = ref('')
-const options2 = [
-  { label: 'hello', value: '1' },
-  { label: 'xyz', value: '2' },
-  { label: 'testing', value: '3' },
-  { label: 'check', value: '4', disabled: true }
+const options = [
+  { label: 'option1', value: '1' },
+  { label: 'option2', value: '2' },
+  { label: 'option3', value: '3' },
+  { label: 'option4', value: '4' }
 ]
 const customRender = (option) => {
   return h('div', { className: 'xyz' }, [h('b', option.label), h('span', option.value)])
@@ -16,7 +16,7 @@ const customRender = (option) => {
   <Select
     v-model="test"
     placeholder="基础选择器，请选择"
-    :options="options2"
+    :options="options"
     :render-label="customRender"
   />
 </template>
