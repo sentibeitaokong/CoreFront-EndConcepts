@@ -378,6 +378,7 @@ export default defineConfig({
                                 collapsed: true, // 初始状态为“展开”
                                 items: [
                                     {text: 'Button 按钮', link: '/frameworks/vue/button'},
+                                    {text: 'Progress 进度条', link: '/frameworks/vue/progress'},
                                     {text: 'Collapse 折叠面板', link: '/frameworks/vue/collapse'},
                                     {text: 'Tooltip 文字提示', link: '/frameworks/vue/tooltip'},
                                     {text: 'Dropdown 下拉菜单', link: '/frameworks/vue/dropdown'},
