@@ -17,7 +17,6 @@
 <script setup lang="ts">
 defineOptions({
   name:'VkProgress',
-  inheritAttrs:false
 })
 import type {ProgressProps} from '@/components/Progress/type.ts'
 

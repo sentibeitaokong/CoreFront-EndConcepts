@@ -10,9 +10,6 @@
 
 <script setup lang="ts">
 import Progress from "@/components/Progress/Progress.vue";
-defineOptions({
-  inheritAttrs:false
-})
 </script>
 
 <style scoped>
