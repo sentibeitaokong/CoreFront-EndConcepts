@@ -386,7 +386,7 @@ export default defineConfig({
                                     {text: 'Input 输入框', link: '/frameworks/vue/input'},
                                     {text: 'Switch 开关', link: '/frameworks/vue/switch'},
                                     {text: 'Select 选择器', link: '/frameworks/vue/select'},
-                                    // {text: 'Form 表单', link: '/frameworks/vue/form'},
+                                    {text: 'Form 表单', link: '/frameworks/vue/form'},
                                 ]
                             }
                         ]
