@@ -3,7 +3,10 @@ import { containerPreview, componentPreview } from '@vitepress-demo-preview/plug
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 // 如果你使用的是 ESM (type: module)，需要用这种方式获取 __dirname
+// 必须引入 path 模块
+import path from 'path'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     vite: {
