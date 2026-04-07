@@ -1,16 +1,15 @@
 <script setup>
 import { ref } from 'vue'
-import Input from '@/components/Input/Input.vue'
 const test = ref('')
 </script>
 <template>
   <div class="size-holder">
-    <Input v-model="test" placeholder="大的 Input" size="large">
-    </Input>
-    <Input v-model="test" placeholder="普通的 Input">
-    </Input>
-    <Input v-model="test" placeholder="小的 Input" size="small">
-    </Input>
+    <vk-input v-model="test" placeholder="大的 Input" size="large">
+    </vk-input>
+    <vk-input v-model="test" placeholder="普通的 Input">
+    </vk-input>
+    <vk-input v-model="test" placeholder="小的 Input" size="small">
+    </vk-input>
   </div>
 </template>
 <style scoped>

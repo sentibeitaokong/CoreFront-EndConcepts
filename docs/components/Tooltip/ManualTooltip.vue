@@ -1,14 +1,12 @@
 <template>
-  <Tooltip content="I am an tooltip" manual ref="tooltipRef" placement="right">
-    <Button @click="open">open</Button>
-    <Button @click="close">close</Button>
-  </Tooltip>
+  <vk-tooltip content="I am an tooltip" manual ref="tooltipRef" placement="right">
+    <vk-button @click="open">open</vk-button>
+    <vk-button @click="close">close</vk-button>
+  </vk-tooltip>
 </template>
 
 <script lang="ts" setup>
-import Tooltip from '@/components/Tooltip/Tooltip.vue'
-import Button from "@/components/Button";
-import {TooltipInstance} from "@/components/Tooltip/type";
+import type {TooltipInstance} from "xb-element/dist/types/components/Tooltip/type";
 import {ref} from "vue";
 
 const tooltipRef=ref<TooltipInstance>()

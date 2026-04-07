@@ -1,37 +1,35 @@
 <template>
   <div class="dropdown-base-box">
     <div class="row center">
-      <DropDown
+      <vk-drop-down
           class="box-item"
           :menu-options="menuOptions"
           placement="top"
       >
-        <Button style="width: 100%;">top</Button>
-      </DropDown>
+        <vk-button style="width: 100%;">top</vk-button>
+      </vk-drop-down>
     </div>
     <div class="row">
-      <DropDown class="box-item"  :menu-options="menuOptions" placement="left">
-        <Button style="width: 100%;">left</Button>
-      </DropDown>
-      <DropDown class="box-item"  :menu-options="menuOptions"  placement="right">
-        <Button style="width: 100%;">right</Button>
-      </DropDown>
+      <vk-drop-down class="box-item"  :menu-options="menuOptions" placement="left">
+        <vk-button style="width: 100%;">left</vk-button>
+      </vk-drop-down>
+      <vk-drop-down class="box-item"  :menu-options="menuOptions"  placement="right">
+        <vk-button style="width: 100%;">right</vk-button>
+      </vk-drop-down>
     </div>
     <div class="row center">
-      <DropDown
+      <vk-drop-down
           class="box-item"
           :menu-options="menuOptions"
           placement="bottom"
       >
-        <Button style="width: 100%;">bottom</Button>
-      </DropDown>
+        <vk-button style="width: 100%;">bottom</vk-button>
+      </vk-drop-down>
     </div>
   </div>
 </template>
 <script setup lang="ts">
-import DropDown from "@/components/Dropdown/Dropdown.vue";
-import Button from "@/components/Button"
-import type {MenuOptions} from "@/components/Dropdown/types";
+import type {MenuOptions} from 'xb-element/dist/types/components/Dropdown/types'
 import {h, ref} from "vue";
 
 const menuOptions:MenuOptions[]=[

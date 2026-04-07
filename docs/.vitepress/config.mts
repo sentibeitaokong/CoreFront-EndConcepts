@@ -377,6 +377,7 @@ export default defineConfig({
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
                                 items: [
+                                    {text: '快速开始', link: '/frameworks/vue/quickStart'},
                                     {text: 'Button 按钮', link: '/frameworks/vue/button'},
                                     {text: 'Progress 进度条', link: '/frameworks/vue/progress'},
                                     {text: 'Collapse 折叠面板', link: '/frameworks/vue/collapse'},

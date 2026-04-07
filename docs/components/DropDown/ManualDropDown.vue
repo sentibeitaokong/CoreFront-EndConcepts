@@ -1,21 +1,19 @@
 <template>
-  <DropDown
+  <vk-drop-down
       :menu-options="menuOptions"
       placement="bottom"
       ref="dropdownRef"
       manual
   >
-    <Button @click="open">open</Button>
-    <Button @click="close">close</Button>
-  </DropDown>
+    <vk-button @click="open">open</vk-button>
+    <vk-button @click="close">close</vk-button>
+  </vk-drop-down>
 </template>
 
 <script lang="ts" setup>
-import DropDown from "@/components/Dropdown/Dropdown.vue";
-import type {MenuOptions} from '@/components/Dropdown/types.ts'
-import Button from "@/components/Button";
+import type {MenuOptions} from 'xb-element/dist/types/components/Dropdown/types'
 import {h, ref} from "vue";
-import {TooltipInstance} from "@/components/Tooltip/type";
+import type {TooltipInstance} from "xb-element/dist/types/components/Tooltip/type";
 const dropdownRef=ref<TooltipInstance>()
 const menuOptions:MenuOptions[]=[
   { key: 1, label:h('b', 'this is bold') },

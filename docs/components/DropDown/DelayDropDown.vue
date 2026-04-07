@@ -1,20 +1,18 @@
 <template>
   <div class="dropdownContainer">
-    <DropDown
+    <vk-drop-down
         :menu-options="menuOptions"
         placement="bottom"
         :open-delay="500"
         :close-delay="200"
     >
-      <Button>click</Button>
-    </DropDown>
+      <vk-button>click</vk-button>
+    </vk-drop-down>
   </div>
 </template>
 
 <script lang="ts" setup>
-import DropDown from "@/components/Dropdown/Dropdown.vue";
-import Button from "@/components/Button";
-import type {MenuOptions} from '@/components/Dropdown/types.ts'
+import type {MenuOptions} from 'xb-element/dist/types/components/Dropdown/types'
 import {h, ref} from "vue";
 
 const menuOptions:MenuOptions[]=[

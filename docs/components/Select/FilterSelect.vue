@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue'
-import Select from '@/components/Select/Select.vue'
 const test = ref('')
 const options = [
   { label: 'hello', value: '1' },
@@ -10,5 +9,5 @@ const options = [
 ]
 </script>
 <template>
-  <Select v-model="test" placeholder="可以过滤的选择器，请输入" :options="options" filterable clearable />
+  <vk-select v-model="test" placeholder="可以过滤的选择器，请输入" :options="options" filterable clearable />
 </template>

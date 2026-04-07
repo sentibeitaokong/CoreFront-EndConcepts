@@ -59,6 +59,7 @@
       <Button size="large" loading>Loading</Button>
       <Button size="large" icon="address-card">Icon</Button><br /><br />
     </div>
+    <vk-button type="primary">我是vkButton</vk-button>
         <Icon icon="arrow-up" :size="size" type="danger"/>
   </div>
 </template>
@@ -79,6 +80,7 @@ import { onMounted, ref } from 'vue'
 import type {MenuOptions} from '@/components/Dropdown/types.ts'
 import { h } from 'vue'
 import {createMessage} from '@/components/Message/method.ts'
+import VkButton from "@/components/Button";
 
 //collasp默认打开
 const openValue = ref<string[]>(['a'])

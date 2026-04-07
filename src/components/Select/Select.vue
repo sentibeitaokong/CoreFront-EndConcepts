@@ -135,7 +135,7 @@ const popperOptions: any = {
 const showClearIcon = computed(() => {
   //hover上去 clearable为true
   //必须有选择项  Input值不能为空
-  return clearable && states.mouseHover && states.selectedOption && states.inputValue.trim() !== ''
+  return clearable && states.mouseHover && states.selectedOption && states.inputValue.trim() !== ''&&!disabled
 })
 const onClear = () => {
   states.selectedOption = null

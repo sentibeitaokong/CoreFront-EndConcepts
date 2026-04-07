@@ -1,12 +1,11 @@
 <script setup>
-import Button from "@/components/Button";
 </script>
 <template>
   <div class="button-example">
     <div class="button-row">
-      <Button type="primary" size="small">small</Button>
-      <Button >Default</Button>
-      <Button type="success" size="large">large</Button>
+      <vk-button type="primary" size="small">small</vk-button>
+      <vk-button >Default</vk-button>
+      <vk-button type="success" size="large">large</vk-button>
     </div>
   </div>
 </template>

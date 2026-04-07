@@ -1,7 +1,7 @@
 <template>
   <div class="demo-collapse">
-    <Collapse v-model="activeNames" @change="handleChange" accordion>
-      <CollapseItem title="Consistency" name="1">
+    <vk-collapse v-model="activeNames" @change="handleChange" accordion>
+      <vk-collapse-item title="Consistency" name="1">
         <div>
           Consistent with real life: in line with the process and logic of real
           life, and comply with languages and habits that the users are used to;
@@ -10,8 +10,8 @@
           Consistent within interface: all elements should be consistent, such
           as: design style, icons and texts, position of elements, etc.
         </div>
-      </CollapseItem>
-      <CollapseItem title="Feedback" name="2">
+      </vk-collapse-item>
+      <vk-collapse-item title="Feedback" name="2">
         <div>
           Operation feedback: enable the users to clearly perceive their
           operations by style updates and interactive effects;
@@ -20,8 +20,8 @@
           Visual feedback: reflect current state by updating or rearranging
           elements of the page.
         </div>
-      </CollapseItem>
-      <CollapseItem title="Efficiency" name="3">
+      </vk-collapse-item>
+      <vk-collapse-item title="Efficiency" name="3">
         <div>
           Simplify the process: keep operating process simple and intuitive;
         </div>
@@ -33,8 +33,8 @@
           Easy to identify: the interface should be straightforward, which helps
           the users to identify and frees them from memorizing and recalling.
         </div>
-      </CollapseItem>
-      <CollapseItem title="Controllability" name="4">
+      </vk-collapse-item>
+      <vk-collapse-item title="Controllability" name="4">
         <div>
           Decision making: giving advice about operations is acceptable, but do
           not make decisions for the users;
@@ -44,17 +44,15 @@
           operate, including canceling, aborting or terminating current
           operation.
         </div>
-      </CollapseItem>
-    </Collapse>
+      </vk-collapse-item>
+    </vk-collapse>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { ref } from 'vue'
 
-import Collapse from "@/components/Collapse/Collapse.vue";
-import CollapseItem from "@/components/Collapse/CollapseItem.vue";
-import {NameType} from "@/components/Collapse/type";
+import {NameType} from "xb-element/dist/types/components/Collapse/type";
 
 const activeNames = ref(['1'])
 const handleChange = (val: NameType) => {

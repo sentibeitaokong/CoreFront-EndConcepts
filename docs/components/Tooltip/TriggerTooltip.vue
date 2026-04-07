@@ -1,17 +1,15 @@
 <template>
     <div class="tooltipContainer">
-      <Tooltip content="I am an clickTooltip" :trigger="clickTrigger" placement="top">
-        <Button>click</Button>
-      </Tooltip>
-      <Tooltip content="I am an hoverTooltip" :trigger="hoverTrigger" placement="top">
-        <Button>Hover</Button>
-      </Tooltip>
+      <vk-tooltip content="I am an clickvk-tooltip" :trigger="clickTrigger" placement="top">
+        <vk-button>click</vk-button>
+      </vk-tooltip>
+      <vk-tooltip content="I am an hovervk-tooltip" :trigger="hoverTrigger" placement="top">
+        <vk-button>Hover</vk-button>
+      </vk-tooltip>
     </div>
 </template>
 
 <script lang="ts" setup>
-import Tooltip from '@/components/Tooltip/Tooltip.vue'
-import Button from "@/components/Button";
 import {ref} from "vue";
 
 const clickTrigger = ref('click');

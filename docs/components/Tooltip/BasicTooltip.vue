@@ -1,46 +1,44 @@
 <template>
   <div class="tooltip-base-box">
     <div class="row center">
-      <Tooltip
+      <vk-tooltip
           class="box-item"
           content="top prompts info"
           placement="top"
       >
-        <Button style="width: 100%;">top</Button>
-      </Tooltip>
+        <vk-button style="width: 100%;">top</vk-button>
+      </vk-tooltip>
     </div>
     <div class="row">
-      <Tooltip class="box-item"  placement="left">
+      <vk-tooltip class="box-item"  placement="left">
         <template #content>
           Left
           <br />
           prompts info
         </template>
-        <Button style="width: 100%;">left</Button>
-      </Tooltip>
-      <Tooltip class="box-item"  placement="right">
+        <vk-button style="width: 100%;">left</vk-button>
+      </vk-tooltip>
+      <vk-tooltip class="box-item"  placement="right">
         <template #content>
           Right
           <br />
           prompts info
         </template>
-        <Button style="width: 100%;">right</Button>
-      </Tooltip>
+        <vk-button style="width: 100%;">right</vk-button>
+      </vk-tooltip>
     </div>
     <div class="row center">
-      <Tooltip
+      <vk-tooltip
           class="box-item"
           content="Bottom Center prompts info"
           placement="bottom"
       >
-        <Button style="width: 100%;">bottom</Button>
-      </Tooltip>
+        <vk-button style="width: 100%;">bottom</vk-button>
+      </vk-tooltip>
     </div>
   </div>
 </template>
 <script setup>
-import Tooltip from '@/components/Tooltip/Tooltip.vue'
-import Button from "@/components/Button";
 </script>
 
 <style>

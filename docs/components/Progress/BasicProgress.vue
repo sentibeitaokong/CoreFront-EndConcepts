@@ -1,15 +1,14 @@
 <template>
   <div class="progress-container">
-    <Progress :strokeHeight="15" :percent="30" type="primary"></Progress>
-    <Progress :strokeHeight="18" :percent="40" type="warning"></Progress>
-    <Progress :strokeHeight="22" :percent="50" type="success"></Progress>
-    <Progress :strokeHeight="24" :percent="60" type="danger"></Progress>
-    <Progress :strokeHeight="26" :percent="70" type="info"></Progress>
+    <vk-progress :strokeHeight="15" :percent="30" type="primary"></vk-progress>
+    <vk-progress :strokeHeight="18" :percent="40" type="warning"></vk-progress>
+    <vk-progress :strokeHeight="22" :percent="50" type="success"></vk-progress>
+    <vk-progress :strokeHeight="24" :percent="60" type="danger"></vk-progress>
+    <vk-progress :strokeHeight="26" :percent="70" type="info"></vk-progress>
   </div>
 </template>
 
 <script setup lang="ts">
-import Progress from "@/components/Progress/Progress.vue";
 </script>
 
 <style scoped>

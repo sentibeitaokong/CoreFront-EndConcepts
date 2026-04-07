@@ -1,15 +1,14 @@
 <script setup>
-import Button from "@/components/Button";
 </script>
 <template>
   <div class="button-example">
     <div class="button-row">
-      <Button   icon="fa-search" >search</Button>
-      <Button type="primary"  icon="fa-search-plus"></Button>
-      <Button type="success"  icon="fa-angle-double-right"></Button>
-      <Button type="info"   icon="fa-shuttle-van"></Button>
-      <Button type="warning"  icon="fa-sync-alt"></Button>
-      <Button type="danger"  icon="address-card"></Button>
+      <vk-button   icon="fa-search" >search</vk-button>
+      <vk-button type="primary"  icon="fa-search-plus"></vk-button>
+      <vk-button type="success"  icon="fa-angle-double-right"></vk-button>
+      <vk-button type="info"   icon="fa-shuttle-van"></vk-button>
+      <vk-button type="warning"  icon="fa-sync-alt"></vk-button>
+      <vk-button type="danger"  icon="address-card"></vk-button>
     </div>
   </div>
 </template>

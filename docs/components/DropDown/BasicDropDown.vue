@@ -1,15 +1,14 @@
 <template>
-  <DropDown
+  <vk-drop-down
       :menu-options="menuOptions"
       placement="bottom"
   >
     Dropdown List
-  </DropDown>
+  </vk-drop-down>
 </template>
 
 <script lang="ts" setup>
-import DropDown from "@/components/Dropdown/Dropdown.vue";
-import type {MenuOptions} from '@/components/Dropdown/types.ts'
+import type {MenuOptions} from 'xb-element/dist/types/components/Dropdown/types'
 import {h, ref} from "vue";
 const menuOptions:MenuOptions[]=[
   { key: 1, label:h('b', 'this is bold') },

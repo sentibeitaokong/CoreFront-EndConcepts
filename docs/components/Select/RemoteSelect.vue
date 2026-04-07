@@ -1,6 +1,5 @@
 <script setup>
 import { ref } from 'vue'
-import Select from '@/components/Select/Select.vue'
 const test = ref('')
 const handleFetch = (query) => {
   if (!query) return Promise.resolve([])
@@ -12,7 +11,7 @@ const handleFetch = (query) => {
 }
 </script>
 <template>
-  <Select
+  <vk-select
     v-model="test"
     placeholder="搜索远程结果"
     filterable

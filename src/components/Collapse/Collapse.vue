@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 defineOptions({
-  name:'Collapse'
+  name:'VkCollapse'
 })
 import {collapseContextKey} from '@/components/Collapse/type.ts'
 import { provide,watch,ref} from 'vue'

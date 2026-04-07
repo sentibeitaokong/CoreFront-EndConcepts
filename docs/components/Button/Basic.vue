@@ -1,39 +1,39 @@
 <script setup>
-import Button from "@/components/Button";
+
 </script>
 <template>
   <div class="button-example">
     <div class="button-row">
-      <Button>Default</Button>
-      <Button type="primary">Primary</Button>
-      <Button type="success">Success</Button>
-      <Button type="info">Info</Button>
-      <Button type="warning">Warning</Button>
-      <Button type="danger">Danger</Button>
+      <vk-button>Default</vk-button>
+      <vk-button type="primary">Primary</vk-button>
+      <vk-button type="success">Success</vk-button>
+      <vk-button type="info">Info</vk-button>
+      <vk-button type="warning">Warning</vk-button>
+      <vk-button type="danger">Danger</vk-button>
     </div>
     <div class="button-row">
-      <Button  plain>Plain</Button>
-      <Button type="primary" plain>Primary</Button>
-      <Button type="success" plain>Success</Button>
-      <Button type="info" plain>Info</Button>
-      <Button type="warning" plain>Warning</Button>
-      <Button type="danger" plain>Danger</Button>
+      <vk-button  plain>Plain</vk-button>
+      <vk-button type="primary" plain>Primary</vk-button>
+      <vk-button type="success" plain>Success</vk-button>
+      <vk-button type="info" plain>Info</vk-button>
+      <vk-button type="warning" plain>Warning</vk-button>
+      <vk-button type="danger" plain>Danger</vk-button>
     </div>
     <div class="button-row">
-      <Button  round>round</Button>
-      <Button type="primary" round>Primary</Button>
-      <Button type="success" round>Success</Button>
-      <Button type="info" round>Info</Button>
-      <Button type="warning" round>Warning</Button>
-      <Button type="danger" round>Danger</Button>
+      <vk-button  round>round</vk-button>
+      <vk-button type="primary" round>Primary</vk-button>
+      <vk-button type="success" round>Success</vk-button>
+      <vk-button type="info" round>Info</vk-button>
+      <vk-button type="warning" round>Warning</vk-button>
+      <vk-button type="danger" round>Danger</vk-button>
     </div>
     <div class="button-row">
-      <Button  circle icon="fa-search" ></Button>
-      <Button type="primary" circle icon="fa fa-search-plus"></Button>
-      <Button type="success" circle icon="fa fa-angle-double-right"></Button>
-      <Button type="info" circle  icon="fa-shuttle-van"></Button>
-      <Button type="warning" circle icon="fa-sync-alt"></Button>
-      <Button type="danger" circle icon="address-card"></Button>
+      <vk-button  circle icon="fa-search" ></vk-button>
+      <vk-button type="primary" circle icon="fa fa-search-plus"></vk-button>
+      <vk-button type="success" circle icon="fa fa-angle-double-right"></vk-button>
+      <vk-button type="info" circle  icon="fa-shuttle-van"></vk-button>
+      <vk-button type="warning" circle icon="fa-sync-alt"></vk-button>
+      <vk-button type="danger" circle icon="address-card"></vk-button>
     </div>
   </div>
 </template>

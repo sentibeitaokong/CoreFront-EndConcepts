@@ -1,12 +1,10 @@
 <template>
-  <Tooltip content="I am an tooltip" transition="slide-fade">
-    <Button>trigger me</Button>
-  </Tooltip>
+  <vk-tooltip content="I am an tooltip" transition="slide-fade">
+    <vk-button>trigger me</vk-button>
+  </vk-tooltip>
 </template>
 
 <script lang="ts" setup>
-import Tooltip from '@/components/Tooltip/Tooltip.vue'
-import Button from "@/components/Button";
 </script>
 
 <style>

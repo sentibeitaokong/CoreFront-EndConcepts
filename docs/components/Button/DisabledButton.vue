@@ -1,15 +1,14 @@
 <script setup>
-import Button from "@/components/Button";
 </script>
 <template>
   <div class="button-example">
     <div class="button-row">
-      <Button disabled>Default</Button>
-      <Button type="primary" disabled>Primary</Button>
-      <Button type="success" disabled>Success</Button>
-      <Button type="info" disabled>Info</Button>
-      <Button type="warning" disabled>Warning</Button>
-      <Button type="danger" disabled>Danger</Button>
+      <vk-button disabled>Default</vk-button>
+      <vk-button type="primary" disabled>Primary</vk-button>
+      <vk-button type="success" disabled>Success</vk-button>
+      <vk-button type="info" disabled>Info</vk-button>
+      <vk-button type="warning" disabled>Warning</vk-button>
+      <vk-button type="danger" disabled>Danger</vk-button>
     </div>
   </div>
 </template>

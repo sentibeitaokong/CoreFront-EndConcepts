@@ -1,6 +1,5 @@
 <script setup>
 import { ref, h } from 'vue'
-import Select from '@/components/Select/Select.vue'
 const test = ref('')
 const options = [
   { label: 'option1', value: '1' },
@@ -13,7 +12,7 @@ const customRender = (option) => {
 }
 </script>
 <template>
-  <Select
+  <vk-select
     v-model="test"
     placeholder="基础选择器，请选择"
     :options="options"

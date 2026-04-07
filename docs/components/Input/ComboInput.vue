@@ -1,21 +1,19 @@
 <script setup>
 import { ref } from 'vue'
-import Input from '@/components/Input/Input.vue'
-import Icon from '@/components/Icon/Icon.vue'
 const test = ref('')
 </script>
 <template>
-  <Input v-model="test" placeholder="prepend append">
+  <vk-input v-model="test" placeholder="prepend append">
     <template #prepend>Https://</template>
     <template #append>.com</template>
-  </Input>
+  </vk-input>
 
-  <Input v-model="test" placeholder="prefix suffix">
+  <vk-input v-model="test" placeholder="prefix suffix">
     <template #prefix>
-      <Icon icon="fa-user" />
+      <vk-icon icon="fa-user" />
     </template>
     <template #suffix>
-      <Icon icon="fa-user" />
+      <vk-icon icon="fa-user" />
     </template>
-  </Input>
+  </vk-input>
 </template>

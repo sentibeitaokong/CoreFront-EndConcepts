@@ -1,30 +1,28 @@
 <template>
   <div class="dropdownContainer">
-    <DropDown
+    <vk-drop-down
         :menu-options="menuOptions"
         placement="bottom"
         :trigger="clickTrigger"
     >
-      <Button>click</Button>
-    </DropDown>
-    <DropDown
+      <vk-button>click</vk-button>
+    </vk-drop-down>
+    <vk-drop-down
         :menu-options="menuOptions"
         placement="bottom"
         :trigger="hoverTrigger"
     >
-      <Button>Hover</Button>
-    </DropDown>
+      <vk-button>Hover</vk-button>
+    </vk-drop-down>
   </div>
 </template>
 
 <script lang="ts" setup>
-import DropDown from "@/components/Dropdown/Dropdown.vue";
-import Button from "@/components/Button";
-const clickTrigger = ref('click');
-const hoverTrigger = ref('hover');
-import type {MenuOptions} from '@/components/Dropdown/types.ts'
+import type {MenuOptions} from 'xb-element/dist/types/components/Dropdown/types'
 import {h, ref} from "vue";
 
+const clickTrigger = ref('click');
+const hoverTrigger = ref('hover');
 const menuOptions:MenuOptions[]=[
   { key: 1, label:h('b', 'this is bold') },
   { key: 2, label: 'item2', disabled: true },

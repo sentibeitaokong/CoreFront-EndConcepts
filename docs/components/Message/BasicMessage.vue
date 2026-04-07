@@ -1,16 +1,15 @@
 <template>
   <div class="flex flex-wrap gap-1">
-    <Button class="!ml-0"  @click="open">
+    <vk-button class="!ml-0"  @click="open">
       Show message
-    </Button>
-    <Button class="!ml-0" @click="openVn">VNode</Button>
+    </vk-button>
+    <vk-button class="!ml-0" @click="openVn">VNode</vk-button>
   </div>
 </template>
 
 <script lang="ts" setup>
 import { h } from 'vue'
-import {createMessage} from "@/components/Message/method";
-import Button from "@/components/Button";
+import {createMessage} from "xb-element/dist/es/x-element";
 
 const open = () => {
   createMessage({message:'This is a message.'})

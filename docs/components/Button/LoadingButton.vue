@@ -1,14 +1,13 @@
 <script setup>
-import Button from "@/components/Button";
 </script>
 <template>
   <div class="button-example">
     <div class="button-row">
-      <Button  loading>Loading</Button>
-      <Button  loading type="primary">Loading</Button>
-      <Button  loading type="success">Loading</Button>
-      <Button  loading type="info">Loading</Button>
-      <Button  loading type="warning">Loading</Button>
+      <vk-button  loading>Loading</vk-button>
+      <vk-button  loading type="primary">Loading</vk-button>
+      <vk-button  loading type="success">Loading</vk-button>
+      <vk-button  loading type="info">Loading</vk-button>
+      <vk-button  loading type="warning">Loading</vk-button>
     </div>
   </div>
 </template>
