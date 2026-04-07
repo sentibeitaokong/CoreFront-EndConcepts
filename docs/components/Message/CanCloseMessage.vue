@@ -8,7 +8,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import {createMessage} from "xb-element/dist/es/x-element";
+import {createMessage} from "xb-element";
 
 const openSuccess = () => {
   createMessage({message:'This is a message.',type:"success",showClose:true,duration:3000})
