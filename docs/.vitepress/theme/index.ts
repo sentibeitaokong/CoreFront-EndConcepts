@@ -22,6 +22,11 @@ export default {
   },
   enhanceApp({ app, router, siteData }) {
       app.use(XElement)
+      if (!import.meta.env.SSR) {
+          const { createMessage } = await import('xb-element/dist/es/x-element');
+          // 将 createMessage 挂载到全局，或者进行其他操作
+          app.config.globalProperties.$message = createMessage;
+      }
       // 👇 注册一个自定义的高阶组件代替直接注册 ElementPlusContainer
       app.component('demo-preview', {
           // 1. 显式声明接收这三个“罪魁祸首”属性，这样它们就不会变成非 prop 属性往下透传了
