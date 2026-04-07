@@ -12,6 +12,7 @@ import "xb-element/dist/x-element.css"
 import './custom.css'
 library.add(fas)
 
+
 export default {
   extends: DefaultTheme,
   Layout: () => {

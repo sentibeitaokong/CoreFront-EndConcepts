@@ -2,15 +2,27 @@ import {defineConfig} from 'vitepress'
 import { containerPreview, componentPreview } from '@vitepress-demo-preview/plugin'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
+// 如果你使用的是 ESM (type: module)，需要用这种方式获取 __dirname
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     vite: {
         // plugins: [vue()],
         resolve: {
             alias: {
-                '@': fileURLToPath(new URL('../../src', import.meta.url))
+                '@': fileURLToPath(new URL('../../src', import.meta.url)),
+                // 当代码中尝试引入这个被禁止的路径时
+                find: 'xb-element/dist/es/x-element',
+                // 直接强行将其映射到真实的物理文件路径上
+                // 注意：这里的相对路径('../../node_modules/...')需要根据你的项目结构调整
+                // 确保它能正确指向你的 node_modules 目录
+                replacement: path.resolve(__dirname, '../../node_modules/xb-element/dist/es/x-element.js')
             },
         },
+        // 同时建议加上这个，防止 SSR 渲染时再次试图使用 Node 解析该模块
+        ssr: {
+            noExternal: ['xb-element']
+        }
     },
     base: '/CoreFront-EndConcepts/',
     title: "寻北",

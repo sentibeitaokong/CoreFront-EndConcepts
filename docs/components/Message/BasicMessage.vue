@@ -9,7 +9,7 @@
 
 <script lang="ts" setup>
 import { h } from 'vue'
-import {createMessage} from "xb-element";
+import {createMessage} from "xb-element/dist/es/x-element";
 
 const open = () => {
   createMessage({message:'This is a message.'})
