@@ -2,12 +2,12 @@
   "hash": "c74cd650",
   "configHash": "32fac54e",
   "lockfileHash": "b36b63d7",
-  "browserHash": "c479c0f3",
+  "browserHash": "2dc362d0",
   "optimized": {
     "vue": {
       "src": "../../../../node_modules/vue/dist/vue.runtime.esm-bundler.js",
       "file": "vue.js",
-      "fileHash": "280df993",
+      "fileHash": "0005d20b",
       "needsInterop": false
     },
     "vitepress > @vue/devtools-api": {
@@ -19,13 +19,13 @@
     "vitepress > @vueuse/core": {
       "src": "../../../../node_modules/@vueuse/core/index.mjs",
       "file": "vitepress___@vueuse_core.js",
-      "fileHash": "2c83eaaa",
+      "fileHash": "0043d1e3",
       "needsInterop": false
     },
     "vitepress > @vueuse/integrations/useFocusTrap": {
       "src": "../../../../node_modules/@vueuse/integrations/useFocusTrap.mjs",
       "file": "vitepress___@vueuse_integrations_useFocusTrap.js",
-      "fileHash": "f4a940e6",
+      "fileHash": "6d37a534",
       "needsInterop": false
     },
     "vitepress > mark.js/src/vanilla.js": {
@@ -43,25 +43,31 @@
     "@fortawesome/fontawesome-svg-core": {
       "src": "../../../../node_modules/@fortawesome/fontawesome-svg-core/index.mjs",
       "file": "@fortawesome_fontawesome-svg-core.js",
-      "fileHash": "9b4fc613",
+      "fileHash": "e6b08022",
       "needsInterop": false
     },
     "@fortawesome/free-solid-svg-icons": {
       "src": "../../../../node_modules/@fortawesome/free-solid-svg-icons/index.mjs",
       "file": "@fortawesome_free-solid-svg-icons.js",
-      "fileHash": "002cdb3d",
+      "fileHash": "547a1fa6",
       "needsInterop": false
     },
     "@vitepress-demo-preview/component": {
       "src": "../../../../node_modules/@vitepress-demo-preview/component/dist/preview-component.js",
       "file": "@vitepress-demo-preview_component.js",
-      "fileHash": "6601eb0c",
+      "fileHash": "d5f58807",
       "needsInterop": false
     },
     "xb-element/dist/es/x-element": {
       "src": "../../../../node_modules/xb-element/dist/es/x-element.js",
       "file": "xb-element_dist_es_x-element.js",
-      "fileHash": "71abc305",
+      "fileHash": "0810babd",
+      "needsInterop": false
+    },
+    "xb-element/dist/es/x-element.js": {
+      "src": "../../../../node_modules/xb-element/dist/es/x-element.js",
+      "file": "xb-element_dist_es_x-element__js.js",
+      "fileHash": "aafdcff4",
       "needsInterop": false
     }
   },
@@ -69,14 +75,17 @@
     "chunk-OK2SF63W": {
       "file": "chunk-OK2SF63W.js"
     },
-    "chunk-TFIIBY6E": {
-      "file": "chunk-TFIIBY6E.js"
+    "chunk-VMLQEPKL": {
+      "file": "chunk-VMLQEPKL.js"
     },
     "chunk-VYB25A4C": {
       "file": "chunk-VYB25A4C.js"
     },
     "chunk-3SKVTWUA": {
       "file": "chunk-3SKVTWUA.js"
+    },
+    "chunk-TFIIBY6E": {
+      "file": "chunk-TFIIBY6E.js"
     }
   }
 }

@@ -45,4 +45,4 @@ export {
   Ji as formItemContextKey,
   Cl as install
 };
-//# sourceMappingURL=xb-element_dist_es_x-element.js.map
+//# sourceMappingURL=xb-element_dist_es_x-element__js.js.map
