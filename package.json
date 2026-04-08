@@ -50,6 +50,6 @@
     "@vitejs/plugin-vue": "^6.0.5",
     "async-validator": "^4.2.5",
     "lodash-es": "^4.17.23",
-    "xb-element": "^1.0.2"
+    "xb-element": "^1.0.5"
   }
 }
