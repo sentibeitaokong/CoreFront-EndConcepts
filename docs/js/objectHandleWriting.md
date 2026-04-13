@@ -708,9 +708,6 @@ Object.create = function (proto, propertiesObject) {
     if (typeof proto !== 'object' && typeof proto !== 'function') {
         throw new TypeError('Object prototype may only be an Object or null.')
     }
-    if (propertiesObject == null) {
-        new TypeError('Cannot convert undefined or null to object')
-    }
     function F() {
     }
     F.prototype=proto
