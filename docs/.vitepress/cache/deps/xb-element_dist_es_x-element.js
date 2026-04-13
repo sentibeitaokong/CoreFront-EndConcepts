@@ -4990,7 +4990,7 @@ var xe = defineComponent({
     options: { default: () => [] },
     placeholder: { default: "" },
     disabled: { type: Boolean },
-    clearable: { type: Boolean, default: true },
+    clearable: { type: Boolean, default: false },
     renderLabel: { type: Function },
     filterable: { type: Boolean },
     filterMethod: { type: Function },

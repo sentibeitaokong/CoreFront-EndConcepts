@@ -312,7 +312,7 @@ const model = defineModel({ required: true })
 const model = defineModel({ default: 0 })
 ```
 
-#### 2.多个 `v-model` 绑定
+#### 2. 多个 `v-model` 绑定
 
 组件上的每一个 `v-model` 都会同步不同的 `prop`，而无需额外的选项：
 
@@ -409,7 +409,7 @@ const app = createApp({})
 app.provide(/* 注入名 */ 'message', /* 值 */ 'hello!')
 ```
 
-#### 2.inject(注入)
+#### 2. inject(注入)
 
 要注入上层组件提供的数据，需使用 `inject()` 函数：
 
@@ -708,7 +708,7 @@ defineOptions({
 
 ### 2.6 插槽(Slots)
 
-#### 1.父传子(默认插槽和具名插槽)
+#### 1. 父传子(默认插槽和具名插槽)
 
 **默认插槽**
 
