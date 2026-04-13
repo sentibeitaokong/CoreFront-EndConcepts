@@ -481,7 +481,7 @@ console.log(objectSymbols[0]); // Symbol(a)
 * **返回值:**  修改后的目标对象。
 
 ```js
-MyObject.assign=function(target,...source){
+Object.assign=function(target,...source){
     // 1. 目标对象基础校验：null 和 undefined 无法转换成对象，直接抛错
     if (target === null || target === undefined) {
         throw new TypeError('Cannot convert undefined or null to object');
