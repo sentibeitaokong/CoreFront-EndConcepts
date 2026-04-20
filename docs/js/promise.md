@@ -1074,7 +1074,7 @@ Promise.try(() => database.users.get({id: userId}))
 
 事实上，`Promise.try`就是模拟`try`代码块，就像`promise.catch`模拟的是`catch`代码块。
 
-## 3. 应用
+## 3. 应用场景
 
 **加载图片**
 
@@ -1199,7 +1199,7 @@ myPromise
 | `Promise.allSettled(iterable)` (ES2020) | 接收一个 `Promise` 数组。**永远不会 `rejected`**。它会**等待所有** `Promise` 都“尘埃落定”（`fulfilled` 或 `rejected`）。 | 一个 `fulfilled` 的 `Promise`，其值为一个对象数组，每个对象描述了对应 `Promise` 的最终状态：<br>`{ status: 'fulfilled', value: ... }` 或 `{ status: 'rejected', reason: ... }` |
 | `Promise.any(iterable)` (ES2021) | **“或”逻辑**。接收一个 `Promise` 数组。只要有**一个** `Promise` `fulfilled`，它就会立即 `fulfilled`。只有当**所有** `Promise` 都 `rejected` 时，它才会 `rejected`。 | `fulfilled` 时，返回第一个 `fulfilled` 的 `Promise` 的值。<br>`rejected` 时，返回一个包含所有 `reason` 的 `AggregateError`。 |
 
-### **4.5. [`Promise` 总结](https://mp.weixin.qq.com/s?__biz=MzU5NDM5MDg1Mw==&mid=2247484225&idx=1&sn=b1d26191a41b9a3961f6798d1218fd79&chksm=fe00b96bc977307d2eab27dbd25bf6d27194d7fcdd9d9515822639b0206ad6ca1f946a0de7a9&token=1408690735&lang=zh_CN#rd)**
+### **4.5. `Promise` 总结]**
 
 * **`Promise`**的状态**一经改变**就**不能再改变**。
 * **`.then`**和**`.catch`**都会返回一个**新的** **`Promise`**。
