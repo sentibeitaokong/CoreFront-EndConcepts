@@ -50,13 +50,13 @@ export default defineConfig({
             //     dark: 'material-theme-palenight' // 暗色模式下的主题
             // }
         },
-        /*lastUpdated: {
+        lastUpdated: {
             text: '最后更新于',      //自定义名称
             formatOptions: {
                 dateStyle: 'full',
                 timeStyle: 'medium'
             }
-        },*/    //显示最后更新时间
+        },    //显示最后更新时间
         editLink: {
             pattern: 'https://github.com/sentibeitaokong/CoreFront-EndConcepts/edit/main/docs/:path',
             text: '为此页提供修改建议'
@@ -385,6 +385,15 @@ export default defineConfig({
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
                                 items: [
+                                    {
+                                        text: '框架设计前瞻',
+                                        collapsible: true, // 允许折叠 (默认true，可省略)
+                                        collapsed: true, // 初始状态为“展开”
+                                        items: [
+                                            {text: '命令式编程与声明式编程', link: '/frameworks/vue/imperativeAndDeclarative'},
+                                            {text: '编译时和运行时', link: '/frameworks/vue/compileAndRun'},
+                                        ]
+                                    },
                                 ]
                             },
                             {

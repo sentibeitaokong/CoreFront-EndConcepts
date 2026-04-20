@@ -2,7 +2,7 @@
 outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# Vue 模板语法深(Template Syntax)
+# Vue 模板语法(Template Syntax)
 
 ## 1. 核心概念与特性
 
