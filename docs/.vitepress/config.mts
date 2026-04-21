@@ -386,12 +386,20 @@ export default defineConfig({
                                 collapsed: true, // 初始状态为“展开”
                                 items: [
                                     {
-                                        text: '框架设计前瞻',
+                                        text: '框架设计核心概念',
                                         collapsible: true, // 允许折叠 (默认true，可省略)
                                         collapsed: true, // 初始状态为“展开”
                                         items: [
                                             {text: '命令式编程与声明式编程', link: '/frameworks/vue/imperativeAndDeclarative'},
                                             {text: '编译时和运行时', link: '/frameworks/vue/compileAndRun'},
+                                            {text: '副作用', link: '/frameworks/vue/slideEffect'},
+                                            {text: 'TreeShaking', link: '/frameworks/vue/treeShaking'},
+                                            {text: 'Typescript支持', link: '/frameworks/vue/typescriptSupport'},
+                                            {text: '声明式UI', link: '/frameworks/vue/declarativeUI'},
+                                            {text: '虚拟Dom', link: '/frameworks/vue/vDom'},
+                                            {text: '编译器', link: '/frameworks/vue/compiler'},
+                                            {text: '渲染器', link: '/frameworks/vue/renderer'},
+                                            {text: '组件的本质', link: '/frameworks/vue/componentEssence'},
                                         ]
                                     },
                                 ]
