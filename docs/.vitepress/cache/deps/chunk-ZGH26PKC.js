@@ -1,4 +1,4 @@
-// node_modules/@fortawesome/fontawesome-svg-core/index.mjs
+// node_modules/.pnpm/@fortawesome+fontawesome-svg-core@7.2.0/node_modules/@fortawesome/fontawesome-svg-core/index.mjs
 function _arrayLikeToArray(r2, a2) {
   (null == a2 || a2 > r2.length) && (a2 = r2.length);
   for (var e2 = 0, n2 = Array(a2); e2 < a2; e2++) n2[e2] = r2[e2];
@@ -3423,4 +3423,4 @@ export {
    * Copyright 2026 Fonticons, Inc.
    *)
 */
-//# sourceMappingURL=chunk-VYB25A4C.js.map
+//# sourceMappingURL=chunk-ZGH26PKC.js.map

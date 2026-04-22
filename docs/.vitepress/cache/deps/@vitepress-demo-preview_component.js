@@ -36,7 +36,7 @@ import {
   withScopeId
 } from "./chunk-TFIIBY6E.js";
 
-// node_modules/@vitepress-demo-preview/component/dist/preview-component.js
+// node_modules/.pnpm/@vitepress-demo-preview+component@2.6.2_vitepress@1.6.4_@algolia+client-search@5.50.2_@_e84daffadbee1c73efb0bca8b59e9ce5/node_modules/@vitepress-demo-preview/component/dist/preview-component.js
 var Qo = Object.defineProperty;
 var Jo = (e, t, o) => t in e ? Qo(e, t, { enumerable: true, configurable: true, writable: true, value: o }) : e[t] = o;
 var U = (e, t, o) => (Jo(e, typeof t != "symbol" ? t + "" : t, o), o);

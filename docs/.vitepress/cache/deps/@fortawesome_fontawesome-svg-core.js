@@ -11,7 +11,7 @@ import {
   parse$1,
   text,
   toHtml$1
-} from "./chunk-VYB25A4C.js";
+} from "./chunk-ZGH26PKC.js";
 export {
   api,
   config$1 as config,

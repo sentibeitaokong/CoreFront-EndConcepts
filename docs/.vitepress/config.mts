@@ -402,6 +402,14 @@ export default defineConfig({
                                             {text: '组件的本质', link: '/frameworks/vue/componentEssence'},
                                         ]
                                     },
+                                    {
+                                        text: '框架源码解读',
+                                        collapsible: true, // 允许折叠 (默认true，可省略)
+                                        collapsed: true, // 初始状态为“展开”
+                                        items: [
+                                            {text: 'Vue3源码目录设计', link: '/frameworks/vue/vueCatalog'},
+                                        ]
+                                    },
                                 ]
                             },
                             {
