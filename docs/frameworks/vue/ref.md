@@ -267,7 +267,7 @@ const shallowUnwrapHandlers: ProxyHandler<any> = {
 ## 7. 完整流程示例
 
 
-### 8.1 基础使用示例
+### 7.1 基础使用示例
 
 ```ts
 // 创建响应式对象
