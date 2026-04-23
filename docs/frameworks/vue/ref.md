@@ -239,7 +239,7 @@ export function unref<T>(ref: T | Ref<T>): T {
 
 ### `proxyRefs`
 
-你能以操作普通对象的方式，来操作一个内部可能包含 ref 的对象，而无需时刻使用 .value 来取值或赋值。
+你能以操作普通对象的方式，来操作一个内部可能包含 `ref` 的对象，而无需时刻使用 `.value` 来取值或赋值,因此模板无需使用`.value`属性来展示。
 
 ```typescript
 export function proxyRefs<T extends object>(objectWithRefs: T): ShallowUnwrapRef<T> {
