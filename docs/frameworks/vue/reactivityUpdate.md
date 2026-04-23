@@ -195,14 +195,14 @@ if (isObject(res)) {
 
 ## 7. 总结对比表
 
-| 特性 | Vue 2 | Vue 3 |
-|------|-------|-------|
+| 特性 | Vue 2                  | Vue 3 |
+|------|------------------------|-------|
 | 底层 API | `Object.defineProperty` | `Proxy` |
-| 监听对象操作 | 只能 get/set | 13 种拦截操作（get、set、deleteProperty、has、ownKeys 等） |
+| 监听对象操作 | 只能 `get`/`set`             | 13 种拦截操作（`get`、`set`、`deleteProperty`、`has`、`ownKeys` 等） |
 | 数组监听 | 重写数组原型方法，索引/length 不响应 | 完美支持 |
-| 新增/删除属性 | 需 `Vue.set`/`delete` | 原生支持 |
-| 嵌套对象响应式 | 初始化递归遍历（深） | 懒代理（按需深度） |
-| 依赖收集器 | `Dep` + `Watcher` | `targetMap` + `effect` |
-| 代码体积 | 响应式模块较大 | 响应式模块更轻（可 tree-shaking） |
-| 支持 Map/Set/WeakMap | 不支持（需额外处理） | 原生支持（通过 `reactive` 代理） |
+| 新增/删除属性 | 需 `Vue.set`/`delete`   | 原生支持 |
+| 嵌套对象响应式 | 初始化递归遍历（深）             | 懒代理（按需深度） |
+| 依赖收集器 | `Dep` + `Watcher`      | `targetMap` + `effect` |
+| 代码体积 | 响应式模块较大                | 响应式模块更轻（可 tree-shaking） |
+| 支持 Map/Set/WeakMap | 不支持（需额外处理）             | 原生支持（通过 `reactive` 代理） |
 

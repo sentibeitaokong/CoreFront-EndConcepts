@@ -70,7 +70,8 @@ class RefImpl<T> {
         // 原始数据
         this._rawValue = value
     }
-    //get 语法将对象属性绑定到查询该属性时将被调用的函数。
+    //get 语法将对象属性绑定到查询该属性时将被调用的函数。 
+    //ref类型数据一定要通过.value才能具备响应性以及访问性的原因主要是需要触发这里的get和set方法
     get value() {
         // 收集依赖
         trackRefValue(this)
