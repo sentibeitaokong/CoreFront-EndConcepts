@@ -46,3 +46,11 @@ body {
 h1, h2, h3, h4, h5, h6, p {
   color: var(--vp-c-text-1);
 }
+
+/* 限制图片放大后的最大宽度和高度，这里设置成视口的90% */
+.medium-zoom-image--opened {
+    max-width: 90vw !important;
+    max-height: 90vh !important;
+    /* 可选：为图片添加一个优雅的过渡效果 */
+    transition: transform 0.3s cubic-bezier(0.2, 0, 0.2, 1) !important;
+}

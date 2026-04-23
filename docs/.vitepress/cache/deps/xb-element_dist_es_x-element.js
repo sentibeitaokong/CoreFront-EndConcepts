@@ -51,12 +51,12 @@ import {
   library$1,
   parse$1,
   text
-} from "./chunk-ZGH26PKC.js";
+} from "./chunk-VYB25A4C.js";
 import {
   icons
-} from "./chunk-AOAKE5GL.js";
+} from "./chunk-3SKVTWUA.js";
 
-// node_modules/.pnpm/@fortawesome+vue-fontawesome@3.2.0_@fortawesome+fontawesome-svg-core@7.2.0_vue@3.5.32_typescript@5.9.3_/node_modules/@fortawesome/vue-fontawesome/index.es.js
+// node_modules/@fortawesome/vue-fontawesome/index.es.js
 function _arrayLikeToArray(r, a) {
   (null == a || a > r.length) && (a = r.length);
   for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
@@ -277,9 +277,7 @@ var humps$1 = { exports: {} };
   })(commonjsGlobal);
 })(humps$1);
 var humps = humps$1.exports;
-var _excluded = ["gradientFill"];
-var _excluded2 = ["class", "style"];
-var _excluded3 = ["type", "stops", "id"];
+var _excluded = ["class", "style"];
 function styleToObject(style) {
   return style.split(";").map(function(s) {
     return s.trim();
@@ -299,44 +297,17 @@ function classToObject(classes) {
     return output;
   }, {});
 }
-function createGradientStop(stop, index) {
-  return h("stop", _objectSpread2({
-    "key": "".concat(index, "-").concat(stop.offset),
-    "offset": stop.offset,
-    "stop-color": stop.color
-  }, stop.opacity !== void 0 && {
-    "stop-opacity": stop.opacity
-  }));
-}
-function stripFillsFromPaths(abstractElement) {
-  if (typeof abstractElement === "string") return abstractElement;
-  var children = (abstractElement.children || []).map(stripFillsFromPaths);
-  if (abstractElement.tag === "path" && abstractElement.attributes && "fill" in abstractElement.attributes) {
-    return _objectSpread2(_objectSpread2({}, abstractElement), {}, {
-      attributes: _objectSpread2(_objectSpread2({}, abstractElement.attributes), {}, {
-        fill: void 0
-      }),
-      children
-    });
-  }
-  return _objectSpread2(_objectSpread2({}, abstractElement), {}, {
-    children
-  });
-}
 function convert(abstractElement) {
   var props = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {};
   var attrs = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : {};
   if (typeof abstractElement === "string") {
     return abstractElement;
   }
-  var _props$gradientFill = props.gradientFill, gradientFill = _props$gradientFill === void 0 ? null : _props$gradientFill, renderProps = _objectWithoutProperties(props, _excluded);
-  var shouldStripFills = !!gradientFill || "fill" in attrs;
-  var element = shouldStripFills ? stripFillsFromPaths(abstractElement) : abstractElement;
-  var children = (element.children || []).map(function(child) {
-    return convert(child, {}, {});
+  var children = (abstractElement.children || []).map(function(child) {
+    return convert(child);
   });
-  var mixins = Object.keys(element.attributes || {}).reduce(function(mixins2, key) {
-    var value = element.attributes[key];
+  var mixins = Object.keys(abstractElement.attributes || {}).reduce(function(mixins2, key) {
+    var value = abstractElement.attributes[key];
     switch (key) {
       case "class":
         mixins2.class = classToObject(value);
@@ -354,21 +325,8 @@ function convert(abstractElement) {
     style: {}
   });
   attrs.class;
-  var _attrs$style = attrs.style, aStyle = _attrs$style === void 0 ? {} : _attrs$style, otherAttrs = _objectWithoutProperties(attrs, _excluded2);
-  if (gradientFill && gradientFill.id && (gradientFill.type === "linear" || gradientFill.type === "radial")) {
-    var gradientType = gradientFill.type, _gradientFill$stops = gradientFill.stops, stops = _gradientFill$stops === void 0 ? [] : _gradientFill$stops, id = gradientFill.id, gradientProps = _objectWithoutProperties(gradientFill, _excluded3);
-    var gradientTag = gradientType === "linear" ? "linearGradient" : "radialGradient";
-    var gradientVNode = h(gradientTag, _objectSpread2(_objectSpread2({}, gradientProps), {}, {
-      id
-    }), stops.map(createGradientStop));
-    return h(element.tag, _objectSpread2(_objectSpread2(_objectSpread2(_objectSpread2({}, renderProps), {}, {
-      class: mixins.class,
-      style: _objectSpread2(_objectSpread2({}, mixins.style), aStyle)
-    }, mixins.attrs), otherAttrs), {}, {
-      fill: "url(#".concat(id, ")")
-    }), [gradientVNode].concat(_toConsumableArray(children)));
-  }
-  return h(abstractElement.tag, _objectSpread2(_objectSpread2(_objectSpread2({}, renderProps), {}, {
+  var _attrs$style = attrs.style, aStyle = _attrs$style === void 0 ? {} : _attrs$style, otherAttrs = _objectWithoutProperties(attrs, _excluded);
+  return h(abstractElement.tag, _objectSpread2(_objectSpread2(_objectSpread2({}, props), {}, {
     class: mixins.class,
     style: _objectSpread2(_objectSpread2({}, mixins.style), aStyle)
   }, mixins.attrs), otherAttrs), children);
@@ -539,21 +497,6 @@ var FontAwesomeIcon = defineComponent({
     widthAuto: {
       type: Boolean,
       default: false
-    },
-    gradientFill: {
-      type: Object,
-      default: null,
-      validator: function validator5(value) {
-        if (typeof value.id !== "string" || !value.id) {
-          console.warn("FontAwesomeIcon: gradientFill.id must be a non-empty string");
-          return false;
-        }
-        if (value.type !== "linear" && value.type !== "radial") {
-          console.warn('FontAwesomeIcon: gradientFill.type must be "linear" or "radial"');
-          return false;
-        }
-        return true;
-      }
     }
   },
   setup: function setup(props, _ref) {
@@ -586,13 +529,8 @@ var FontAwesomeIcon = defineComponent({
     }, {
       immediate: true
     });
-    if (props.gradientFill && props.symbol) {
-      log("gradientFill is not supported when symbol is true and will be ignored");
-    }
     var vnode = computed(function() {
-      return renderedIcon.value ? convert(renderedIcon.value.abstract[0], {
-        gradientFill: props.symbol ? null : props.gradientFill
-      }, attrs) : null;
+      return renderedIcon.value ? convert(renderedIcon.value.abstract[0], {}, attrs) : null;
     });
     return function() {
       return vnode.value;
@@ -638,7 +576,7 @@ var FontAwesomeLayersText = defineComponent({
     position: {
       type: String,
       default: null,
-      validator: function validator6(value) {
+      validator: function validator5(value) {
         return ["bottom-left", "bottom-right", "top-left", "top-right"].indexOf(value) > -1;
       }
     }
@@ -668,7 +606,7 @@ var FontAwesomeLayersText = defineComponent({
   }
 });
 
-// node_modules/.pnpm/@floating-ui+utils@0.2.11/node_modules/@floating-ui/utils/dist/floating-ui.utils.mjs
+// node_modules/@floating-ui/utils/dist/floating-ui.utils.mjs
 var sides = ["top", "right", "bottom", "left"];
 var alignments = ["start", "end"];
 var placements = sides.reduce((acc, side) => acc.concat(side, side + "-" + alignments[0], side + "-" + alignments[1]), []);
@@ -741,7 +679,7 @@ function rectToClientRect(rect) {
   };
 }
 
-// node_modules/.pnpm/@floating-ui+core@1.7.5/node_modules/@floating-ui/core/dist/floating-ui.core.mjs
+// node_modules/@floating-ui/core/dist/floating-ui.core.mjs
 function computeCoordsFromPlacement(_ref, placement, rtl) {
   let {
     reference,
@@ -1223,7 +1161,7 @@ var size = function(options) {
   };
 };
 
-// node_modules/.pnpm/@floating-ui+utils@0.2.11/node_modules/@floating-ui/utils/dist/floating-ui.utils.dom.mjs
+// node_modules/@floating-ui/utils/dist/floating-ui.utils.dom.mjs
 function hasWindow() {
   return typeof window !== "undefined";
 }
@@ -1379,7 +1317,7 @@ function getFrameElement(win) {
   return win.parent && Object.getPrototypeOf(win.parent) ? win.frameElement : null;
 }
 
-// node_modules/.pnpm/@floating-ui+dom@1.7.6/node_modules/@floating-ui/dom/dist/floating-ui.dom.mjs
+// node_modules/@floating-ui/dom/dist/floating-ui.dom.mjs
 function getCssDimensions(element) {
   const css = getComputedStyle2(element);
   let width = parseFloat(css.width) || 0;
@@ -1991,7 +1929,7 @@ var computePosition2 = (reference, floating, options) => {
   });
 };
 
-// node_modules/.pnpm/@floating-ui+vue@1.1.11_vue@3.5.32_typescript@5.9.3_/node_modules/@floating-ui/vue/dist/floating-ui.vue.mjs
+// node_modules/@floating-ui/vue/dist/floating-ui.vue.mjs
 function isComponentPublicInstance(target) {
   return target != null && typeof target === "object" && "$el" in target;
 }
@@ -2153,7 +2091,7 @@ function useFloating(reference, floating, options) {
   };
 }
 
-// node_modules/.pnpm/async-validator@4.2.5/node_modules/async-validator/dist-web/index.js
+// node_modules/async-validator/dist-web/index.js
 function _extends() {
   _extends = Object.assign ? Object.assign.bind() : function(target) {
     for (var i = 1; i < arguments.length; i++) {
@@ -3191,17 +3129,17 @@ var Schema = function() {
   };
   return Schema2;
 }();
-Schema.register = function register(type4, validator7) {
-  if (typeof validator7 !== "function") {
+Schema.register = function register(type4, validator6) {
+  if (typeof validator6 !== "function") {
     throw new Error("Cannot register a validator by type, validator is not a function");
   }
-  validators[type4] = validator7;
+  validators[type4] = validator6;
 };
 Schema.warning = warning;
 Schema.messages = messages;
 Schema.validators = validators;
 
-// node_modules/.pnpm/xb-element@1.0.5_vue@3.5.32_typescript@5.9.3_/node_modules/xb-element/dist/es/x-element.js
+// node_modules/xb-element/dist/es/x-element.js
 var Pt = typeof global == "object" && global && global.Object === Object && global;
 var xn = typeof self == "object" && self && self.Object === Object && self;
 var _ = Pt || xn || Function("return this")();

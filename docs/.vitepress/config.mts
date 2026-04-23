@@ -1,5 +1,6 @@
 import {defineConfig} from 'vitepress'
 import { containerPreview, componentPreview } from '@vitepress-demo-preview/plugin'
+import lightbox from "vitepress-plugin-lightbox";
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 // 如果你使用的是 ESM (type: module)，需要用这种方式获取 __dirname
@@ -38,6 +39,7 @@ export default defineConfig({
             // 注册插件，让 VitePress 认识 :::preview 和 <preview>
             md.use(containerPreview)
             md.use(componentPreview)
+            md.use(lightbox, {});
         }
     },
     themeConfig: {
@@ -408,6 +410,17 @@ export default defineConfig({
                                         collapsed: true, // 初始状态为“展开”
                                         items: [
                                             {text: 'Vue3源码目录设计', link: '/frameworks/vue/vueCatalog'},
+                                            {
+                                                text: '深入响应式原理',
+                                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                                collapsed: true, // 初始状态为“展开”
+                                                items: [
+                                                    {text: 'Vue响应式原理演进', link: '/frameworks/vue/reactivityUpdate'},
+                                                    {text: 'reactive', link: '/frameworks/vue/reactive'},
+                                                    {text: 'ref', link: '/frameworks/vue/ref'},
+                                                ]
+                                            }
+
                                         ]
                                     },
                                 ]

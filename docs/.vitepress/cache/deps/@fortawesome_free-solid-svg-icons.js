@@ -2001,7 +2001,7 @@ import {
   faZap,
   icons,
   prefix
-} from "./chunk-AOAKE5GL.js";
+} from "./chunk-3SKVTWUA.js";
 export {
   fa0,
   fa1,

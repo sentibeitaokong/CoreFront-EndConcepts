@@ -37,6 +37,7 @@
     "vite": "^7.2.4",
     "vite-plugin-vue-devtools": "^8.0.5",
     "vitepress": "^1.6.4",
+    "vitepress-plugin-lightbox": "^1.0.3",
     "vitest": "^4.0.16",
     "vue-tsc": "^3.1.5"
   },

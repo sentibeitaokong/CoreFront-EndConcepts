@@ -585,35 +585,21 @@ function set(target, key, value, receiver) {
 
 **示例**：
 ```javascript
-const target = {
-  _name: 'Alice',
-  get name() {
-    return this._name;
-  }
-};
+const parent = { name: 'parent' }
+const proxy = new Proxy(parent, {
+    get(target, key, receiver) {
+        // 错误写法：直接返回 target[key]
+        // return target[key]   // 此时 this 是 target（parent），不是 receiver
+        // 正确写法：
+        return Reflect.get(target, key, receiver)
+    }
+})
 
-const handler = {
-  get(target, prop, receiver) {
-    console.log(`Getting ${prop}`);
-    // 错误的做法：直接访问 target，`this` 指向 target
-    // return target[prop];
-
-    // 正确的做法：使用 Reflect.get，并将 receiver 传入
-    // 这能确保当通过代理访问 getter 时，getter 内部的 `this` 指向代理对象本身
-    return Reflect.get(target, prop, receiver);
-  }
-};
-
-const proxy = new Proxy(target, handler);
-
-// 如果 handler 中用 target[prop]，`proxy.name` 访问 `name` 这个 getter 时，
-// getter 内部的 `this` 是 `target`，`this._name` 没问题。
-// 但如果 getter 依赖于代理的其他行为，就会出错。
-// 使用 Reflect.get 并传入 receiver，可以保证 `this` 永远指向触发操作的对象（即 proxy），
-// 从而确保代理行为的一致性和可预测性。
-console.log(proxy.name); // 输出: "Getting name", "Alice"
+const child = Object.create(proxy)
+child.name   // 访问 child.name 会触发 proxy 的 get，receiver 是 child
 ```
-简而言之，`Reflect` 确保了在代理场景下，操作的默认行为能够被正确地“转发”到目标对象，同时保留了正确的上下文（`receiver`）。
+如果 `get` 中直接返回 `target[key]`，那么内部使用的 `this` 是 `parent` 而不是 `child`，这可能导致访问器属性（`getter`）中无法访问到正确的 `this`（本应是 `child`）。
+使用 `Reflect.get` 并传递 `receiver`，可以确保 `getter` 中的 `this` 正确绑定到 `receiver`。
 
 ### 5.3 `Reflect.has` 的 `non-object` 错误是什么？
 
