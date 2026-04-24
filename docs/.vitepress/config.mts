@@ -418,6 +418,10 @@ export default defineConfig({
                                                     {text: 'Vue响应式原理演进', link: '/frameworks/vue/reactivityUpdate'},
                                                     {text: 'reactive', link: '/frameworks/vue/reactive'},
                                                     {text: 'ref', link: '/frameworks/vue/ref'},
+                                                    {text: 'computed', link: '/frameworks/vue/computed'},
+                                                    {text: 'watch', link: '/frameworks/vue/watch'},
+                                                    {text: 'scheduler', link: '/frameworks/vue/scheduler'},
+                                                    {text: 'nextTick', link: '/frameworks/vue/nextTick'},
                                                 ]
                                             }
 

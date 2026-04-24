@@ -22,8 +22,6 @@
 
 ## 2. 核心实现：`RefImpl` 类
 
-源码位于 `packages/reactivity/src/ref.ts`
-
 ### 2.1 `ref` 函数入口
 
 ```typescript
@@ -214,7 +212,29 @@ export function triggerEffect(effect: ReactiveEffect) {
 ```
 :::
 
-## 6. 工具函数实现
+## 4. 完整流程示例
+
+
+### 4.1 基础使用示例
+
+```ts
+// 创建响应式对象
+const count = ref(0)
+
+// 创建副作用函数
+effect(() => {
+  console.log(count.value)
+})
+
+// 修改属性触发更新
+count.value=1 // 输出:  1
+```
+
+### 4.2 完整流程图
+
+![Logo](/ref.png)
+
+## 5. 工具函数实现
 
 ### `isRef`
 
@@ -265,29 +285,9 @@ const shallowUnwrapHandlers: ProxyHandler<any> = {
 }
 ```
 
-## 7. 完整流程示例
 
 
-### 7.1 基础使用示例
-
-```ts
-// 创建响应式对象
-const count = ref(0)
-
-// 创建副作用函数
-effect(() => {
-  console.log(count.value)
-})
-
-// 修改属性触发更新
-count.value=1 // 输出: count changed: 1
-```
-
-### 7.2 完整流程图
-
-![Logo](/ref.png)
-
-## 8. `ref` 与 `reactive` 对比
+## 6. `ref` 与 `reactive` 对比
 
 | 对比维度 | `ref` | `reactive` |
 |----------|-------|-------------|
@@ -299,7 +299,7 @@ count.value=1 // 输出: count changed: 1
 | 模板自动解包 | 是（顶层） | 是 |
 | 传递响应性 | 整个 `ref` 传递仍为响应式 | 直接解构属性会丢失 |
 
-## 9. 总结
+## 7. 总结
 
 `ref` 是 Vue 3 响应式系统不可或缺的组成部分，其核心通过 `RefImpl` 类封装 `.value` 访问，利用 `trackRefValue` 和 `triggerRefValue` 与 `effect` 系统协作，实现了对基本类型和对象的响应式包装。
 

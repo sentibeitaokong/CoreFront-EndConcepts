@@ -53,7 +53,7 @@ function createReactiveObject(
 	}
     //reactive特性
     //1.Proxy的target属性只能传对象，所以reactive里面不能放简单数据类型，会报错
-    //2.Proxy代理的是目标对象，所以解构reactive对象无法有效代理，也就失去了响应性，综上想对简单数据类型实现响应式，必须使用ref
+    //2.Proxy代理的是reactive对象(目标对象)，所以解构reactive对象无法有效代理，也就失去了响应性，综上想对简单数据类型实现响应式，必须使用ref
 	const proxy = new Proxy(target, baseHandlers)
 	// 为 Reactive 增加标记
 	proxy[ReactiveFlags.IS_REACTIVE] = true
@@ -84,6 +84,7 @@ export const mutableHandlers: ProxyHandler<object> = {
 const isObject = (value: any) => {
     return value !== null && typeof value === 'object'
 }
+//isReadonly是否只读，shallow是否浅层次
 function createGetter(isReadonly: any = false, shallow: any = false) {
     return function get(target: any, propertyKey: string,receiver:any) {
         //判断是否是响应式以及只读属性
@@ -92,7 +93,7 @@ function createGetter(isReadonly: any = false, shallow: any = false) {
         } else if (propertyKey === ReactiveFlags.IS_READONLY) {
             return isReadonly
         }
-        //// 利用 Reflect 得到返回值   receier将this指向从目标对象转换成代理对象
+        // 利用 Reflect 得到返回值   receier将this指向从目标对象转换成代理对象
         const res = Reflect.get(target, propertyKey,receiver)
 
         //如果是shallowReadonly,则shallow为true,直接返回数据
@@ -293,6 +294,7 @@ export class ReactiveEffect {
         if (!this.active) {
             return this._fn()
         }
+        //可进行依赖收集
         shouldTrack = true
         //将这个单例依赖类赋值给activeEffect
         activeEffect = this
@@ -304,6 +306,7 @@ export class ReactiveEffect {
     }
     stop() {
         if (this.active) {
+            //清除依赖
             cleanupEffect(this)
             if (this.onStop) {
                 this.onStop()
@@ -332,14 +335,22 @@ export function stop(runner: Runner): void {
 
 :::code-group
 ```typescript [effect.ts]
+interface ReactiveEffectOptions {
+    lazy?: boolean
+    scheduler?: EffectScheduler
+}
 function effect<T = any>(fn: () => T, options?: ReactiveEffectOptions) {
     //fn
-    const scheduler = options.scheduler
+    const scheduler = options&&options.scheduler
     const _effect = new ReactiveEffect(fn, scheduler)
     //合并options选项
     const extend=Object.assign
     extend(_effect, options)
-    _effect.run()
+    //懒执行
+    if (!options || !options.lazy) {
+        // 执行 run 函数
+        _effect.run()
+    }
     const runner: any = _effect.run.bind(_effect)
     runner.effect = _effect
     //手动执行更新的函数
@@ -373,7 +384,29 @@ export const createDep = (effects?: ReactiveEffect[]): Dep => {
 ```
 :::
 
-## 7. 工具函数实现
+## 7. 完整流程示例
+
+### 7.1 基础使用示例
+
+```ts
+// 创建响应式对象
+const state = reactive({ count: 0 })
+
+// 创建副作用函数
+effect(() => {
+  console.log(state.count)
+})
+
+// 修改属性触发更新
+state.count=1 // 输出: count changed: 1
+```
+
+### 7.2 完整流程图
+
+![Logo](/reactive3.png)
+
+
+## 8. 工具函数实现
 
 ### `isReactive`
 
@@ -406,28 +439,6 @@ function isProxy(value: any) {
     return isReadonly(value) || isReactive(value)
 }
 ```
-
-## 8. 完整流程示例
-
-### 8.1 基础使用示例
-
-```ts
-// 创建响应式对象
-const state = reactive({ count: 0 })
-
-// 创建副作用函数
-effect(() => {
-  console.log(state.count)
-})
-
-// 修改属性触发更新
-state.count=1 // 输出: count changed: 1
-```
-
-### 8.2 完整流程图
-
-![Logo](/reactive3.png)
-
 
 ## 9. 总结
 
