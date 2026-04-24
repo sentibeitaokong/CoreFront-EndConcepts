@@ -75,7 +75,7 @@ async function handleClick() {
 }
 ```
 
-## 5. 完整调度流程图（含 `nextTick` 位置）
+## 5. 完整调度流程图
 
 ![Logo](/nextTick.png)
 
