@@ -79,7 +79,7 @@ async function handleClick() {
 }
 ```
 
-## 5. 完整调度流程图
+## 5. 完整流程图
 
 ![Logo](/nextTick.png)
 

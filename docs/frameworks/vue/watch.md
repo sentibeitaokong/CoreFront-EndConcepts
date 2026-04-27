@@ -285,7 +285,87 @@ export const isSet = (val: unknown): val is Set<any, any> =>
 ```
 :::
 
-## 5. 完整流程图
+## 5. 完整流程示例
+
+### 5.1 基础使用示例
+
+```typescript
+import { ref, watch,reactive } from 'vue'
+
+//1.监听ref对象
+const count = ref(0)
+watch(count, (newVal, oldVal) => {
+  console.log(`count 发生变化：从 ${oldVal} 变成了 ${newVal}`)
+})
+// 触发侦听
+count.value++
+
+//2.侦听 reactive 对象的特定属性（使用 Getter 函数）
+const state = reactive({ count: 0, name: 'Vue' })
+watch(
+    () => state.count,
+    (newVal, oldVal) => {
+        console.log(`state.count 发生变化：${oldVal} -> ${newVal}`)
+    }
+)
+state.count++ // 触发侦听
+state.name = 'React' // 不会触发侦听
+
+//3.深度侦听 reactive 对象
+const deepState = reactive({
+    user: { name: 'Alice', age: 20 }
+})
+watch(deepState, (newVal, oldVal) => {
+    console.log('对象发生了突变！', newVal === oldVal) // true
+})
+// 触发侦听
+deepState.user.age = 21
+
+//4.侦听多个数据源（数组形式）
+const title = ref('Hello')
+const anotherState = reactive({ count: 0 })
+watch(
+    [title, () => anotherState.count],
+    ([newTitle, newCount], [oldTitle, oldCount]) => {
+        console.log(`新的 title 是 ${newTitle}，新的 count 是 ${newCount}`)
+    }
+)
+title.value = 'World' // 触发侦听
+
+//5.立即执行
+const id = ref(123)
+watch(id,
+    (newId) => {
+        console.log(`立刻执行，并且每次 id 变化时也执行，当前 id: ${newId}`)
+    },
+    { immediate: true } // 开启立即执行
+)
+
+//6. 处理异步竞态条件
+const keyword = ref('')
+watch(keyword, async (newVal, oldVal, onCleanup) => {
+    // 利用 AbortController 中断 Fetch 请求
+    const controller = new AbortController()
+    // 注册清理逻辑：当 keyword 再次变化时，会先执行这里的代码 [cite: 43]
+    onCleanup(() => {
+        console.log(`取消对 ${oldVal} 的网络请求`)
+        controller.abort()
+    })
+    try {
+        const res = await fetch(`https://api.example.com/search?q=${newVal}`, {
+            signal: controller.signal
+        })
+        const data = await res.json()
+        console.log('请求成功:', data)
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            console.log('请求已被安全中断')
+        }
+    }
+})
+```
+
+### 5.2 完整流程图
 
 ![Watch Flow](/watch.png)
 

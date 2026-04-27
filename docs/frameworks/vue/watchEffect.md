@@ -203,7 +203,70 @@ const onCleanup = (fn: () => void) => {
 ```
 :::
 
-## 5. 完整流程图
+## 5. 完整流程示例
+
+### 5.1 基础使用示例
+
+```typescript
+//1. 自动追踪依赖并立即执行
+import { ref, reactive, watchEffect } from 'vue'
+const count = ref(0)
+const user = reactive({ name: 'Alice' })
+// 1. 创建时会立即执行一次，打印：当前 count 为 0，用户名为 Alice
+watchEffect(() => {
+  // Vue 会自动收集这里的 count.value 和 user.name 作为依赖
+  console.log(`当前 count 为 ${count.value}，用户名为 ${user.name}`)
+})
+// 2. 修改任意一个依赖，都会触发回调重新执行
+count.value++       // 打印：当前 count 为 1，用户名为 Alice
+user.name = 'Bob'   // 打印：当前 count 为 1，用户名为 Bob
+
+
+//2. 处理异步逻辑与竞态条件（使用 onCleanup）
+const keyword = ref('Vue')
+watchEffect(async (onCleanup) => {
+    // 1. 创建一个中止控制器
+    const controller = new AbortController()
+    // 2. 注册清理函数：当 keyword 再次改变，或者组件卸载时，会优先执行这里的逻辑
+    onCleanup(() => {
+        console.log(`中止之前关于 ${keyword.value} 的请求`)
+        controller.abort()
+    })
+    try {
+        console.log(`开始请求 ${keyword.value} 的数据...`)
+        const res = await fetch(`https://api.example.com/search?q=${keyword.value}`, {
+            signal: controller.signal
+        })
+        const data = await res.json()
+        console.log('请求成功:', data)
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            console.log('请求已被安全中断')
+        }
+    }
+})
+// 如果在短时间内连续修改，上一次未完成的请求会被 onCleanup 准确中断
+setTimeout(() => { keyword.value = 'React' }, 100)
+setTimeout(() => { keyword.value = 'Angular' }, 200)
+
+
+//3. 停止侦听器
+const anothercount = ref(0)
+// watchEffect 会返回一个专门用于停止它的函数
+const stop = watchEffect(() => {
+    console.log('侦听中，当前 count:', count.value)
+})
+// 模拟条件触发，停止侦听
+setInterval(() => {
+    count.value++
+    if (count.value === 3) {
+        console.log('满足条件，停止侦听！')
+        stop() // 停止后，后续 count 再怎么变化，回调也不会再执行了
+    }
+}, 1000)
+```
+
+### 5.2 完整流程图
 
 ![Logo](/watchEffect.png)
 
