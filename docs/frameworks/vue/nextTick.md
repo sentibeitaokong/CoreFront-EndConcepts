@@ -13,7 +13,8 @@
 
 `nextTick` 是调度器的公共 API，用于在下一次 DOM 更新后执行回调。
 
-```typescript
+:::code-group
+```typescript [scheduler.ts]
 //支持传入方法以及使用await的方式   nextTick(()=>{})  await nextTick()
 const resolvedPromise = Promise.resolve() as Promise<any>
 let currentFlushPromise: Promise<void> | null = null
@@ -24,12 +25,14 @@ export function nextTick<T = void>(this: T, fn?: (this: T) => void): Promise<voi
     return fn ? p.then(this ? fn.bind(this) : fn) : p
 }
 ```
+:::
 
 ## 3. 与调度器的协作
 
 调度器 `queueFlush` 利用 `nextTick` 来异步触发 `flushJobs`,负责在下一个微任务中执行刷新函数。
 
-```typescript
+:::code-group
+```typescript [scheduler.ts]
 //对应 promise 的 pending 状态，保证同时只有一个微任务被注册
 let isFlushPending = false
 //当前的执行任务
@@ -44,6 +47,7 @@ function queueFlush() {
     }
 }
 ```
+:::
 
 ## 4. 使用示例
 

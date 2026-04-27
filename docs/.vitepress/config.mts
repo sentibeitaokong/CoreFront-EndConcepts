@@ -419,9 +419,10 @@ export default defineConfig({
                                                     {text: 'reactive', link: '/frameworks/vue/reactive'},
                                                     {text: 'ref', link: '/frameworks/vue/ref'},
                                                     {text: 'computed', link: '/frameworks/vue/computed'},
-                                                    {text: 'watch', link: '/frameworks/vue/watch'},
                                                     {text: 'scheduler', link: '/frameworks/vue/scheduler'},
                                                     {text: 'nextTick', link: '/frameworks/vue/nextTick'},
+                                                    {text: 'watch', link: '/frameworks/vue/watch'},
+                                                    {text: 'watchEffect', link: '/frameworks/vue/watchEffect'},
                                                 ]
                                             }
 

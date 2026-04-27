@@ -1,276 +1,313 @@
-# Vue 3 `watch` 源码级解析
+# Watch
 
-`watch` 是 Vue 3 响应式系统中用于**侦听响应式数据变化**并执行副作用的核心 API。与 `watchEffect` 不同，`watch` 需要**明确指定侦听的数据源**，并且可以获取变化前后的值，支持懒执行（默认不立即执行）。本文将从源码层面，深度剖析 `watch` 的实现机制、依赖追踪、调度策略以及与 `effect` 系统的协作。
+`watch` 是 Vue 3 响应式系统中用于侦听响应式数据变化，并在数据变化时执行特定副作用（如异步请求、DOM 操作、复杂业务逻辑等）的核心 API。与 `computed` 注重计算和缓存派生值不同，`watch` 更侧重于“观察”和“响应”动作，它底层依赖 `ReactiveEffect` 和强大的调度器（`scheduler`）机制。
 
 ## 1. `watch` 的作用与设计动机
 
 ### 1.1 为什么需要 `watch`？
 
-- **精准侦听**：只关注指定的数据源，避免不必要的依赖收集。
-- **获取新旧值**：在回调中可以同时获取变化前后的值，便于处理差异逻辑。
-- **懒执行**：默认仅在数据变化时执行，也可通过 `immediate` 选项立即执行。
-- **清理副作用**：支持注册 `onCleanup`，用于取消上一次未完成的异步操作（如防抖、取消请求）。
+- **处理副作用**：在状态变化时执行非渲染类的操作（例如网络请求、本地存储同步、定时器）。
+- **获取变化前后的值**：很多业务场景不仅需要新值，还需要旧值进行对比。
+- **精确控制执行时机**：通过 `flush` 配置（`pre`、`post`、`sync`）精确控制回调函数在 Vue 更新 DOM 之前、之后还是同步执行。
 
-### 1.2 与 `watchEffect` 的对比
+### 1.2 `watch` 与 `watchEffect` 的简单对比
 
 | 特性 | `watch` | `watchEffect` |
-|------|---------|---------------|
-| 数据源 | 显式指定（ref、reactive、getter、数组） | 自动收集函数内访问的响应式数据 |
-| 获取新旧值 | 是（回调参数） | 否 |
-| 懒执行 | 是（默认） | 否（立即执行） |
-| 回调触发时机 | 依赖变化后 | 依赖变化后（或立即） |
-| 适用场景 | 需要新旧值对比、精确控制依赖 | 简单副作用，无需旧值 |
+|------|-------|-------------|
+| 依赖收集方式 | 显式指定数据源（精确控制） | 自动收集回调内部的依赖 |
+| 首次执行 | 默认懒执行（`immediate: false`） | 创建时立即执行一次 |
+| 获取旧值 | 支持（回调参数提供 `newVal`, `oldVal`） | 不支持 |
+| 适用场景 | 需明确侦听特定数据，或需旧值时 | 多个依赖项共同触发一个副作用时 |
 
-## 2. 核心实现：`doWatch` 函数
-
-源码位于 `packages/runtime-core/src/apiWatch.ts`
-
-Vue 3 中的 `watch` 和 `watchEffect` 最终都由一个内部函数 `doWatch` 统一实现。`doWatch` 负责解析数据源、创建副作用、处理回调、调度执行。
+## 2. 核心实现：数据源标准化与 `doWatch`
 
 ### 2.1 `watch` 函数入口
 
-```typescript
+:::code-group
+```typescript [apiWatch.ts]
+// watch 接收三个参数：数据源、回调函数、配置项
 export function watch<T = any, Immediate extends Readonly<boolean> = false>(
   source: T | WatchSource<T>,
   cb: any,
   options?: WatchOptions<Immediate>
-): WatchStopHandle {
+) {
+  // 核心逻辑交由 doWatch 处理
   return doWatch(source as any, cb, options)
 }
 ```
+:::
 
-- `source`：侦听的数据源，可以是 `ref`、`reactive` 对象、`getter` 函数、或以上类型的数组。
-- `cb`：数据变化时执行的回调函数，接收 `(newValue, oldValue, onCleanup)`。
-- `options`：配置选项，如 `immediate`、`deep`、`flush`、`once` 等。
+### 2.2 `doWatch` 核心逻辑（构建 getter）
 
-### 2.2 `doWatch` 函数的主要流程
+`watch` 支持多种数据源（ref、reactive、getter 函数、数组），`doWatch` 首先需要将它们统一转化为一个 `getter` 函数，以便供底层的 `effect` 进行依赖收集。
 
-```typescript
+:::code-group
+```typescript [apiWatch.ts]
+export const EMPTY_OBJ= {}
+export const NOOP=()=>{}
 function doWatch(
-  source: WatchSource | WatchSource[] | WatchEffect,
-  cb: WatchCallback | null,
-  { immediate, deep, flush, once, onTrack, onTrigger } = {}
-): WatchStopHandle {
-  // 1. 标准化数据源，返回 getter 函数
-  let getter: () => any
-  if (isRef(source)) {
-    getter = () => source.value
-  } else if (isReactive(source)) {
-    getter = () => source
-    deep = true  // reactive 对象默认深度侦听
-  } else if (isFunction(source)) {
-    getter = source as () => any
-  } else if (isArray(source)) {
-    getter = () => source.map(s => {
-      if (isRef(s)) return s.value
-      if (isReactive(s)) return traverse(s)
-      if (isFunction(s)) return s()
-      return s
-    })
-  }
+    source: WatchSource | WatchSource[] | WatchEffect | object,
+    cb: WatchCallback | null,
+    { immediate, deep, flush, onTrack, onTrigger }: WatchOptions = EMPTY_OBJ
+) {
+    //forceTrigger是Vue内部留下的一个“通行证”。它是专门为了配合shallowRef+triggerRef这种边缘场景设计的
+    // 只要依赖被触发（即使对象的引用地址没有变，新旧值全等），依然能够无条件地执行 watch 的回调函数。
+    let getter: () => any       //空函数
+    let forceTrigger = false     //强制触发
+    let isMultiSource = false    //多数据源
 
-  // 2. 处理深度侦听（traverse）
-  if (cb && deep) {
-    const baseGetter = getter
-    getter = () => traverse(baseGetter())
-  }
-
-  // 3. 创建清理副作用函数（onCleanup 注册器）
-  let cleanup: () => void
-  let onCleanup: OnCleanup = (fn: () => void) => {
-    cleanup = () => {
-      fn()
-      cleanup = undefined
-    }
-  }
-
-  // 4. 创建旧值存储变量
-  let oldValue: any = undefined
-
-  // 5. 定义调度器 scheduler
-  const job = () => {
-    if (!effect.active) return
-    if (cb) {
-      // 有回调：执行 watcher 回调
-      const newValue = effect.run()
-      if (deep || hasChanged(newValue, oldValue)) {
-        // 执行清理函数（如果有）
-        if (cleanup) cleanup()
-        cb(newValue, oldValue, onCleanup)
-        oldValue = newValue
-      }
+    // 1. 标准化数据源，将其统一包装为一个 getter 函数
+    if (isRef(source)) {
+        // 来源是 ref，直接读取 .value
+        getter = () => source.value
+        //做一个标识，当source的值变了，由于地址没变，不会触发更新，因此加个标识强制更新
+        forceTrigger = isShallow(source) 
+    } else if (isReactive(source)) {
+        // 来源是 reactive，直接返回对象，并默认开启深度侦听
+        getter = () => source
+        deep = true
+    } else if (isArray(source)) {
+        // 来源是数组（多数据源）
+        isMultiSource = true
+        forceTrigger = source.some(s => isReactive(s) || isShallow(s))
+        getter = () =>
+            source.map(s => {
+                if (isRef(s)) return s.value
+                if (isReactive(s)) return traverse(s)
+                if (isFunction(s)) return s()
+                return s
+            })
+    } else if (isFunction(source)) {
+        // 来源是 getter 函数
+        getter = () => source()
     } else {
-      // 无回调（watchEffect 模式）：直接运行副作用
-      effect.run()
+        getter = NOOP
     }
-  }
 
-  // 6. 根据 flush 选项，决定调度方式
+    // 2. 如果 deep 为 true，包裹 traverse 函数递归读取以收集深层依赖
+    if (cb && deep) {
+        const baseGetter = getter
+        getter = () => traverse(baseGetter())
+    }
+    // ... 构建 job 和 effect 逻辑（见下节）
+}
+```
+
+```typescript [reactive.ts]
+//判断一个数据是否为 Reactive
+export function isReactive(value): boolean {
+    return !!(value && value[ReactiveFlags.IS_REACTIVE])
+}
+//判断一个数据是否为 Shallow
+export function isShallow(value: unknown): boolean {
+    // 核心逻辑：只要 value 是个真值，并且它上面有 '__v_isShallow' 属性且为真，就返回 true
+    return !!(value && (value as any)[ReactiveFlags.IS_SHALLOW])
+}
+```
+
+```typescript [ref.ts]
+//判断是否是ref值
+export function isRef(ref: any) {
+    return !!ref.__v_isRef
+}
+```
+
+```typescript [shared/index.ts]
+//是否为一个 function
+export const isFunction = (val: unknown): val is Function =>
+	typeof val === 'function'
+```
+:::
+
+## 3. 依赖调度与回调执行机制
+
+`watch` 的核心是通过 `ReactiveEffect` 收集依赖，并通过 `scheduler` 调度器控制回调 `cb` 的执行。
+
+### 3.1 实例化 Effect 与生命周期
+
+:::code-group
+```typescript [apiWatch.ts]
+  // 3. 配置 scheduler (处理 flush 选项)
   let scheduler: EffectScheduler
   if (flush === 'sync') {
-    scheduler = job  // 同步执行
+    scheduler = job // 同步立即执行
   } else if (flush === 'post') {
-    scheduler = () => queuePostRenderEffect(job)  // 组件更新后执行
+    scheduler = () => queuePostRenderEffect(job, instance && instance.suspense) // 组件 DOM 更新后执行
   } else {
-    scheduler = () => queuePreFlushCb(job)  // 默认 'pre'，组件更新前执行
+    // 默认是 'pre'
+    scheduler = () => queueJob(job) // 放入异步更新队列，在 DOM 更新前执行
   }
 
-  // 7. 创建 ReactiveEffect
+  // 4. 实例化底层的 ReactiveEffect
   const effect = new ReactiveEffect(getter, scheduler)
 
-  // 8. 立即执行（immediate 或 watchEffect 模式）
+  // 5. 初始化执行 (处理 immediate 选项)
   if (cb) {
     if (immediate) {
+      // 立即执行一次 job，触发用户回调
       job()
     } else {
-      oldValue = effect.run()  // 首次收集依赖，但不触发回调
+      // 否则仅执行一次 getter 收集依赖，并保存旧值
+      oldValue = effect.run()
     }
-  } else {
-    effect.run()  // watchEffect 立即执行
   }
 
-  // 9. 返回 stop 函数
+  // 返回停止侦听的函数
   return () => {
     effect.stop()
   }
 }
 ```
+:::
 
-## 3. 数据源标准化与依赖收集
+### 3.2 定义 Job（回调包装器）
 
-### 3.1 数据源类型处理
+:::code-group
+```typescript [apiWatch.ts]
+let oldValue = isMultiSource ? [] : INITIAL_WATCHER_VALUE
+// 1. 定义内部的 cleanup 变量，初始为空
+let cleanup: (() => void) | undefined
 
-`doWatch` 支持多种数据源类型，统一转换为 `getter` 函数：
+// 2. 定义暴露给开发者的 onCleanup 函数
+const onCleanup = (fn: () => void) => {
+    // 当开发者调用 onCleanup(fn) 时，Vue 会做两件事：
+    // a. 将 fn 赋值给内部的 cleanup 变量
+    // b. 将 fn 挂载到底层 effect.onStop 上（确保侦听器被停止/组件卸载时也能触发）
+    cleanup = effect.onStop = () => {
+        // 执行开发者传入的清理逻辑
+        fn()
+        // 执行完毕后重置清理函数，避免重复调用
+        cleanup = undefined
+    }
+}
+// job 是当数据变化时，真正推入调度队列执行的函数
+const job: Function = () => {
+    //不是响应式数据直接返回
+    if (!effect.active) return
+    if (cb) {
+        // 1. 执行 effect.run() 获取新值，并重新收集依赖
+        const newValue = effect.run()
 
-| 数据源类型 | 转换后的 `getter` | 说明 |
-|-----------|------------------|------|
-| `ref` | `() => source.value` | 订阅 `.value` 变化 |
-| `reactive` | `() => source` | 自动 `deep = true`，遍历所有属性 |
-| `getter 函数` | `source` | 直接使用，可访问多个响应式数据 |
-| 数组 | `() => source.map(item => ...)` | 侦听多个数据源，返回数组 |
+        // 2. 比较新旧值，或者由于 deep/forceTrigger 强制触发
+        if (
+            deep ||
+            forceTrigger ||
+            hasChanged(newValue, oldValue)
+        ) {
+            // 3. 触发清理函数 (处理竞态条件)
+            if (cleanup) {
+                cleanup()
+            }
 
-### 3.2 深度侦听的实现
+            // 4. 执行用户传入的 cb 回调，传入新值、旧值和 onCleanup 钩子
+            cb(
+                newValue,
+                oldValue === INITIAL_WATCHER_VALUE ? undefined : oldValue,
+                onCleanup
+            )
 
-当 `deep` 为 `true` 时，`traverse` 函数会递归访问对象的所有属性，确保任何嵌套属性的变化都能被追踪。
+            // 5. 更新旧值
+            oldValue = newValue
+        }
+    } else {
+        // watchEffect 的处理分支
+        effect.run()
+    }
+}
+```
+:::
 
-```typescript
-function traverse(value: unknown, seen?: Set<unknown>) {
-  if (!isObject(value)) return value
+## 4. 深度侦听实现（`traverse`）
+
+当侦听 `reactive` 对象或配置了 `deep: true` 时，必须触发对象内部所有属性的 `getter`，这样才能将当前的 `effect` 绑定到所有深层属性的 `dep` 上。
+
+:::code-group
+```typescript [apiWatch.ts]
+export function traverse(value: unknown, seen?: Set<unknown>) {
+  // 如果不是对象，或者没有被代理，则直接返回
+  if (!isObject(value)) {
+    return value
+  }
+  // 使用 Set 避免循环引用导致死循环（如 obj.self = obj）
   seen = seen || new Set()
-  if (seen.has(value)) return value
+  if (seen.has(value)) {
+    return value
+  }
   seen.add(value)
-  if (isRef(value)) traverse(value.value, seen)
-  else if (isArray(value)) value.forEach(v => traverse(v, seen))
-  else if (isMap(value) || isSet(value)) value.forEach((v, k) => { traverse(k, seen); traverse(v, seen) })
-  else if (isPlainObject(value)) Object.keys(value).forEach(k => traverse((value as any)[k], seen))
+  
+  if (isRef(value)) {
+    traverse(value.value, seen)
+  } else if (isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      traverse(value[i], seen)
+    }
+  } else if (isSet(value) || isMap(value)) {
+    value.forEach((v: any) => {
+      traverse(v, seen)
+    })
+  } else if (isObject(value)) {
+    for (const key in value) {
+      // 核心：读取对象的属性，触发 Proxy 的 get，进行依赖收集
+      traverse((value as any)[key], seen)
+    }
+  }
   return value
 }
 ```
 
-- **递归访问**：深度遍历所有子属性，触发它们的 `getter`，从而建立依赖。
-- **去重**：使用 `Set` 避免循环引用导致的无限递归。
-
-## 4. 清理副作用（`onCleanup`）
-
-`watch` 的回调函数第三个参数 `onCleanup` 用于注册清理函数，常见于异步场景（如防抖、取消请求）。
-
-### 4.1 使用示例
-
-```javascript
-watch(keyword, async (newKeyword, oldKeyword, onCleanup) => {
-  let active = true
-  onCleanup(() => { active = false })
-  const result = await fetch(`/api?q=${newKeyword}`)
-  if (active) {
-    data.value = result
-  }
-})
-```
-
-### 4.2 源码实现
-
-- `onCleanup` 接收一个清理函数，内部将其赋值给 `cleanup` 变量。
-- 在下一次回调执行前，如果存在 `cleanup`，会先执行它。
-- 这样确保了过期的异步操作被取消，避免竞态条件。
-
-## 5. 调度策略：`flush` 选项
-
-`flush` 决定回调的执行时机，对应三种模式：
-
-| 值 | 调度函数 | 执行时机 |
-|----|----------|----------|
-| `'pre'`（默认） | `queuePreFlushCb(job)` | 组件更新前，DOM 尚未更新 |
-| `'post'` | `queuePostRenderEffect(job)` | 组件更新后，DOM 已更新 |
-| `'sync'` | 直接 `job()` | 同步执行，依赖变化立即触发 |
-
-```typescript
-// pre 模式：使用 queuePreFlushCb
-const queuePreFlushCb = (cb: Function) => {
-  queueJob(cb)  // 用于渲染前的任务
-}
-
-// post 模式：使用 queuePostRenderEffect
-export function queuePostRenderEffect(effect: Function) {
-  queueEffectWithSuspense(effect, postFlushQueue)
+```typescript [ref.ts]
+//判断是否是ref值
+export function isRef(ref: any) {
+    return !!ref.__v_isRef
 }
 ```
 
-- 默认 `pre` 模式确保在组件重新渲染前执行，可以访问旧 DOM。
-- `post` 模式常用于需要操作更新后 DOM 的场景。
-- `sync` 模式效率较低，应谨慎使用。
+```typescript [shared/index.ts]
+//判断传入的值是否为数组
+export const isArray = Array.isArray
 
-## 6. 一次性侦听：`once` 选项（Vue 3.4+）
+//判断传入的值是否为原生的非空对象
+export const isObject = (val: unknown): val is Record<any, any> =>
+    val !== null && typeof val === 'object'
 
-`once` 选项使 `watch` 在回调执行一次后自动停止。
+//转string
+export const objectToString = Object.prototype.toString
+export const toTypeString = (value: unknown): string =>
+    objectToString.call(value)
 
-```typescript
-if (once && cb) {
-  const _stop = stop
-  stop = () => {
-    _stop()
-    effect.stop()
-  }
-}
+//判断是否是map对象
+export const isMap = (val: unknown): val is Map<any, any> =>
+    toTypeString(val) === '[object Map]'
+
+//判断是否是set对象
+export const isSet = (val: unknown): val is Set<any, any> =>
+    toTypeString(val) === '[object Set]'
 ```
+:::
 
-- 内部将 `stop` 函数包装，先执行用户停止逻辑，再停止 `effect`。
+## 5. 完整流程图
 
-## 7. `watchEffect` 与 `watch` 的关联
+![Watch Flow](/watch.png)
 
-`watchEffect` 是 `doWatch` 的一个特例：不传入 `cb`（回调），且 `immediate` 为 `true`。
+## 6. `watch` 与 `computed` 对比
 
-```typescript
-export function watchEffect(effect: WatchEffect, options?: WatchOptionsBase): WatchStopHandle {
-  return doWatch(effect, null, options)
-}
-```
+| 对比维度 | `watch` | `computed` |
+|----------|-------|-------------|
+| **核心机制** | `ReactiveEffect` + 自定义 `Scheduler` | `ReactiveEffect` + 懒计算标志 `_dirty` |
+| **执行时机** | 数据变化时被动触发（异步/同步） | 依赖变化且被读取 `.value` 时触发计算 |
+| **主要用途** | 包含副作用（请求、操作 DOM） | 根据现有状态计算派生数据 |
+| **返回值** | 返回一个取消侦听的函数 `stop` | 返回一个只读（或可写）的 `Ref` 对象 |
 
-- `effect` 本身就是副作用函数，没有新旧值回调。
-- 立即执行一次，自动收集依赖。
+## 7. 总结
 
-## 8. 完整流程图
+基于上述源码分析，`watch` 具备以下核心特性：
 
-![Logo](/watch.png)
-
-## 9. 关键源码位置速查
-
-| 文件路径 | 核心内容 |
-|----------|----------|
-| `packages/runtime-core/src/apiWatch.ts` | `watch`, `watchEffect`, `doWatch` 实现 |
-| `packages/runtime-core/src/scheduler.ts` | `queuePreFlushCb`, `queuePostRenderEffect` |
-| `packages/reactivity/src/effect.ts` | `ReactiveEffect`, `track`, `trigger` |
-| `packages/shared/src/index.ts` | `hasChanged`, `isObject`, `traverse` |
-
-## 10. 总结
-
-| 模块 | 核心实现 | 关键特性 |
-|------|----------|----------|
-| 数据源标准化 | 统一转换为 `getter` | 支持 `ref`, `reactive`, `getter`, 数组 |
-| 依赖收集 | 通过 `ReactiveEffect` 执行 `getter` | 自动追踪依赖 |
-| 深度侦听 | `traverse` 递归访问嵌套属性 | 内置去重，避免循环 |
-| 新旧值比较 | `hasChanged` 严格比较 | NaN 特殊处理 |
-| 清理副作用 | `onCleanup` 注册清理函数 | 避免竞态 |
-| 调度策略 | `flush` 选项 | `pre`, `post`, `sync` |
-| 一次性侦听 | `once` 选项 | 回调执行后自动停止 |
-
-Vue 3 的 `watch` 通过 `doWatch` 统一处理数据源标准化、依赖收集、调度执行和清理机制，既提供了灵活的侦听能力，又与 `watchEffect`、`effect` 系统无缝集成。理解其源码有助于编写更加精准、高效的侦听逻辑，并掌握异步副作用的管理技巧。
+1. **懒执行 (Lazy by default)**：默认情况下，`watch` 不会立即执行回调，仅在被侦听的数据源发生实际变化时才会触发回调。可以通过配置 `{ immediate: true }` 改变此行为。
+2. **多态数据源支持**：支持侦听 `Ref`、`Reactive` 对象、`Getter` 函数，甚至是由上述类型组成的数组（批量侦听）。
+3. **深层侦听 (Deep Watching)**：对于 `reactive` 对象默认开启深层侦听；对于普通对象或包含复杂结构的 `ref`，可通过 `{ deep: true }` 强制递归收集依赖。
+4. **获取旧值**：回调函数中可以明确拿到变化前的 `oldValue` 和变化后的 `newValue`。
+5. **副作用清理 (onCleanup)**：回调的第三个参数提供了一个注册清理函数的钩子，特别适合处理竞态条件（如节流防抖、取消过期的网络请求）。
+6. **可配置刷新时机 (flush)**：
+    - `'pre'` (默认)：在组件 DOM 更新前执行副作用。
+    - `'post'`：在组件 DOM 更新后执行（如需要获取更新后的 DOM 节点）。
+    - `'sync'`：同步执行，数据变化后立即触发（可能会造成性能问题，需慎用）。

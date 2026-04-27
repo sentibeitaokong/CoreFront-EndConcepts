@@ -40,7 +40,8 @@
 
 ### 3.1 添加普通任务
 
-```typescript
+:::code-group
+```typescript [scheduler.ts]
 const queue: Function[] = []                   //主队列
 const pendingPreFlushCbs: Function[] = []     //前置队列
 const pendingPostFlushCbs: Function[] = []   //后置队列
@@ -70,12 +71,14 @@ export function queuePostFlushCb(cb: Function) {
     }
 }
 ```
+:::
 
 ### 3.2 注册微任务
 
 `queueFlush` 负责在下一个微任务中执行刷新函数。
 
-```typescript
+:::code-group
+```typescript [scheduler.ts]
 //对应 promise 的 pending 状态，保证同时只有一个微任务被注册
 let isFlushPending = false
 //当前的执行任务
@@ -90,12 +93,14 @@ function queueFlush() {
     }
 }
 ```
+:::
 
 ### 3.3 核心刷新函数
 
 `flushJobs` 按顺序执行所有队列中的任务。
 
-```typescript
+:::code-group
+```typescript [scheduler.ts]
 type CountMap = Map<Function, number>
 const queue: Function[] = []                   //主队列
 const pendingPreFlushCbs: Function[] = []     //前置队列
@@ -157,6 +162,7 @@ function flushPostFlushCbs() {
     }
 }
 ```
+:::
 
 ## 4. 调度策略与 `watch` 的 `flush` 选项
 

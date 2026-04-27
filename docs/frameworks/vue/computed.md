@@ -33,7 +33,8 @@
 
 ### 2.1 `computed` 函数入口
 
-```typescript
+:::code-group
+```typescript [computed.ts]
 export function computed<T>(
     getterOrOptions: ComputedGetter<T> | WritableComputedOptions<T>
 ) {
@@ -55,6 +56,7 @@ export function computed<T>(
 const isFunction = (val: unknown): val is Function =>
     typeof val === 'function'
 ```
+:::
 
 ### 2.2 `ComputedRefImpl` 类定义
 

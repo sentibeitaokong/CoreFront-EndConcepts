@@ -24,7 +24,8 @@
 
 ### 2.1 `ref` 函数入口
 
-```typescript
+:::code-group
+```typescript [ref.ts]
 export function ref(value?: unknown) {
     return createRef(value, false)
 }
@@ -43,6 +44,7 @@ function isRef(r: any): r is Ref {
     return !!(r && r.__v_isRef === true)
 }
 ```
+:::
 
 ### 2.2 `RefImpl` 类定义
 
