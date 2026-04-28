@@ -424,6 +424,16 @@ export default defineConfig({
                                                     {text: 'watch', link: '/frameworks/vue/watch'},
                                                     {text: 'watchEffect', link: '/frameworks/vue/watchEffect'},
                                                 ]
+                                            },
+                                            {
+                                                text: '组件化',
+                                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                                collapsed: true, // 初始状态为“展开”
+                                                items: [
+                                                    {text: 'vnode', link: '/frameworks/vue/vnode'},
+                                                    {text: 'createRenderer', link: '/frameworks/vue/createRenderer'},
+
+                                                ]
                                             }
 
                                         ]
