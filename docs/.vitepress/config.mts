@@ -434,6 +434,9 @@ export default defineConfig({
                                                     {text: 'createRenderer', link: '/frameworks/vue/createRenderer'},
                                                     {text: 'nodeOps', link: '/frameworks/vue/nodeOps'},
                                                     {text: 'processElement', link: '/frameworks/vue/processElement'},
+                                                    {text: 'processText', link: '/frameworks/vue/processText'},
+                                                    {text: 'processCommentNode', link: '/frameworks/vue/processCommentNode'},
+                                                    {text: 'processFragment', link: '/frameworks/vue/processFragment'},
                                                 ]
                                             }
 

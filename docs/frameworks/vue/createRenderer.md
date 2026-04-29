@@ -33,24 +33,50 @@ export function createRenderer(options: RendererOptions) {
     return baseCreateRenderer(options)
 }
 
-//渲染器配置对象
-export interface RendererOptions {
-    //为指定 element 的 prop 打补丁
-    patchProp(el: Element, key: string, prevValue: any, nextValue: any): void
-    //为指定的 Element 设置 text
-    setElementText(node: Element, text: string): void
-    //插入指定的 el 到 parent 中，anchor 表示插入的位置，即：锚点
-    insert(el, parent: Element, anchor?): void
-    //创建指定的 Element
-    createElement(type: string)
-    //卸载指定dom
-    remove(el): void
-    //创建 Text 节点
-    createText(text: string)
-    //设置 text
-    setText(node, text): void
-    //设置Commonent text
-    createComment(text: string)
+//核心接口api   
+//必需方法：createElement、createText、insert、remove、parentNode、nextSibling、patchProp 是渲染器能够正常工作的最低要求。
+export interface RendererOptions<HostNode = RendererNode, HostElement = RendererElement> {
+    // 创建元素
+    createElement(type: string, isSVG?: boolean, isCustomizedBuiltIn?: string): HostElement
+    // 创建文本节点
+    createText(text: string): HostNode
+    // 创建注释节点
+    createComment(text: string): HostNode
+    // 插入节点
+    insert(child: HostNode, parent: HostElement, anchor?: HostNode | null): void
+    // 移除节点
+    remove(child: HostNode): void
+    // 设置元素文本内容
+    setElementText(el: HostElement, text: string): void
+    // 设置文本节点内容
+    setText(node: HostNode, text: string): void
+    // 获取父节点
+    parentNode(node: HostNode): HostElement | null
+    // 获取下一个兄弟节点
+    nextSibling(node: HostNode): HostNode | null
+    // 查询元素是否匹配选择器（主要用于 SSR hydrate）
+    querySelector?(selector: string): HostElement | null
+    // 获取元素作用域 ID（用于 CSS scope）
+    getElementId?(el: HostElement): string | null
+    // 插入静态内容（SSR 优化）
+    insertStaticContent?(
+        content: string,
+        parent: HostElement,
+        anchor: HostNode | null,
+        isSVG: boolean
+    ): [HostNode, HostNode]
+    // 更新属性（核心方法之一）
+    patchProp(
+        el: HostElement,
+        key: string,
+        prevValue: any,
+        nextValue: any,
+        isSVG?: boolean,
+        prevChildren?: VNode[],
+        parentComponent?: ComponentInternalInstance | null,
+        parentSuspense?: SuspenseBoundary | null,
+        unmountChildren?: (children: VNode[]) => void
+    ): void
 }
 ```
 :::

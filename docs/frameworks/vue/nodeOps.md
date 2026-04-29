@@ -92,9 +92,9 @@ export const nodeOps = {
 
 :::code-group
 ```typescript [nodeOps.ts (创建操作)]
+const doc = document
 export const nodeOps = {
   // ... 其他操作
-
   // 创建普通元素或 SVG/MathML 元素
   createElement: (tag, isSVG, is, props): Element => {
     const el = isSVG
