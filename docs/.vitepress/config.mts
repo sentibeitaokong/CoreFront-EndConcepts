@@ -432,7 +432,8 @@ export default defineConfig({
                                                 items: [
                                                     {text: 'vnode', link: '/frameworks/vue/vnode'},
                                                     {text: 'createRenderer', link: '/frameworks/vue/createRenderer'},
-
+                                                    {text: 'nodeOps', link: '/frameworks/vue/nodeOps'},
+                                                    {text: 'processElement', link: '/frameworks/vue/processElement'},
                                                 ]
                                             }
 

@@ -1,7 +1,6 @@
 # `createRenderer`(自定义渲染器)
 
-`createRenderer` 是 Vue 3 渲染器（Renderer）体系的核心入口。它采用了一种极为优雅的**依赖注入（Dependency Injection）**与**闭包
-**架构，将 Vue 的核心算法（虚拟 DOM、Diff 算法、组件生命周期）与具体的平台 API（如浏览器的 DOM 操作）彻底解耦，从而实现了真正的跨平台渲染能力。
+`createRenderer` 是 Vue 3 渲染器（Renderer）体系的核心入口。它采用了一种极为优雅的**依赖注入（Dependency Injection）** 与**闭包**架构，将 Vue 的核心算法（虚拟 DOM、Diff 算法、组件生命周期）与具体的平台 API（如浏览器的 DOM 操作）彻底解耦，从而实现了真正的跨平台渲染能力。
 
 ## 1. `createRenderer` 的作用与设计动机
 
@@ -60,6 +59,8 @@ export interface RendererOptions {
 
 :::code-group
 ```typescript [renderer.ts]
+import { createAppAPI } from './apiCreateApp'
+import { Comment, Fragment, isSameVNodeType, Text } from './vnode'
 function baseCreateRenderer(options: RendererOptions):any {
     // 1. 从传入的 options 中解构出特定平台的操作 API（重命名以防止冲突）
     const {
@@ -158,11 +159,22 @@ export function createAppAPI<HostElement>(render) {
 }
 ```
 
+```typescript [vnode.ts]
+export const Fragment = Symbol('Fragment')
+export const Text = Symbol('Text')
+export const Comment = Symbol('Comment')
+
+//根据 key || type 判断是否为相同类型节点
+export function isSameVNodeType(n1: VNode, n2: VNode): boolean {
+    return n1.type === n2.type && n1.key === n2.key
+}
+```
+
 :::
 
-## 4. 完整流程示例
+## 3. 完整流程示例
 
-### 4.1 基础使用示例 (自定义 Canvas 渲染器简写)
+### 3.1 基础使用示例 (自定义 Canvas 渲染器简写)
 
 ```ts
 import {createRenderer,h} from '@vue/runtime-core'
@@ -213,11 +225,11 @@ export const App = {
 createApp(App).mount(app.stage)
 ```
 
-### 4.2 完整流程图
+### 3.2 完整流程图
 
 ![Logo](/createRenderer.png)
 
-## 5. 总结
+## 4. 总结
 
 `createRenderer` 是 Vue 3 渲染系统的心脏，它体现了极其优秀的框架抽象能力。通过**将“变化检测与比对（Diff）”保留在核心，将“节点增删改（DOM
 Ops）”开放给外部**，`createRenderer` 造就了 Vue 的繁荣生态。
