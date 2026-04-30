@@ -437,6 +437,7 @@ export default defineConfig({
                                                     {text: 'processText', link: '/frameworks/vue/processText'},
                                                     {text: 'processCommentNode', link: '/frameworks/vue/processCommentNode'},
                                                     {text: 'processFragment', link: '/frameworks/vue/processFragment'},
+                                                    {text: 'processComponent', link: '/frameworks/vue/processComponent'},
                                                 ]
                                             }
 

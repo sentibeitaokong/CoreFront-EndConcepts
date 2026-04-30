@@ -100,4 +100,4 @@ if (n2.children !== n1.children) {
 
 ## 6. 总结
 
-`processText` 是 Vue 3 渲染器中最简单，也是最纯粹的处理函数。它没有递归，没有 PatchFlag 判定，甚至没有属性的遍历。它忠实地扮演着文本搬运工的角色，通过原生的 `createTextNode` 和 `nodeValue`，保障了 Vue 在处理细碎的文本片段时能够保持极低的性能损耗。
+`processText` 是 Vue 3 渲染器中最简单，也是最纯粹的处理函数。它没有递归，没有 `PatchFlag` 判定，甚至没有属性的遍历。它忠实地扮演着文本搬运工的角色，通过原生的 `createTextNode` 和 `nodeValue`，保障了 Vue 在处理细碎的文本片段时能够保持极低的性能损耗。
