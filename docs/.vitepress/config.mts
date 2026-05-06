@@ -423,6 +423,7 @@ export default defineConfig({
                                                     {text: 'nextTick', link: '/frameworks/vue/nextTick'},
                                                     {text: 'watch', link: '/frameworks/vue/watch'},
                                                     {text: 'watchEffect', link: '/frameworks/vue/watchEffect'},
+                                                    {text: 'provide/Inject', link: '/frameworks/vue/provideAndInject'},
                                                 ]
                                             },
                                             {
@@ -438,6 +439,7 @@ export default defineConfig({
                                                     {text: 'processCommentNode', link: '/frameworks/vue/processCommentNode'},
                                                     {text: 'processFragment', link: '/frameworks/vue/processFragment'},
                                                     {text: 'processComponent', link: '/frameworks/vue/processComponent'},
+                                                    {text: 'Diff算法', link: '/frameworks/vue/patchKeyedChildren'},
                                                 ]
                                             }
 

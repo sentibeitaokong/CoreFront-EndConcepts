@@ -278,6 +278,9 @@ function normalizeSlotValue(value: any) {
 ```typescript [component.ts]
 import { PublicInstanceProxyHandlers } from './componentPublicInstance.ts'
 import {ref} from '../../reactivity/src/ref.ts'
+import {
+    applyOptions,
+} from './componentOptions'
 let currentInstance: any = null
 
 //将当前实例设为全局的 currentInstance，可追溯赋值过程,方便维护
@@ -352,9 +355,13 @@ export function finishComponentSetup(
                 Component.render = compile(template, /* 编译选项 */)
             }
         }
-        // 最终将 render 函数挂载到实例上
+        // 将最终的 render 函数挂载到组件实例上。
+        // 如果连 template 也没有，就给一个空的 NOOP 函数兜底，防止渲染器崩溃。
         instance.render = (Component.render || NOOP) as InternalRenderFunction
     }
+    //步骤 2：兼容并解析 Vue 2 风格的 Options API
+    // inject -> methods -> data -> computed -> watch -> provide -> 生命周期钩子
+    applyOptions(instance)
 }
 ```
 
@@ -486,6 +493,397 @@ export function unref(ref) {
   return isRef(ref) ? ref.value : ref
 }
 ```
+
+```typescript [componentOptions.ts]
+import { isArray, isObject, extend } from '@vue/shared'
+import { inject, isRef } from 'vue'
+//兼容并解析 Vue 2 风格的 Options API
+export function applyOptions(instance: ComponentInternalInstance) {
+    // 1. 获取全局配置的 mixins 和组件自身的 options
+    // resolveMergedOptions 会递归合并 Vue.mixin、extends 和当前组件的配置
+    const options = resolveMergedOptions(instance)
+
+    // 2. 准备上下文引用
+    const publicThis = instance.proxy! // 供用户使用的 this (渲染代理)
+    const ctx = instance.ctx           // 内部存放方法和计算属性的真实对象
+    let globalSetupContext: any        // Vue 3.2 引入的 script setup 全局上下文
+
+    // 阶段 1：全局状态与前置钩子
+    // 1. 触发 beforeCreate 生命周期
+    if (options.beforeCreate) {
+        callHook(options.beforeCreate, instance, LifecycleHooks.BEFORE_CREATE)
+    }
+
+    // 2. 解析 Inject (注入)
+    // 必须在 data/methods 之前解析，因为它们可能依赖注入的数据
+    const { injectOptions } = options
+    if (injectOptions) {
+        resolveInjections(injectOptions, ctx, publicThis)
+    }
+
+    // 阶段 2：挂载 Methods (并进行严格冲突校验)
+    const { methods } = options
+    if (methods) {
+        for (const key in methods) {
+            const methodHandler = methods[key]
+            if (isFunction(methodHandler)) {
+                // 挂载前校验：绝对不允许 method 和 props 重名！
+                // (在 __DEV__ 环境下会打印警告，生产环境直接覆盖，但原则上不允许)
+
+                // 绑定 this 并挂载到 ctx 上
+                // Object.defineProperty 保证这些方法是不可枚举的 (non-enumerable)
+                Object.defineProperty(ctx, key, {
+                    value: methodHandler.bind(publicThis),
+                    writable: true,
+                    configurable: true,
+                    enumerable: true
+                })
+            }
+        }
+    }
+
+    // 阶段 3：解析 Data (响应式核心)
+    const { data: dataOptions } = options
+    if (dataOptions) {
+        // 1. 执行 data 函数
+        const data = isFunction(dataOptions)
+            ? dataOptions.call(publicThis, publicThis) // 传入 publicThis 作为 this
+            : dataOptions // 兼容 data 是一个纯对象的情况 (Vue 2 根实例常这么写)
+
+        // 2. 如果 data 不是对象，回退为空对象
+        if (!isObject(data)) {
+            data = {}
+        }
+
+        // 3. 极其严格的属性冲突校验！
+        // 遍历 data 里的所有 key，确保它们没有覆盖 props 或 methods
+        const keys = Object.keys(data)
+        const props = instance.propsOptions[0] || {}
+        let i = keys.length
+        while (i--) {
+            const key = keys[i]
+            // 如果和 methods 重名，警告！
+            if (methods && hasOwn(methods, key)) {
+                // DEV 警告逻辑...
+            }
+            // 如果和 props 重名，直接跳过并警告！(Props 优先级高于 Data)
+            if (hasOwn(props, key)) {
+                // DEV 警告逻辑...
+                continue
+            }
+            // 检查 key 是否以 _ 或 $ 开头 (Vue 的保留字前缀)
+            if (key[0] !== '$' && key[0] !== '_') {
+                // 只有合法的 key 才会被添加到真实的数据域中
+            }
+        }
+
+        // 4. 将纯对象转化为深度响应式对象
+        instance.data = reactive(data)
+    }
+    // 阶段 4：解析 Computed (计算属性)
+    const { computed: computedOptions } = options
+    if (computedOptions) {
+        for (const key in computedOptions) {
+            const opt = computedOptions[key]
+            const get = isFunction(opt)
+                ? opt.bind(publicThis)
+                : isFunction(opt.get) ? opt.get.bind(publicThis) : NOOP
+            const set = !isFunction(opt) && isFunction(opt.set)
+                ? opt.set.bind(publicThis)
+                : NOOP
+
+            // 创建 Composition API 的 computed 实例
+            const c = computed({ get, set })
+
+            // 通过 Object.defineProperty 将计算属性代理到 ctx 上
+            // 当你访问 this.doubleCount 时，实际上是在访问 c.value
+            Object.defineProperty(ctx, key, {
+                enumerable: true,
+                configurable: true,
+                get: () => c.value,
+                set: v => (c.value = v)
+            })
+        }
+    }
+    // 阶段 5：解析 Watch (侦听器) 的多态性
+    const { watch: watchOptions } = options
+    if (watchOptions) {
+        for (const key in watchOptions) {
+            // 开发者写的 watch 可能是五花八门的：
+            // 1. 字符串: watch: { count: 'handleCountChange' }
+            // 2. 函数: watch: { count(val) {...} }
+            // 3. 对象: watch: { count: { handler: fn, deep: true } }
+            // 4. 数组: watch: { count: [fn1, fn2] }
+            createWatcher(watchOptions[key], ctx, publicThis, key)
+        }
+    }
+
+    // 阶段 6：解析 Provide
+    const { provide: provideOptions } = options
+    if (provideOptions) {
+        const provides = isFunction(provideOptions)
+            ? provideOptions.call(publicThis)
+            : provideOptions
+        // 遍历 provide 对象并调用底层的 provide API
+        Reflect.ownKeys(provides).forEach(key => {
+            provide(key, provides[key as string])
+        })
+    }
+
+    // 阶段 7：生命周期与组件资产
+    // 1. 触发 created 钩子
+    if (options.created) {
+        callHook(options.created, instance, LifecycleHooks.CREATED)
+    }
+
+    // 2. 映射全部生命周期到 Composition API
+    const registerLifecycle = (hookName, setupFn) => {
+        if (options[hookName]) {
+            // 对可能是数组的生命周期进行遍历绑定
+            const hooks = isArray(options[hookName]) ? options[hookName] : [options[hookName]]
+            hooks.forEach(hook => setupFn(hook.bind(publicThis), instance))
+        }
+    }
+
+    registerLifecycle('beforeMount', onBeforeMount)
+    registerLifecycle('mounted', onMounted)
+    registerLifecycle('beforeUpdate', onBeforeUpdate)
+    registerLifecycle('updated', onUpdated)
+    registerLifecycle('activated', onActivated)
+    registerLifecycle('deactivated', onDeactivated)
+    registerLifecycle('beforeUnmount', onBeforeUnmount)
+    registerLifecycle('unmounted', onUnmounted)
+    // ...包含 renderTracked, renderTriggered 等
+
+    // 3. 注册局部 Components, Directives (指令)
+    // 这些资产会被挂载到 instance.components 等内部属性上，供模板编译器查找
+    if (options.components) instance.components = options.components
+    if (options.directives) instance.directives = options.directives
+}
+//将这四面八方的配置，按照极其严格的优先级和特定的合并策略，拍平成一个单一的、没有冲突的 options 对象。
+export function resolveMergedOptions(
+    instance: ComponentInternalInstance
+): ComponentOptions {
+    const base = instance.type as ComponentOptions
+    const { mixins, extends: extendsOptions } = base
+
+    // 拿到全局上下文中的 mixins (通过 app.mixin() 注册的)
+    // 拿到全局的合并缓存字典 (optionsCache)
+    const { mixins: globalMixins, optionsCache } = instance.appContext
+
+    // 步骤 1：性能第一，读取缓存
+    let resolved = optionsCache.get(base)
+    if (resolved) {
+        return resolved // 命中缓存，直接返回！
+    }
+
+    // 初始化一个空的最终配置对象
+    resolved = {}
+
+    // 步骤 2：核心递归合并算法 (严格按优先级先后顺序)
+    // 优先级 1 (最低): 全局 Mixin
+    if (globalMixins.length) {
+        globalMixins.forEach(m => mergeOptions(resolved, m, instance))
+    }
+
+    // 优先级 2: 组件的 extends
+    mergeOptions(resolved, base, instance)
+
+    // 步骤 3：存入缓存并返回
+    optionsCache.set(base, resolved)
+    return resolved
+}
+
+// 核心合并引擎：mergeOptions
+export function mergeOptions(to: any, from: any, instance: any) {
+    // 1. 如果当前的 from 身上还有 extends 或 mixins，必须【深度优先递归】合并它们！
+    if (from.extends) {
+        mergeOptions(to, from.extends, instance)
+    }
+    if (from.mixins) {
+        from.mixins.forEach(m => mergeOptions(to, m, instance))
+    }
+
+    // 2. 遍历 from 上的所有属性，应用【策略模式】进行合并
+    for (const key in from) {
+        const toVal = to[key]
+        const fromVal = from[key]
+
+        // 策略 A：生命周期钩子 (合并为数组)
+        if (isLifecycleHook(key)) {
+            if (toVal) {
+                // 如果已经有钩子了，就把新旧钩子拼接成数组：[旧钩子, 新钩子]
+                to[key] = [...new Set([...toArray(toVal), ...toArray(fromVal)])]
+            } else {
+                to[key] = fromVal
+            }
+        }
+        // 策略 B：Data 函数 (包装为一个新的函数，执行时做深度对象合并)
+        else if (key === 'data') {
+            if (!toVal) {
+                to[key] = fromVal
+            } else {
+                // 返回一个合并器函数，当 data 被执行时，深层比对对象的 key
+                to[key] = function mergeDataFn() {
+                    return deepMergeData(toVal.call(this), fromVal.call(this))
+                }
+            }
+        }
+        // 策略 C：对象覆盖 (Methods, Computed, Inject, Components 等)
+        else if (key === 'methods' || key === 'computed' || /* ... */) {
+            if (!toVal) {
+                to[key] = fromVal
+            } else {
+                // 对象合并：fromVal (新值) 的属性会覆盖 toVal (旧值) 的同名属性
+                to[key] = extend(Object.create(null), toVal, fromVal)
+            }
+        }
+        // 策略 D：普通属性直接覆盖
+        else {
+            to[key] = fromVal
+        }
+    }
+}
+// 附：Watch 多态解析工厂函数
+function createWatcher(raw, ctx, publicThis, key) {
+    // 从 publicThis(也就是 this) 读取要监听的数据作为 getter
+    const getter = () => publicThis[key]
+
+    if (isString(raw)) {
+        // 兼容写法 1: watch: { msg: 'onMsgChange' }
+        const handler = ctx[raw]
+        watch(getter, handler)
+    } else if (isFunction(raw)) {
+        // 兼容写法 2: 函数
+        watch(getter, raw.bind(publicThis))
+    } else if (isObject(raw)) {
+        // 兼容写法 3: 对象 { handler: fn, deep: true }
+        if (isArray(raw)) {
+            // 兼容写法 4: 数组
+            raw.forEach(r => createWatcher(r, ctx, publicThis, key))
+        } else {
+            const handler = isFunction(raw.handler) ? raw.handler.bind(publicThis) : ctx[raw.handler]
+            watch(getter, handler, raw) // 传入 deep, immediate 等配置
+        }
+    }
+}
+
+//触发 hooks
+function callHook(hook: Function, proxy) {
+    hook.bind(proxy)()
+}
+
+//规范化Inject
+export function resolveInjections(
+    injectOptions: any, // 开发者写的 inject 配置 (可能是数组，也可能是对象)
+    ctx: any,           // 组件的内部上下文 (挂载数据的地方)
+    publicThis: any     // 组件的代理对象 (this)
+) {
+    // 步骤 1：规范化 (Normalization) 
+    /* 支持的写法：
+      1. 数组: inject: ['foo']  => 变成 { foo: { from: 'foo' } }
+      2. 别名: inject: { localFoo: 'foo' } => 变成 { localFoo: { from: 'foo' } }
+      3. 完整: inject: { localFoo: { from: 'foo', default: 1 } } => 保持原样
+    */
+    const normalized = isArray(injectOptions)
+        ? normalizeInject(injectOptions) // 内部辅助函数，将数组转对象
+        : injectOptions
+
+    // 步骤 2：遍历解析并注入
+    for (const key in normalized) {
+        const opt = normalized[key]
+
+        // 最终解析出来的值
+        let injected: unknown
+
+        // 如果 opt 是一个对象 (包含了 from 和 default)
+        if (isObject(opt)) {
+            // 如果配置了默认值 (default)
+            if ('default' in opt) {
+                // 【核心操作 A】：直接调用 Composition API 的 inject() 函数！
+                // 第三个参数 true 代表：如果 default 是个函数，将其作为工厂函数执行 (兼容 Vue 2)
+                injected = inject(
+                    opt.from || key,
+                    opt.default,
+                    true
+                )
+            } else {
+                // 没有配置默认值，直接按 key 查找
+                injected = inject(opt.from || key)
+            }
+        } else {
+            // 如果 opt 只是个普通的字符串别名
+            injected = inject(opt)
+        }
+
+        // 步骤 3：挂载到上下文与【自动解包魔法】
+        // 如果祖先组件 provide 出来的是一个 ref 响应式对象
+        if (isRef(injected)) {
+            // 核心魔法：使用 Object.defineProperty 进行拦截劫持！
+            // 目的：让开发者在 Options API 中读取 this.xxx 时，不需要写 .value
+            Object.defineProperty(ctx, key, {
+                enumerable: true,
+                configurable: true,
+                get: () => (injected as Ref).value,       // 读的时候，自动 .value
+                set: v => ((injected as Ref).value = v)   // 写的时候，自动写入 .value
+            })
+        } else {
+            // 如果注入的是普通值 (如字符串) 或 reactive 对象，直接挂载即可
+            ctx[key] = injected
+        }
+    }
+}
+
+
+// 内部规范化 inject 的核心算法
+export function normalizeInject(
+    raw: any // 开发者传入的原始 inject 配置
+): Record<string, { from: string | symbol; default?: any }> {
+
+    // 准备一个干净的标准对象，用于存放最终结果
+    const normalized: Record<string, any> = {}
+
+    // 场景 A：开发者传入的是数组 (最常见的 Vue 2 经典写法)
+    // 例如：inject: ['foo', 'bar']
+    if (isArray(raw)) {
+        for (let i = 0; i < raw.length; i++) {
+            // 数组里的每一个字符串，既是挂载到 this 上的 key，也是去寻找数据的 from 键
+            const key = raw[i]
+            // 强制格式化为：{ foo: { from: 'foo' } }
+            normalized[key] = { from: key }
+        }
+        return normalized
+    }
+
+    // 场景 B：开发者传入的是对象 (支持别名和默认值)
+    if (isObject(raw)) {
+        for (const key in raw) {
+            const value = raw[key]
+
+            // 场景 B1：值为普通字符串或 Symbol (别名写法)
+            // 例如：inject: { localFoo: 'foo' }
+            if (!isObject(value)) {
+                // key 是本地挂载名 localFoo，value 是父组件提供的数据源名 'foo'
+                // 强制格式化为：{ localFoo: { from: 'foo' } }
+                normalized[key] = { from: value }
+            }
+
+            // 场景 B2：值已经是对象 (最完整的写法，可能包含 default)
+            // 例如：inject: { localFoo: { from: 'foo', default: 1 } }
+            else {
+                // 利用 extend (Object.assign 的别名) 进行属性继承
+                // 如果开发者忘了写 from，默认以本地 key 作为 from
+                // 强制格式化为：{ localFoo: { from: 'foo', default: 1 } }
+                normalized[key] = extend({ from: key }, value)
+            }
+        }
+        return normalized
+    }
+
+    // 如果传入了奇奇怪怪的类型 (比如数字、布尔值)，直接返回空对象兜底
+    return normalized
+}
+```
 :::
 
 ### 3.3 `setupRenderEffect`
@@ -532,6 +930,112 @@ const setupRenderEffect = (
             // 3. 把组件根节点的 el，作为组件的 el
             initialVNode.el = subTree.el
             instance.isMounted = true
+        }
+        // 【分支 B：响应式更新 Update】
+        else {
+            //...
+        }
+    }
+    // 2. 创建响应式副作用 (ReactiveEffect)
+    // 使用 ReactiveEffect 包装 componentUpdateFn
+    const effect = (instance.effect = new ReactiveEffect(
+        componentUpdateFn,
+        // 【极其关键的调度器】：当依赖数据改变时，不立即同步执行更新，
+        // 而是把更新任务丢进微任务队列 (queueJob) 里，实现批处理防抖
+        () => queueJob(update),
+        instance.scope // 绑定组件的副作用作用域，组件卸载时一键清理
+    ))
+    // 3. 触发首次执行
+    const update: SchedulerJob = (instance.update = () => effect.run())
+    update.id = instance.uid // 给任务打上 ID，保证更新时的父子顺序
+    // 手动调用一次，启动初次挂载流程
+    update()
+}
+```
+
+```typescript [componentRenderUtils.ts]
+import { ShapeFlags } from 'packages/shared/src/shapeFlags'
+import { createVNode,Comment,Fragment,Text } from './vnode'
+//解析 render 函数的返回值
+export function renderComponentRoot(instance) {
+	const { vnode, render, data = {} } = instance
+
+	let result
+	try {
+		// 解析到状态组件
+		if (vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+			// 获取到 result 返回值，如果 render 中使用了 this，则需要修改 this 指向 输入Vnode
+			result = normalizeVNode(render!.call(data, data))
+		}
+	} catch (err) {
+		console.error(err)
+	}
+
+	return result
+}
+
+//标准化 VNode
+export function normalizeVNode(child: any): VNode {
+    // 1. 如果子节点是 null 或者布尔值 (比如 render 里写了 v-if="false" 返回的 false)
+    if (child == null || typeof child === 'boolean') {
+        // 包装成一个空的注释节点 ()
+        return createVNode(Comment)
+    }
+    // 2. 如果子节点是一个数组 (比如手写 render 返回了多个并列的元素)
+    else if (isArray(child)) {
+        // 包装成一个 Fragment (片段) 节点
+        return createVNode(
+            Fragment,
+            null,
+            // 递归标准化数组里的每一个子节点
+            child.slice()
+        )
+    }
+    // 3. 如果子节点是普通对象 (最正常的情况)
+    else if (typeof child === 'object') {
+        // 3.1 检查它是不是已经是一个 VNode 了 (通过 __v_isVNode 内部标记)
+        // cloneIfMounted 会检查这个 VNode 是否已经被挂载过了。如果挂载过，必须克隆一个全新的拷贝！
+        return cloneIfMounted(child)
+    }
+    // 4. 兜底逻辑：如果子节点是字符串或数字 (比如 {{ count }})
+    else {
+        // 包装成一个纯文本节点 (Text VNode)
+        return createVNode(Text, null, String(child))
+    }
+}
+
+//clone VNode
+export function cloneIfMounted(child) {
+	return child
+}
+```
+:::
+
+## 4. 更新分支：`updateComponent`
+
+
+### 4.1 `setupRenderEffect`
+
+组件更新触发`setupRenderEffect`方法中的`update`方法，执行更新操作
+
+:::code-group
+```typescript [renderer.ts]
+import {
+    renderComponentRoot
+} from './componentRenderUtils'
+import {updateProps} from './componentProps.ts'
+import {updateSlots} from './componentSlots.ts'
+const setupRenderEffect = (
+    instance: ComponentInternalInstance,
+    initialVNode: VNode,
+    container: RendererElement,
+    anchor: RendererNode | null,
+) => {
+    // 1. 定义组件的更新逻辑 (核心工作函数)
+    const componentUpdateFn = () => {
+        // 【分支 A：初次挂载 Mount】
+        if (!instance.isMounted) {
+            //...
         }
         // 【分支 B：响应式更新 Update】
         else {
@@ -754,75 +1258,46 @@ export function updateProps(
 ```
 
 ```typescript [componentSlots.ts]
-export const updateSlots = (
-  instance: ComponentInternalInstance,
-  children: any, // 父组件传来的新插槽内容
-) => {
-  const { vnode, slots } = instance
-  
-  // 是否需要进行“删除检查”的标记 (极其重要的性能优化)
-  let needDeletionCheck = true
-  let deletionComparisonTarget = EMPTY_OBJ
+function updateSlots(instance, newChildren) {
+    // 拿到组件当前的旧插槽对象 (这里面存的是上一轮的渲染函数)
+    const oldSlots = instance.slots;
+    let newSlots = {};
 
-  // -------------------------------------------------------------------
-  // 场景 A：新传入的是标准的插槽对象
-  // -------------------------------------------------------------------
-  if (vnode.shapeFlag & ShapeFlags.SLOTS_CHILDREN) {
-    const type = children._ // 获取编译器打上的魔法标记
-
-    if (type) {
-      // type === 1 代表 STABLE (稳定的插槽，即插槽的结构和名称不会变)
-      if (optimized && type === 1) {
-        // 【极速路径】：既然结构稳定，绝对不会有插槽被突然删除，跳过删除检查！
-        needDeletionCheck = false
-      }
-      
-      // 核心动作：直接把新的插槽函数对象，覆盖合并到老的 slots 对象上！
-      Object.assign(slots, children)
-      
-    } else {
-      // 慢速路径：如果不是编译器生成的 (比如手写 h 函数)，需要进行规范化处理
-      needDeletionCheck = !children.$stable
-      normalizeObjectSlots(children, slots)
+    // 步骤 1：规范化 (Normalize) 新传进来的插槽
+    if (typeof newChildren === 'function') {
+        // 场景 A：如果父组件只传了一个函数 (默认插槽的简写)
+        newSlots = { default: newChildren };
+    } else if (newChildren !== null && typeof newChildren === 'object') {
+        // 场景 B：标准的具名插槽对象 { header: fn, footer: fn }
+        newSlots = newChildren;
     }
-    
-    // 把新插槽记录下来，等下做差异比对用
-    deletionComparisonTarget = children
-  } 
-  
-  // -------------------------------------------------------------------
-  // 场景 B：新传入的是纯数组或文本 (非命名插槽的简写)
-  // 比如：<Child>纯文本内容</Child>
-  // -------------------------------------------------------------------
-  else if (children !== null) {
-    // 强制包装成 default 插槽函数
-    slots.default = () => normalizeSlotValue(children)
-    // 目标里只有 default
-    deletionComparisonTarget = { default: 1 }
-  }
 
-  // -------------------------------------------------------------------
-  // 收尾：旧插槽清理 (Garbage Collection)
-  // -------------------------------------------------------------------
-  if (needDeletionCheck) {
-    // 遍历当前组件身上所有的旧插槽
-    for (const key in slots) {
-      // 如果这个旧插槽在新的 deletionComparisonTarget 里找不到了
-      if (!isInternalKey(key) && !(key in deletionComparisonTarget)) {
-        // 说明父组件这次没传这个插槽，果断删除！
-        delete slots[key]
-      }
+    // 步骤 2：原地合并 (Merge) 新插槽
+    // 绝对不能写成 instance.slots = newSlots！
+    // 必须使用 Object.assign，强行把新函数覆盖到旧对象的内存地址上
+    Object.assign(oldSlots, newSlots);
+
+    // 步骤 3：垃圾回收 (Garbage Collection)
+    // 遍历旧插槽对象
+    for (const key in oldSlots) {
+        // 如果这个旧插槽的 key (比如 'footer') 在新的 newSlots 里找不到了
+        if (!(key in newSlots)) {
+            // 狠心删掉它，防止幽灵渲染！
+            delete oldSlots[key];
+        }
     }
-  }
 }
 ```
 :::
 
-## 4. 更新分支：`updateComponent`
 
-当组件需要更新时，`updateComponent` 决定是否真的需要更新，并执行更新流程。
+### 4.2 `updateComponent`
 
-```typescript
+当组件需要更新时，执行`patch`方法，内部调用`updateComponent` 决定是否真的需要更新，并执行更新流程。
+
+:::code-group
+```typescript [renderer.ts]
+import { shouldUpdateComponent } from './componentUpdateUtils.ts'
 const updateComponent = (n1: VNode, n2: VNode, optimized: boolean) => {
   const instance = (n2.component = n1.component)!
   if (shouldUpdateComponent(n1, n2, optimized)) {
@@ -838,110 +1313,161 @@ const updateComponent = (n1: VNode, n2: VNode, optimized: boolean) => {
 }
 ```
 
-- **`shouldUpdateComponent`**：比较新旧 VNode 的 props、children、dirs 等，决定是否需要更新组件。内部会检查 `props` 是否变化、`slots` 内容是否变化等，并考虑 `compilerOptions` 中的 `onVnodeBeforeUpdate` 等钩子。
-- **`instance.update`** 实际调用的是上述 `setupRenderEffect` 中的 `componentUpdateFn`，其中会对 `instance.next` 进行处理，重新执行 `renderComponentRoot` 并 `patch` 子树。
+```typescript [componentRenderUtils.ts]
+//shouldUpdateComponent 会极其精细地比对新旧 VNode，只要确定组件的输入（Props、Slots）没有发生实质性改变，
+//它就会果断返回 false，彻底截断该组件及所有子孙组件的渲染瀑布。
+export function shouldUpdateComponent(prevVNode, nextVNode) {
+    const { props: prevProps, children: prevChildren } = prevVNode
+    const { props: nextProps, children: nextChildren, patchFlag } = nextVNode
 
-## 5. 与 `keep-alive` 的集成
+    // 检查点 1：插槽 (Slots) 是否发生了变化
+    // 如果子组件包含插槽，且插槽内容（children）改变了，必须更新！
+    if (prevChildren || nextChildren) {
+        if (!nextChildren || !nextChildren.$stable) {
+            // 只要新的插槽不是“静态稳定”的，就认为可能变了，放行更新
+            return true
+        }
+    }
+    // 检查点 2：极速路径 (基于编译器的 PatchFlags 优化)
+    // 如果模板是 Vue 编译器生成的，它会带上 patchFlag
+    if (patchFlag > 0) {
+        // 情况 A：带有动态 Key 的全量 Props (比如写了 v-bind="object")
+        if (patchFlag & PatchFlags.FULL_PROPS) {
+            return hasPropsChanged(prevProps, nextProps)
+        }
+        // 情况 B：只有部分 Props 是动态绑定的 (这是最常见的情况！)
+        else if (patchFlag & PatchFlags.PROPS) {
+            // dynamicProps 是编译器提取的动态属性名数组，比如 ['msg', 'count']
+            const dynamicProps = nextVNode.dynamicProps
+            for (let i = 0; i < dynamicProps.length; i++) {
+                const key = dynamicProps[i]
+                // O(1) 级别的靶向比对：只比对这几个动态的变量！变了就放行！
+                if (nextProps[key] !== prevProps[key]) {
+                    return true
+                }
+            }
+            // 如果动态绑定的那几个变量都没变，直接拒绝更新
+            return false
+        }
+    }
+    // 检查点 3：慢速路径 (兜底逻辑)
+    // 如果没有编译器优化 (比如手写 render 函数，或者纯纯的普通对象)
+    // 退化为最稳妥的全量 Props 浅比较
+    return hasPropsChanged(prevProps, nextProps)
+}
 
-在 `processComponent` 中，如果组件的 `shapeFlag` 包含 `COMPONENT_KEPT_ALIVE`（表示组件被 `<KeepAlive>` 缓存），则会调用 `activate` 函数激活缓存组件，而不是重新挂载。这实现了 `keep-alive` 的核心能力。
+// 辅助函数：全量 Props 浅比较
+function hasPropsChanged(prevProps, nextProps) {
+    // 1. 如果本来都没有 props，直接认为没变
+    if (prevProps === nextProps) return false
+    // 2. 只有一方有 props，肯定变了
+    if (!prevProps || !nextProps) return true
 
-## 6. 卸载组件
+    const nextKeys = Object.keys(nextProps)
+    const prevKeys = Object.keys(prevProps)
+
+    // 3. 连属性的数量都不一样，肯定变了 (比如突然多传了一个 prop)
+    if (nextKeys.length !== prevKeys.length) return true
+
+    // 4. 老老实实遍历所有 key，只要有一个 value 不全等，就认为变了
+    for (let i = 0; i < nextKeys.length; i++) {
+        const key = nextKeys[i]
+        if (nextProps[key] !== prevProps[key]) {
+            return true
+        }
+    }
+    // 历经千辛万苦都没变，放行失败，拦截更新！
+    return false
+}
+```
+:::
+
+## 5. 卸载分支: `unmountComponent`
 
 组件的卸载发生在父组件或自身被销毁时。渲染器的 `unmount` 函数会调用组件实例的 `unmount` 方法，触发 `beforeUnmount` 和 `unmounted` 生命周期钩子，并递归卸载子树。
 
 ```typescript
-const unmount = (vnode: VNode, ...) => {
-  const { shapeFlag, component } = vnode
-  if (shapeFlag & ShapeFlags.COMPONENT) {
-    unmountComponent(component!)
-  }
+// 核心：卸载组件实例
+function unmountComponent(instance) {
+    const { bum, um, subTree, update, effect } = instance
+
+    // 步骤 1：触发 beforeUnmount 生命周期钩子
+    // 此时组件的 DOM 还在，响应式数据也还能正常访问
+    if (bum) {
+        invokeArrayFns(bum) // 遍历执行所有的 beforeUnmount 函数
+    }
+    // 步骤 2：切断组件的主渲染引擎 (极其重要！)
+    if (update) {
+        // 把组件的更新任务从调度器 (微任务队列) 中踢出去，防止死灰复燃
+        invalidateJob(update)
+    }
+    if (effect) {
+        // 彻底停止 ReactiveEffect！
+        // 这会让组件不再响应任何数据的变化，并从所有依赖的 dep (如 ref/reactive) 中把自己移除
+        effect.stop()
+    }
+    // 步骤 3：递归卸载子树 (SubTree)
+    // 组件本身只是个逻辑壳子，真正变成 DOM 的是它的 subTree。
+    // 递归调用全局的 unmount 去销毁它内部的普通 DOM 或子组件。
+    unmount(subTree)
+    // 步骤 4：触发 unmounted 生命周期钩子
+    if (um) {
+        // 注意：unmounted 通常被推入后置微任务队列执行 (PostFlushCbs)
+        // 保证在执行时，页面上的真实 DOM 已经彻底被移除了
+        queuePostRenderEffect(um)
+    }
+    // 步骤 5：极致的内存回收 (Garbage Collection)
+    instance.isUnmounted = true
+    // 将实例上的庞大对象全部指向 null，切断引用链，让 V8 引擎能顺利回收内存
+    instance.vnode = null
+    instance.subTree = null
+    instance.proxy = null
+    instance.ctx = null
+    instance.setupState = null
 }
 
-const unmountComponent = (instance: ComponentInternalInstance) => {
-  const { bum, scope, update, subTree, um } = instance
-  // 调用 beforeUnmount 钩子
-  invokeArrayFns(bum)
-  // 停止渲染 effect
-  scope.stop()
-  // 卸载子树
-  unmount(subTree, ...)
-  // 调用 unmounted 钩子
-  invokeArrayFns(um)
+// 补充：全局的 unmount 函数 (处理物理 DOM 的移除)
+function unmount(vnode) {
+    // 如果是普通 HTML 元素
+    if (vnode.shapeFlag & ShapeFlags.ELEMENT) {
+        const el = vnode.el
+        // 1. 卸载该元素上的所有自定义指令 (如 v-focus)
+        // 2. 移除 DOM 上的所有事件监听器 (如 @click)
+        // 3. 递归卸载它的 children
+
+        // 4. 物理移除：将元素从其父节点的 DOM 树中拔出！
+        if (el && el.parentNode) {
+            el.parentNode.removeChild(el)
+        }
+    }
+    // 如果是组件，转交回 unmountComponent
+    else if (vnode.shapeFlag & ShapeFlags.COMPONENT) {
+        unmountComponent(vnode.component)
+    }
 }
 ```
 
-## 7. 完整流程图
+## 6. 完整流程图
 
-```mermaid
-sequenceDiagram
-    participant Patch as patch 函数
-    participant PC as processComponent
-    participant MC as mountComponent
-    participant UC as updateComponent
-    participant Instance as 组件实例
-    participant Effect as ReactiveEffect
+### 6.1 组件的挂载与更新
 
-    Patch->>PC: processComponent(n1, n2, ...)
-    alt n1 == null
-        PC->>MC: mountComponent(n2, ...)
-        MC->>Instance: createComponentInstance
-        MC->>Instance: setupComponent (初始化 props, slots, setup)
-        MC->>Effect: setupRenderEffect (创建渲染 effect)
-        Effect->>Effect: 执行 componentUpdateFn
-        Effect->>Effect: 首次渲染 subTree
-        Effect-->>Patch: 挂载完成
-    else n1 存在
-        PC->>UC: updateComponent(n1, n2)
-        UC->>UC: shouldUpdateComponent?
-        alt 需要更新
-            UC->>Instance: instance.next = n2
-            UC->>Effect: instance.update()
-            Effect->>Effect: componentUpdateFn (更新分支)
-            Effect->>Effect: 重新渲染 subTree
-            Effect-->>Patch: 更新完成
-        else 跳过更新
-            UC-->>Patch: 仅同步属性
-        end
-    end
-```
+![Logo](/processComponent.png)
 
-## 8. 性能优化关键点
+### 6.2 组件的卸载
 
-- **惰性更新**：通过 `shouldUpdateComponent` 跳过不必要的组件递归，减少无效 render。
-- **异步队列**：渲染 effect 的 scheduler 使用 `queueJob`，保证批量更新。
+![Logo](/unmountComponent.png)
+
+## 7. 性能优化关键点
+
+- **惰性更新**：通过 `shouldUpdateComponent` 跳过不必要的组件递归，减少无效 `render`。
+- **异步队列**：渲染 `effect` 的 `scheduler` 使用 `queueJob`，保证批量更新。
 - **`KeepAlive`** 专用分支避免重新创建组件实例，缓存子树。
-- **Props 浅比较**：在 `shouldUpdateComponent` 中，props 变化只做浅层比较，避免深度遍历。
+- **Props 浅比较**：在 `shouldUpdateComponent` 中，`props` 变化只做浅层比较，避免深度遍历。
 
-## 9. 与 `processElement` 的对比
+## 8. 总结
 
-| 方面               | `processComponent`                                | `processElement`                           |
-| ------------------ | ------------------------------------------------- | ------------------------------------------ |
-| 是否创建真实 DOM   | 否（通过其内部生成的 `subTree` 间接创建）         | 是，调用 `hostCreateElement`               |
-| 更新逻辑           | 比较 props 和 slots，决定是否重新执行 `render`    | 比较 props、children，直接更新 DOM 属性    |
-| 生命周期钩子       | 有（`beforeMount`、`mounted`、`beforeUpdate` 等） | 无                                         |
-| 依赖收集           | 组件的渲染 effect 自动追踪响应式数据              | 无（由父组件负责 diff）                    |
-| 核心数据结构       | `ComponentInternalInstance`                       | VNode 及真实元素 `el`                      |
+`processComponent` 的源码深刻体现了 Vue 3 在架构设计上的宏大愿景：
 
-## 10. 源码位置速查
-
-| 文件路径                                           | 核心内容                                          |
-| -------------------------------------------------- | ------------------------------------------------- |
-| `packages/runtime-core/src/renderer.ts`            | `processComponent`, `mountComponent`, `updateComponent` |
-| `packages/runtime-core/src/component.ts`           | `createComponentInstance`, `setupComponent`, `setupRenderEffect` |
-| `packages/runtime-core/src/componentProps.ts`      | `initProps`, `updateProps`                        |
-| `packages/runtime-core/src/componentSlots.ts`      | `initSlots`, `updateSlots`                        |
-| `packages/runtime-core/src/componentUpdateUtils.ts` | `shouldUpdateComponent`                           |
-| `packages/runtime-core/src/hydration.ts`           | 组件的 hydration 逻辑（SSR 相关）                 |
-
-## 11. 总结
-
-| 模块/函数            | 职责                                             | 关键设计                   |
-| -------------------- | ------------------------------------------------ | -------------------------- |
-| `processComponent`   | 根据是否有旧 VNode 分流挂载或更新组件            | 支持 `KeepAlive` 激活分支  |
-| `mountComponent`     | 创建组件实例，初始化 props/slots，建立渲染 effect | 创建实例并执行首次渲染     |
-| `setupComponent`     | 标准化 props/slots，执行用户 `setup`             | 统一处理组合式/选项式 API  |
-| `setupRenderEffect`  | 创建组件的渲染副作用，管理挂载和更新             | 通过 `effect` 实现响应式重 |
-| `updateComponent`    | 判断是否需要更新，触发渲染 effect                | 使用 `shouldUpdateComponent` 优化 |
-| `unmountComponent`   | 卸载组件，调用生命周期钩子                       | 递归清理子树并停止 effect  |
-
-`processComponent` 是 Vue 3 组件系统的核心接入点，它将组件实例化、渲染和更新流程完整嵌入到虚拟 DOM 的 `patch` 体系中。理解 `processComponent` 的源码有助于掌握 Vue 组件的生命周期、响应式更新原理以及性能优化手段。
+* **响应式与渲染引擎的完美融合**：`ReactiveEffect` 巧妙地充当了连接 `@vue/reactivity`（响应式系统）和 `@vue/runtime-core`（渲染核心）的桥梁。组件自身就是一个巨大的响应式副作用。
+* **异步批处理调度**：通过 `queueJob(update)`，Vue 确保在同一事件循环内，无论修改多少次数据，组件只会重新渲染一次。
+* **默认的性能屏障**：`shouldUpdateComponent` 为所有子组件提供了一层免费的、强大的避免过度渲染的优化层，这是 Vue 能够在中大型应用中保持高性能的核心秘诀。

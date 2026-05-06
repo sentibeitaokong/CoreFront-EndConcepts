@@ -288,7 +288,13 @@ function unmountChildren(children: any) {
 }
 
 //diff算法 后续讲解
-export function patchKeyedChildren(){
+export function patchKeyedChildren(
+    c1: any,
+    c2: any,
+    container: any,
+    parentComponent: any,
+    parentAnchor: any,
+){
     ...
 }
 ```
