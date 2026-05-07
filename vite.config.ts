@@ -8,8 +8,6 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      'xb-element/dist/types/components/Collapse/type':
-        'xb-element/es/components/Collapse/type', // 或你的本地类型文件
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },

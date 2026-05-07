@@ -52,7 +52,7 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 
-import {NameType} from "xb-element/dist/types/components/Collapse/type";
+import type { NameType } from 'xb-element/dist/types/components/Collapse/type'
 
 const activeNames = ref(['1'])
 const handleChange = (val: NameType) => {
