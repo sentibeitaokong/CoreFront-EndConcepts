@@ -1,4 +1,4 @@
-import { reactive } from '../../reactivity/src/reactive'
+import { reactive } from '@xunbei-vue/reactivity'
 import { nextTick } from '../src'
 import { describe, expect, it, vi } from 'vitest'
 import { watchEffect } from '../src/apiWatch'
@@ -14,6 +14,7 @@ describe('api: watch', () => {
     expect(dummy).toBe(0)
 
     state.count++
+    await nextTick()
     await nextTick()
     expect(dummy).toBe(1)
   })
