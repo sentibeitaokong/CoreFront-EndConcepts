@@ -17,12 +17,13 @@ Vue 3的响应式系统基于Proxy和Reflect实现，采用依赖收集和触发
 ### 2.1 reactive函数实现
 
 :::code-group
-```typescript [reactive.ts] 
+
+```typescript [reactive.ts]
 import { mutableHandlers } from './baseHandlers'
 
 //响应式标识
 export const enum ReactiveFlags {
-	IS_REACTIVE = '__v_isReactive'
+  IS_REACTIVE = '__v_isReactive',
 }
 
 //响应性 Map 缓存对象
@@ -30,45 +31,59 @@ export const reactiveMap = new WeakMap<object, any>()
 
 //为复杂数据类型，创建响应性对象  mutableHandlers为响应式handler
 export function reactive(target: object) {
-	return createReactiveObject(target, mutableHandlers, reactiveMap)
+  return createReactiveObject(target, mutableHandlers, reactiveMap)
 }
-
 ```
+
 :::
 
 ### 2.2 createReactiveObject核心逻辑
 
 :::code-group
+
 ```typescript [reactive.ts]
+import { isObject } from '@xunbei-vue/shared'
 //创建响应性对象
 function createReactiveObject(
-	target: object,
-	baseHandlers: ProxyHandler<any>,
-	proxyMap: WeakMap<object, any>
+  target: object,
+  baseHandlers: ProxyHandler<any>,
+  proxyMap: WeakMap<object, any>,
 ) {
-	// 如果该实例已经被代理，则直接读取即可
-	const existingProxy = proxyMap.get(target)
-	if (existingProxy) {
-		return existingProxy
-	}
-    //reactive特性
-    //1.Proxy的target属性只能传对象，所以reactive里面不能放简单数据类型，会报错
-    //2.Proxy代理的是reactive对象(目标对象)，所以解构reactive对象无法有效代理，也就失去了响应性，综上想对简单数据类型实现响应式，必须使用ref
-	const proxy = new Proxy(target, baseHandlers)
-	// 为 Reactive 增加标记
-	proxy[ReactiveFlags.IS_REACTIVE] = true
+  if (!isObject(target)) {
+    console.warn(`target :"${target}"必须是一个对象`)
+    return target
+  }
+  // 如果该实例已经被代理，则直接读取即可
+  const existingProxy = proxyMap.get(target)
+  if (existingProxy) {
+    return existingProxy
+  }
+  //reactive特性
+  //1.Proxy的target属性只能传对象，所以reactive里面不能放简单数据类型，会报错
+  //2.Proxy代理的是reactive对象(目标对象)，所以解构reactive对象无法有效代理，也就失去了响应性，综上想对简单数据类型实现响应式，必须使用ref
+  const proxy = new Proxy(target, baseHandlers)
+  // 为 Reactive 增加标记
+  proxy[ReactiveFlags.IS_REACTIVE] = true
 
-	// 缓存代理对象
-	proxyMap.set(target, proxy)
-    //返回代理对象
-	return proxy
+  // 缓存代理对象
+  proxyMap.set(target, proxy)
+  //返回代理对象
+  return proxy
 }
 ```
+
+```typescript [shared/index.ts]
+export const isObject = (value: any) => {
+  return value !== null && typeof value === 'object'
+}
+```
+
 :::
 
 ### 2.3 mutableHandlers(响应式handler)
 
 :::code-group
+
 ```typescript [baseHandlers.ts]
 import { track, trigger } from './effect'
 
@@ -77,58 +92,60 @@ const get = createGetter()
 //setter 回调方法
 const set = createSetter()
 export const mutableHandlers: ProxyHandler<object> = {
-    get,
-    set
+  get,
+  set,
 }
 //判断是不是object对象
 const isObject = (value: any) => {
-    return value !== null && typeof value === 'object'
+  return value !== null && typeof value === 'object'
 }
 //isReadonly是否只读，shallow是否浅层次
+//reactive,shallowReactive,readonly,shallowReadonly源码实现本质区别就是createGetter函数传参不同
 function createGetter(isReadonly: any = false, shallow: any = false) {
-    return function get(target: any, propertyKey: string,receiver:any) {
-        //判断是否是响应式以及只读属性
-        if (propertyKey === ReactiveFlags.IS_REACTIVE) {
-            return !isReadonly
-        } else if (propertyKey === ReactiveFlags.IS_READONLY) {
-            return isReadonly
-        }
-        // 利用 Reflect 得到返回值   receier将this指向从目标对象转换成代理对象
-        const res = Reflect.get(target, propertyKey,receiver)
-
-        //如果是shallowReadonly,则shallow为true,直接返回数据
-        if (shallow) {
-            return res
-        }
-
-        //判断res是不是object对象 懒代理设置，性能优化
-        if (isObject(res)) {
-            //对象嵌套执行reactive和readonly方法
-            return isReadonly ? readonly(res) : reactive(res)
-        }
-        //如果不是只读就进行依赖收集
-        if (!isReadonly) {
-            //依赖收集
-            track(target, propertyKey)
-        }
-        return res
+  return function get(target: any, propertyKey: string, receiver: any) {
+    //判断是否是响应式以及只读属性
+    if (propertyKey === ReactiveFlags.IS_REACTIVE) {
+      return !isReadonly
+    } else if (propertyKey === ReactiveFlags.IS_READONLY) {
+      return isReadonly
     }
+    // 利用 Reflect 得到返回值   receier将this指向从目标对象转换成代理对象
+    const res = Reflect.get(target, propertyKey, receiver)
+
+    //如果是shallowReadonly,则shallow为true,直接返回数据
+    if (shallow) {
+      return res
+    }
+
+    //判断res是不是object对象 懒代理设置，性能优化
+    if (isObject(res)) {
+      //对象嵌套执行reactive和readonly方法
+      return isReadonly ? readonly(res) : reactive(res)
+    }
+    //如果不是只读就进行依赖收集
+    if (!isReadonly) {
+      //依赖收集
+      track(target, propertyKey)
+    }
+    return res
+  }
 }
 function createSetter() {
-    return function set(
-        target: object,
-        key: string | symbol,
-        value: unknown,
-        receiver: object
-    ) {
-        // 利用 Reflect.set 设置新值
-        const result = Reflect.set(target, key, value, receiver)
-        // 触发依赖
-        trigger(target, key)
-        return result
-    }
+  return function set(
+    target: object,
+    key: string | symbol,
+    value: unknown,
+    receiver: object,
+  ) {
+    // 利用 Reflect.set 设置新值
+    const result = Reflect.set(target, key, value, receiver)
+    // 触发依赖
+    trigger(target, key)
+    return result
+  }
 }
 ```
+
 :::
 
 ## 3. 依赖收集流程（track）
@@ -136,6 +153,7 @@ function createSetter() {
 ### 3.1 track函数实现
 
 :::code-group
+
 ```typescript [effect.ts]
 import { createDep, Dep } from './dep'
 
@@ -146,30 +164,30 @@ const targetMap = new WeakMap<any, KeyToDepMap>()
 let activeEffect: ReactiveEffect | undefined
 //是否可以收集依赖
 function isTracking() {
-    //触发get操作还在收集依赖阶段 activeEffect为undefined时不收集依赖
-    //不需要收集依赖的时候shouldTrack为false
-    return shouldTrack && activeEffect !== undefined
+  //触发get操作还在收集依赖阶段 activeEffect为undefined时不收集依赖
+  //不需要收集依赖的时候shouldTrack为false
+  return shouldTrack && activeEffect !== undefined
 }
 //用于收集依赖的方法
 function track(target, type, key) {
-    //traget(目标)->key(目标属性)->dep(依赖项)
+  //traget(目标)->key(目标属性)->dep(依赖项)
 
-    //状态为不收集依赖时直接返回
-    if (!isTracking()) return
-    // 尝试从 targetMap 中，根据 target 获取 map
-    let depsMap = targetMap.get(target)
-    // 如果获取到的 map 不存在，则生成新的 map 对象，并把该对象赋值给对应的 value
-    if (!depsMap) {
-        targetMap.set(target, (depsMap = new Map()))
-    }
-    // 获取指定 key 的 dep
-    let dep = depsMap.get(key)
-    // 如果 dep 不存在，则生成一个新的 dep，并放入到 depsMap 中
-    if (!dep) {
-        //createDep创建一个set类型的依赖存储项，里面是所有的依赖
-        depsMap.set(key, (dep = createDep()))
-    }
-    trackEffects(dep)
+  //状态为不收集依赖时直接返回
+  if (!isTracking()) return
+  // 尝试从 targetMap 中，根据 target 获取 map
+  let depsMap = targetMap.get(target)
+  // 如果获取到的 map 不存在，则生成新的 map 对象，并把该对象赋值给对应的 value
+  if (!depsMap) {
+    targetMap.set(target, (depsMap = new Map()))
+  }
+  // 获取指定 key 的 dep
+  let dep = depsMap.get(key)
+  // 如果 dep 不存在，则生成一个新的 dep，并放入到 depsMap 中
+  if (!dep) {
+    //createDep创建一个set类型的依赖存储项，里面是所有的依赖
+    depsMap.set(key, (dep = createDep()))
+  }
+  trackEffects(dep)
 }
 ```
 
@@ -178,27 +196,30 @@ import { ReactiveEffect } from './effect'
 export type Dep = Set<ReactiveEffect>
 //依据 effects 生成 dep 实例
 export const createDep = (effects?: ReactiveEffect[]): Dep => {
-    //创建一个里面放有ReactiveEffect类的set数据类型，使用set是为了保证依赖的唯一性，dep保存所有依赖项
-	const dep = new Set<ReactiveEffect>(effects) as Dep
-	return dep
+  //创建一个里面放有ReactiveEffect类的set数据类型，使用set是为了保证依赖的唯一性，dep保存所有依赖项
+  const dep = new Set<ReactiveEffect>(effects) as Dep
+  return dep
 }
 ```
+
 :::
 
 ### 3.2 trackEffects依赖收集
 
 :::code-group
+
 ```typescript [effect.ts]
 //利用 dep 依次跟踪指定 key 的所有 effect
 function trackEffects(dep: Dep) {
-    //添加单例依赖  
-    //避免重复收集依赖
-    if (dep.has(activeEffect)) return
-    dep.add(activeEffect)
-    //单例依赖项下面的deps数组中存储当前收集的依赖，用于清除依赖时使用
-    activeEffect.deps.push(dep)
+  //添加单例依赖
+  //避免重复收集依赖
+  if (dep.has(activeEffect)) return
+  dep.add(activeEffect)
+  //单例依赖项下面的deps数组中存储当前收集的依赖，用于清除依赖时使用
+  activeEffect.deps.push(dep)
 }
 ```
+
 :::
 
 ## 4. 触发更新流程（trigger）
@@ -206,7 +227,8 @@ function trackEffects(dep: Dep) {
 ### 4.1 trigger函数实现
 
 :::code-group
-```typescript [effect.ts]   
+
+```typescript [effect.ts]
 //触发依赖
 function trigger(target: object, key?: unknown) {
   // 依据 target 获取存储的 map 实例
@@ -225,11 +247,13 @@ function trigger(target: object, key?: unknown) {
   triggerEffects(dep)
 }
 ```
+
 :::
 
 ### 4.2 triggerEffects执行更新
 
 :::code-group
+
 ```typescript [effect.ts]
 //依次触发 dep 中保存的依赖
 function triggerEffects(dep: Dep) {
@@ -254,14 +278,15 @@ function triggerEffects(dep: Dep) {
 }
 //触发指定的依赖
 function triggerEffect(effect: ReactiveEffect) {
-    //当依赖有scheduler 执行依赖的scheduler方法
-    if (effect.scheduler) {
-        effect.scheduler()
-    } else {
-        effect.run()
-    }
+  //当依赖有scheduler 执行依赖的scheduler方法
+  if (effect.scheduler) {
+    effect.scheduler()
+  } else {
+    effect.run()
+  }
 }
 ```
+
 :::
 
 ## 5. effect副作用函数
@@ -269,94 +294,98 @@ function triggerEffect(effect: ReactiveEffect) {
 ### 5.1 ReactiveEffect类
 
 :::code-group
+
 ```typescript [effect.ts]
 //响应性触发依赖时的执行类
 let activeEffect: any
 let shouldTrack: any
 //依赖类
 export class ReactiveEffect {
-    private _fn: any
-    //存在该属性，则表示当前的 effect 为计算属性的 effect
-    computed?: ComputedRefImpl<T>
-    //依赖数组
-    deps = []
-    //是否可用 响应式
-    active = true
-    //清空依赖执行的副作用函数
-    onStop?: () => void
-    public scheduler: Function | undefined
-    constructor(fn: any, scheduler: any) {
-        this._fn = fn
-        this.scheduler = scheduler
+  private _fn: any
+  //存在该属性，则表示当前的 effect 为计算属性的 effect
+  computed?: ComputedRefImpl<T>
+  //依赖数组
+  deps = []
+  //是否可用 响应式
+  active = true
+  //清空依赖执行的副作用函数
+  onStop?: () => void
+  public scheduler: Function | undefined
+  constructor(fn: any, scheduler: any) {
+    this._fn = fn
+    this.scheduler = scheduler
+  }
+  run() {
+    //1.会收集依赖，利用shouldTrack来区别  stop以后不让收集依赖
+    if (!this.active) {
+      return this._fn()
     }
-    run() {
-        //1.会收集依赖，利用shouldTrack来区别  stop以后不让收集依赖
-        if (!this.active) {
-            return this._fn()
-        }
-        //可进行依赖收集
-        shouldTrack = true
-        //将这个单例依赖类赋值给activeEffect
-        activeEffect = this
-        //执行fn方法时会收集依赖，收集完依赖再把shouldTrack置为false，防止依赖再次重复收集
-        const result = this._fn()
-        //reset
-        shouldTrack = false
-        return result
+    //可进行依赖收集
+    shouldTrack = true
+    //将这个单例依赖类赋值给activeEffect
+    activeEffect = this
+    //执行fn方法时会收集依赖，收集完依赖再把shouldTrack置为false，防止依赖再次重复收集
+    const result = this._fn()
+    //reset
+    shouldTrack = false
+    return result
+  }
+  stop() {
+    if (this.active) {
+      //清除依赖
+      cleanupEffect(this)
+      if (this.onStop) {
+        this.onStop()
+      }
+      this.active = false
     }
-    stop() {
-        if (this.active) {
-            //清除依赖
-            cleanupEffect(this)
-            if (this.onStop) {
-                this.onStop()
-            }
-            this.active = false
-        }
-    }
+  }
 }
 //清除依赖
 function cleanupEffect(effect: any) {
-    effect.deps.forEach((dep: any) => {
-        dep.delete(effect)
-    })
-    effect.deps.length = 0
+  effect.deps.forEach((dep: any) => {
+    dep.delete(effect)
+  })
+  effect.deps.length = 0
 }
 
 //停止收集依赖
 export function stop(runner: Runner): void {
-    //执行依赖类的stop方法
-    runner.effect?.stop()
+  //执行依赖类的stop方法
+  runner.effect?.stop()
 }
 ```
+
 :::
 
 ### 5.2 effect创建函数
 
 :::code-group
+
 ```typescript [effect.ts]
 interface ReactiveEffectOptions {
-    lazy?: boolean
-    scheduler?: EffectScheduler
+  lazy?: boolean
+  scheduler?: EffectScheduler
 }
 function effect<T = any>(fn: () => T, options?: ReactiveEffectOptions) {
-    //fn
-    const scheduler = options&&options.scheduler
-    const _effect = new ReactiveEffect(fn, scheduler)
-    //合并options选项
-    const extend=Object.assign
-    extend(_effect, options)
-    //懒执行
-    if (!options || !options.lazy) {
-        // 执行 run 函数
-        _effect.run()
-    }
-    const runner: any = _effect.run.bind(_effect)
-    runner.effect = _effect
-    //手动执行更新的函数
-    return runner
+  //fn
+  const scheduler = options && options.scheduler
+  const _effect = new ReactiveEffect(fn, scheduler)
+  //合并options选项
+  const extend = Object.assign
+  extend(_effect, options)
+  //懒执行
+  if (!options || !options.lazy) {
+    // 执行 run 函数
+    _effect.run()
+  }
+  const runner: any = _effect.run.bind(_effect)
+  runner.effect = _effect
+  //手动执行更新的函数
+  return runner
 }
 ```
+
 :::
 
 ## 6. 依赖存储结构
@@ -372,16 +401,18 @@ const targetMap = new WeakMap()
 ### 6.2 createDep创建依赖集合
 
 :::code-group
+
 ```typescript [dep.ts]
 import { ReactiveEffect } from './effect'
 export type Dep = Set<ReactiveEffect>
 //依据 effects 生成 dep 实例
 export const createDep = (effects?: ReactiveEffect[]): Dep => {
-    //创建一个里面放有ReactiveEffect类的set数据类型，使用set是为了保证依赖的唯一性，dep保存所有依赖项
-	const dep = new Set<ReactiveEffect>(effects) as Dep
-	return dep
+  //创建一个里面放有ReactiveEffect类的set数据类型，使用set是为了保证依赖的唯一性，dep保存所有依赖项
+  const dep = new Set<ReactiveEffect>(effects) as Dep
+  return dep
 }
 ```
+
 :::
 
 ## 7. 完整流程示例
@@ -398,13 +429,12 @@ effect(() => {
 })
 
 // 修改属性触发更新
-state.count=1 // 输出: count changed: 1
+state.count = 1 // 输出: count changed: 1
 ```
 
 ### 7.2 完整流程图
 
 ![Logo](/reactive3.png)
-
 
 ## 8. 工具函数实现
 
@@ -414,8 +444,8 @@ state.count=1 // 输出: count changed: 1
 
 ```typescript
 function isReactive(value: any) {
-    //执行取值操作触发get方法
-    return !!value[ReactiveFlags.IS_REACTIVE]
+  //执行取值操作触发get方法
+  return !!value[ReactiveFlags.IS_REACTIVE]
 }
 ```
 
@@ -425,8 +455,8 @@ function isReactive(value: any) {
 
 ```typescript
 function isReadonly(value: any) {
-    //执行取值操作触发get方法
-    return !!value[ReactiveFlags.IS_READONLY]
+  //执行取值操作触发get方法
+  return !!value[ReactiveFlags.IS_READONLY]
 }
 ```
 
@@ -436,7 +466,7 @@ function isReadonly(value: any) {
 
 ```typescript
 function isProxy(value: any) {
-    return isReadonly(value) || isReactive(value)
+  return isReadonly(value) || isReactive(value)
 }
 ```
 
@@ -448,5 +478,3 @@ Vue 3的响应式系统通过Proxy实现了更完善的拦截能力，相比Vue 
 2. **更好的性能**：懒代理减少初始化开销
 3. **更简洁的实现**：无需重写数组原型方法
 4. **更灵活的架构**：effect系统支持更复杂的调度策略
-
-
