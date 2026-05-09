@@ -169,7 +169,7 @@ function isTracking() {
   return shouldTrack && activeEffect !== undefined
 }
 //用于收集依赖的方法
-function track(target, type, key) {
+function track(target, key) {
   //traget(目标)->key(目标属性)->dep(依赖项)
 
   //状态为不收集依赖时直接返回
@@ -221,6 +221,10 @@ function trackEffects(dep: Dep) {
 ```
 
 :::
+
+### 3.3 流程图
+
+![Logo](/trackReactive.png)
 
 ## 4. 触发更新流程（trigger）
 
@@ -288,6 +292,10 @@ function triggerEffect(effect: ReactiveEffect) {
 ```
 
 :::
+
+### 4.3 流程图
+
+![Logo](/triggerReactive.png)
 
 ## 5. effect副作用函数
 
@@ -474,7 +482,7 @@ function isProxy(value: any) {
 
 Vue 3的响应式系统通过Proxy实现了更完善的拦截能力，相比Vue 2有以下优势：
 
-1. **更完整的拦截**：支持数组索引、对象新增/删除属性等
-2. **更好的性能**：懒代理减少初始化开销
-3. **更简洁的实现**：无需重写数组原型方法
-4. **更灵活的架构**：effect系统支持更复杂的调度策略
+- **更完整的拦截**：支持数组索引、对象新增/删除属性等
+- **更好的性能**：懒代理减少初始化开销
+- **更简洁的实现**：无需重写数组原型方法
+- **更灵活的架构**：effect系统支持更复杂的调度策略
