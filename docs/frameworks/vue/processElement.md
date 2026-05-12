@@ -12,12 +12,12 @@
 
 ### 1.2 挂载（Mount）与更新（Patch）的简单对比
 
-| 特性 | `mountElement` (初次挂载) | `patchElement` (更新比对)               |
-|------|-------------------------|-------------------------------------|
-| 触发条件 | 旧节点 `oldVNode` 为 `null` | 旧节点 `oldVNode` 存在且类型与 `newVNode` 一致 |
-| 核心目标 | 创建真实节点，处理属性，插入文档 | 复用真实节点，最小化比对和更新属性/子节点               |
-| 性能开销 | 较高（涉及 DOM 创建和布局绘制） | 较低（利用 PatchFlag 和 Block Tree 靶向更新）  |
-| 依赖底层操作 | `createElement`, `insert`, `setElementText` | `patchProp`, `setElementText`       |
+| 特性         | `mountElement` (初次挂载)                   | `patchElement` (更新比对)                      |
+| ------------ | ------------------------------------------- | ---------------------------------------------- |
+| 触发条件     | 旧节点 `oldVNode` 为 `null`                 | 旧节点 `oldVNode` 存在且类型与 `newVNode` 一致 |
+| 核心目标     | 创建真实节点，处理属性，插入文档            | 复用真实节点，最小化比对和更新属性/子节点      |
+| 性能开销     | 较高（涉及 DOM 创建和布局绘制）             | 较低（利用 PatchFlag 和 Block Tree 靶向更新）  |
+| 依赖底层操作 | `createElement`, `insert`, `setElementText` | `patchProp`, `setElementText`                  |
 
 ## 2. 核心实现：路由分发
 
@@ -26,18 +26,20 @@
 `processElement` 的实现非常精简，本质上是一个基于旧节点存在与否的 `if-else` 分支路由器。
 
 :::code-group
+
 ```typescript [renderer.ts]
 //oldVNode：旧节点, newVNode：新节点, container：容器, anchor：锚点
 const processElement = (oldVNode, newVNode, container, anchor) => {
-    if (oldVNode == null) {
-        // 挂载操作
-        mountElement(newVNode, container, anchor)
-    } else {
-        // 更新操作
-        patchElement(oldVNode, newVNode)
-    }
+  if (oldVNode == null) {
+    // 挂载操作
+    mountElement(newVNode, container, anchor)
+  } else {
+    // 更新操作
+    patchElement(oldVNode, newVNode)
+  }
 }
 ```
+
 :::
 
 ## 3. 挂载与更新的核心逻辑
@@ -47,58 +49,62 @@ const processElement = (oldVNode, newVNode, container, anchor) => {
 `mountElement` 负责将虚拟节点无中生有变为真实的物理节点。
 
 :::code-group
+
 ```typescript [renderer.ts]
 const mountElement = (
-    vnode, container, anchor
-    // ... 其他参数
+  vnode,
+  container,
+  anchor,
+  // ... 其他参数
 ) => {
-    const {type, props, shapeFlag, dirs} = vnode
-    
-    //1. 创建真实 DOM 节点 (调用注入的 nodeOps)
-    const el = (vnode.el = hostCreateElement(type))
-    
-    // 2. 处理子节点 (Children)
-    if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
-        // 设置 文本子节点
-        hostSetElementText(el, vnode.children as string)
-    } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-        // 设置 Array 子节点
-        mountChildren(vnode.children, el, anchor)
-    }
-    
-    // 3. 处理 Props (如 class, style, event)
-    if (props) {
-        // 遍历 props 对象
-        for (const key in props) {
-            hostPatchProp(el, key, null, props[key])
-        }
-    }
+  const { type, props, shapeFlag, dirs } = vnode
 
-    // 触发 beforeMount 钩子
-    if (dirs) invokeDirectiveHook(vnode, null, parentComponent, 'beforeMount')
+  //1. 创建真实 DOM 节点 (调用注入的 nodeOps)
+  const el = (vnode.el = hostCreateElement(type))
 
-    // 4. 将生成的真实节点插入到父容器中
-    hostInsert(el, container, anchor)
+  // 2. 处理子节点 (Children)
+  if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+    // 设置 文本子节点
+    hostSetElementText(el, vnode.children as string)
+  } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+    // 设置 Array 子节点
+    mountChildren(vnode.children, el, anchor)
+  }
 
-    // 触发 mounted 钩子 (推入后置调度队列)
-    if (dirs || props?.onVnodeMounted) {
-        queuePostRenderEffect(() => {
-            // 执行 mounted 逻辑...
-        }, parentSuspense)
+  // 3. 处理 Props (如 class, style, event)
+  if (props) {
+    // 遍历 props 对象
+    for (const key in props) {
+      hostPatchProp(el, key, null, props[key])
     }
+  }
+
+  // 触发 beforeMount 钩子
+  if (dirs) invokeDirectiveHook(vnode, null, parentComponent, 'beforeMount')
+
+  // 4. 将生成的真实节点插入到父容器中
+  hostInsert(el, container, anchor)
+
+  // 触发 mounted 钩子 (推入后置调度队列)
+  if (dirs || props?.onVnodeMounted) {
+    queuePostRenderEffect(() => {
+      // 执行 mounted 逻辑...
+    }, parentSuspense)
+  }
 }
 //挂载子节点
 const mountChildren = (children, container, anchor) => {
-    // 处理 Cannot assign to read only property '0' of string 'xxx'
-    if (isString(children)) {
-        children = children.split('')
-    }
-    for (let i = 0; i < children.length; i++) {
-        const child = (children[i] = normalizeVNode(children[i]))
-        patch(null, child, container, anchor)
-    }
+  // 处理 Cannot assign to read only property '0' of string 'xxx'
+  if (isString(children)) {
+    children = children.split('')
+  }
+  for (let i = 0; i < children.length; i++) {
+    const child = (children[i] = normalizeVNode(children[i]))
+    patch(null, child, container, anchor)
+  }
 }
 ```
+
 :::
 
 ### 3.2 节点更新：`patchElement`
@@ -106,13 +112,13 @@ const mountChildren = (children, container, anchor) => {
 当数据发生变化引发重渲染时，`patchElement` 负责高效地比对新旧节点，并应用最小化更新。
 
 :::code-group
+
 ```typescript [renderer.ts]
 const EMPTY_OBJ={}
 const patchElement = (
     n1: VNode,
     n2: VNode,
-    parentComponent: ComponentInternalInstance | null,
-    // ... 其他参数  
+    // ... 其他参数
     //optimized:是否使用编译优化
 ) => {
     // 1. 物理层面的节点复用！这是 VDOM Diff 的基石
@@ -124,7 +130,7 @@ const patchElement = (
     const oldProps = n1.props || EMPTY_OBJ
     const newProps = n2.props || EMPTY_OBJ
 
-    // 2. 更新子节点 (Children) 
+    // 2. 更新子节点 (Children)
     if (dynamicChildren) {
         // 【快速路径】：由编译器生成的 Block Tree，只更新收集到的动态子节点
         patchBlockChildren(n1.dynamicChildren!, dynamicChildren, el, ...)
@@ -226,7 +232,6 @@ export function patchChildren(
     n1: any,
     n2: any,
     container: any,
-    parentComponent: any,
     anchor: any,
 ) {
     //新旧的vnode类型
@@ -256,10 +261,10 @@ export function patchChildren(
         //1.直接清空旧节点的值
         if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
             hostSetElementText(container, '')
-            mountChildren(c2, container, parentComponent, anchor)
+            mountChildren(c2, container, anchor)
         } else {
             //新老节点都是数组类型 diff算法 双端对比
-            patchKeyedChildren(c1, c2, container, parentComponent, anchor)
+            patchKeyedChildren(c1, c2, container, anchor)
         }
     }
 }
@@ -267,13 +272,12 @@ export function patchChildren(
 export function mountChildren(
     children: any,
     container: any,
-    parentComponent: any,
     anchor: any,
 ) {
     //vnode  多个虚拟节点需要判断子节点是否是组件还是element
     children.forEach((vnode: any) => {
         //再次判断子节点是否是组件还是element
-        patch(null, vnode, container, parentComponent, anchor)
+        patch(null, vnode, container, anchor)
     })
 }
 
@@ -292,12 +296,12 @@ export function patchKeyedChildren(
     c1: any,
     c2: any,
     container: any,
-    parentComponent: any,
     parentAnchor: any,
 ){
-    ...
+    //...
 }
 ```
+
 :::
 
 ## 4. 完整流程示例
@@ -317,7 +321,7 @@ render(vnode1, container)
 // 2. 响应式更新 (Trigger patchElement)
 const vnode2 = h('div', { id: 'box', class: 'active' }, 'Hello Vue 3')
 // render 内部比较 vnode1 和 vnode2 类型相同，进入 patchElement
-render(vnode2, container) 
+render(vnode2, container)
 // 发生：复用 div 引用 -> patchChildren (更新文本) -> patchProps (新增 class)
 ```
 
@@ -329,26 +333,25 @@ render(vnode2, container)
 
 在 `patchElement` 中，Vue 3 的性能护城河体现在针对编译优化的分支判断上：
 
-| 维度 | 无编译优化 (手写 `h` 函数 / JSX) | 有编译优化 (Vue 模板 `<template>`) |
-|----------|-------|-------------|
-| **子节点比对 (`children`)** | 调用 `patchChildren` 执行全量树遍历或复杂的双端/快速 Diff 算法 | 命中 `dynamicChildren`，调用 `patchBlockChildren`，直接以 $O(1)$ 数组遍历方式更新动态节点 |
-| **属性比对 (`props`)** | 调用 `patchProps` 遍历比对 `oldProps` 和 `newProps` 的每一个键值对 | 根据 `patchFlag` 位运算命中（如 `PatchFlags.CLASS`），直接调用 `hostPatchProp` 操作特定属性 |
-| **静态节点处理** | 每次渲染都参与比对 | 编译器自动提升，跳过比对阶段 |
-
+| 维度                        | 无编译优化 (手写 `h` 函数 / JSX)                                   | 有编译优化 (Vue 模板 `<template>`)                                                          |
+| --------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| **子节点比对 (`children`)** | 调用 `patchChildren` 执行全量树遍历或复杂的双端/快速 Diff 算法     | 命中 `dynamicChildren`，调用 `patchBlockChildren`，直接以 $O(1)$ 数组遍历方式更新动态节点   |
+| **属性比对 (`props`)**      | 调用 `patchProps` 遍历比对 `oldProps` 和 `newProps` 的每一个键值对 | 根据 `patchFlag` 位运算命中（如 `PatchFlags.CLASS`），直接调用 `hostPatchProp` 操作特定属性 |
+| **静态节点处理**            | 每次渲染都参与比对                                                 | 编译器自动提升，跳过比对阶段                                                                |
 
 ## 6. 性能优化要点
 
-* **静态提升 + Block 树**：`dynamicChildren` 使得更新时只遍历动态节点，极大减少 diff 范围。
-* **靶向属性更新**：`patchFlag` 精确指示哪些属性需要检查，避免了无意义的属性对比。
-* **复用 DOM 元素**：更新时直接使用旧元素的 `el`，避免重新创建和插入，开销最小。
-* **事件缓存**：内联事件处理函数被缓存后，传递给子组件的 `props` 引用稳定，减少子组件重渲染。
+- **静态提升 + Block 树**：`dynamicChildren` 使得更新时只遍历动态节点，极大减少 diff 范围。
+- **靶向属性更新**：`patchFlag` 精确指示哪些属性需要检查，避免了无意义的属性对比。
+- **复用 DOM 元素**：更新时直接使用旧元素的 `el`，避免重新创建和插入，开销最小。
+- **事件缓存**：内联事件处理函数被缓存后，传递给子组件的 `props` 引用稳定，减少子组件重渲染。
 
 ## 7. 总结
 
-| 模块/函数 | 职责 | 关键优化 |
-|-----------|------|----------|
-| `processElement` | 根据是否有旧 VNode 分流挂载或更新 | 类型分流，逻辑清晰 |
-| `mountElement` | 创建真实元素、挂载子节点、设置属性、插入容器 | 利用 `shapeFlag` 快速判断子节点类型 |
-| `patchElement` | 复用 DOM 元素，更新属性和子节点 | `patchFlag` + `dynamicChildren` 实现靶向更新 |
-| `patchChildren` | 处理子节点数组的 diff | 快速 Diff 算法 |
-| `nodeOps` 协作 | 调用平台相关的节点操作方法 | 解耦平台实现 |
+| 模块/函数        | 职责                                         | 关键优化                                     |
+| ---------------- | -------------------------------------------- | -------------------------------------------- |
+| `processElement` | 根据是否有旧 VNode 分流挂载或更新            | 类型分流，逻辑清晰                           |
+| `mountElement`   | 创建真实元素、挂载子节点、设置属性、插入容器 | 利用 `shapeFlag` 快速判断子节点类型          |
+| `patchElement`   | 复用 DOM 元素，更新属性和子节点              | `patchFlag` + `dynamicChildren` 实现靶向更新 |
+| `patchChildren`  | 处理子节点数组的 diff                        | 快速 Diff 算法                               |
+| `nodeOps` 协作   | 调用平台相关的节点操作方法                   | 解耦平台实现                                 |

@@ -439,7 +439,7 @@ export default defineConfig({
                                                     {text: 'processCommentNode', link: '/frameworks/vue/processCommentNode'},
                                                     {text: 'processFragment', link: '/frameworks/vue/processFragment'},
                                                     {text: 'processComponent', link: '/frameworks/vue/processComponent'},
-                                                    {text: 'Diff算法', link: '/frameworks/vue/patchKeyedChildren'},
+                                                    {text: 'Diff算法演进', link: '/frameworks/vue/patchKeyedChildren'},
                                                 ]
                                             }
 
