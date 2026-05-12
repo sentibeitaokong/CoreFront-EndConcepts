@@ -266,12 +266,7 @@ function patchKeyedChildren(n1, n2, container) {
 :::code-group
 
 ```typescript [renderer.ts]
-const patchKeyedChildren = (
-  oldChildren,
-  newChildren,
-  container,
-  parentAnchor,
-) => {
+function patchKeyedChildren(oldChildren, newChildren, container, parentAnchor) {
   //从头部开始同步的比对游标
   let i = 0
   //新的子节点的长度
