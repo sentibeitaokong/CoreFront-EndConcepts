@@ -465,7 +465,6 @@ function patchKeyedChildren(oldChildren, newChildren, container, parentAnchor) {
 
 //移动节点到指定位置
 const move = (vnode, container, anchor) => {
-  const { el } = vnode
   hostInsert(vnode.el, container, anchor)
 }
 
