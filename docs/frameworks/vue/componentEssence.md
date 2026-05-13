@@ -1,4 +1,4 @@
-# 组件的本质
+# 组件的本质：状态与渲染
 
 ## 1. 引言：从“UI 片段”到“独立宇宙”
 
@@ -10,13 +10,13 @@
 
 ### 2.1 从不同视角看组件
 
-| 视角         | 组件的表现                                                     |
-| ------------ | -------------------------------------------------------------- |
-| **用户视角** | 一个自定义 HTML 标签（如 `<MyButton />`），具有属性和事件。     |
-| **开发者视角** | 一个封装了模板、样式、逻辑的 `.vue` 文件或 JavaScript 对象。    |
-| **框架视角** | 一个带有 `render` 函数、响应式状态、生命周期钩子的**对象实例**。 |
-| **运行时视角** | 一个**虚拟 DOM 节点（VNode）** 的 `type` 字段指向的组件对象。   |
-| **编译器视角** | 一个模板，被转换为 `render` 函数，最终生成 VNode 树。           |
+| 视角           | 组件的表现                                                       |
+| -------------- | ---------------------------------------------------------------- |
+| **用户视角**   | 一个自定义 HTML 标签（如 `<MyButton />`），具有属性和事件。      |
+| **开发者视角** | 一个封装了模板、样式、逻辑的 `.vue` 文件或 JavaScript 对象。     |
+| **框架视角**   | 一个带有 `render` 函数、响应式状态、生命周期钩子的**对象实例**。 |
+| **运行时视角** | 一个**虚拟 DOM 节点（VNode）** 的 `type` 字段指向的组件对象。    |
+| **编译器视角** | 一个模板，被转换为 `render` 函数，最终生成 VNode 树。            |
 
 ### 2.2 组件的核心要素
 
@@ -61,12 +61,16 @@ export default {
     return { count: 0 }
   },
   computed: {
-    double() { return this.count * 2 }
+    double() {
+      return this.count * 2
+    },
   },
   methods: {
-    increment() { this.count++ }
+    increment() {
+      this.count++
+    },
   },
-  template: `<div @click="increment">{{ title }}: {{ double }}</div>`
+  template: `<div @click="increment">{{ title }}: {{ double }}</div>`,
 }
 ```
 
@@ -121,9 +125,9 @@ createVNode(MyComponent, { title: msg, onClick: handle }, null)
 1. **创建实例**：`createComponentInstance`
 2. **设置响应式**：`setupComponent`（执行 `setup` 函数，初始化 `props`、`data` 等）
 3. **建立渲染 effect**：`setupRenderEffect`
-    - 创建 `ReactiveEffect`，其 `fn` 是 `componentUpdateFn`
-    - 首次执行时，调用 `render` 函数生成 VNode 树，并调用 `patch` 挂载 DOM
-    - 在 `render` 执行期间访问的响应式数据会被收集为依赖
+   - 创建 `ReactiveEffect`，其 `fn` 是 `componentUpdateFn`
+   - 首次执行时，调用 `render` 函数生成 VNode 树，并调用 `patch` 挂载 DOM
+   - 在 `render` 执行期间访问的响应式数据会被收集为依赖
 4. **数据变化时**：触发 effect 重新执行，再次调用 `render` 生成新 VNode，`patch` 更新 DOM
 
 ### 4.5 组件的本质：一个带有渲染 effect 的对象
@@ -136,14 +140,14 @@ createVNode(MyComponent, { title: msg, onClick: handle }, null)
 
 很多人将组件比作函数，这个类比非常贴切：
 
-| 函数特性       | 组件对应                               |
-| -------------- | -------------------------------------- |
-| 输入参数       | `props`                                |
-| 内部状态       | `data` / `ref` / `reactive`           |
-| 返回值         | 虚拟 DOM 树（或真实 DOM）              |
-| 副作用         | 生命周期钩子、`watch`、事件处理        |
-| 高阶函数       | 高阶组件（HOC）                        |
-| 递归调用       | 递归组件                               |
+| 函数特性 | 组件对应                        |
+| -------- | ------------------------------- |
+| 输入参数 | `props`                         |
+| 内部状态 | `data` / `ref` / `reactive`     |
+| 返回值   | 虚拟 DOM 树（或真实 DOM）       |
+| 副作用   | 生命周期钩子、`watch`、事件处理 |
+| 高阶函数 | 高阶组件（HOC）                 |
+| 递归调用 | 递归组件                        |
 
 **区别**：函数调用是瞬时的，而组件实例会持久存在，拥有独立生命周期。
 
@@ -163,14 +167,14 @@ createVNode(MyComponent, { title: msg, onClick: handle }, null)
 
 组件不是孤立的，它们需要相互通信。Vue 提供了多种通信方式：
 
-| 通信方式       | 适用场景                     |
-| -------------- | ---------------------------- |
-| `props` 向下传递 | 父→子                         |
-| `emit` 向上传递  | 子→父                         |
-| `provide/inject` | 跨层级传递（祖先→后代）       |
-| `slot` 插槽      | 父组件向子组件分发内容       |
+| 通信方式          | 适用场景                     |
+| ----------------- | ---------------------------- |
+| `props` 向下传递  | 父→子                        |
+| `emit` 向上传递   | 子→父                        |
+| `provide/inject`  | 跨层级传递（祖先→后代）      |
+| `slot` 插槽       | 父组件向子组件分发内容       |
 | `ref` / `$parent` | 直接访问组件实例（谨慎使用） |
-| 全局状态管理    | Pinia / Vuex（跨任意组件）    |
+| 全局状态管理      | Pinia / Vuex（跨任意组件）   |
 
 这些通信机制共同构成了组件之间的“神经网络”，使得整个应用成为一个有机整体。
 
@@ -188,9 +192,9 @@ createVNode(MyComponent, { title: msg, onClick: handle }, null)
 
 组件组合是指将小组件组合成更大的组件。组合的方式：
 
-* **父子组件嵌套**：最常见的组合方式，通过 props/events 通信。
-* **插槽（Slots）**：父组件向子组件注入内容，实现灵活的布局组合。
-* **作用域插槽**：子组件暴露数据给父组件的插槽内容，实现数据驱动的组合。
+- **父子组件嵌套**：最常见的组合方式，通过 props/events 通信。
+- **插槽（Slots）**：父组件向子组件注入内容，实现灵活的布局组合。
+- **作用域插槽**：子组件暴露数据给父组件的插槽内容，实现数据驱动的组合。
 
 组合使得应用可以像搭积木一样构建，并且保持每一块的可测试性和可替换性。
 
@@ -257,13 +261,13 @@ comp.mount(document.getElementById('app'))
 ```
 
 这个例子虽然简陋，但包含了组件的核心要素：
+
 - 输入 `props`
 - 内部 `state`
 - `render` 方法描述 UI
 - 事件处理导致状态变化，自动重新渲染
 
 Vue 组件就是在这个原型上加入了响应式系统、虚拟 DOM、高效 diff、生命周期管理等工业级特性。
-
 
 ## 11. 结语
 

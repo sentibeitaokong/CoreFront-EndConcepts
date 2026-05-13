@@ -1,4 +1,4 @@
-# Vue 3 良好的 TypeScript 支持
+# TypeScript 支持
 
 Vue 3 从底层架构上对 TypeScript 提供了**一等公民**支持。整个框架的源码由 TypeScript 编写，并提供了完善的类型定义文件。这使得 Vue 3 能够与 TypeScript 无缝集成，为开发者提供强大的类型检查、智能提示和重构能力。
 
@@ -21,23 +21,23 @@ import { defineComponent } from 'vue'
 export default defineComponent({
   props: {
     message: String,
-    count: { type: Number, required: true }
+    count: { type: Number, required: true },
   },
   data() {
     return {
-      localValue: 0
+      localValue: 0,
     }
   },
   computed: {
     double(): number {
       return this.count * 2
-    }
+    },
   },
   methods: {
     increment() {
       this.localValue++
-    }
-  }
+    },
+  },
 })
 ```
 
@@ -52,8 +52,8 @@ export default defineComponent({
 import { ref, computed } from 'vue'
 
 // 自动推导类型
-const count = ref(0)          // Ref<number>
-const msg = ref<string>('hello')  // 显式泛型
+const count = ref(0) // Ref<number>
+const msg = ref<string>('hello') // 显式泛型
 
 // props 类型声明
 const props = defineProps<{
@@ -80,13 +80,13 @@ const double = computed(() => count.value * 2)
 import { ref, Ref } from 'vue'
 
 // 自动推导
-const count = ref(0)          // Ref<number>
+const count = ref(0) // Ref<number>
 
 // 显式指定类型
 const user = ref<User | null>(null)
 
 // 只读 ref
-const readonlyCount = readonly(count)  // Readonly<Ref<number>>
+const readonlyCount = readonly(count) // Readonly<Ref<number>>
 ```
 
 ### 3.2 `reactive`
@@ -99,7 +99,7 @@ interface State {
 
 const state = reactive<State>({
   name: 'John',
-  age: 30
+  age: 30,
 })
 ```
 
@@ -108,8 +108,8 @@ const state = reactive<State>({
 ### 3.3 `computed`
 
 ```typescript
-const double = computed<number>(() => count.value * 2)  // 显式返回类型
-const triple = computed(() => count.value * 3)          // 自动推导
+const double = computed<number>(() => count.value * 2) // 显式返回类型
+const triple = computed(() => count.value * 3) // 自动推导
 ```
 
 ### 3.4 `watch` / `watchEffect`
@@ -120,7 +120,7 @@ watch(count, (newVal, oldVal) => {
 })
 
 watchEffect(() => {
-  console.log(count.value)   // count 类型已知
+  console.log(count.value) // count 类型已知
 })
 ```
 
@@ -135,9 +135,9 @@ export default defineComponent({
     name: String,
     age: {
       type: Number,
-      required: true
-    }
-  }
+      required: true,
+    },
+  },
 })
 ```
 
@@ -174,7 +174,10 @@ const emit = defineEmits<{
 ```typescript
 import { ref, Ref } from 'vue'
 
-export function useCounter(initialValue: number = 0): { count: Ref<number>; inc: () => void } {
+export function useCounter(initialValue: number = 0): {
+  count: Ref<number>
+  inc: () => void
+} {
   const count = ref(initialValue)
   const inc = () => count.value++
   return { count, inc }
@@ -250,11 +253,11 @@ declare module '@vue/runtime-core' {
 
 Vue 3 导出了一些辅助类型，用于提取组件或 API 的类型。
 
-| 类型                | 作用                               |
-| ------------------- | ---------------------------------- |
-| `ComponentProps`    | 提取组件的 props 类型              |
-| `ComponentEmits`    | 提取组件的 emits 类型              |
-| `PropType`          | 用于复杂 props 类型标注            |
+| 类型                            | 作用                              |
+| ------------------------------- | --------------------------------- |
+| `ComponentProps`                | 提取组件的 props 类型             |
+| `ComponentEmits`                | 提取组件的 emits 类型             |
+| `PropType`                      | 用于复杂 props 类型标注           |
 | `MaybeRef` / `MaybeRefOrGetter` | 表示可能是 ref 或普通值的联合类型 |
 
 示例：使用 `PropType`
@@ -266,9 +269,9 @@ export default defineComponent({
   props: {
     user: {
       type: Object as PropType<User>,
-      required: true
-    }
-  }
+      required: true,
+    },
+  },
 })
 ```
 
@@ -280,12 +283,11 @@ export default defineComponent({
 
 ## 10. 总结
 
-| 方面                   | Vue 3 的 TypeScript 支持                                       |
-| ---------------------- | -------------------------------------------------------------- |
-| **源码**               | 完全使用 TypeScript 编写，类型定义精确                         |
-| **组件类型**           | `defineComponent` 和 `<script setup lang="ts">` 提供完整推导   |
-| **响应式 API**         | `ref`、`reactive` 等支持泛型，类型安全                         |
-| **模板类型检查**       | 通过 Volar 插件实现，接近 TS 体验                              |
-| **扩展性**             | 支持扩展全局类型和组件实例类型                                 |
-| **工具链**             | Vite / Webpack 均可良好配合                                    |
-
+| 方面             | Vue 3 的 TypeScript 支持                                     |
+| ---------------- | ------------------------------------------------------------ |
+| **源码**         | 完全使用 TypeScript 编写，类型定义精确                       |
+| **组件类型**     | `defineComponent` 和 `<script setup lang="ts">` 提供完整推导 |
+| **响应式 API**   | `ref`、`reactive` 等支持泛型，类型安全                       |
+| **模板类型检查** | 通过 Volar 插件实现，接近 TS 体验                            |
+| **扩展性**       | 支持扩展全局类型和组件实例类型                               |
+| **工具链**       | Vite / Webpack 均可良好配合                                  |

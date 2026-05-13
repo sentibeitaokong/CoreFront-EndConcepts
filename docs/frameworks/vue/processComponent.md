@@ -375,13 +375,13 @@ export function finishComponentSetup(instance: ComponentInternalInstance) {
 ```typescript [componentPublicInstance.ts]
 //便于处理其他属性 全局映射表
 const publicPropertiesMap = {
-  $el: i => i.vnode.el,
-  $data: i => i.data,
-  $props: i => i.props,
-  $attrs: i => i.attrs,
-  $slots: i => i.slots,
-  $refs: i => i.refs,
-  $emit: i => i.emit,
+  $el: i => i.vnode.el, //组件的根 DOM 元素。取自组件实例的 vnode.el，也就是当前组件对应的虚拟节点的真实 DOM 引用。
+  $data: i => i.data, //组件响应式数据对象
+  $props: i => i.props, //组件接收到的 props 对象
+  $attrs: i => i.attrs, //组件未声明为 props 的传递属性（attrs），即“透传属性”。
+  $slots: i => i.slots, //组件的插槽内容，通常是一个对象，包含各个插槽的 VNode 数组。
+  $refs: i => i.refs, //模板中的 ref 引用集合，包含了子组件实例或 DOM 元素。
+  $emit: i => i.emit, //组件的 emit 方法，用于触发自定义事件。注意这是绑定好 this 的函数。
 }
 
 // 内部工具：检查对象自身是否拥有某属性

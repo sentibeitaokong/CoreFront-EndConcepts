@@ -326,7 +326,7 @@ function patchKeyedChildren(oldChildren, newChildren, container, parentAnchor) {
   }
   // 4. 同序列卸载 -> 新节点数量<旧节点数量
   // 左侧   (AB)C->(AB)
-  //右侧   (A)BC->BC
+  //右侧   A(BC)->(BC)
   else if (i > newChildrenEnd) {
     while (i <= oldChildrenEnd) {
       unmount(oldChildren[i])
@@ -386,7 +386,10 @@ function patchKeyedChildren(oldChildren, newChildren, container, parentAnchor) {
         //当老节点没有key时，遍历新节点对比老节点查找相同类型相同且都没有key
         for (j = newStartIndex; j <= newChildrenEnd; j++) {
           // 找到《没有找到对应旧节点的新节点，并且该新节点可以和旧节点匹配》
-          if (isSameVNodeType(prevChild, newChildren[j])) {
+          if (
+            newIndexToOldIndexMap[j - newStartIndex] === 0 &&
+            isSameVNodeType(prevChild, newChildren[j])
+          ) {
             // 如果能找到，那么 newIndex = 该新节点索引
             newIndex = j
             break
@@ -462,12 +465,15 @@ function patchKeyedChildren(oldChildren, newChildren, container, parentAnchor) {
     }
   }
 }
-
 //移动节点到指定位置
 const move = (vnode, container, anchor) => {
   hostInsert(vnode.el, container, anchor)
 }
-
+//根据 key || type 判断是否为相同类型节点
+function isSameVNodeType(n1: any, n2: any) {
+  //比对type和key  都相同则默认是一样的节点,才使用patch去更新数据
+  return n1.type === n2.type && n1.key === n2.key
+}
 //获取最长递增子序列下标
 function getSequence(arr) {
   // 获取一个数组浅拷贝。注意 p 的元素改变并不会影响 arr

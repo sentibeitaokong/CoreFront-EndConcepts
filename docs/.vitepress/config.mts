@@ -388,46 +388,53 @@ export default defineConfig({
                                 collapsed: true, // 初始状态为“展开”
                                 items: [
                                     {
-                                        text: '框架设计核心概念',
+                                        text: 'Vue 核心设计原理与基础概念',
                                         collapsible: true, // 允许折叠 (默认true，可省略)
                                         collapsed: true, // 初始状态为“展开”
                                         items: [
                                             {text: '命令式编程与声明式编程', link: '/frameworks/vue/imperativeAndDeclarative'},
                                             {text: '编译时和运行时', link: '/frameworks/vue/compileAndRun'},
-                                            {text: '副作用', link: '/frameworks/vue/slideEffect'},
+                                            {text: '响应式副作用 (effect)', link: '/frameworks/vue/slideEffect'},
                                             {text: 'TreeShaking', link: '/frameworks/vue/treeShaking'},
-                                            {text: 'Typescript支持', link: '/frameworks/vue/typescriptSupport'},
+                                            {text: 'TypeScript支持', link: '/frameworks/vue/typescriptSupport'},
                                             {text: '声明式UI', link: '/frameworks/vue/declarativeUI'},
-                                            {text: '虚拟Dom', link: '/frameworks/vue/vDom'},
+                                            {text: '虚拟 DOM', link: '/frameworks/vue/vDom'},
                                             {text: '编译器', link: '/frameworks/vue/compiler'},
                                             {text: '渲染器', link: '/frameworks/vue/renderer'},
-                                            {text: '组件的本质', link: '/frameworks/vue/componentEssence'},
+                                            {text: '组件的本质：状态与渲染', link: '/frameworks/vue/componentEssence'},
                                         ]
                                     },
                                     {
-                                        text: '框架源码解读',
+                                        text: '深入源码：从响应式到渲染',
                                         collapsible: true, // 允许折叠 (默认true，可省略)
                                         collapsed: true, // 初始状态为“展开”
                                         items: [
-                                            {text: 'Vue3源码目录设计', link: '/frameworks/vue/vueCatalog'},
+                                            {text: 'Vue 3 源码目录结构', link: '/frameworks/vue/vueCatalog'},
+                                            {text: '响应式系统演进', link: '/frameworks/vue/reactivityUpdate'},
                                             {
-                                                text: '深入响应式原理',
+                                                text: '响应式系统核心',
                                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                                 collapsed: true, // 初始状态为“展开”
                                                 items: [
-                                                    {text: 'Vue响应式原理演进', link: '/frameworks/vue/reactivityUpdate'},
                                                     {text: 'reactive', link: '/frameworks/vue/reactive'},
                                                     {text: 'ref', link: '/frameworks/vue/ref'},
                                                     {text: 'computed', link: '/frameworks/vue/computed'},
-                                                    {text: 'scheduler', link: '/frameworks/vue/scheduler'},
-                                                    {text: 'nextTick', link: '/frameworks/vue/nextTick'},
                                                     {text: 'watch', link: '/frameworks/vue/watch'},
                                                     {text: 'watchEffect', link: '/frameworks/vue/watchEffect'},
-                                                    {text: 'provide/Inject', link: '/frameworks/vue/provideAndInject'},
                                                 ]
                                             },
                                             {
-                                                text: '组件化',
+                                                text: '调度与异步更新',
+                                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                                collapsed: true, // 初始状态为“展开”
+                                                items: [
+                                                    {text: 'scheduler', link: '/frameworks/vue/scheduler'},
+                                                    {text: 'nextTick', link: '/frameworks/vue/nextTick'},
+                                                ]
+                                            },
+                                            {text: '依赖注入', link: '/frameworks/vue/provideAndInject'},
+                                            {
+                                                text: '虚拟 DOM 与渲染器',
                                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                                 collapsed: true, // 初始状态为“展开”
                                                 items: [
@@ -439,10 +446,9 @@ export default defineConfig({
                                                     {text: 'processCommentNode', link: '/frameworks/vue/processCommentNode'},
                                                     {text: 'processFragment', link: '/frameworks/vue/processFragment'},
                                                     {text: 'processComponent', link: '/frameworks/vue/processComponent'},
-                                                    {text: 'Diff算法演进', link: '/frameworks/vue/patchKeyedChildren'},
                                                 ]
-                                            }
-
+                                            },
+                                            {text: 'Diff 算法演进', link: '/frameworks/vue/patchKeyedChildren'},
                                         ]
                                     },
                                 ]
