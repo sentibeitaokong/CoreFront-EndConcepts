@@ -13,12 +13,12 @@
 
 ### 1.2 与默认 DOM 渲染器的关系
 
-| 特性   | 默认 DOM 渲染器                     | 自定义渲染器                                                 |
-|------|--------------------------------|--------------------------------------------------------|
-| 节点操作 | 基于浏览器 DOM API                  | 用户提供（如 Canvas 绘图命令）                                    |
+| 特性     | 默认 DOM 渲染器                    | 自定义渲染器                                                                |
+| -------- | ---------------------------------- | --------------------------------------------------------------------------- |
+| 节点操作 | 基于浏览器 DOM API                 | 用户提供（如 Canvas 绘图命令）                                              |
 | 创建方式 | 内部调用 `createRenderer(nodeOps)` | 显式调用 `createRenderer` 并传入**自定义平台相关的节点操作接口**(`nodeOps`) |
-| 应用入口 | `createApp()` (从 `vue` 导入)     | `createRenderer(...).createApp()`                      |
-| 适用场景 | 浏览器 Web 应用                     | 非浏览器环境、特殊渲染需求                                          |
+| 应用入口 | `createApp()` (从 `vue` 导入)      | `createRenderer(...).createApp()`                                           |
+| 适用场景 | 浏览器 Web 应用                    | 非浏览器环境、特殊渲染需求                                                  |
 
 ## 2. 核心实现：渲染器工厂函数
 
@@ -29,138 +29,161 @@
 ```typescript [renderer.ts]
 // 核心入口：接收外部传入的渲染选项
 export function createRenderer(options: RendererOptions) {
-    // 本质上是调用 baseCreateRenderer
-    return baseCreateRenderer(options)
+  // 本质上是调用 baseCreateRenderer
+  return baseCreateRenderer(options)
 }
 
-//核心接口api   
+//核心接口api
 //必需方法：createElement、createText、insert、remove、parentNode、nextSibling、patchProp 是渲染器能够正常工作的最低要求。
-export interface RendererOptions<HostNode = RendererNode, HostElement = RendererElement> {
-    // 创建元素
-    createElement(type: string, isSVG?: boolean, isCustomizedBuiltIn?: string): HostElement
-    // 创建文本节点
-    createText(text: string): HostNode
-    // 创建注释节点
-    createComment(text: string): HostNode
-    // 插入节点
-    insert(child: HostNode, parent: HostElement, anchor?: HostNode | null): void
-    // 移除节点
-    remove(child: HostNode): void
-    // 设置元素文本内容
-    setElementText(el: HostElement, text: string): void
-    // 设置文本节点内容
-    setText(node: HostNode, text: string): void
-    // 获取父节点
-    parentNode(node: HostNode): HostElement | null
-    // 获取下一个兄弟节点
-    nextSibling(node: HostNode): HostNode | null
-    // 查询元素是否匹配选择器（主要用于 SSR hydrate）
-    querySelector?(selector: string): HostElement | null
-    // 获取元素作用域 ID（用于 CSS scope）
-    getElementId?(el: HostElement): string | null
-    // 插入静态内容（SSR 优化）
-    insertStaticContent?(
-        content: string,
-        parent: HostElement,
-        anchor: HostNode | null,
-        isSVG: boolean
-    ): [HostNode, HostNode]
-    // 更新属性（核心方法之一）
-    patchProp(
-        el: HostElement,
-        key: string,
-        prevValue: any,
-        nextValue: any,
-        isSVG?: boolean,
-        prevChildren?: VNode[],
-        parentComponent?: ComponentInternalInstance | null,
-        parentSuspense?: SuspenseBoundary | null,
-        unmountChildren?: (children: VNode[]) => void
-    ): void
+export interface RendererOptions<
+  HostNode = RendererNode,
+  HostElement = RendererElement,
+> {
+  // 创建元素
+  createElement(
+    type: string,
+    isSVG?: boolean,
+    isCustomizedBuiltIn?: string,
+  ): HostElement
+  // 创建文本节点
+  createText(text: string): HostNode
+  // 创建注释节点
+  createComment(text: string): HostNode
+  // 插入节点
+  insert(child: HostNode, parent: HostElement, anchor?: HostNode | null): void
+  // 移除节点
+  remove(child: HostNode): void
+  // 设置元素文本内容
+  setElementText(el: HostElement, text: string): void
+  // 设置文本节点内容
+  setText(node: HostNode, text: string): void
+  // 获取父节点
+  parentNode(node: HostNode): HostElement | null
+  // 获取下一个兄弟节点
+  nextSibling(node: HostNode): HostNode | null
+  // 查询元素是否匹配选择器（主要用于 SSR hydrate）
+  querySelector?(selector: string): HostElement | null
+  // 获取元素作用域 ID（用于 CSS scope）
+  getElementId?(el: HostElement): string | null
+  // 插入静态内容（SSR 优化）
+  insertStaticContent?(
+    content: string,
+    parent: HostElement,
+    anchor: HostNode | null,
+    isSVG: boolean,
+  ): [HostNode, HostNode]
+  // 更新属性（核心方法之一）
+  patchProp(
+    el: HostElement,
+    key: string,
+    prevValue: any,
+    nextValue: any,
+    isSVG?: boolean,
+    prevChildren?: VNode[],
+    parentComponent?: ComponentInternalInstance | null,
+    parentSuspense?: SuspenseBoundary | null,
+    unmountChildren?: (children: VNode[]) => void,
+  ): void
 }
 ```
+
 :::
 
 ### 2.2 `baseCreateRenderer` 核心骨架
 
 :::code-group
+
 ```typescript [renderer.ts]
 import { createAppAPI } from './apiCreateApp'
 import { Comment, Fragment, isSameVNodeType, Text } from './vnode'
-function baseCreateRenderer(options: RendererOptions):any {
-    // 1. 从传入的 options 中解构出特定平台的操作 API（重命名以防止冲突）
-    const {
-        insert: hostInsert,
-        patchProp: hostPatchProp,
-        createElement: hostCreateElement,
-        setElementText: hostSetElementText,
-        remove: hostRemove,
-        createText: hostCreateText,
-        setText: hostSetText,
-        createComment: hostCreateComment
-    } = options
+function baseCreateRenderer(options: RendererOptions): any {
+  // 1. 从传入的 options 中解构出特定平台的操作 API（重命名以防止冲突）
+  const {
+    insert: hostInsert,
+    patchProp: hostPatchProp,
+    createElement: hostCreateElement,
+    setElementText: hostSetElementText,
+    remove: hostRemove,
+    createText: hostCreateText,
+    setText: hostSetText,
+    createComment: hostCreateComment,
+  } = options
 
-    // 2. 核心调度：patch 函数 (对比新旧 VNode)  （n1旧节点,n2新节点,container容器,anchor锚地） 
-    const patch = (oldVNode, newVNode, container, anchor = null) => {
-        //如果新老节点相同直接返回
-        if (oldVNode === newVNode) {
-            return
-        }
-        //判断是否为相同类型节点
-        if (oldVNode && !isSameVNodeType(oldVNode, newVNode)) {
-            //卸载旧节点
-            unmount(oldVNode)
-            oldVNode = null
-        }
-        //提取新节点的类型和标识
-        const { type, shapeFlag } = newVNode
-        switch (type) {
-            case Text:
-                // Text
-                processText(oldVNode, newVNode, container, anchor)
-                break
-            case Comment:
-                // Comment
-                processCommentNode(oldVNode, newVNode, container, anchor)
-                break
-            case Fragment:
-                // Fragment
-                processFragment(oldVNode, newVNode, container, anchor)
-                break
-            default:
-                if (shapeFlag & ShapeFlags.ELEMENT) {
-                    //文本
-                    processElement(oldVNode, newVNode, container, anchor)
-                } else if (shapeFlag & ShapeFlags.COMPONENT) {
-                    // 组件
-                    processComponent(oldVNode, newVNode, container, anchor)
-                }
+  // 2. 核心调度：patch 函数 (对比新旧 VNode)  （n1旧节点,n2新节点,container容器,anchor锚地）
+  const patch = (oldVNode, newVNode, container, anchor = null) => {
+    //如果新老节点相同直接返回
+    if (oldVNode === newVNode) {
+      return
+    }
+    //判断是否为相同类型节点
+    if (oldVNode && !isSameVNodeType(oldVNode, newVNode)) {
+      //卸载旧节点
+      unmount(oldVNode)
+      oldVNode = null
+    }
+    //提取新节点的类型和标识
+    const { type, shapeFlag } = newVNode
+    switch (type) {
+      case Text:
+        // Text
+        processText(oldVNode, newVNode, container, anchor)
+        break
+      case Comment:
+        // Comment
+        processCommentNode(oldVNode, newVNode, container, anchor)
+        break
+      case Fragment:
+        // Fragment
+        processFragment(oldVNode, newVNode, container, anchor)
+        break
+      default:
+        if (shapeFlag & ShapeFlags.ELEMENT) {
+          //文本
+          processElement(oldVNode, newVNode, container, anchor)
+        } else if (shapeFlag & ShapeFlags.COMPONENT) {
+          // 组件
+          processComponent(oldVNode, newVNode, container, anchor)
         }
     }
-    
-    // 3. 对外暴露的 render 函数
-    const render: RootRenderFunction = (vnode, container, isSVG) => {
-        if (vnode == null) {
-            // 如果新 vnode 为空且有旧 vnode，执行卸载
-            if (container._vnode) {
-                unmount(container._vnode, null, null, true)
-            }
-        } else {
-            // 触发 patch 挂载或更新
-            patch(container._vnode || null, vnode, container, null, null, null, isSVG)
-        }
-        // 缓存当前的 vnode
-        container._vnode = vnode
+  }
+
+  // 3. 对外暴露的 render 函数
+  const render: RootRenderFunction = (vnode, container, isSVG) => {
+    if (vnode == null) {
+      // 如果新 vnode 为空且有旧 vnode，执行卸载
+      if (container._vnode) {
+        unmount(container._vnode, null, null, true)
+      }
+    } else {
+      // 触发 patch 挂载或更新
+      patch(container._vnode || null, vnode, container, null, null, null, isSVG)
     }
-    //卸载
-    const unmount = vnode => {
-        hostRemove(vnode.el!)
-    }
-    // 4. 返回渲染器对象，包含 render 和 createApp
-    return {
-        render,
-        createApp: createAppAPI(render)
-    }
+    // 缓存当前的 vnode
+    container._vnode = vnode
+  }
+  //卸载
+  const unmount = vnode => {
+    hostRemove(vnode.el!)
+  }
+  //将渲染器的核心api全部暴露出去供keepAlive和teleport组件使用，且只有内置组件有访问这个对象的权限
+  //使得这些内置组件具备操纵底层的能力，包括控制dom
+  const internals: RendererInternals = {
+    p: patch,
+    um: unmount,
+    m: move,
+    r: remove,
+    mt: mountComponent,
+    mc: mountChildren,
+    pc: patchChildren,
+    pbc: patchBlockChildren,
+    n: getNextHostNode,
+    o: options, // 把最初传进来的原生 DOM API 也塞了进去
+  }
+  // 4. 返回渲染器对象，包含 render 和 createApp
+  return {
+    render,
+    createApp: createAppAPI(render),
+  }
 }
 ```
 
@@ -168,20 +191,20 @@ function baseCreateRenderer(options: RendererOptions):any {
 import { createVNode } from './vnode'
 // 通过 createAppAPI 将 render 函数与应用实例绑定,创建 app 实例
 export function createAppAPI<HostElement>(render) {
-    return function createApp(rootComponent, rootProps = null) {
-        const app = {
-            _component: rootComponent,
-            _container: null,
-            // 挂载方法
-            mount(rootContainer: HostElement): any {
-                // 直接通过 createVNode 方法构建 vnode
-                const vnode = createVNode(rootComponent, rootProps)
-                // 通过 render 函数进行挂载
-                render(vnode, rootContainer)
-            }
-        }
-        return app
+  return function createApp(rootComponent, rootProps = null) {
+    const app = {
+      _component: rootComponent,
+      _container: null,
+      // 挂载方法
+      mount(rootContainer: HostElement): any {
+        // 直接通过 createVNode 方法构建 vnode
+        const vnode = createVNode(rootComponent, rootProps)
+        // 通过 render 函数进行挂载
+        render(vnode, rootContainer)
+      },
     }
+    return app
+  }
 }
 ```
 
@@ -192,7 +215,7 @@ export const Comment = Symbol('Comment')
 
 //根据 key || type 判断是否为相同类型节点
 export function isSameVNodeType(n1: VNode, n2: VNode): boolean {
-    return n1.type === n2.type && n1.key === n2.key
+  return n1.type === n2.type && n1.key === n2.key
 }
 ```
 
@@ -203,50 +226,50 @@ export function isSameVNodeType(n1: VNode, n2: VNode): boolean {
 ### 3.1 基础使用示例 (自定义 Canvas 渲染器简写)
 
 ```ts
-import {createRenderer,h} from '@vue/runtime-core'
-const app = new PIXI.Application();
+import { createRenderer, h } from '@vue/runtime-core'
+const app = new PIXI.Application()
 // 异步初始化
 await app.init({
-    width: 800,
-    height: 600,
-});
+  width: 800,
+  height: 600,
+})
 // 添加到页面
-document.body.appendChild(app.canvas);
+document.body.appendChild(app.canvas)
 
 // 1. 自定义平台操作 API
 const nodeOps = {
-    createElement(type) {
-        if (type === "rect") {
-            const rect = new PIXI.Graphics();
-            rect.fill(0xff0000);
-            rect.rect(0, 0, 100, 100);
-            rect.fill();
-            return rect;
-        }
-    },
-    patchProp(el, key, val) {
-        el[key] = val;
-    },
-    insert(el, parent) {
-        parent.addChild(el);
-    },
-    //...其他必选接口
+  createElement(type) {
+    if (type === 'rect') {
+      const rect = new PIXI.Graphics()
+      rect.fill(0xff0000)
+      rect.rect(0, 0, 100, 100)
+      rect.fill()
+      return rect
+    }
+  },
+  patchProp(el, key, val) {
+    el[key] = val
+  },
+  insert(el, parent) {
+    parent.addChild(el)
+  },
+  //...其他必选接口
 }
 // 2. 创建自定义渲染器
-const {createApp} = createRenderer(nodeOps)
+const { createApp } = createRenderer(nodeOps)
 
 // 3. 挂载应用
 export const App = {
-    setup() {
-        return {
-            x: 100,
-            y: 100,
-        };
-    },
-    render() {
-        return h("rect", { x: this.x, y: this.y });
-    },
-};
+  setup() {
+    return {
+      x: 100,
+      y: 100,
+    }
+  },
+  render() {
+    return h('rect', { x: this.x, y: this.y })
+  },
+}
 
 createApp(App).mount(app.stage)
 ```

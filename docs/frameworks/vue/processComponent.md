@@ -65,6 +65,7 @@ const processComponent = (
 
 ```typescript [renderer.ts]
 import { createComponentInstance, setupComponent } from './component.ts'
+
 const mountComponent: MountComponentFn = (
   initialVNode, // 当前组件的新 VNode
   container, // 挂载的父容器
@@ -80,7 +81,13 @@ const mountComponent: MountComponentFn = (
       parentComponent,
       parentSuspense,
     ))
-  // ... (处理 <KeepAlive> 的缓存注入等边缘逻辑)
+  // 【特权注入】针对 KeepAlive 的专属逻辑（核心高光时刻）
+  // 判断当前正在挂载的 VNode 是否是 KeepAlive 组件
+  // (通过检查 vnode.type.__isKeepAlive === true 判断)
+  if (isKeepAlive(initialVNode)) {
+    // 将渲染器的内部核心方法 (internals) 强制注入到组件上下文的 renderer 属性中
+    ;(instance.ctx as KeepAliveContext).renderer = internals
+  }
 
   // 步骤 2：初始化组件 (Setup Component)
   // 解析 Props, Slots，执行 setup 函数 (如果存在)，并处理 Vue 2 风格的 Options API

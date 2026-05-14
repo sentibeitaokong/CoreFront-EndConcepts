@@ -405,7 +405,7 @@ export default defineConfig({
                                         ]
                                     },
                                     {
-                                        text: '深入源码：从响应式到渲染',
+                                        text: '从源码看本质：Vue 3 响应式系统、编译器与渲染器',
                                         collapsible: true, // 允许折叠 (默认true，可省略)
                                         collapsed: true, // 初始状态为“展开”
                                         items: [
@@ -449,6 +449,25 @@ export default defineConfig({
                                                 ]
                                             },
                                             {text: 'Diff 算法演进', link: '/frameworks/vue/patchKeyedChildren'},
+                                            {
+                                                text: 'Vue 3 特殊组件揭秘',
+                                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                                collapsed: true, // 初始状态为“展开”
+                                                items: [
+                                                    {text: '异步组件', link: '/frameworks/vue/defineAsyncComponent'},
+                                                    {text: '组件缓存', link: '/frameworks/vue/keepAliveComponent'},
+                                                    {text: 'Teleport组件', link: '/frameworks/vue/teleportComponent'},
+                                                    {text: 'Transition组件', link: '/frameworks/vue/transitionComponent'},
+                                                ]
+                                            },
+                                            {
+                                                text: '模板编译机制',
+                                                collapsible: true, // 允许折叠 (默认true，可省略)
+                                                collapsed: true, // 初始状态为“展开”
+                                                items: [
+                                                    {text: '编译器核心技术概览', link: '/frameworks/vue/compilerInfo'},
+                                                ]
+                                            },
                                         ]
                                     },
                                 ]
