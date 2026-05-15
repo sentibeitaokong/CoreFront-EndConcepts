@@ -34,7 +34,7 @@ export const KeepAliveImpl = {
   },
 
   setup(props: KeepAliveProps, { slots }: SetupContext) {
-    //获取根实例
+    //获取当前组件实例
     const instance = getCurrentInstance()!
     // 与渲染器通信的上下文（通过 instance.ctx）
     const sharedContext = instance.ctx as KeepAliveContext

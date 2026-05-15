@@ -246,6 +246,15 @@ export function patchClass(el, value) {
   }
   // 2. 常规的 HTML 元素（核心性能优化点）
   else {
+    // 检查元素身上是否挂载了 _vtc (说明当前正在执行动画) 过渡动画
+    const transitionClasses = (el as any)._vtc
+    if (transitionClasses) {
+      // 【拦截与合并】
+      // 将 Vue 计算出来的响应式 class，和存储在 _vtc 中的动画 class 强行合并
+      value = (
+        value ? [value, ...transitionClasses] : [...transitionClasses]
+      ).join(' ')
+    }
     el.className = value
   }
 }
