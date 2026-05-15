@@ -1,11 +1,11 @@
 import {defineConfig} from 'vitepress'
-import { containerPreview, componentPreview } from '@vitepress-demo-preview/plugin'
+import {componentPreview, containerPreview} from '@vitepress-demo-preview/plugin'
 import lightbox from "vitepress-plugin-lightbox";
-import vue from '@vitejs/plugin-vue'
-import { fileURLToPath, URL } from 'node:url'
+import {fileURLToPath, URL} from 'node:url'
 // 如果你使用的是 ESM (type: module)，需要用这种方式获取 __dirname
 // 必须引入 path 模块
 import path from 'path'
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vitepress.dev/reference/site-config
@@ -31,7 +31,7 @@ export default defineConfig({
     base: '/CoreFront-EndConcepts/',
     title: "寻北",
     description: "vitePress",
-    head: [['link', { rel: 'icon', href: '/CoreFront-EndConcepts/myAddress.svg' }]], //要在页面 HTML 的 <head> 标签中呈现的其他元素
+    head: [['link', {rel: 'icon', href: '/CoreFront-EndConcepts/myAddress.svg'}]], //要在页面 HTML 的 <head> 标签中呈现的其他元素
     cleanUrls: true,         //生成简洁的url
     // 🚨 2. 必须配置 markdown 字段
     markdown: {
@@ -106,7 +106,7 @@ export default defineConfig({
                         items: [
                             {
                                 text: '简体中文',
-                                link:'',
+                                link: '',
                                 activeMatch: `^/`
                             },
                         ],
@@ -189,7 +189,7 @@ export default defineConfig({
                                 text: '视觉装饰',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
-                                items:[
+                                items: [
                                     {text: '圆角', link: '/css/borderRadius'},
                                     {text: '阴影', link: '/css/boxShadow'},
                                     {text: '渐变', link: '/css/gradients'},
@@ -202,7 +202,7 @@ export default defineConfig({
                                 text: '现代布局系统',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
-                                items:[
+                                items: [
                                     {text: '多列布局', link: '/css/multiColumn'},
                                     {text: 'Table表格布局', link: '/css/tableLayout'},
                                     {text: 'Flex弹性布局', link: '/css/flexibleBox'},
@@ -213,7 +213,7 @@ export default defineConfig({
                                 text: '动画与变换',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
-                                items:[
+                                items: [
                                     {text: '变换', link: '/css/transform'},
                                     {text: '过渡', link: '/css/transitions'},
                                     {text: '动画', link: '/css/animations'},
@@ -223,7 +223,7 @@ export default defineConfig({
                                 text: '响应式设计',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
-                                items:[
+                                items: [
                                     {text: '媒体查询', link: '/css/mediaQueries'},
                                     {text: '单位', link: '/css/units'},
                                 ]
@@ -266,7 +266,7 @@ export default defineConfig({
                                 text: '数据类型扩展',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
-                                items:[
+                                items: [
                                     {text: '字符串的扩展', link: '/js/string'},
                                     {text: '正则的扩展', link: '/js/regExp'},
                                     {text: '数值的扩展', link: '/js/number'},
@@ -281,7 +281,7 @@ export default defineConfig({
                                 text: '事件循环和异步',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
-                                items:[
+                                items: [
                                     {text: 'Promise对象', link: '/js/promise'},
                                     {text: 'Iterator(遍历器)', link: '/js/iterator'},
                                     {text: 'Generator函数的语法', link: '/js/generator'},
@@ -294,7 +294,7 @@ export default defineConfig({
                                 text: '类与继承',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
-                                items:[
+                                items: [
                                     {text: '原型、原型链、继承', link: '/js/prototype'},
                                     {text: 'Class的基本语法', link: '/js/classBasic'},
                                     {text: 'Class的继承', link: '/js/classExtends'},
@@ -304,7 +304,7 @@ export default defineConfig({
                                 text: '元编程',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
-                                items:[
+                                items: [
                                     {text: 'Symbol', link: '/js/symbol'},
                                     {text: 'Proxy', link: '/js/proxy'},
                                     {text: 'Reflect', link: '/js/reflect'},
@@ -314,7 +314,7 @@ export default defineConfig({
                                 text: '模块化',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
-                                items:[
+                                items: [
                                     {text: 'Module的语法', link: '/js/module'},
                                     {text: 'Module的加载实现', link: '/js/compareModule'},
                                 ]
@@ -392,7 +392,10 @@ export default defineConfig({
                                         collapsible: true, // 允许折叠 (默认true，可省略)
                                         collapsed: true, // 初始状态为“展开”
                                         items: [
-                                            {text: '命令式编程与声明式编程', link: '/frameworks/vue/imperativeAndDeclarative'},
+                                            {
+                                                text: '命令式编程与声明式编程',
+                                                link: '/frameworks/vue/imperativeAndDeclarative'
+                                            },
                                             {text: '编译时和运行时', link: '/frameworks/vue/compileAndRun'},
                                             {text: '响应式副作用 (effect)', link: '/frameworks/vue/slideEffect'},
                                             {text: 'TreeShaking', link: '/frameworks/vue/treeShaking'},
@@ -443,9 +446,15 @@ export default defineConfig({
                                                     {text: 'nodeOps', link: '/frameworks/vue/nodeOps'},
                                                     {text: 'processElement', link: '/frameworks/vue/processElement'},
                                                     {text: 'processText', link: '/frameworks/vue/processText'},
-                                                    {text: 'processCommentNode', link: '/frameworks/vue/processCommentNode'},
+                                                    {
+                                                        text: 'processCommentNode',
+                                                        link: '/frameworks/vue/processCommentNode'
+                                                    },
                                                     {text: 'processFragment', link: '/frameworks/vue/processFragment'},
-                                                    {text: 'processComponent', link: '/frameworks/vue/processComponent'},
+                                                    {
+                                                        text: 'processComponent',
+                                                        link: '/frameworks/vue/processComponent'
+                                                    },
                                                 ]
                                             },
                                             {text: 'Diff 算法演进', link: '/frameworks/vue/patchKeyedChildren'},
@@ -457,15 +466,19 @@ export default defineConfig({
                                                     {text: '异步组件', link: '/frameworks/vue/defineAsyncComponent'},
                                                     {text: '组件缓存', link: '/frameworks/vue/keepAliveComponent'},
                                                     {text: 'Teleport组件', link: '/frameworks/vue/teleportComponent'},
-                                                    {text: 'Transition组件', link: '/frameworks/vue/transitionComponent'},
+                                                    {
+                                                        text: 'Transition组件',
+                                                        link: '/frameworks/vue/transitionComponent'
+                                                    },
                                                 ]
                                             },
                                             {
-                                                text: '模板编译机制',
+                                                text: 'Vue 3 编译器核心技术解析',
                                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                                 collapsed: true, // 初始状态为“展开”
                                                 items: [
                                                     {text: '编译器核心技术概览', link: '/frameworks/vue/compilerInfo'},
+                                                    {text: '解析器', link: '/frameworks/vue/parser'},
                                                 ]
                                             },
                                         ]
@@ -534,7 +547,10 @@ export default defineConfig({
                                             {text: 'useCallback', link: '/frameworks/react/useCallback'},
                                             {text: 'useMemo', link: '/frameworks/react/useMemo'},
                                             {text: 'useRef', link: '/frameworks/react/useRef'},
-                                            {text: 'useImperativeHandle', link: '/frameworks/react/useImperativeHandle'},
+                                            {
+                                                text: 'useImperativeHandle',
+                                                link: '/frameworks/react/useImperativeHandle'
+                                            },
                                             {text: 'useActionState', link: '/frameworks/react/useActionState'},
                                             {text: 'useDebugValue', link: '/frameworks/react/useDebugValue'},
                                             {text: 'useDeferredValue', link: '/frameworks/react/useDeferredValue'},
@@ -542,7 +558,10 @@ export default defineConfig({
                                             {text: 'useId', link: '/frameworks/react/useId'},
                                             {text: 'useInsertionEffect', link: '/frameworks/react/useInsertionEffect'},
                                             {text: 'useOptimistic', link: '/frameworks/react/useOptimistic'},
-                                            {text: 'useSyncExternalStore', link: '/frameworks/react/useSyncExternalStore'},
+                                            {
+                                                text: 'useSyncExternalStore',
+                                                link: '/frameworks/react/useSyncExternalStore'
+                                            },
                                             {text: 'useFormStatus', link: '/frameworks/react/useFormStatus'},
                                         ]
                                     },
@@ -555,8 +574,7 @@ export default defineConfig({
                                 text: '进阶',
                                 collapsible: true, // 允许折叠 (默认true，可省略)
                                 collapsed: true, // 初始状态为“展开”
-                                items: [
-                                ]
+                                items: []
                             },
                         ]
                     },

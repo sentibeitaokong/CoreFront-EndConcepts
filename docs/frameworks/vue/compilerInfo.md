@@ -1,349 +1,376 @@
-# `Compiler` (编译器)
+# 编译器核心技术概览
 
-`Compiler` 是 Vue 3 核心架构中负责将声明式的 HTML 模板（Template）转换为 JavaScript 渲染函数（Render Function）的编译引擎。与 Vue 2 不同，Vue 3 的编译器不仅仅是一个语法转换工具，更是一个极其强大的**静态分析与优化器**。它通过在构建阶段注入“编译时提示”（Compile-Time Hinting），极大地降低了运行时的 Diff 开销。
+Vue 3 的编译器是整个框架的“静态分析引擎”，它会在编译阶段分析开发者编写的 `<template>`，并将其中动态与静态的部分拆解开，最终生成一棵经过深度优化的 `JavaScript AST`，再转换成高效的渲染函数代码。这种 **“编译时优化 + 运行时轻量更新”** 的设计，让 Vue 3 在保留声明式开发体验的同时，具备了接近原生手写代码的性能。
 
-## 1. 编译器的作用与设计动机
+## 1. 编译器的作用与整体架构
 
-### 1.1 为什么需要 Compiler？
+### 1.1 编译器的核心任务
 
-- **平台转化**：浏览器原生无法执行带有 `v-if`、`v-for` 或 `{{ }}` 插值的 HTML 模板，必须将其翻译成底层的 `createElementVNode` (即 `h` 函数) 调用。
-- **性能降维打击**：在编译阶段分析出哪些节点是静态的，哪些是动态的，并打上 `PatchFlag`，让运行时的更新直接跳过无意义的比对。
-- **跨平台解耦**：将核心编译逻辑（`@vue/compiler-core`）与浏览器特定逻辑（`@vue/compiler-dom`）抽离，方便将 Vue 渲染到小程序或原生 App 等其他平台。
+在 Vue 3 中，模板编译是把 `<template>` 字符串转换成渲染函数 `render()` 的过程，整个流程可以拆分成三个关键阶段：
 
-### 1.2 Vue 2 与 Vue 3 编译器的简单对比
+| 阶段                    | 输入           | 输出              | 核心职责                                |
+| ----------------------- | -------------- | ----------------- | --------------------------------------- |
+| **解析（Parse）**       | 模板字符串     | 模板 AST          | 将模板字符串转换为结构化的抽象语法树    |
+| **转换（Transform）**   | 模板 AST       | JavaScript AST    | 对 AST 进行语义分析、指令编译与优化标记 |
+| **代码生成（Codegen）** | JavaScript AST | `render` 函数代码 | 将 AST 转换为可执行的渲染函数代码       |
 
-| 特性             | Vue 2 编译器                     | Vue 3 编译器                               |
-| ---------------- | -------------------------------- | ------------------------------------------ |
-| 核心架构         | 耦合了部分 HTML 解析与平台逻辑   | 严格分离 `compiler-core` 与 `compiler-dom` |
-| 静态节点处理     | 仅标记静态根节点                 | 彻底的**静态提升**（Static Hoisting）      |
-| 动态节点追踪     | 无，运行时需全量递归整棵树       | 引入 **PatchFlag** 与 **Block Tree**       |
-| 事件处理         | 每次 Render 重新生成内联事件函数 | **事件缓存**（Cache Handlers）             |
-| 源码组织与拓展性 | 面条式逻辑，难以拓展             | 插件化机制（基于 Visitor 访问者模式）      |
+### 1.2 宏观架构：平台无关的编译管道
 
-## 2. 核心实现：`baseCompile` 大管家
+Vue 3 的编译器被拆分为多个包，通过**核心 + 平台插件**的方式实现跨平台复用：
 
-### 2.1 编译器主入口
+```
+@vue/compiler-core     → 平台无关的核心编译逻辑（解析、转换、代码生成）
+@vue/compiler-dom      → 浏览器平台专用的转换与优化（基于 compiler-core）
+@vue/compiler-sfc      → 解析 .vue 单文件组件，拆解 template / script / style
+@vue/compiler-ssr      → 服务端渲染专用的编译逻辑
+```
 
-:::code-group
+- **`compiler-core`** 提供了通用的 `baseCompile` 函数，它组合了 parser、transformer 和 codegen 三部分。
+- **`compiler-dom`** 在此基础上注入浏览器特有的节点转换（如 `<input v-model>`、`<transition>` 等），最终导出 `compile` 函数。
+- 针对小程序、Canvas 等新渲染目标时，只需要基于 `compiler-core` 编写新的平台插件即可，无需重写整个编译器。
 
-```typescript [compile.ts]
-import { baseParse } from './parse'
-import { transform } from './transform'
-import { generate } from './codegen'
+## 2. 编译流程三步曲
 
-// 编译器的核心主流程：Parse -> Transform -> Generate
+整个编译过程在 `compiler-core` 的 `baseCompile` 函数中串联起来，其内部大致逻辑如下：
+
+![Logo](/compilerInfo.png)
+
+```typescript
 export function baseCompile(
-  template: string | RootNode,
+  template: string,
   options: CompilerOptions = {},
 ): CodegenResult {
-  // 1. 解析阶段：将字符串模板解析为基础的 模板 AST
+  // 1. 解析阶段 (Parse)
+  // 将模板字符串解析为 基础 AST (RootNode)
   const ast = isString(template) ? baseParse(template, options) : template
 
-  // 2. 转换阶段：遍历 AST 并进行极致的静态分析与性能优化
-  const [nodeTransforms, directiveTransforms] = getBaseTransformPreset()
+  // 3. 生成阶段 (Generate)
+  // 将转换后的带有 JS 语义的 AST，生成最终的 JS 代码字符串
   transform(
     ast,
     extend({}, options, {
-      prefixIdentifiers,
-      nodeTransforms: [
-        ...nodeTransforms,
-        ...(options.nodeTransforms || []), // 注入自定义节点转换插件
-      ],
-      directiveTransforms: extend(
-        {},
-        directiveTransforms,
-        options.directiveTransforms || {}, // 注入自定义指令转换插件
-      ),
+      // ... 合并内置转换插件
     }),
   )
 
-  // 3. 生成阶段：将优化后的 JavaScript AST 转换为 Render 函数代码字符串
-  return generate(ast, extend({}, options, { prefixIdentifiers }))
+  // 3. 生成阶段 (Generate)
+  // 将转换后的带有 JS 语义的 AST，生成最终的 JS 代码字符串
+  return generate(
+    ast,
+    extend({}, options, {
+      // ...
+    }),
+  )
 }
 ```
 
-:::
+### 2.1 解析（Parse）：从字符串到模板 AST
 
-## 3. 编译三部曲：核心阶段拆解
+编译器的解析阶段，本质上是一个**手动编写的递归下降解析器**，以**有限状态机**为核心驱动，通过逐个字符扫描模板，将其切分为有意义的 **Token**，并递归构建出一棵描述模板结构的**抽象语法树（AST）**的过程。从理论上看，它可以分为**词法分析**和**语法分析**两个子阶段：
 
-### 3.1 `Parse` (解析阶段)
+- **词法分析（Lexical Analysis）**：把字符流分割成有意义的 Token（标记）序列。
+- **语法分析（Syntax Analysis）**：根据语法规则，将 Token 序列组装成树形结构的 AST。
 
-通过有限状态机（FSM）逐字扫描字符串，生成基础模板 AST。
+#### 1. 为什么要将字符流变成 Token 流？
 
-:::code-group
+字符串是线性结构，而模板语法具有嵌套和多种结构（元素、属性、插值、注释等）。如果直接操作字符串，逻辑会异常复杂。将字符流变为 `Token` 流，等于对原始信息做了一次结构化拆分，后续的 `AST` 构建就会变得简单清晰。
 
-```typescript [parse.ts]
-// 解析入口
-export function baseParse(content: string, options: ParserOptions): RootNode {
-  // 创建解析上下文（包含当前解析的游标位置、源码等信息）
-  const context = createParserContext(content, options)
+```js
+//简易 Vue 模板词法分析器
+function tokenize(template) {
+  const tokens = []
+  let pos = 0
+  const len = template.length
 
-  // 返回根节点，核心在于 parseChildren 函数去递归解析
-  return createRoot(
-    parseChildren(context, TextModes.DATA, []),
-    getSelection(context, context.cursor),
-  )
-}
+  while (pos < len) {
+    const char = template[pos]
 
-function parseChildren(context, mode, ancestors) {
-  const nodes = []
-  // 当字符串没有被解析完时，不断循环
-  while (!isEnd(context, mode, ancestors)) {
-    const s = context.source
-    let node = undefined
-
-    // 遇到插值 {{ }}
-    if (s.startsWith('{{')) {
-      node = parseInterpolation(context, mode)
+    // 1. 插值 {{  }}
+    if (char === '{' && template[pos + 1] === '{') {
+      const end = template.indexOf('}}', pos)
+      const value = template.slice(pos, end + 2) // 包含 {{ 和 }}
+      tokens.push({ type: 'interpolation', value })
+      pos = end + 2
+      continue
     }
-    // 遇到元素标签 <div
-    else if (s[0] === '<') {
+
+    // 2. 注释 <!-- -->
+    if (
+      char === '<' &&
+      template[pos + 1] === '!' &&
+      template[pos + 2] === '-' &&
+      template[pos + 3] === '-'
+    ) {
+      const end = template.indexOf('-->', pos)
+      const value = template.slice(pos, end + 3)
+      tokens.push({ type: 'comment', value })
+      pos = end + 3
+      continue
+    }
+
+    // 3. 标签（开始标签、结束标签、自闭合标签）
+    if (char === '<') {
+      // 寻找最近的 '>'
+      const end = template.indexOf('>', pos)
+      const tag = template.slice(pos, end + 1)
+      // 简单判断标签类型
+      if (tag.startsWith('</')) {
+        tokens.push({ type: 'closing-tag', value: tag })
+      } else if (tag.endsWith('/>')) {
+        tokens.push({ type: 'self-closing-tag', value: tag })
+      } else {
+        tokens.push({ type: 'opening-tag', value: tag })
+      }
+      pos = end + 1
+      continue
+    }
+
+    // 4. 普通文本：收集直到遇到 '<' 或 '{{'
+    let text = ''
+    while (
+      pos < len &&
+      template[pos] !== '<' &&
+      !(template[pos] === '{' && template[pos + 1] === '{')
+    ) {
+      text += template[pos]
+      pos++
+    }
+    if (text) {
+      tokens.push({ type: 'text', value: text })
+    }
+  }
+
+  return tokens
+}
+```
+
+**模板:**
+
+```js
+<div class="box">Hello {{ name }} <!-- 注释 --></div>
+```
+
+**生成的token：**
+
+```json
+[
+  { "type": "opening-tag", "value": "<div class=\"box\">" },
+  { "type": "text", "value": "Hello " },
+  { "type": "interpolation", "value": "{{ name }}" },
+  { "type": "text", "value": " " },
+  { "type": "comment", "value": "<!-- 注释 -->" },
+  { "type": "closing-tag", "value": "</div>" }
+]
+```
+
+#### 2. 什么是有限状态机？
+
+有限状态机（`Finite State Machine, FSM`）是具有有限个状态的数学模型，它在某个状态下，根据输入（字符）决定转移到哪个新状态。在编译器的词法分析中，状态机非常有用：每一个状态对应一种“当前我们正在处理什么”的上下文。
+
+#### 3. 构造AST
+
+Vue 3 的解析器并没有显式的状态变量，而是通过**函数调用**和**循环分支**来模拟状态。核心函数 `parseChildren` 是一个 `while` 循环，每次根据剩余字符串的开头字符判断“当前处于哪种解析模式”，然后调用对应的解析函数（`parseElement`、`parseInterpolation`、`parseText` 等）。每一个解析函数内部又会根据情况继续调用其他解析函数，形成递归下降。
+
+简单来说，解析器的“状态”由**当前正在执行的解析函数**体现。状态转移则通过**函数返回**和新的**解析函数调用**来实现。
+
+```js
+function parseChildren(context: ParserContext, ancestors: ElementNode[]) {
+  const nodes = []
+  while (!isEnd(context, ancestors)) {
+    const s = context.source
+    let node
+    if (startsWith(s, '{{')) {
+      node = parseInterpolation(context)   // → 插值状态
+    } else if (s[0] === '<') {
       if (/[a-z]/i.test(s[1])) {
-        node = parseElement(context, ancestors)
+        node = parseElement(context, ancestors) // → 元素状态
+      } else if (startsWith(s, '<!--')) {
+        node = parseComment(context)       // → 注释状态
       }
     }
-    // 默认作为普通文本解析
     if (!node) {
-      node = parseText(context, mode)
+      node = parseText(context)            // → 保持文本状态
     }
-    pushNode(nodes, node)
+    nodes.push(node)
   }
   return nodes
 }
 ```
 
-:::
+**输入 Token 流:**
 
-### 3.2 `Transform` (转换阶段)
+```json
+[
+  { "type": "opening-tag", "value": "<div class=\"box\">" },
+  { "type": "text", "value": "Hello " },
+  { "type": "interpolation", "value": "{{ name }}" },
+  { "type": "text", "value": " " },
+  { "type": "comment", "value": "<!-- 注释 -->" },
+  { "type": "closing-tag", "value": "</div>" }
+]
+```
 
-利用洋葱模型（深度优先）遍历 AST，注入 PatchFlag、生成 Block 并处理指令。
+**生成的 AST:**
 
-:::code-group
-
-```typescript [transform.ts]
-export function transform(root: RootNode, options: TransformOptions) {
-  // 创建转换上下文，用于维护状态和存储辅助函数
-  const context = createTransformContext(root, options)
-
-  // 深度优先遍历 AST
-  traverseNode(root, context)
-
-  // 静态提升逻辑处理
-  if (options.hoistStatic) {
-    hoistStatic(root, context)
-  }
-
-  // 注入需要在 render 函数中引入的 helper 助手函数
-  root.helpers = [...context.helpers.keys()]
-}
-
-function traverseNode(node, context) {
-  context.currentNode = node
-  // 执行所有的节点转换插件 (前置处理)
-  const exitFns = []
-  for (let i = 0; i < context.nodeTransforms.length; i++) {
-    const onExit = context.nodeTransforms[i](node, context)
-    if (onExit) exitFns.push(onExit)
-  }
-
-  // 递归遍历子节点
-  switch (node.type) {
-    case NodeTypes.ELEMENT:
-    case NodeTypes.ROOT:
-      traverseChildren(node, context)
-      break
-  }
-
-  // 执行所有的退出回调 (后置处理：此时子节点已全部处理完毕)
-  let i = exitFns.length
-  while (i--) {
-    exitFns[i]()
-  }
+```json
+{
+  "type": "ROOT",
+  "children": [
+    {
+      "type": "ELEMENT",
+      "tag": "div",
+      "props": [
+        {
+          "type": "ATTRIBUTE",
+          "name": "class",
+          "value": { "content": "box" }
+        }
+      ],
+      "children": [
+        { "type": "TEXT", "content": "Hello " },
+        {
+          "type": "INTERPOLATION",
+          "content": {
+            "type": "SIMPLE_EXPRESSION",
+            "content": "name"
+          }
+        },
+        { "type": "TEXT", "content": " " },
+        { "type": "COMMENT", "content": " 注释 " }
+      ]
+    }
+  ]
 }
 ```
 
-:::
+#### 4. 完整流程示例
 
-### 3.3 `Generate` (生成阶段)
+![Logo](/templateToAst.png)
 
-将处理好的 AST 拼接为最终的可执行 JS 字符串。
+### 2.2 转换（Transform）：语义分析与优化
 
-:::code-group
+`transform` 是编译器的核心优化阶段，它的职责是**对模板 AST 进行语义分析，并转化成 JavaScript AST**。它采用**深度优先遍历 + 插件体系**的架构，提供了进入和退出节点的两个钩子：
 
-```typescript [codegen.ts]
-export function generate(ast, options): CodegenResult {
-  const context = createCodegenContext(ast, options)
-  const { push, newline, indent, deindent } = context
+- **`enter` 钩子**：在遍历进入节点时调用，适合初始化操作。
+- **`exit` 钩子**：在遍历完子节点、即将退出当前节点时调用，适合收集子节点信息并做最终修改。
 
-  // 1. 生成模块的 import 导入语句
-  genFunctionPreamble(ast, context)
+在 `transform` 阶段，所有内置转换（如 `v-if`、`v-for`、`v-on`、`v-model` 等指令编译）以及平台特定优化插件，都是通过这一套 **转换插件** 机制注入的。典型插件包括：
 
-  // 2. 拼接 render 函数的签名
-  const args = ['_ctx', '_cache']
-  const signature = args.join(', ')
-  push(`export function render(${signature}) {`)
-  indent()
+- `transformElement`：处理元素节点，生成 `createVNode` 调用的参数。
+- `transformExpression`：将模板中的 JavaScript 表达式转换为合法的 AST 节点。
+- `vIf` / `vFor` / `vSlot`：结构性指令的处理逻辑。
+- `compileDOM` 中的 `transformStyle`、`transformTransition` 等。
 
-  // 3. 生成 return 语句及内部的 VNode 嵌套调用
-  push(`return `)
-  if (ast.codegenNode) {
-    genNode(ast.codegenNode, context)
-  } else {
-    push(`null`)
-  }
+经过 `transform` 后，原来的模板 AST 会被替换为一棵全新的 **JavaScript AST**，其节点类型对应 JavaScript 代码结构（函数调用、对象字面量、表达式等）。
 
-  deindent()
-  push(`}`)
+### 2.3 代码生成（Codegen）：从 JavaScript AST 到渲染函数
 
-  return {
-    ast,
-    code: context.code, // 最终返回的字符串代码
-    map: context.map ? context.map.toJSON() : undefined,
-  }
-}
-```
+`generate` 阶段负责遍历上一步生成的 JavaScript AST，拼接出最终的渲染函数代码字符串。它会生成 Vue 3 运行时所需要的各种辅助函数调用，例如：
 
-:::
+- `openBlock` / `createElementBlock`：开启一个新的 Block，并创建元素 VNode。
+- `createVNode`：创建一个普通 VNode。
+- `toDisplayString`：将动态值转换为字符串。
+- `renderList`：渲染 `v-for` 列表。
+- `Fragment`、`Text`、`Comment` 等类型的对应创建函数。
 
-## 4. 完整流程示例
+此外，代码生成阶段还会写入**编译优化标记**（PatchFlag）和 Block 的动态节点收集信息，这是下一步要讲的核心优化。
 
-### 4.1 基础转换示例
+## 3. 编译时核心优化技术
+
+Vue 3 编译器的“灵魂”在于它会在编译阶段对模板做大量的静态分析，并将这些分析结果“告诉”运行时，让运行时的 diff 和更新操作可以尽可能地偷懒。
+
+### 3.1 静态节点提升（Static Hoisting）
+
+如果一个节点及其子树完全不依赖任何响应式数据（即纯静态），编译器会把它从渲染函数内部提升到模块作用域，使之成为全局常量。
 
 ```html
-<!-- 源码模板 Template -->
+<!-- 模板 -->
 <div>
-  <p>Static Text</p>
-  <span>{{ msg }}</span>
+  <span class="logo">My App</span>
+  <p>{{ message }}</p>
 </div>
 ```
 
-```javascript
-// 编译后的 Render 函数代码
-import {
-  createElementVNode as _createElementVNode,
-  toDisplayString as _toDisplayString,
-  openBlock as _openBlock,
-  createElementBlock as _createElementBlock,
-} from 'vue'
+编译后生成的代码结构（示意）：
 
-// 静态提升，脱离 Render 函数作用域
-const _hoisted_1 = /*#__PURE__*/ _createElementVNode(
-  'p',
-  null,
-  'Static Text',
-  -1 /* HOISTED */,
+```javascript
+// 静态节点被提升为常量，只创建一次
+const _hoisted_1 = /*#__PURE__*/ _createStaticVNode(
+  '<span class="logo">My App</span>',
 )
 
-export function render(_ctx, _cache) {
+function render(_ctx, _cache) {
   return (
     _openBlock(),
     _createElementBlock('div', null, [
       _hoisted_1,
-      _createElementVNode(
-        'span',
-        null,
-        _toDisplayString(_ctx.msg),
-        1 /* TEXT */,
-      ),
+      _createTextVNode(_toDisplayString(_ctx.message), 1 /* TEXT */),
     ])
   )
 }
 ```
 
-### 4.2 完整流程图
+这样无论组件重渲染多少次，`<span class="logo">My App</span>` 的 VNode 都只会被创建一次，后续 diff 直接复用同一个引用。
 
-## 5. 核心优化机制与工具函数
+### 3.2 动态节点标记（PatchFlag）
 
-### `PatchFlags` (靶向更新标记)
+对于动态节点，编译器会分析出**它到底在哪些方面是动态的**，并用一个位掩码（bitmask）来标记。运行时渲染器看到这个标记，就知道只需要对比该节点对应的部分，其余部分可以完全跳过。
 
-通过位运算（Bitwise operations）枚举，标记节点的动态属性，使运行时可以直接跳过静态内容的 Diff。
+常见的 PatchFlag：
 
-```typescript
-export const enum PatchFlags {
-  // 动态文本节点
-  TEXT = 1,
-  // 动态 class
-  CLASS = 1 << 1,
-  // 动态 style
-  STYLE = 1 << 2,
-  // 动态属性
-  PROPS = 1 << 3,
-  // 含有动态 key，需进行全量 diff
-  FULL_PROPS = 1 << 4,
-  // 静态节点标记（退出 Diff）
-  HOISTED = -1,
-  // 退出靶向更新，执行完整 diff（常用于包含不可预测子节点的场景）
-  BAIL = -2,
+| PatchFlag 常量        | 含义                                   | 触发示例                    |
+| --------------------- | -------------------------------------- | --------------------------- |
+| `TEXT` (1)            | 文本内容是动态的                       | `<p>{{ msg }}</p>`          |
+| `CLASS` (2)           | class 属性是动态的                     | `<div :class="c">`          |
+| `STYLE` (4)           | style 是动态的                         | `<div :style="s">`          |
+| `PROPS` (8)           | 除 class / style 以外的 props 是动态的 | `<div :id="id">`            |
+| `FULL_PROPS` (16)     | 存在动态 key（需要完整 diff props）    | `<div v-bind="obj">`        |
+| `HYDRATE_EVENTS` (32) | 存在需要水合的事件                     | `<div @click="handler">`    |
+| `NEED_PATCH` (64)     | 需要递归 patch 子节点                  | 动态子节点，如 v-for / slot |
+| `DYNAMIC_SLOTS` (512) | 动态插槽                               | `<slot name="dynamicName">` |
+
+例如模板 `<div :id="id" :class="c">{{ msg }}</div>` 对应的 PatchFlag 可能是 `1 | 2 | 8 = 11`，运行时 diff 看到这个标志，就会**只比对 id、class 和文本内容**，完全忽略 `<div>` 这个元素标签、静态属性、以及没有变化的子节点。
+
+### 3.3 块级追踪（Block Tree）
+
+PatchFlag 只能标记单个节点，但真实组件的模板结构远比单个节点复杂。为了让 diff 过程能**直接定位到所有动态节点**，而不需要递归遍历整个 VNode 树，Vue 3 引入了 **Block Tree** 的概念。
+
+- 编译器会基于 `v-if`、`v-for` 等结构性指令把模板划分为若干个 **Block**。每个 Block 内部会记录一个动态节点数组（`dynamicChildren`），其中收集了所有带 PatchFlag 的后代节点。
+- 在组件更新时，diff 算法不再是递归遍历旧的 VNode 树，而是直接操作当前 Block 的 `dynamicChildren`，**只对记录在案的那些动态节点执行 diff**。那些没有被记录的静态节点（或没有变化的动态分支），会被完全跳过。
+
+```javascript
+// Block 的结构（简化示意）
+{
+  type: Fragment,
+  children: [ /* ... */ ],
+  dynamicChildren: [
+    // 只包含该 Block 内的所有动态后代节点
+    { ... }, // 动态文本
+    { ... }, // 动态属性
+  ]
 }
 ```
 
-### `createVNodeCall` (构建 VNode 节点)
+这种设计让 Vue 3 的 diff 性能**与模板大小“解耦”**：一个庞大而多数为静态的组件，在更新时 diff 的成本只取决于它内部有几个真正动态的节点，而几乎与整体模板的大小无关。
 
-在 `transform` 阶段使用的工具函数，用于将 AST 节点转换为可生成 `createElementVNode` 或 `createBlock` 调用的 JS AST 节点。
+## 4. 指令编译与转换钩子概览
 
-```typescript
-export function createVNodeCall(
-  context,
-  tag,
-  props,
-  children,
-  patchFlag, // 注入收集到的 PatchFlag
-  dynamicProps, // 注入具体的动态属性数组
-  isBlock = false, // 是否作为 Block 根节点
-) {
-  if (context) {
-    // 将需要的 helper 注册到上下文中
-    context.helper(isBlock ? OPEN_BLOCK : CREATE_ELEMENT_VNODE)
-  }
-  return {
-    type: NodeTypes.VNODE_CALL,
-    tag,
-    props,
-    children,
-    patchFlag,
-    dynamicProps,
-    isBlock,
-  }
-}
-```
+`transform` 阶段的插件体系是编译器的扩展核心。编译器内置了许多转换插件来编译指令，例如：
 
-### `Block Tree` (动静分离与收集)
+- **`v-if` / `v-else` / `v-else-if`**：会被编译为三元表达式（`condition ? node : otherNode`），并据此划分 Block 边界。
+- **`v-for`**：会被编译为 `renderList` 调用，并以 `v-for` 的每一次循环作为一个子 Block，提升列表 diff 性能。
+- **`v-on`**：事件绑定被编译为 `onClick` 等 props，PatchFlag 中会带有 `HYDRATE_EVENTS` 标记。
+- **`v-model`**：根据平台和目标元素类型，展开为对应的属性和事件绑定（如 `:value` + `@input`）。
 
-渲染器配套的机制：`openBlock` 初始化一个全局数组，随后的所有拥有 PatchFlag 的子节点在创建时，会自动收集进这个数组中。
+用户自定义的编译器插件也可以通过 `nodeTransforms` 和 `directiveTransforms` 参数注入，完全复用 Vue 编译器的能力。
 
-```typescript
-// packages/runtime-core/src/vnode.ts (运行时配合逻辑)
-export const blockStack: (VNode[] | null)[] = []
-export let currentBlock: VNode[] | null = null
+## 5. 总结：编译时“负重前行”，让运行时“轻装上阵”
 
-export function openBlock(disableTracking = false) {
-  blockStack.push((currentBlock = disableTracking ? null : []))
-}
+Vue 3 的编译器并不仅仅是一个模板到渲染函数的“翻译官”，它更像一个**编译时优化器**。它遵循的核心设计哲学是：**把能提前做的工作都在编译阶段完成，尽可能减小运行时的负担**。
 
-export function setupBlock(vnode: VNode) {
-  // 将收集到的动态子节点挂载到 block 根节点的 dynamicChildren 属性上
-  vnode.dynamicChildren =
-    isBlockTreeEnabled > 0 ? currentBlock || (EMPTY_ARR as any) : null
-  blockStack.pop()
-  currentBlock = blockStack[blockStack.length - 1] || null
-  return vnode
-}
-```
+- **静态提升** 避免重复创建静态 VNode。
+- **PatchFlag** 让运行时 diff 能“靶向更新”，只检查真正变化的部分。
+- **Block Tree** 让 diff 过程绕过整个 VNode 树的递归，直接找到所有动态节点。
+- **平台无关的插件体系** 让编译器可以无缝扩展至小程序、SSR 等多种渲染目标。
 
-## 6. Vue 2 与 Vue 3 编译产物对比
-
-| 对比维度         | Vue 2 `render` 函数                       | Vue 3 `render` 函数                                |
-| ---------------- | ----------------------------------------- | -------------------------------------------------- |
-| 帮助函数来源     | 挂载在组件实例的 `this` 上 (`this._c` 等) | 利用 ES6 `import` 显式导入 (`_createElementVNode`) |
-| 树的遍历方式     | 层级递归，全量比对                        | **Block Tree** 扁平化，仅遍历动态节点数组          |
-| 节点比较方式     | 全量对比 `props`、`class` 等              | 依据 **PatchFlag** 执行靶向位运算更新              |
-| 静态节点生命周期 | 每次 Render 重新执行 `_v` 创建虚拟节点    | **静态提升 (Hoisting)**，全局只创建一次，纯复用    |
-| Typescript 支持  | 难以推导（依赖 `this` 隐式上下文）        | 天然友好（纯函数输入输出）                         |
-
-## 7. 总结
-
-`Compiler` 是 Vue 3 实现性能飞跃的幕后推手。它的核心价值在于通过 `Parse`、`Transform`、`Generate` 三个阶段，将开发者的声明式代码，转换为**高度优化的、携带具体执行指令的命令式代码**。
-
-- **设计亮点**：基于插件化（Plugin-based）架构的 `Transform` 阶段，使得指令扩展、节点优化规则非常容易抽离和维护。
-- **性能优化**：PatchFlag 靶向更新、Block Tree 动静分离、Static Hoisting 静态提升、Cache Handlers 事件缓存四大神技，完美做到了“编译时提示运行时”。
-- **架构分离**：解耦的 `compiler-core` 与 `compiler-dom` 让 Vue 3 成为一个真正意义上的跨端渐进式框架。
+正是这种“动静分离”的编译策略，让 Vue 3 在保持声明式开发体验的同时，拥有了可与手写优化代码相媲美的性能表现。
