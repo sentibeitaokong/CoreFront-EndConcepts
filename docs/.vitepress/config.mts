@@ -379,6 +379,7 @@ export default defineConfig({
                                     {text: '路由', link: '/frameworks/vue/vueRouter'},
                                     {text: 'pinia', link: '/frameworks/vue/pinia'},
                                     {text: 'TS与组合式API', link: '/frameworks/vue/composablesTs'},
+                                    {text: 'monorepo架构', link: '/frameworks/vue/monorepo'},
                                     {text: '环境配置和打包', link: '/frameworks/vue/buildTools'},
                                 ]
                             },
