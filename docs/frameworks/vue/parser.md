@@ -15,7 +15,7 @@
 
 ## 2. 核心数据结构
 
-### 2.1 解析器上下文 `ParserContext`
+### 2.1 `ParserContext`：解析器上下文
 
 解析过程的所有状态都保存在 `ParserContext` 对象中：
 
