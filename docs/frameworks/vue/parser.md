@@ -1,6 +1,6 @@
-# 模板解析器（Parser）
+# 解析阶段（Parser）
 
-Vue 3 的模板解析器（`Parser`）是编译器的第一步，负责将 HTML 模板字符串解析为一棵抽象语法树（AST),它采用**有限状态机**与**递归下降**相结合的设计，能够高效地将字符流转换为结构化的 AST，同时具备错误容错和源码位置追踪能力。
+解析阶段是 Vue 3 模板编译的第一环，负责将 HTML 模板字符串解析为一棵抽象语法树（AST),它采用**有限状态机**与**递归下降**相结合的设计，能够高效地将字符流转换为结构化的 AST，同时具备错误容错和源码位置追踪能力。
 
 ## 1. 解析器概述
 
@@ -237,7 +237,7 @@ function parseElement(
 
 :::
 
-#### 5.1.1. `parseTag`: 解析单个标签
+#### 5.1.1 `parseTag`: 解析单个标签
 
 :::code-group
 
@@ -578,7 +578,7 @@ function parseComment(context: ParserContext): CommentNode {
 
 :::
 
-## 5. `isEnd`：防死循环机制
+## 5. `isEnd`: 防死循环机制
 
 `parseChildren` 的 `while` 循环依赖 `isEnd` 来判断是否应该停止当前层级的解析并向上返回。
 
@@ -892,7 +892,7 @@ function startsWithEndTagOpen(source: string, tag: string): boolean {
 }
 ```
 
-### 7.2 完整流程示例
+### 7.2 完整流程图
 
 ![Logo](/parseExample.png)
 

@@ -479,7 +479,8 @@ export default defineConfig({
                                                 collapsed: true, // 初始状态为“展开”
                                                 items: [
                                                     {text: '编译器核心技术概览', link: '/frameworks/vue/compilerInfo'},
-                                                    {text: '解析器', link: '/frameworks/vue/parser'},
+                                                    {text: '解析阶段', link: '/frameworks/vue/parser'},
+                                                    {text: '转换/优化阶段', link: '/frameworks/vue/transform'},
                                                 ]
                                             },
                                         ]
