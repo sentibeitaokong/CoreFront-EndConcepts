@@ -137,3 +137,15 @@
   --docsearch-primary-color: var(--vp-c-brand-1) !important;
 }
 
+/* 修复 medium-zoom 放大时的 z-index 和圆角问题 */
+.medium-zoom-overlay {
+  z-index: 100 !important;
+}
+
+.medium-zoom-image {
+  z-index: 101 !important;
+}
+
+.medium-zoom-image--opened {
+  border-radius: 0 !important;
+}

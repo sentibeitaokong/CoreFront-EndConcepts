@@ -497,41 +497,63 @@ export function render(_ctx, _cache) {
 
 ```json
 {
-  "type": 13, // NodeTypes.VNODE_CALL (创建 VNode 的函数调用)
-  "tag": "\"div\"",
-  "props": {
-    "class": "box" // 静态属性被直接提取
-  },
-  "children": [
+  "type": 1, // NodeTypes.ELEMENT (原始元素节点)
+  "tag": "div",
+  "props": [
     {
-      "type": 14, // NodeTypes.CALL_EXPRESSION (调用 createTextVNode)
-      "callee": "_createTextVNode",
-      "arguments": [
-        {
-          "type": 8, // 🔥 NodeTypes.COMPOUND_EXPRESSION (复合表达式)
-          "children": [
-            "Hello ",
-            " + ",
-            {
-              "type": 14, // 调用 _toDisplayString(name)
-              "callee": "_toDisplayString",
-              "arguments": [{ "type": 4, "content": "name", "isStatic": false }]
-            },
-            " + ",
-            " "
-          ]
-        },
-        "1 /* TEXT */" // 🔥 靶向优化标记：告诉运行时这里只有文本是动态的
-      ]
-    },
-    {
-      "type": 14, // 调用 createCommentVNode
-      "callee": "_createCommentVNode",
-      "arguments": ["\" 注释 \""]
+      "type": 6, // NodeTypes.ATTRIBUTE (普通属性)
+      "name": "class",
+      "value": { "type": 2, "content": "box" }
     }
   ],
-  "patchFlag": "0", // div 自身的 children 是数组，Diff 交给内部节点
-  "isBlock": true // 根节点被提升为 Block
+  // 🔥 经过 Transform 阶段后挂载的生成代码节点
+  "codegenNode": {
+    "type": 13, // NodeTypes.VNODE_CALL (创建 VNode 的调用)
+    "tag": "\"div\"", // 标签名被转成了字符串字面量
+    "props": {
+      "type": 4, // NodeTypes.SIMPLE_EXPRESSION
+      "content": "{ class: \"box\" }",
+      "isStatic": true
+    },
+    "children": [
+      // 1. 复合表达式节点 (由 transformText 插件合并生成)
+      {
+        "type": 8, // NodeTypes.COMPOUND_EXPRESSION
+        "children": [
+          "Hello ",
+          " + ",
+          {
+            "type": 14, // NodeTypes.JS_CALL_EXPRESSION (函数调用)
+            "callee": "_toDisplayString", // 引入运行时辅助函数
+            "arguments": [
+              {
+                "type": 4, // NodeTypes.SIMPLE_EXPRESSION
+                "content": "_ctx.name", // 注入了 _ctx 前缀
+                "isStatic": false
+              }
+            ]
+          },
+          " + ",
+          " " // 紧跟在插值后的空格
+        ]
+      },
+      // 2. 注释节点调用
+      {
+        "type": 13, // NodeTypes.VNODE_CALL
+        "callee": "_createCommentVNode",
+        "arguments": [
+          {
+            "type": 2, // NodeTypes.TEXT
+            "content": " 注释 "
+          }
+        ]
+      }
+    ],
+    // 🔥 靶向更新标记 (计算得出只有文本是动态的)
+    "patchFlag": "1 /* TEXT */",
+    "dynamicProps": null,
+    "isBlock": true // 因为是根节点，自动成为 Block 收集动态子节点
+  }
 }
 ```
 
