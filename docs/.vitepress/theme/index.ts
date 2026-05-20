@@ -1,12 +1,15 @@
 // https://vitepress.dev/guide/custom-theme
-import { h } from 'vue'
+import { h, nextTick, onMounted, watch } from 'vue'
 import type { Theme } from 'vitepress'
-import DefaultTheme from 'vitepress/theme'
-import mediumZoom from 'medium-zoom'
-import { onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vitepress'
+import DefaultTheme from 'vitepress/theme'
+// 引入 Fancybox 核心逻辑和样式
+// import { Fancybox } from '@fancyapps/ui'
+// import '@fancyapps/ui/dist/fancybox/fancybox.css'
+// 引入 Viewer.js 和样式
+import Viewer from 'viewerjs'
+import 'viewerjs/dist/viewer.css'
 import './style.css'
-import Layout from './Layout.vue'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { fas } from '@fortawesome/free-solid-svg-icons'
 import { ElementPlusContainer } from '@vitepress-demo-preview/component'
@@ -19,7 +22,6 @@ library.add(fas)
 
 export default {
   extends: DefaultTheme,
-  Layout,
   enhanceApp({ app, router, siteData }) {
     app.use(XElement)
     // 👇 注册一个自定义的高阶组件代替直接注册 ElementPlusContainer
@@ -33,32 +35,72 @@ export default {
       },
     })
   },
+  //Fancybox:图片放大库
+  /* setup() {
+        const route = useRoute()
+
+        const initFancybox = () => {
+            // 绑定所有的 Markdown 图片
+            Fancybox.bind('.vp-doc img', {
+                // 开启滚轮缩放功能 (默认其实也是开启的)
+                wheel: 'zoom',
+                // 隐藏不需要的 UI 按钮 (保持 VitePress 的极简风格)
+                Toolbar: {
+                    display: {
+                        left: [],
+                        middle: ['zoomIn', 'zoomOut', 'toggle1to1'],
+                        right: ['close'],
+                    },
+                },
+                // 移除多余的图片底部提示信息
+                Caption: false,
+            })
+        }
+
+        onMounted(() => {
+            initFancybox()
+        })
+
+        // 监听路由变化，切换页面后重新绑定
+        watch(
+            () => route.path,
+            () => nextTick(() => initFancybox())
+        )
+    },*/
   setup() {
     const route = useRoute()
+    let viewer: Viewer | null = null
 
-    const initZoom = () => {
-      // 为所有 markdown 内容中的图片添加缩放功能
-      // .vp-doc 是 VitePress 默认包裹 markdown 内容的 class
-      mediumZoom('.vp-doc img', {
-        // 1. 遮罩层背景色 (支持 rgba 半透明或 VitePress 的 CSS 变量)
-        background: 'var(--vp-c-bg)',
+    const initViewer = () => {
+      // 销毁旧实例，防止内存泄漏
+      if (viewer) {
+        viewer.destroy()
+      }
 
-        // 2. 放大后图片与屏幕边缘的间距 (默认是 0，加上边距会更美观)
-        margin: 0,
-
-        // 3. 滚动多少像素后自动关闭放大效果 (默认是 40)
-        scrollOffset: 40,
-      })
+      // 获取当前页面的文章内容容器
+      const docContainer = document.querySelector('.vp-doc')
+      if (docContainer) {
+        // Viewer.js 会自动寻找容器内的所有 img 标签并绑定事件
+        viewer = new Viewer(docContainer as HTMLElement, {
+          inline: false, // 模态框模式
+          button: true, // 显示右上角关闭按钮
+          navbar: false, // 隐藏底部的图库缩略图导航 (如果你只需单图放大)
+          title: false, // 隐藏图片标题
+          toolbar: true, // 显示底部工具栏 (包含放大/缩小/旋转等)
+          tooltip: true, // 缩放时显示百分比提示
+          movable: true, // 允许拖拽平移
+          zoomable: true, // 允许滚轮缩放
+        })
+      }
     }
 
     onMounted(() => {
-      initZoom()
+      initViewer()
     })
 
-    // 监听路由变化，确保切换页面后新渲染的图片也能被放大
     watch(
       () => route.path,
-      () => nextTick(() => initZoom()),
+      () => nextTick(() => initViewer()),
     )
   },
 } satisfies Theme

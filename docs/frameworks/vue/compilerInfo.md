@@ -258,7 +258,7 @@ function parseChildren(context: ParserContext, ancestors: ElementNode[]) {
 
 ![Logo](/templateToAst.png)
 
-## 4. 转换/优化阶段：语义分析与优化
+## 4. 转换/优化阶段：从模版AST到Javascript AST
 
 `transform` 阶段位于解析（`parse`）与代码生成（`generate`）之间，它的输入是模板 AST，输出是 JavaScript AST。这一阶段由 `@vue/compiler-core` 包中的 `transform` 函数统一调度，主要完成三件事：
 
@@ -561,17 +561,262 @@ export function render(_ctx, _cache) {
 
 ![Logo](/transformInfo.png)
 
-## 5. 代码生成（Codegen）：从 JavaScript AST 到渲染函数
+## 5. 代码生成阶段：从 JavaScript AST 到渲染函数
 
-`generate` 阶段负责遍历上一步生成的 JavaScript AST，拼接出最终的渲染函数代码字符串。它会生成 Vue 3 运行时所需要的各种辅助函数调用，例如：
+代码生成阶段的本质是一个**从 AST 到字符串的递归下降翻译器**。它不像解析器那样使用有限状态机，也不像 transform 阶段那样通过插件系统完成复杂分析，而是采用**直接的分支判断**：根据 JavaScript AST 节点的类型，调用对应的代码生成函数（如 `genNode`、`genVNodeCall`、`genCompoundExpression` 等），将每个节点转换成一段 JavaScript 代码字符串，最终拼接成完整的渲染函数, 整个过程主要完成以下事项：
 
-- `openBlock` / `createElementBlock`：开启一个新的 Block，并创建元素 VNode。
-- `createVNode`：创建一个普通 VNode。
-- `toDisplayString`：将动态值转换为字符串。
-- `renderList`：渲染 `v-for` 列表。
-- `Fragment`、`Text`、`Comment` 等类型的对应创建函数。
+- **生成渲染函数头部**：定义 `render` 函数及其参数（`_ctx`, `_cache`）。
+- **生成静态提升常量声明**：将 `context.hoists` 中的静态节点提取为模块级常量（如 `const _hoisted_1 = ...`）。
+- **生成渲染函数体**：遍历 AST，生成 `return` 语句以及其中的 VNode 创建调用。
+- **生成辅助函数导入语句**：根据 `helpers` 集合，生成从 `vue` 包导入所需辅助函数的代码。
+- **处理 PatchFlag 和动态属性**：将 PatchFlag 作为数字参数注入 VNode 创建调用。
+- **处理 Block Tree**：生成 `openBlock`、`createElementBlock` 以及 `dynamicChildren` 相关代码。
+- **处理事件缓存**：生成 `_cache[x]` 表达式，缓存事件处理函数。
+- **生成最终代码字符串**：组合所有片段，返回 `CodegenResult`。
 
-此外，代码生成阶段还会写入**编译优化标记**（PatchFlag）和 Block 的动态节点收集信息，这是下一步要讲的核心优化。
+### 5.1 核心入口与上下文
+
+`generate` 函数接收 JavaScript AST 和编译选项，返回 `CodegenResult`，内部创建 `CodegenContext` 来集中管理代码生成过程中的状态（当前缩进级别、辅助函数计数、代码缓冲区等）。
+
+:::code-group
+
+```typescript [codegen.ts]
+export function generate(
+  ast: RootNode,
+  options: CodegenOptions = {},
+): CodegenResult {
+  // 1. 创建代码生成上下文 (工作台)
+  const context = createCodegenContext(ast, options)
+
+  // 2. 解构出上下文中常用的拼接方法
+  const { push, newline, indent, deindent } = context
+
+  // 3. 生成前置代码 (Preamble)
+  // 包括：import 引入辅助函数、声明静态提升变量 (hoists)
+  genFunctionPreamble(ast, context)
+
+  // 4. 生成渲染函数的函数签名
+  // 例如：export function render(_ctx, _cache) {
+  const args = ['_ctx', '_cache']
+  const signature = `export function render(${args.join(', ')}) {`
+  push(signature)
+  indent() // 缩进级别 +1
+
+  // 5. 核心逻辑：生成 return 语句，并触发 AST 节点的递归翻译
+  push(`return `)
+  if (ast.codegenNode) {
+    // 启动多态分发引擎，递归处理整个 AST
+    genNode(ast.codegenNode, context)
+  } else {
+    push(`null`)
+  }
+
+  // 6. 收尾：闭合函数
+  deindent() // 缩进级别 -1
+  push(`}`)
+
+  // 7. 返回最终的生成的代码字符串和 Source Map
+  return {
+    ast,
+    code: context.code, // 这个巨大的字符串就是最终生成的 JS 代码！
+  }
+}
+```
+
+:::
+
+### 5.2 主要工作详解
+
+#### 5.2.1 生成渲染函数头部
+
+在模块模式下，生成类似如下代码，函数接收 `_ctx`（组件上下文）和 `_cache`（渲染缓存）两个参数：
+
+```javascript
+export function render(_ctx, _cache) {
+```
+
+#### 5.2.2 生成静态提升常量
+
+`transform` 阶段将纯静态节点收集到 `context.hoists` 中。代码生成阶段为每个提升节点生成对应的常量声明，放在渲染函数外部：
+
+```javascript
+const _hoisted_1 = /*#__PURE__*/ _createStaticVNode('<span>静态文本</span>')
+```
+
+这些常量只在模块初始化时创建一次，后续每次渲染直接复用，避免重复创建 VNode。
+
+#### 5.2.3 生成渲染函数体
+
+渲染函数体的核心是 `return` 语句。`genNode` 根据根节点的 `codegenNode` 类型，递归生成对应的 JavaScript 代码。`genNode` 是一个大的分支函数，根据节点类型分发到具体的生成函数：
+
+| 节点类型                    | 生成函数                   | 输出示例                           |
+| --------------------------- | -------------------------- | ---------------------------------- |
+| `VNODE_CALL`                | `genVNodeCall`             | `_createElementBlock("div", ...)`  |
+| `JS_CALL_EXPRESSION`        | `genCallExpression`        | `_toDisplayString(_ctx.name)`      |
+| `JS_OBJECT_EXPRESSION`      | `genObjectExpression`      | `{ class: "box" }`                 |
+| `JS_CONDITIONAL_EXPRESSION` | `genConditionalExpression` | `ok ? blockA : blockB`             |
+| `JS_CACHE_EXPRESSION`       | `genCacheExpression`       | `_cache[0]`                        |
+| `COMPOUND_EXPRESSION`       | `genCompoundExpression`    | `"Hello " + _toDisplayString(...)` |
+| `TEXT`                      | `genText`                  | `"Hello "`                         |
+
+#### 5.2.4 生成 VNode 创建调用
+
+`genVNodeCall` 是代码生成阶段最核心的函数之一，负责生成 `createVNode` 或 `createElementBlock` 等 VNode 创建函数的调用代码。
+
+典型输出：
+
+```javascript
+_createElementBlock(
+  'div',
+  { class: 'container' },
+  [_createTextVNode('Hello ' + _toDisplayString(_ctx.name) + ' ')],
+  1 /* TEXT */,
+)
+```
+
+#### 5.2.5 生成辅助函数导入
+
+编译过程中使用到的辅助函数（如 `toDisplayString`、`createElementBlock`、`openBlock` 等）会被 `transform` 阶段收集到 `context.helpers` 集合中。代码生成阶段通过 `generateImports` 函数，从 `vue` 包中按需导入这些辅助函数：
+
+```javascript
+import {
+  toDisplayString as _toDisplayString,
+  createElementBlock as _createElementBlock,
+  openBlock as _openBlock,
+} from 'vue'
+```
+
+每个辅助函数都会使用别名（如 `_toDisplayString`），以避免与用户代码中的变量名冲突。
+
+#### 5.2.6 处理 PatchFlag 和动态属性
+
+在生成 VNode 创建调用时，如果节点带有 `patchFlag`，会将其作为数字参数传入：
+
+```javascript
+_createElementBlock('div', null, children, 1 /* TEXT */)
+```
+
+如果存在动态属性列表（`dynamicProps`），也会一并传入，以便运行时 diff 时跳过无需检查的属性：
+
+```javascript
+_createElementBlock('div', null, children, 8 /* PROPS */, ['id', 'class'])
+```
+
+#### 5.2.7 处理 Block Tree
+
+对于 Block 结构的节点，代码生成阶段会生成 `openBlock` 和 `createElementBlock` 的配合调用：
+
+```javascript
+(_openBlock(), _createElementBlock("div", ...))
+```
+
+`openBlock` 会创建一个新的 Block 并将其推入 Block 栈，随后的 VNode 创建调用会自动收集到该 Block 的 `dynamicChildren` 中。这种结构使得运行时可以跳过静态子树，直接定位到动态节点。
+
+#### 5.2.8 处理事件缓存
+
+`transformOn` 插件在转换 `v-on` 指令时，若开启了 `cacheHandlers`（默认开启），会生成 `JS_CACHE_EXPRESSION` 节点。代码生成阶段将其转换为 `_cache[x]` 表达式：
+
+```javascript
+onClick: _cache[0] || (_cache[0] = $event => _ctx.handleClick($event))
+```
+
+这使得事件处理函数的引用在多次渲染间保持稳定，避免子组件因事件 prop 变化而重渲染。
+
+### 5.3 完整流程示例
+
+#### 5.3.1 基础示例
+
+**输入模板：**
+
+```html
+<div class="box">Hello {{ name }}</div>
+```
+
+**经过 parse 和 transform 后的 JavaScript AST（简化）：**
+
+```json
+{
+  "type": 0, // NodeTypes.ROOT (AST 的根节点)
+  "children": [
+    // ... 原始的解析子节点，此处省略
+  ],
+
+  // 核心看点 1：全局收集的 Helpers 集合
+  // Transform 阶段所有的插件在这里“交接”了它们需要的运行时方法
+  "helpers": [
+    "Symbol(openBlock)", // 用于开启区块 (Block) 追踪
+    "Symbol(createElementBlock)", // 用于创建基础元素区块
+    "Symbol(toDisplayString)" // 用于处理 {{ name }} 插值转字符串
+  ],
+  "components": [],
+  "directives": [],
+  "hoists": [], // 如果有多个静态节点会被收集到这里
+  "temps": 0,
+  "cached": 0,
+
+  // 核心看点 2：专为代码生成准备的 codegenNode
+  "codegenNode": {
+    "type": 13, // NodeTypes.VNODE_CALL (创建虚拟节点的函数调用)
+    "tag": "\"div\"",
+    "props": {
+      "type": 4, // NodeTypes.SIMPLE_EXPRESSION
+      "content": "{ class: \"box\" }",
+      "isStatic": true
+    },
+    "children": [
+      // transformText 插件生成的复合表达式
+      {
+        "type": 8, // NodeTypes.COMPOUND_EXPRESSION
+        "children": [
+          "Hello ",
+          " + ",
+          {
+            "type": 14, // NodeTypes.JS_CALL_EXPRESSION (JS 函数调用)
+            // 注意这里：直接引用了全局 helpers 里的 Symbol
+            "callee": "Symbol(toDisplayString)",
+            "arguments": [
+              {
+                "type": 4, // NodeTypes.SIMPLE_EXPRESSION
+                "content": "_ctx.name", // transformExpression 注入的作用域前缀
+                "isStatic": false
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "patchFlag": "1 /* TEXT */", // 靶向标记：仅文本是动态的
+    "dynamicProps": null,
+    "isBlock": true // 由于是根节点，自动晋升为 Block，触发 openBlock 和 createElementBlock
+  }
+}
+```
+
+**代码生成`render`函数输出：**
+
+```javascript
+import {
+  toDisplayString as _toDisplayString,
+  openBlock as _openBlock,
+  createElementBlock as _createElementBlock,
+} from 'vue'
+
+export function render(_ctx, _cache) {
+  return (
+    _openBlock(),
+    _createElementBlock(
+      'div',
+      { class: 'box' },
+      ['Hello ' + _toDisplayString(_ctx.name)],
+      1 /* TEXT */,
+    )
+  )
+}
+```
+
+#### 5.3.2 完整流程图
+
+![Logo](/generate.png)
 
 ## 6. 总结：编译时“负重前行”，让运行时“轻装上阵”
 
