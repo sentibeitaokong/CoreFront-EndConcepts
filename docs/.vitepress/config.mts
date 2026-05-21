@@ -481,6 +481,7 @@ export default defineConfig({
                                                     {text: '编译器核心技术概览', link: '/frameworks/vue/compilerInfo'},
                                                     {text: '解析阶段', link: '/frameworks/vue/parser'},
                                                     {text: '转换/优化阶段', link: '/frameworks/vue/transform'},
+                                                    {text: '代码生成阶段', link: '/frameworks/vue/codegen'},
                                                 ]
                                             },
                                         ]

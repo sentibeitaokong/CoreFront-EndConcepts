@@ -180,94 +180,7 @@ const patchElement = (
         patchProps(el, n2, oldProps, newProps, ...)
     }
 }
-//比对新旧props
-//1.新老props不相同且都有值，直接更新props
-//2.新props为null和undefined，直接删除老的props
-//3.新props里面没有老props的某个值，直接把这个值从props里面删除
-function patchProps(el: any, oldProps: any, newProps: any) {
-    //老的props和新的props相等不需要去比对
-    if (oldProps !== newProps) {
-        //遍历新的props，当新旧props不一致就调用hostPatchprop方法更新props
-        for (const key in newProps) {
-            const prevProp = oldProps[key]
-            const nextProp = newProps[key]
-            if (prevProp !== nextProp) {
-                hostPatchProp(el, key, prevProp, nextProp)
-            }
-        }
-        //老的props不是空对象才需要遍历老的props
-        if (oldProps !== EMPTY_OBJ) {
-            //遍历老的props，当老props的值不在新的props中，说明这个props需要被删除
-            for (const key in oldProps) {
-                if (!(key in newProps)) {
-                    hostPatchProp(el, key, oldProps[key], null)
-                }
-            }
-        }
-    }
-}
 
-//靶向更新 只更新动态子节点
-//如果在编译阶段使用了 Vue 的 `<template>`，编译器会将动态节点展平并收集。此时子节点的更新将无视真实的 DOM 层级深度，直接遍历动态数组。
-export function patchBlockChildren(
-  oldChildren: VNode[],
-  newChildren: VNode[],
-  fallbackContainer: RendererElement,
-  // ...
-) {
-  for (let i = 0; i < newChildren.length; i++) {
-    const oldVNode = oldChildren[i]
-    const newVNode = newChildren[i]
-    // 直接精准 Patch 动态节点，跳过所有静态节点的比对！
-    patch(
-      oldVNode,
-      newVNode,
-      // ...
-    )
-  }
-}
-
-//对比children
-export function patchChildren(
-    n1: any,
-    n2: any,
-    container: any,
-    anchor: any,
-) {
-    //新旧的vnode类型
-    const prevShapeFlag = n1.ShapeFlag
-    const nextShapeFlag = n2.ShapeFlag
-    //获取老新vnode的子节点信息
-    const c1: any = n1.children
-    const c2: any = n2.children
-    //vnode节点有文本和数组两种类型，因此比对节点有四种情况
-    //1.当新vnode节点是文本类型
-    if (nextShapeFlag & ShapeFlags.TEXT_CHILDREN) {
-        //老vnode节点是数组类型
-        if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-            //1.把老vnode节点的children清空  2.将新节点设置成c2
-            unmountChildren(n1.children)
-            //直接设置新vnode节点为c2
-            hostSetElementText(container, c2)
-        } else {
-            //老节点是文本类型,直接将新节点设置成c2
-            if (c1 !== c2) {
-                //直接设置新vnode节点为c2
-                hostSetElementText(container, c2)
-            }
-        }
-    } else {
-        //新节点是个文本节点
-        //1.直接清空旧节点的值
-        if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
-            hostSetElementText(container, '')
-            mountChildren(c2, container, anchor)
-        } else {
-            //新老节点都是数组类型 diff算法 双端对比
-            patchKeyedChildren(c1, c2, container, anchor)
-        }
-    }
-}
 //挂载children
 export function mountChildren(
     children: any,
@@ -290,15 +203,143 @@ function unmountChildren(children: any) {
         hostRemove(el)
     }
 }
+```
 
-//diff算法 后续讲解
+:::
+
+#### 3.2.1 `patchBlockChildren`: 靶向更新
+
+:::code-group
+
+```typescript [renderer.ts]
+//靶向更新 只更新动态子节点
+//如果在编译阶段使用了 Vue 的 `<template>`，编译器会将动态节点展平并收集。此时子节点的更新将无视真实的 DOM 层级深度，直接遍历动态数组。
+const patchBlockChildren = (
+  oldVNode: VNode,
+  newVNode: VNode,
+  fallbackContainer: RendererElement,
+  parentComponent: ComponentInternalInstance | null,
+) => {
+  // 1. 获取新旧区块收集到的动态子节点数组！
+  const oldChildren = oldVNode.dynamicChildren!
+  const newChildren = newVNode.dynamicChildren!
+
+  // 2. 遍历这个扁平的动态节点数组
+  // 核心前提：因为 Block 内部的结构是稳定的 (不稳定结构会被 v-if/v-for 强行切分成新 Block)
+  // 所以新旧 dynamicChildren 数组的长度一定是相等的，且同索引位置的节点必定是同一个节点！
+  for (let i = 0; i < newChildren.length; i++) {
+    const oldVNode = oldChildren[i]
+    const newVNode = newChildren[i]
+
+    // 3. 确定这个动态节点在真实 DOM 树中的挂载父级
+    // 1.如果是 Fragment (如多个根节点)，没有真实父级，用外面传进来的 fallbackContainer容器
+    // 2.如果是真实的节点，通过旧的真实 DOM 顺藤摸瓜找parentNode。”
+    const container =
+      newVNode.type === Fragment ? fallbackContainer : oldVNode.el?.parentNode
+
+    // 4. 触发靶向更新！直接调用底层的 patch 函数
+    patch(
+      oldVNode,
+      newVNode,
+      container,
+      null, // anchor
+      parentComponent,
+      parentSuspense,
+      isSVG,
+      slotScopeIds,
+      true, // isOptimized = true! 告诉 patch 开启优化模式
+    )
+  }
+}
+```
+
+:::
+
+#### 3.2.2 `patchChildren`: 全量diff算法
+
+:::code-group
+
+```typescript [renderer.ts]
+//对比children
+export function patchChildren(n1: any, n2: any, container: any, anchor: any) {
+  //新旧的vnode类型
+  const prevShapeFlag = n1.ShapeFlag
+  const nextShapeFlag = n2.ShapeFlag
+  //获取老新vnode的子节点信息
+  const c1: any = n1.children
+  const c2: any = n2.children
+  //vnode节点有文本和数组两种类型，因此比对节点有四种情况
+  //1.当新vnode节点是文本类型
+  if (nextShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+    //老vnode节点是数组类型
+    if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+      //1.把老vnode节点的children清空  2.将新节点设置成c2
+      unmountChildren(n1.children)
+      //直接设置新vnode节点为c2
+      hostSetElementText(container, c2)
+    } else {
+      //老节点是文本类型,直接将新节点设置成c2
+      if (c1 !== c2) {
+        //直接设置新vnode节点为c2
+        hostSetElementText(container, c2)
+      }
+    }
+  } else {
+    //新节点是个文本节点
+    //1.直接清空旧节点的值
+    if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+      hostSetElementText(container, '')
+      mountChildren(c2, container, anchor)
+    } else {
+      //新老节点都是数组类型 diff算法 双端对比
+      patchKeyedChildren(c1, c2, container, anchor)
+    }
+  }
+}
+
+//核心快速diff算法 后续讲解
 export function patchKeyedChildren(
-    c1: any,
-    c2: any,
-    container: any,
-    parentAnchor: any,
-){
-    //...
+  c1: any,
+  c2: any,
+  container: any,
+  parentAnchor: any,
+) {
+  //...
+}
+```
+
+:::
+
+#### 3.3.3 `patchProps`: 比对更新props
+
+:::code-group
+
+```typescript [renderer.ts]
+//比对新旧props
+//1.新老props不相同且都有值，直接更新props
+//2.新props为null和undefined，直接删除老的props
+//3.新props里面没有老props的某个值，直接把这个值从props里面删除
+function patchProps(el: any, oldProps: any, newProps: any) {
+  //老的props和新的props相等不需要去比对
+  if (oldProps !== newProps) {
+    //遍历新的props，当新旧props不一致就调用hostPatchprop方法更新props
+    for (const key in newProps) {
+      const prevProp = oldProps[key]
+      const nextProp = newProps[key]
+      if (prevProp !== nextProp) {
+        hostPatchProp(el, key, prevProp, nextProp)
+      }
+    }
+    //老的props不是空对象才需要遍历老的props
+    if (oldProps !== EMPTY_OBJ) {
+      //遍历老的props，当老props的值不在新的props中，说明这个props需要被删除
+      for (const key in oldProps) {
+        if (!(key in newProps)) {
+          hostPatchProp(el, key, oldProps[key], null)
+        }
+      }
+    }
+  }
 }
 ```
 
