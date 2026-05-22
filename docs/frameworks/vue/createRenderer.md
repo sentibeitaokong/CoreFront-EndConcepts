@@ -190,6 +190,11 @@ function baseCreateRenderer(options: RendererOptions): any {
 ```typescript [apiCreateApp.ts]
 import { createVNode } from './vnode'
 // 通过 createAppAPI 将 render 函数与应用实例绑定,创建 app 实例
+//app.mount 的兼容性处理魔法：函数重写
+//1. 在 runtime-core 中，暴露了一个 createAppAPI 工厂函数。它创建出来的 app 实例包含一个最基础的 mount 方法。
+// 这个基础版的 mount 只接受真正的节点对象,例：app.mount(document.querySelector('#app'))，根本不认识 #app 这种 CSS 字符串选择器。
+//2.为了让 Web 开发者能像以前一样方便地传入 #app 字符串，runtime-dom 包在导出 createApp 时，做了一次经典的方法重写（AOP 思想）。
+// 使得开发者依旧可以使用app.mount('#app')去挂载应用。
 export function createAppAPI<HostElement>(render) {
   return function createApp(rootComponent, rootProps = null) {
     const app = {
@@ -205,6 +210,50 @@ export function createAppAPI<HostElement>(render) {
     }
     return app
   }
+}
+```
+
+```typescript [runtime-dom/index.ts]
+//runtime-dom 重写 createApp 的本质，就是一个适配器模式（Adapter Pattern）的应用
+// 在浏览器 Web 平台开发者依旧可以使用app.mount('#app')去挂载应用。
+//懒加载渲染器 (单例模式)
+let renderer
+//获取自定义渲染器的返回值
+function ensureRenderer() {
+  return renderer || (renderer = createRenderer(rendererOptions))
+}
+//创建并生成 app 实例
+export const createApp = (...args) => {
+  const app = ensureRenderer().createApp(...args)
+  // 获取到 mount 挂载方法
+  const { mount } = app
+  // 对该方法进行重构，标准化 container，在重新触发 mount 进行挂载
+  app.mount = (containerOrSelector: Element | string) => {
+    // 1. 字符串选择器转真实 DOM ('#app' -> HTMLDivElement)
+    const container = normalizeContainer(containerOrSelector)
+    if (!container) return
+    // 2. 将传入的组件保存下来
+    const component = app._component
+    // 3. 【编译器版本特有逻辑】：如果组件没有 render 函数，也没有 template，
+    // 就直接把挂载点容器内部的 HTML 当作模板提取出来！
+    if (!isFunction(component) && !component.render && !component.template) {
+      component.template = container.innerHTML
+    }
+    // 4. 清空容器内容 (挂载前清理 DOM)
+    container.innerHTML = ''
+    // 5. 拿着真正的 DOM 对象，回掉底层核心的 mount
+    const proxy = mount(container)
+    return proxy
+  }
+  return app
+}
+//标准化 container 容器
+function normalizeContainer(container: Element | string): Element | null {
+  if (isString(container)) {
+    const res = document.querySelector(container)
+    return res
+  }
+  return container
 }
 ```
 

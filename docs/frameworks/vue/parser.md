@@ -199,7 +199,7 @@ export function getSelection(
 
 ## 4. 各解析函数实现细节
 
-### 5.1 `parseElement`: 解析元素节点
+### 4.1 `parseElement`: 解析元素节点
 
 :::code-group
 
@@ -237,7 +237,7 @@ function parseElement(
 
 :::
 
-#### 5.1.1 `parseTag`: 解析单个标签
+#### 4.1.1 `parseTag`: 解析单个标签
 
 :::code-group
 
@@ -306,7 +306,7 @@ function advanceSpaces(context) {
 
 :::
 
-#### 5.1.2 `parseAttributes`: 循环解析全部属性
+#### 4.1.2 `parseAttributes`: 循环解析全部属性
 
 :::code-group
 
@@ -339,7 +339,7 @@ function parseAttributes(context, type: TagType) {
 
 :::
 
-#### 5.1.3 `parseAttribute`: 解析单个属性/指令
+#### 4.1.3 `parseAttribute`: 解析单个属性/指令
 
 :::code-group
 
@@ -411,7 +411,7 @@ function parseAttribute(context) {
 
 :::
 
-### 5.2 `parseInterpolation`: 解析插值表达式
+### 4.2 `parseInterpolation`: 解析插值表达式
 
 :::code-group
 
@@ -491,7 +491,7 @@ function parseInterpolation(
 
 :::
 
-### 5.3 `parseText`: 解析普通文本
+### 4.3 `parseText`: 解析普通文本
 
 :::code-group
 
@@ -532,7 +532,7 @@ function parseText(context: ParserContext, mode: TextModes): TextNode {
 
 :::
 
-### 5.4 `parseComment`: 解析注释
+### 4.4 `parseComment`: 解析注释
 
 :::code-group
 

@@ -395,6 +395,35 @@ function genInterpolation(node, context) {
 
 :::
 
+#### 4.1.4 `genCompoundExpression`: 处理复合表达式
+
+将Hello <span v-pre>{{ msg }}</span> ! 处理成`'"Hello " + _toDisplayString(msg) + " !"'`
+
+:::code-group
+
+```typescript [codegen.ts]
+function genCompoundExpression(node, context) {
+  const { push } = context
+
+  // 遍历复合表达式的所有子元素
+  for (let i = 0; i < node.children.length; i++) {
+    const child = node.children[i]
+
+    // 1. 如果子元素是纯字符串（通常是 "+" 或者空格）
+    if (typeof child === 'string') {
+      push(child)
+    }
+    // 2. 如果子元素是一个 AST 节点（比如 Text 节点、Interpolation 插值节点）
+    else {
+      // 核心魔法：原路退回给 genNode 总调度中心，让它去寻找对应的子车间处理
+      genNode(child, context)
+    }
+  }
+}
+```
+
+:::
+
 ### 4.2 核心虚拟 DOM 生成器（重中之重）
 
 这是 Vue 渲染能力的核心，负责将 HTML 标签转化为 `_createVNode` 函数调用。
@@ -442,6 +471,79 @@ function genVNodeCall(node, context) {
   if (isBlock) {
     push(`)`) // 闭合 openBlock 造成的额外括号
   }
+}
+```
+
+:::
+
+#### 4.2.2 `genCallExpression`: 处理函数调用生成器
+
+把这些 AST 节点完美地“打印”成符合 JavaScript 语法的标准函数调用字符串。
+
+:::code-group
+
+```typescript [codegen.ts]
+function genCallExpression(node, context) {
+  const { push } = context
+  const callee = node.callee // 调用的函数名 (如: '_createVNode')
+  const args = node.arguments // 传递的参数数组 (如: ['div', null, 'msg'])
+
+  // 1. 打印函数名 (Callee)
+  // 如果是普通字符串标识符直接 push，如果是复杂结构（闭包/其他函数产物）则丢回 genNode 递归
+  if (typeof callee === 'string') {
+    push(callee)
+  } else {
+    genNode(callee, context)
+  }
+
+  // 2. 打印左括号
+  push(`(`)
+
+  // 3. 打印参数列表 (Arguments)
+  // 借助通用的 genNodeList 方法，把数组里的参数逐个打印出来，并用逗号拼接
+  genNodeList(args, context)
+
+  // 4. 打印右括号
+  push(`)`)
+}
+
+/**
+ * 辅助车间：专门负责打印数组列表，并用逗号分隔
+ */
+function genNodeList(nodes, context) {
+  const { push } = context
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i]
+
+    // 处理单个参数的降维打印
+    if (typeof node === 'string') {
+      push(node)
+    } else if (Array.isArray(node)) {
+      // 数组类型的参数需要额外加上中括号（如子节点数组）
+      genNodeListAsArray(node, context)
+    } else {
+      genNode(node, context) // 对象节点，甩手交给总调度器处理
+    }
+
+    // 核心魔法：如果当前参数不是最后一个，补充逗号分隔符
+    if (i < nodes.length - 1) {
+      push(', ')
+    }
+  }
+}
+//数组列表生成器
+function genNodeListAsArray(nodes, context) {
+  const { push } = context
+
+  // 1. 打印数组的左中括号
+  push(`[`)
+
+  // 2. 核心魔法：复用 genNodeList 处理内部元素
+  // 它会自动遍历 nodes 数组，递归解析每个节点，并在元素之间完美插入 ", "
+  genNodeList(nodes, context)
+
+  // 3. 打印数组的右中括号
+  push(`]`)
 }
 ```
 
