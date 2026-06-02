@@ -15,6 +15,68 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 | **底层引擎**         | 使用 JavaScript 编写（慢）。                                                                                    | 开发环境预构建使用 **Go 语言编写的 esbuild**（快 10-100 倍）。                                                                                             |
 | **生产环境构建**     | Webpack 自己的打包体系。                                                                                        | **Rollup**。因为在生产环境，为了极致的代码分割、Tree-shaking 和兼容性，传统的打包仍然是必要的。                                                            |
 
+### 1.1 什么是 Bundleless（无包构建）？
+
+在 Webpack 时代，当项目启动（`npm run dev`）时，构建工具必须从入口文件开始，构建完整的依赖图（Module Graph），并将所有的业务代码和第三方库转换、拼装成一个或几个巨大的 Bundle，最后才启动本地服务器。项目越大，冷启动和热更新（HMR）就越慢。
+
+**Bundleless 的核心思想是：将模块解析的工作交还给浏览器。**
+
+现代浏览器原生支持了 ES Modules (`<script type="module">`)。当浏览器遇到 `import` 时，它会自己向服务器发起 HTTP 请求获取模块。
+
+Vite 在开发环境下的 Bundleless 流程如下：
+
+- **秒级冷启动**：Vite 启动一个轻量级的开发服务器（基于 Connect），**不编译任何业务代码**，直接 ready。时间复杂度是 O(1)。
+- **按需拦截与编译**：当浏览器解析到 `import { ref } from 'vue'` 或 `import App from './App.vue'` 时，会向 Vite 服务器发送 HTTP 请求。
+- **即时转换（Transform）**：Vite 拦截到请求后，通过内部的插件流水线（Plugin Pipeline），**即时**将请求的文件编译成浏览器能看懂的原生 JavaScript，并返回。
+- **极致的热更新**：修改某个文件时，Vite 只需要让浏览器重新请求这一个文件，而不需要像 Webpack 那样重新构建相关的整个依赖链。
+
+### 1.2 Vite 的“伪” Bundleless：依赖预构建 (Pre-bundling)
+
+作为高级开发者，我们需要认清一个事实：**Vite 在开发环境下并不是 100% 的 Bundleless。** 它对 `node_modules` 里的第三方库进行了**依赖预构建**。
+
+为什么必须这么做？
+
+- **CommonJS / UMD 兼容性**：浏览器不支持 CJS。Vite 必须在启动前，将 React、Lodash 等非 ESM 格式的包统一转换为 ESM 格式。
+- **缓解网络瀑布流**：有些包内部极其碎片化。比如 `lodash-es` 内部包含几百个互相 `import` 的小文件。如果不打包直接让浏览器请求，浏览器会瞬间发起几百个 HTTP 请求，导致浏览器网络层直接拥塞卡死。
+
+**底层引擎**：这一步 Vite 使用了 Go 语言编写的 **Esbuild**。它的速度比基于 Node.js 的传统打包器快 10-100 倍，因此这个预构建过程极快，通常只有几秒钟，且会被强缓存。
+
+### 1.3 Vite 的完整生产构建过程 (Build Process)
+
+在执行 `npm run build` 时，Vite **完全抛弃了 Bundleless，转向了传统的打包模式**。
+
+为什么生产环境不能用 Bundleless？
+因为嵌套的 `import` 会导致深层的网络请求瀑布（Network Waterfall），这在存在网络延迟的真实生产环境中是致命的。为了获得最佳的首屏加载性能、代码压缩和极致的 Tree-Shaking，必须进行打包。
+
+Vite 的生产构建底层交给了 **Rollup**。其核心流程可以看作一个巨大的 AST（抽象语法树）处理流水线：
+
+#### 1.3.1 解析入口 (Resolve)
+
+Vite 通常以 `index.html` 作为入口。它内部使用了一个插件来解析 HTML，提取出里面所有的 `<script type="module" src="...">`，将这些外部脚本作为真正的构建入口传给 Rollup。
+
+#### 1.3.2 构建模块图 (Module Graph Construction)
+
+Rollup 从入口开始，递归解析每一个文件。对于每一个文件，都会依次触发 Vite 插件系统的核心生命周期钩子：
+
+- **`resolveId`**：解析模块的绝对路径（比如将 `@/components/Button` 映射为 `/src/components/Button.vue`）。
+- **`load`**：读取文件系统中的源码内容。
+- **`transform`**：**这是最核心的环节**。源码在这里被转化为 AST，进行各种魔改。比如 `@vitejs/plugin-vue` 会在这里将 Vue 的单文件组件（SFC）拆解、编译，转译成 JS 渲染函数；Babel 或 Esbuild 也会在这里将 TypeScript 降级为 JavaScript。
+
+#### 1.3.3 依赖分析与 Tree-Shaking
+
+所有模块转换成标准的 ESM JS 代码后，Rollup 会分析整个依赖树中的静态 `import` 和 `export`，将没有被实际使用到的死代码（Dead Code）直接在内存中剔除。
+
+#### 1.3.4 代码分割与优化 (Chunking & Optimization)
+
+为了避免最终生成一个几十 MB 的 JS 文件，Vite 会进行代码分割（Code Splitting）：
+
+- 通常会将 `node_modules` 中不变的依赖（如 Vue、Vue-Router）单独拆分为一个 `vendor.js`。
+- 将异步引入的组件（`() => import('./views/Home.vue')`）拆分成独立的文件，实现按需加载。
+
+#### 1.3.5 最终输出 (Generate)
+
+通过压缩器（通常依然是 Esbuild，因为它比 Terser 快得多）压缩代码体积，混淆变量名，最后输出到 `dist` 目录，并注入到压缩后的 `index.html` 中。
+
 ## 2.Vite 凭什么这么快？
 
 Vite（法语“快”的意思）之所以能在毫秒级启动，核心在于它在开发环境和生产环境采用了**两套完全不同的架构模型**。
