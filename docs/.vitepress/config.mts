@@ -380,7 +380,6 @@ export default defineConfig({
                                     {text: 'pinia', link: '/frameworks/vue/pinia'},
                                     {text: 'TS与组合式API', link: '/frameworks/vue/composablesTs'},
                                     {text: '同构渲染', link: '/frameworks/vue/isomorphicRendering'},
-                                    {text: 'monorepo架构', link: '/frameworks/vue/monorepo'},
                                     {text: '环境配置和打包', link: '/frameworks/vue/buildTools'},
                                 ]
                             },
@@ -614,6 +613,7 @@ export default defineConfig({
                 collapsed: true, // 初始状态为“展开”
                 items: [
                     {text: '简介', link: '/forntEngineering/intro'},
+                    {text: 'monorepo架构', link: '/forntEngineering/monorepo'},
                     {text: '常用工具介绍', link: '/forntEngineering/engineerTools'},
                     {
                         text: '构建工具',
