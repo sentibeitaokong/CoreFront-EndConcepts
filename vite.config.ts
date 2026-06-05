@@ -1,60 +1,72 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { fileURLToPath, URL } from 'node:url' // 1. 引入插件
+import { fileURLToPath, URL } from 'node:url'
 
 export default defineConfig({
-  plugins: [
-    vue(), // 2. 将插件添加到 plugins 数组中
-  ],
+  plugins: [vue()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   build: {
-    // 启用 esbuild 压缩，比 Terser 快数十倍
-    minify: 'esbuild',
-    // 提高超大块警告门槛（可选，默认是 500KB）
+    // Vite 8 默认使用 'oxc' 压缩器（基于 Rust，极快）
+    // 如果你仍想使用 esbuild，保持 'esbuild' 即可（需安装 esbuild 依赖）
+    minify: 'oxc', // 推荐使用 oxc，性能更好
     chunkSizeWarningLimit: 800,
-    rollupOptions: {
+    // Vite 8 推荐使用 rolldownOptions 代替 rollupOptions
+    rolldownOptions: {
       output: {
-        // 核心优化：自定义底层代码分割策略
-        manualChunks(id) {
-          // 仅处理 node_modules 中的依赖
-          if (id.includes('node_modules')) {
-            // 1. Vue 全家桶及核心渲染库（更新频率极低，优先强缓存）
-            if (
-              id.includes('/vue/') ||
-              id.includes('/@vue/') ||
-              id.includes('/vue-router/')
-            ) {
-              return 'vue-core'
-            }
-
-            // 2. 独立抽离 FontAwesome（图标库体积通常较大，且基本不更新）
-            if (id.includes('/@fortawesome/')) {
-              return 'fontawesome-vendor'
-            }
-
-            // 3. UI 组件与浮动定位引擎（xb-element 及其底层依赖）
-            if (id.includes('/xb-element/') || id.includes('/@floating-ui/')) {
-              return 'ui-vendor'
-            }
-
-            // 4. 工具函数与校验逻辑
-            if (
-              id.includes('/lodash-es/') ||
-              id.includes('/async-validator/') ||
-              id.includes('/viewerjs/')
-            ) {
-              return 'utils-vendor'
-            }
-
-            // 5. 兜底方案：其他所有未被命名的第三方包打入通用 vendor
-            return 'vendor'
-          }
+        // 使用新的 codeSplitting API 替代 manualChunks
+        codeSplitting: {
+          // 可选的全局 minSize / maxSize（单位字节）
+          // minSize: 20000,
+          // maxSize: 50000,
+          groups: [
+            // 1. Vue 全家桶
+            {
+              name: 'vue-core',
+              test: (id: string) => {
+                return /[\\/]node_modules[\\/](vue|@vue|vue-router)[\\/]/.test(
+                  id,
+                )
+              },
+              // 优先级越高，越先匹配
+              priority: 30,
+            },
+            // 2. FontAwesome 图标库
+            {
+              name: 'fontawesome-vendor',
+              test: (id: string) =>
+                /[\\/]node_modules[\\/]@fortawesome[\\/]/.test(id),
+              priority: 20,
+            },
+            // 3. UI 组件库及其依赖
+            {
+              name: 'ui-vendor',
+              test: (id: string) =>
+                /[\\/]node_modules[\\/](xb-element|@floating-ui)[\\/]/.test(id),
+              priority: 20,
+            },
+            // 4. 工具库
+            {
+              name: 'utils-vendor',
+              test: (id: string) =>
+                /[\\/]node_modules[\\/](lodash-es|async-validator|viewerjs)[\\/]/.test(
+                  id,
+                ),
+              priority: 20,
+            },
+            // 5. 其余所有 node_modules 依赖
+            {
+              name: 'vendor',
+              test: (id: string) => /[\\/]node_modules[\\/]/.test(id),
+              // 对于未匹配的 vendor，可以设置较低的优先级，确保前面的规则先执行
+              priority: 10,
+            },
+          ],
         },
-        // 优化输出产物的文件结构，让 dist 目录更清爽
+        // 自定义输出文件结构（与原来一致）
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
         assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
