@@ -3,3 +3,6 @@ allowBuilds:
   vue-demi: false
 minimumReleaseAgeExclude:
   - xb-element@1.0.6
+
+packages:
+  - 'docs'
