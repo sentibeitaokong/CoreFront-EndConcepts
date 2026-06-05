@@ -40,7 +40,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20 # 生产环境建议使用更稳定的 LTS 版本（如 20），也可以保持 24
+          node-version: 22 # 生产环境建议使用更稳定的 LTS 版本（如 20），也可以保持 24
           cache: pnpm      # 🌟 核心修改 2：将依赖缓存机制明确指定为 pnpm
 
       - name: Setup Pages
