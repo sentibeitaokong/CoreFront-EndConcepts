@@ -1,142 +1,189 @@
----
-outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
----
-
-# 代码编译器 (Code Compilers: Babel, SWC, tsc)
+# 现代前端底层编译与打包引擎
 
 ## 1. 核心概念与特性
 
-在前端工程化中，**代码编译器（Compiler / Transpiler）** 扮演着“高级翻译官”的角色。由于前端标准（ECMAScript 规范）的迭代速度永远快于浏览器厂商的实现速度，加上 TypeScript、JSX 等非标准语法的普及，我们必须依靠编译器将开发者编写的“现代高阶代码”转换为浏览器能够安全执行的“向下兼容代码”。
+在现代前端工程化中，随着项目规模的极速膨胀，传统的由 JavaScript 编写的构建工具已经触及了 Node.js 单线程的性能天花板。前端基建正在经历一场轰轰烈烈的“底层语言大换血（Rust/Go 革命）”。
 
-| 编译器    | 核心架构与语言  | 核心特性与行业地位                                                                                                                                        |
-| :-------- | :-------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Babel** | JavaScript 编写 | **前端编译界的泰斗。** 拥有极其庞大、细致的插件生态（Plugin）。能够实现最深度的 AST（抽象语法树）定制操作。缺点是受限于 JS 单线程，编译极其缓慢。         |
-| **SWC**   | Rust 编写       | **极速编译的新世代王者。** 全称 Speedy Web Compiler。利用 Rust 的多线程和底层性能，编译速度比 Babel 快 20 倍以上。目前已被 Next.js、Parcel 选为默认引擎。 |
-| **tsc**   | TypeScript 编写 | **官方标准类型检查器。** 它的核心价值是强大的**静态类型系统分析**。虽然它也能编译降级 JS 代码，但在现代工程中，它的“编译”工作正逐渐被剥离给 SWC/esbuild。 |
+我们需要将这些底层引擎明确划分为两类：**编译器（Compiler/Transpiler，负责单个文件的代码降级与转换）** 和 **打包器（Bundler，负责依赖图谱分析与代码拼接）**。
+
+| 引擎核心     | 编写语言   | 引擎定位                 | 核心特性与行业地位                                                                                                                                                 |
+| ------------ | ---------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Babel**    | JavaScript | **纯编译器**             | **前端编译界的泰斗。** 拥有无敌的插件生态（Plugin），能实现最深度的 AST 定制操作。缺点是受限于 JS 单线程，处理巨型项目时编译极其缓慢。                             |
+| **SWC**      | Rust       | **编译器 (+轻量打包)**   | **极速编译的新世代王者。** 核心目标是 100% 替换 Babel。利用 Rust 多线程极限压榨 CPU，速度比 Babel 快 20-70 倍。已被 Next.js 选为默认引擎，也是 Rspack 的底层核心。 |
+| **tsc**      | TypeScript | **类型检查器**           | **不可替代的类型警察。** 它是唯一能做到跨文件、全量且绝对精准进行 TS 类型推导的工具。在现代工程中，它的“代码生成权”已被剥离，退化为纯粹的静态检查工具。            |
+| **esbuild**  | Go         | **极速打包器 (+编译器)** | **开启原生基建时代的破壁者。** 快到反直觉（比 Webpack 快 100 倍）。它是 Vite 能够实现毫秒级冷启动的绝对核心（负责依赖预构建和 TS/JSX 单文件极速转译）。            |
+| **Rolldown** | Rust       | **终极打包器**           | **Vite 未来的终极武器。** 由 Vite 团队（尤雨溪牵头）主导开发。旨在同时拥有 esbuild 的极速性能，以及 100% 兼容 Rollup 极其庞大的高级打包插件生态。                  |
 
 ## 2. 核心工作原理与机制
 
-无论使用哪种编译器，它们将高阶代码转换为低阶代码的底层机制都是相通的。这通常包含三个绝对核心的步骤：
+### 2.1 编译器与打包器的本质边界
 
-### 2.1 编译的三步曲：Parse -> Transform -> Generate
+- **编译器 (如 Babel, SWC, tsc)**：
+  - **视角是局部的。** 它们通常执行“1对1”的文件转换。它们读取一个源文件，解析出 AST（抽象语法树），擦除类型、降级语法，然后输出一个 JS 文件。它们**不关心**这个文件引用了谁，也不负责把多个文件合并。
 
-- **Parse (解析阶段)**：
-  - **词法分析 (Lexical Analysis)**：将源代码字符串拆解成一个个基础的词法单元（Tokens）。例如把 `let x = 1` 拆成 `let`, `x`, `=`, `1`。
-  - **语法分析 (Syntactic Analysis)**：将 Tokens 根据语言的语法规则，组装成一棵极其重要的数据结构 —— **AST (抽象语法树, Abstract Syntax Tree)**。
-- **Transform (转换阶段)**：
-  - 这是编译器的核心！编译器遍历这棵 AST，插件（Plugins）会在这个阶段介入。例如，遇到“箭头函数”的 AST 节点，插件会将其替换为“普通 function”的 AST 节点。
-- **Generate (生成阶段)**：
-  - 将深度修改后的新 AST，重新转换（打印）回标准的字符串代码，同时生成用于调试的 Source Map 文件。
+- **打包器 (如 esbuild, Rolldown, Webpack)**：
+  - **视角是全局的。** 它们从入口文件（Entry）出发，通过静态分析 `import/require` 语句，抓取并构建出一张巨大的**依赖关系图（Dependency Graph）**。然后，它们运用 Tree-shaking 剔除死代码，最终将成百上千个模块智能拼接、拆分成少数几个 Chunk 产物。
 
-### 2.2 编译与 Polyfill (垫片) 的本质区别
+### 2.2 现代构建流水线的“职责分离”
 
-这是高级面试必考点。编译器处理新特性时分为两个维度：
+现代优秀的工程化架构（如 Vite）不再依赖单一的“全能工具”，而是将不同引擎的优势拼装到了极致：
 
-- **语法层 (Syntax)**：比如箭头函数 `() => {}`、可选链 `?.`、`let/const`。Babel/SWC 可以通过 AST 将其改写为 `function` 和 `var`。这叫**编译转换**。
-- **API 层 (Built-ins)**：比如 `Promise`、`Array.prototype.includes`、`Map`。旧浏览器里根本没有这些对象，AST 怎么改写都没用。这就需要引入 **Polyfill (垫片)**，通过向全局环境注入自定义代码来模拟这些原生 API。（Babel 中通常依赖 `core-js` 来实现）。
+- **类型检查**：完全交给 `tsc`（在独立进程中运行，不阻塞主线程）。
+- **开发环境编译**：交给 `esbuild`（瞬间将 TS/JSX 转为 JS 返回给浏览器）。
+- **第三方依赖处理**：交给 `esbuild`（毫秒级将庞大的 node_modules 预构建为 ESM 模块）。
+- **生产环境打包**：交给 `Rollup` 或 `Rolldown`（进行极其精细的产物切片、CSS 提取和极端场景的 Tree-shaking）。
 
 ## 3. 实战配置与工程化应用
 
-### 3.1 Babel 的标准配置 (`.babelrc` 或 `babel.config.js`)
+### 3.1 Babel 的标准降级配置 (`babel.config.js`)
 
-Babel 的核心设计是“微内核”，它自己什么都不干，所有功能全靠 Presets（预设，即插件的集合）和 Plugins（插件）实现。
+Babel 的核心设计是“微内核”，依靠 Presets（预设）和 Plugins（插件）实现功能的按需组装。
 
 ```js
-// babel.config.js
 module.exports = {
-  // Presets 是插件的合集，按从后向前的顺序执行
   presets: [
     [
-      '@babel/preset-env', // 智能处理 ES6+ 语法降级
+      '@babel/preset-env',
       {
-        targets: '> 0.25%, not dead', // 根据目标浏览器动态决定需要降级哪些语法
-        useBuiltIns: 'usage', // 极其重要：按需按实际使用情况引入 Polyfill
-        corejs: 3, // 指定 core-js 版本
+        targets: '> 0.25%, not dead', // 智能浏览器兼容性降级
+        useBuiltIns: 'usage', // 极其重要：按实际使用情况自动注入 Polyfill 垫片
+        corejs: 3,
       },
     ],
-    '@babel/preset-react', // 解析 JSX 语法
-    '@babel/preset-typescript', // 仅仅剥离 TS 类型注解，不做类型检查！
+    '@babel/preset-typescript', // 仅暴力擦除 TS 类型，不做检查
+    '@babel/preset-react',
   ],
-  // Plugins 是具体的小功能，按从前向后的顺序执行
   plugins: [
-    ['@babel/plugin-transform-runtime'], // 提取公共的 Babel 辅助函数，缩减打包体积
+    ['@babel/plugin-transform-runtime'], // 提取辅助函数，缩减代码体积
   ],
 }
 ```
 
 ### 3.2 SWC 的极速替代配置 (`.swcrc`)
 
-如果想在项目中用 SWC 替换掉缓慢的 Babel，配置逻辑高度相似，但由于底层是 Rust，执行速度有质的飞跃。
+作为 Babel 的挑战者，SWC 的配置在结构上高度对标 Babel，但由于底层是 Rust，编译速度有质的飞跃。
 
 ```json
-// .swcrc
 {
   "jsc": {
     "parser": {
-      "syntax": "typescript", // 开启 TS 解析支持
-      "tsx": true // 支持 React JSX
+      "syntax": "typescript",
+      "tsx": true
     },
     "transform": {
-      "react": {
-        "runtime": "automatic" // 自动导入 React 运行时
-      }
+      "react": { "runtime": "automatic" }
     },
-    "target": "es2015", // 语法降级目标
-    "loose": false
+    "target": "es2015"
   },
   "env": {
-    "targets": "> 0.25%, not dead", // 类似 preset-env 的智能降级
-    "mode": "usage", // 类似 useBuiltIns，按需按目标注入 polyfill
+    "targets": "> 0.25%, not dead",
+    "mode": "usage",
     "coreJs": "3"
   },
-  "minify": true // SWC 也附带了极其强悍的压缩功能，可替代 Terser
+  "minify": true // SWC 内置了极速的压缩引擎，可直接替代 Terser
 }
 ```
 
-### 3.3 tsc 在现代工程中的职能剥离
+### 3.3 esbuild 的原生调用指令
 
-过去，`tsc` 既负责“检查类型”，又负责“输出编译后的 JS”。
-但在现代工程化（如 Vite 体系）中，这被认为是低效的。现代标准做法是：**编译降级交给 esbuild 或 SWC（极快），类型检查交给 tsc（精准）。**
+在大部分情况下，我们不需要手动配置 esbuild，Vite 会在底层静默调用它。但如果在编写 Node 脚本或小工具时，你可以体会到它极简的 API：
+
+```js
+// build.js
+const esbuild = require('esbuild')
+
+esbuild
+  .build({
+    entryPoints: ['src/index.ts'],
+    bundle: true, // 开启打包模式，合并依赖
+    minify: true, // 极速压缩
+    sourcemap: true,
+    target: ['es2020'],
+    outfile: 'dist/out.js',
+  })
+  .catch(() => process.exit(1))
+```
+
+### 3.4 tsc 在现代工程中的职能剥离 (`tsconfig.json`)
+
+在现代工程化中，`tsc` 已经被剥夺了输出代码的权力。
 
 ```json
-// tsconfig.json 现代推荐配置
 {
   "compilerOptions": {
     "target": "ESNext",
     "module": "ESNext",
-    // 强制单文件编译模式，配合 SWC/Babel 使用时必须开启！
-    "isolatedModules": true,
-    // tsc 只做静态检查，禁止它输出任何 JS 文件！把输出工作交给打包工具。
-    "noEmit": true,
+    "isolatedModules": true, // 单文件编译模式，配合 SWC/esbuild 必须开启
+    "noEmit": true, // 🌟 核心：只做静态类型检查，禁止输出任何 JS 文件
     "strict": true
   }
 }
 ```
 
+### 3.5 rolldown的代码分割配置
+
+```js
+// rolldown.config.js
+import { defineConfig } from 'rolldown'
+
+export default defineConfig({
+  input: 'src/main.js',
+  output: {
+    dir: 'dist',
+    format: 'esm',
+    codeSplitting: {
+      groups: [
+        // 将 node_modules 中的第三方库分到 vendor chunk
+        {
+          name: 'vendor',
+          test: /[\\/]node_modules[\\/]/,
+          entriesAware: true, // 按入口感知合并
+        },
+        // 将 UI 库单独拆分
+        {
+          name: 'ui-lib',
+          test: /[\\/]node_modules[\\/](element-plus|ant-design-vue)[\\/]/,
+          priority: 10,
+        },
+        // 将 Vue 全家桶单独拆分
+        {
+          name: 'vue-vendor',
+          test: /[\\/]node_modules[\\/](vue|vue-router|pinia)[\\/]/,
+          priority: 20,
+        },
+      ],
+      // 低于此阈值的 chunk 合并到主块
+      minSize: 20000,
+      maxSize: 50000,
+    },
+  },
+})
+```
+
 ## 4. 常见问题 (FAQ) 与避坑指南
 
-### 4.1 既然 Vite(esbuild) 和 SWC 这么快，为什么还要在构建流程中执行 `tsc --noEmit`？
+### 4.1 既然 Vite (esbuild) 那么快，为什么生产环境打包还要用速度较慢的 Rollup，而不直接全用 esbuild？
 
 - **答**：
-  - `esbuild`、`SWC` 和 `@babel/preset-typescript` 在处理 TypeScript 时，采取的是 **“暴力擦除”策略 (Type Erasure)**。它们只负责把代码里的 `: string`, `interface` 等类型代码当成注释一样物理删除，然后直接编译成 JS。**它们绝对不会去检查你的类型写得对不对。**
-  - 如果你写了 `const a: number = 'hello'`，SWC 会光速编译通过，并在运行时导致 Bug。
-  - 因此，必须在 CI/CD 或打包前，通过运行 `tsc --noEmit` 来专门执行严谨的**静态类型检查**，这是保证代码质量的最后防线。
+  - **esbuild 的短板**：esbuild 追求的是绝对的速度，它的内部架构导致其在生产环境非常需要的 **代码分割（Code Splitting）**、**CSS 处理边界**、以及 **高级别 Tree-shaking** 方面，目前仍然无法做到像 Rollup 那样成熟和精细。此外，esbuild 的插件 API 设计非常底层且克制，无法支撑前端极其庞大复杂的打包定制需求。
+  - **Vite 的妥协**：为了保证生产环境产物（Bundle）的极度优化和稳定，Vite 选择了在生产环境切换回 Rollup。这就导致了目前的“开发/生产不一致”问题。
 
-### 4.2 什么是 `isolatedModules: true`？为什么用 Babel/SWC 编译 TS 时必须开启它？
-
-- **答**：
-  - **原理机制**：官方的 `tsc` 是具备“全工程感知”能力的，它知道整个项目所有文件之间的类型关系。但 Babel 和 SWC 是**单文件编译器 (Single-file compilation)**，它们一次只能瞎子摸象般地处理一个文件，不认识其他文件。
-  - **触发问题**：如果你写了 `export { MyInterface } from './types'`。Babel 在编译当前文件时，根本不知道 `MyInterface` 到底是一个可以执行的变量（需要保留），还是一个类型（需要擦除）。
-  - **解决方案**：开启 `isolatedModules: true` 后，TS 会强迫开发者在导出类型时显式使用 `export type { MyInterface }`。这样 Babel/SWC 一看到 `type` 关键字，就能安全地将其擦除了。
-
-### 4.3 `core-js` 是什么？如果在 Babel 中不配置它会怎样？
+### 4.2 Rolldown 究竟是为了解决什么痛点诞生的？
 
 - **答**：
-  - `core-js` 是 JavaScript 标准库的 Polyfill（垫片）的终极合集，它包含了诸如 `Promise`, `Set`, `Array.from` 等所有现代 API 的底层实现。
-  - 如果在 Babel 中只配置了语法转换，不配置 Polyfill，那么你的箭头函数会被转成普通的 `function`，但如果你代码里用到了 `new Promise()`，在老旧的 IE 浏览器或低版本微信内置浏览器中，会直接报 `Promise is not defined` 致命错误导致页面白屏。
+  - **痛点**：正是上一题提到的“Vite 开发环境用 esbuild，生产环境用 Rollup”导致的“精神分裂”。偶尔会出现本地开发没问题，上线打包却报错的诡异 Bug。
+  - **Rolldown 的使命**：Vite 团队用 Rust 重新编写了一个打包器。它的目标是：**速度上对标 esbuild，API 和插件生态上 100% 兼容 Rollup**。一旦 Rolldown 成熟，它将彻底替换掉 Vite 底层的 esbuild 和 Rollup，实现前端基建真正的底层大一统。
 
-### 4.4 很多巨型老项目想提速，可以直接把 Babel 一键替换成 SWC 吗？
+### 4.3 `tsc`、Babel、SWC、esbuild 都能编译 TypeScript，我到底该怎么选？
 
-- **答**：**极高风险，通常不能一键替换。**
-  - Babel 发展了 10 年，很多老企业级项目中不仅使用了标准的降级，还手写了大量**自定义的 Babel AST 插件**（例如：在编译期自动向所有函数注入埋点代码、针对特定的自研组件库做 AST 按需引入解析）。
-  - SWC 虽然快，但它的 AST 插件是用 Rust 编写的（WASM 方式也在发展中）。要将历史遗留的 JS 版 AST 插件等价重写为 Rust 版，成本极高且存在不可预知的边缘兼容问题。对于背着沉重历史包袱的项目，继续优化 Babel 缓存通常是更稳妥的选择。
+- **答**：
+  - **类型检查**：不管你用什么工具编译代码，**类型检查永远只能交给 `tsc`**（运行 `tsc --noEmit`）。因为 Babel/SWC/esbuild 采取的都是“**暴力擦除**”策略，它们根本不认识类型对错，只会把 TS 类型当成注释删掉然后转换代码。
+  - **代码生成选型**：
+    - 新项目、大项目：**优先选择 SWC 或 esbuild**（通常通过接入 Vite/Rspack 间接使用），享受极致的构建速度。
+    - 沉重的历史老项目：**继续使用 Babel**。老项目中往往写了大量强依赖 JS AST 的自定义 Babel 插件，要用 Rust 重写这些插件的成本极高，不要盲目跟风替换。
+
+### 4.4 什么是 `isolatedModules: true`？为什么用 Babel/SWC/esbuild 编译 TS 时必须在 `tsconfig.json` 中开启它？
+
+- **答**：
+  - **原因**：Babel、SWC 和 esbuild 都是**单文件编译器**，它们在编译一个文件时，是看不到其他文件长什么样的。如果你写了 `export { MyType } from './types'`，单文件编译器根本无法判断 `MyType` 是一个应该保留的值，还是一个必须删掉的 TS 类型。
+  - **避坑指南**：开启 `isolatedModules: true` 后，TS 会强迫你在代码里显式写清楚 `export type { MyType }`。这样 SWC/esbuild 一看到 `type` 关键字，就能安全且毫无歧义地把它擦除掉了。

@@ -1,4 +1,4 @@
-# Monorepo 架构解读与创建指南
+# Monorepo 架构
 
 Monorepo（单一仓库）是一种将多个项目或包集中存放在一个版本控制仓库中的开发策略。
 
@@ -31,25 +31,29 @@ Monorepo（单一仓库）是一种将多个项目或包集中存放在一个版
 - **构建工具要求高**：需要支持缓存、增量构建的工具来保持性能。
 - **依赖地狱风险**：若不对依赖严格约束，可能出现版本混乱。
 
-## 3. 主流 Monorepo 工具链生态
+## 3. 企业级架构的核心诉求
 
-现代 Monorepo 架构通常由 **“包管理器” + “构建/任务调度工具”** 组合而成。
+### 3.1 优势拓展
 
-### 3.1 包管理器 (负责依赖安装和 Workspace 管理)
+- **研发物料收敛**：不仅共享组件，连 TypeScript 配置、ESLint 规则、Prettier 格式化标准甚至 Tailwind 配置都封装为独立的 NPM 包（如 `@xunbei-vue/eslint-config`），实现全团队零配置复用。
+- **依赖防腐与锁定**：严格使用 `pnpm` 锁定环境，利用 `corepack` 杜绝团队成员包管理器版本不一致导致的幽灵依赖冲突。
+- **发版闭环管控**：引入自动化变更集（Changesets），根据 Git 提交记录自动计算版本号（SemVer）、生成 CHANGELOG，并统一触发 npm push。
 
-- **pnpm (首选)：** 目前最流行的选择。原生支持 `workspace`，依靠软硬链接机制，安装速度极快，且天然解决幽灵依赖问题。
-- **Yarn (v1/Berry)：** 最早普及 Workspace 概念的包管理器，成熟稳定。
+### 3.2 挑战与解法
 
-### 3.2 任务调度工具 (负责拓扑排序执行任务、缓存)
+- **构建时间爆炸**：通过 Turborepo 的物理级缓存和任务并发拓扑图（DAG），将整体构建耗时压缩到极致。
+- **包边界混乱**：严格限制 `package.json` 的 `exports` 字段，禁止跨包引用深层未暴露的文件，保证架构的清晰。
 
-- **Turborepo：** 由 Vercel 推出，基于 Go/Rust 编写。**极速、零配置缓存、上手极其简单**。目前在中小型和大型前端 Monorepo 中极受欢迎。
-- **Nx：** 极其强大且功能丰富的工具，提供大量的代码生成器和插件。适合超大型的、跨语言的复杂企业级 Monorepo。
-- **Rush：** 微软出品，专为超大型仓库设计，注重严格的依赖隔离和发布流程。
-- **Lerna：** 曾经的王者，主要负责包的发布和版本管理。现已被 Nx 团队接管并集成了 Nx 的缓存能力。
+## 4. 企业级主流工具链生态
 
-> 推荐组合：**pnpm + Turborepo**（快速、易用）或 **Nx + pnpm**（大型项目）。
+构建企业级架构，你需要一套经得起时间考验的“王牌组合”：
 
-## 4. 项目实践：Monorepo + Turborepo + TypeScript + ESLint
+- **包管理与拓扑寻址：** `pnpm` (结合 Workspace 协议实现本地软链同步)。
+- **智能任务调度与缓存：** `Turborepo` (Vercel 出品，云端/本地双重缓存)。
+- **模块化构建引擎：** `Vite` (业务应用与文档站) + `Rollup` / `esbuild` (底层组件库构建)。
+- **版本发布流：** `@changesets/cli` (处理 Monorepo 多包联动发版的标准工具)。
+
+## 5. 企业级 Monorepo 项目架构
 
 ```
 my-monorepo/
@@ -74,7 +78,7 @@ my-monorepo/
 └── pnpm-lock.yaml                # 依赖锁定文件（自动生成）
 ```
 
-### 4.1 环境准备
+### 5.1 环境准备
 
 确保已安装 Node.js（>=18）和 pnpm。若未安装 pnpm：
 
@@ -82,7 +86,7 @@ my-monorepo/
 npm install -g pnpm
 ```
 
-### 4.2 初始化仓库
+### 5.2 初始化仓库
 
 ```bash
 mkdir my-monorepo && cd my-monorepo
@@ -103,7 +107,7 @@ pnpm init
 
 :::
 
-### 4.3 配置pnpm 工作区
+### 5.3 配置pnpm 工作区
 
 创建 `pnpm-workspace.yaml`，声明工作空间中包的存放位置：
 
@@ -117,7 +121,7 @@ packages:
 
 :::
 
-### 4.4 创建子包
+### 5.4 创建子包
 
 分别创建公共库和应用库的目录并初始化：
 
@@ -195,7 +199,7 @@ pnpm --filter @my-monorepo/web add @my-monorepo/shared -D
 
 `workspace:*` 是 pnpm 协议，表示使用当前工作空间中的本地包，而不是从 npm 下载。
 
-### 4.5 统一 TypeScript 配置
+### 5.5 统一 TypeScript 配置
 
 在根目录创建 `tsconfig.base.json`，包含通用编译器选项：
 
@@ -250,7 +254,7 @@ pnpm --filter @my-monorepo/web add @my-monorepo/shared -D
 
 :::
 
-### 4.7 统一 ESLint 配置
+### 5.7 统一 ESLint 配置
 
 **在根目录安装 ESLint 及相关插件：**
 
@@ -310,7 +314,7 @@ module.exports = {
 }
 ```
 
-### 4.8 集成 Turborepo
+### 5.8 集成 Turborepo
 
 **安装 Turborepo：**
 
@@ -378,7 +382,7 @@ pnpm add -Dw turbo
 
 :::
 
-### 4.9 添加 .gitignore
+### 5.9 添加 .gitignore
 
 ```
 node_modules/
@@ -387,7 +391,7 @@ dist/
 *.log
 ```
 
-### 4.10 运行与验证
+### 5.10 运行与验证
 
 ```bash
 # 安装所有依赖（已执行过）
