@@ -36,8 +36,6 @@ jobs:
       # 🌟 核心修改 1：在配置 Node 环境之前，必须先安装并锁定 pnpm 大版本
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 11
 
       - name: Setup Node
         uses: actions/setup-node@v4
