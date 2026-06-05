@@ -539,11 +539,11 @@ function createRootCodegen(root: RootNode, context: TransformContext) {
 
 :::
 
-## 5. 插件系统：职责分离的转换单元
+## 4. 插件系统：职责分离的转换单元
 
 所有转换逻辑被拆分为一个个**转换插件**，每个插件负责一类特定的编译任务。插件通过 `nodeTransforms` 和 `directiveTransforms` 注册。
 
-### 5.1 内置核心插件一览
+### 4.1 内置核心插件一览
 
 | 插件                  | 进入时机   | 核心职责                                                            |
 | --------------------- | ---------- | ------------------------------------------------------------------- |
@@ -557,7 +557,7 @@ function createRootCodegen(root: RootNode, context: TransformContext) {
 | `trackSlotScopes`     | enter/exit | 追踪插槽作用域信息                                                  |
 | `transformText`       | exit       | 合并相邻文本和插值节点为 `COMPOUND_EXPRESSION`                      |
 
-### 5.2 平台插件注入
+### 4.2 平台插件注入
 
 以 `@vue/compiler-dom` 为例，它在核心插件之上追加了浏览器专属的节点转换：
 
@@ -621,9 +621,9 @@ export function compile(
 
 :::
 
-### 5.3 插件执行示例
+### 4.3 插件执行示例
 
-#### 5.3.1 `transformElement`：VNode 的缔造者与靶向打标机
+#### 4.3.1 `transformElement`：VNode 的缔造者与靶向打标机
 
 **地位**：它是整个 Transform 阶段最重磅、最核心的插件。
 
@@ -706,7 +706,7 @@ function hasDynamicChildren(children) {
 
 :::
 
-#### 5.3.2 `transformExpression`：JS 表达式的翻译官
+#### 4.3.2 `transformExpression`：JS 表达式的翻译官
 
 **职责**：处理插值或指令属性 `:id="xxx"` 内部的 JavaScript 表达式。
 
@@ -759,7 +759,7 @@ function processExpression(node, context) {
 
 [//]: # '**工作成果**：将开发者写的 `{{ msg }}` 安全地转化为 `{{ _ctx.msg }}`，实现无 `with` 语句的极速变量寻址。'
 
-#### 5.3.3 `transformText`：文本碎片的缝合怪
+#### 4.3.3 `transformText`：文本碎片的缝合怪
 
 **职责**：将相邻的纯文本节点（TEXT）和插值节点（INTERPOLATION）合并。
 
@@ -827,9 +827,9 @@ export function isText(
 
 **工作成果**：将多个离散的文本碎片组合成 `"Hello " + _toDisplayString(_ctx.name) + " !"` 这样的单一复合表达式。
 
-## 6. 指令编译实现
+## 5. 指令编译实现
 
-### 6.1 `transformIf`：条件分支的重组者
+### 5.1 `transformIf`：条件分支的重组者
 
 **职责**：处理 `v-if`、`v-else-if` 和 `v-else` 编译为**三元表达式**，并为每个分支创建独立的 Block：
 
@@ -919,7 +919,7 @@ function createIfBranch(node, dir) {
 
 **工作成果**：将散落的 DOM 节点聚合成一个带有 `branches` 的逻辑块，并在 Exit 阶段将其转化为 JavaScript 的 `ok ? _createVNode(...) : _createCommentVNode(...)` 三元表达式结构。
 
-### 6.2 `transformFor`：循环列表的展开者
+### 5.2 `transformFor`：循环列表的展开者
 
 **职责**：`transformFor` 将 `v-for` 编译为 `renderList` 函数调用：
 
@@ -969,7 +969,7 @@ export const transformFor: NodeTransform = (node, context) => {
 
 **工作成果**：为最终的 `renderList(list, (item) => {...})` 函数调用准备好所有参数。
 
-### 6.3 `transformOn`：事件缓存
+### 5.3 `transformOn`：事件缓存
 
 `transformOn` 负责编译 `v-on` 或 `@` 事件绑定，默认启用**事件处理函数缓存**：
 
@@ -1054,9 +1054,9 @@ export const transformOn: DirectiveTransform = (dir, node, context) => {
 
 :::
 
-## 7. 核心函数解析
+## 6. 核心函数解析
 
-### 7.1 `createBlock`: 创建 Block 节点
+### 6.1 `createBlock`: 创建 Block 节点
 
 Block Tree 将模板基于结构指令（`v-if`、`v-for`、`<slot>`）切分为多个 Block，每个 Block 内部扁平收集所有动态后代节点：
 
@@ -1122,7 +1122,7 @@ if (patchFlag > 0 && context.currentBlock) {
 }
 ```
 
-### 7.4 `createVNodeCall`: 打包封装机制
+### 6.2 `createVNodeCall`: 打包封装机制
 
 :::code-group
 
@@ -1207,9 +1207,9 @@ export const helperNameMap: any = {
 
 :::
 
-## 8. 完整流程示例
+## 7. 完整流程示例
 
-### 8.1 基础代码示例
+### 7.1 基础代码示例
 
 **输入模板**:
 
@@ -1348,11 +1348,11 @@ export const helperNameMap: any = {
 }
 ```
 
-### 8.2 完整流程图
+### 7.2 完整流程图
 
 ![Logo](/transformResource.png)
 
-## 9. 总结
+## 8. 总结
 
 Vue 3 编译器的 transform 阶段通过 **插件化深度优先遍历**，将模板 AST 转换为经过深度优化的 JavaScript AST。其核心贡献包括：
 
