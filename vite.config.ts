@@ -12,6 +12,8 @@ export default defineConfig({
     },
   },
   build: {
+    // 启用 esbuild 压缩，比 Terser 快数十倍
+    minify: 'esbuild',
     // 提高超大块警告门槛（可选，默认是 500KB）
     chunkSizeWarningLimit: 800,
     rollupOptions: {

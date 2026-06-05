@@ -11,7 +11,23 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     vite: {
-        // plugins: [vue()],
+        build: {
+            minify: 'esbuild',
+            sourcemap: false,
+            chunkSizeWarningLimit: 1000,
+            rollupOptions: {}
+        },
+        ssr: {
+            external: [
+                '@fortawesome/fontawesome-svg-core',
+                '@fortawesome/vue-fontawesome',
+                '@fortawesome/free-solid-svg-icons',
+                '@fortawesome/free-regular-svg-icons',
+                '@fortawesome/free-brands-svg-icons'
+            ],
+            // 🌟 强行让 Vite 处理 xb-element，利用 Vite 的后缀补全机制绕过 Node.js 的死板规则！
+            noExternal: ['xb-element']
+        },
         resolve: {
             alias: {
                 '@': fileURLToPath(new URL('../../src', import.meta.url)),
@@ -23,10 +39,6 @@ export default defineConfig({
                 replacement: path.resolve(__dirname, '../../node_modules/xb-element/dist/es/x-element.js')
             },
         },
-        // 同时建议加上这个，防止 SSR 渲染时再次试图使用 Node 解析该模块
-        ssr: {
-            noExternal: ['xb-element']
-        }
     },
     base: '/CoreFront-EndConcepts/',
     title: "寻北",

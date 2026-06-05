@@ -14,8 +14,7 @@ import { library } from '@fortawesome/fontawesome-svg-core'
 import { fas } from '@fortawesome/free-solid-svg-icons'
 import { ElementPlusContainer } from '@vitepress-demo-preview/component'
 import '@vitepress-demo-preview/component/dist/style.css'
-import XElement from 'xb-element/dist/es/x-element'
-import 'xb-element/dist/x-element.css'
+import XElement from 'xb-element'
 import './custom.css'
 
 library.add(fas)
