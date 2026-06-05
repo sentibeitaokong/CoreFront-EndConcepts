@@ -4,15 +4,18 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".vitepress/dist/**"]
+      "outputs": ["dist/**", ".vitepress/dist/**"],
+      "cache": true
     },
     "type-check": {
       "dependsOn": ["^type-check"],
-      "outputs": []
+      "outputs": [],
+      "cache": true
     },
     "lint": {
       "dependsOn": [],
-      "outputs": []
+      "outputs": [],
+      "cache": true
     },
     "dev": {
       "dependsOn": ["^dev"],
@@ -25,7 +28,8 @@
     },
     "docs:build": {
       "dependsOn": ["^build"],
-      "outputs": [".vitepress/dist/**"]
+      "outputs": [".vitepress/dist/**"],
+      "cache": true
     },
     "docs:preview": {
       "dependsOn": ["docs:build"],
