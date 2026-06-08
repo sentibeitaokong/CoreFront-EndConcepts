@@ -605,6 +605,7 @@ export default defineConfig({
                             {text: 'Webpack', link: '/forntEngineering/webpack'},
                             {text: 'vite', link: '/forntEngineering/vite'},
                             {text: 'Rspack', link: '/forntEngineering/rspack'},
+                            {text: 'Turbopack', link: '/forntEngineering/turbopack'},
                             {text: 'gulp', link: '/forntEngineering/gulp'},
                             {text: 'parcel', link: '/forntEngineering/parcel'},
                         ]
