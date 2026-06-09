@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   // 继承官方推荐的 Angular 团队提交规范
   extends: ['@commitlint/config-conventional'],
   // 你可以在这里自定义规则，比如强制使用特定前缀，或修改最大长度
