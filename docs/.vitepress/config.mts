@@ -597,32 +597,61 @@ export default defineConfig({
                 collapsed: true, // 初始状态为“展开”
                 items: [
                     {text: '简介', link: '/forntEngineering/intro'},
+                    {
+                        text: '模块化与组件化开发',
+                        collapsed: true, // 初始状态为“展开”
+                        items: [
+                            {text: 'js模块化', link: '/forntEngineering/javascriptModules'},
+                            {text: 'css工程化', link: '/forntEngineering/cssProject'},
+                            {text: '组件化思维', link: '/forntEngineering/modules'},
+                        ]
+                    },
                     {text: '常用工具介绍', link: '/forntEngineering/engineerTools'},
                     {
-                        text: '综合构建与打包',
+                        text: '包管理器与依赖管理',
                         collapsed: true, // 初始状态为“展开”
                         items: [
-                            {text: 'Webpack', link: '/forntEngineering/webpack'},
-                            {text: 'vite', link: '/forntEngineering/vite'},
-                            {text: 'Rspack', link: '/forntEngineering/rspack'},
-                            {text: 'Turbopack', link: '/forntEngineering/turbopack'},
-                            {text: 'gulp', link: '/forntEngineering/gulp'},
-                            {text: 'parcel', link: '/forntEngineering/parcel'},
+                            {text: '包管理器', link: '/forntEngineering/packageManagers'},
+                            {text: '依赖管理', link: '/forntEngineering/packageJson.md'},
                         ]
                     },
-                    {text: '底层编译与打包引擎', link: '/forntEngineering/codeCompilers'},
                     {
-                        text: '类库独立打包',
+                        text: '构建工具',
                         collapsed: true, // 初始状态为“展开”
                         items: [
-                            {text: 'tsup', link: '/forntEngineering/tsup'},
-                            {text: 'Rollup', link: '/forntEngineering/rollup'},
+                            {
+                                text: '综合构建与打包',
+                                collapsed: true, // 初始状态为“展开”
+                                items: [
+                                    {text: 'Webpack', link: '/forntEngineering/webpack'},
+                                    {text: 'vite', link: '/forntEngineering/vite'},
+                                    {text: 'Rspack', link: '/forntEngineering/rspack'},
+                                    {text: 'Turbopack', link: '/forntEngineering/turbopack'},
+                                    {text: 'gulp', link: '/forntEngineering/gulp'},
+                                    {text: 'parcel', link: '/forntEngineering/parcel'},
+                                ]
+                            },
+                            {text: '底层编译与打包引擎', link: '/forntEngineering/codeCompilers'},
+                            {
+                                text: '类库独立打包',
+                                collapsed: true, // 初始状态为“展开”
+                                items: [
+                                    {text: 'tsup', link: '/forntEngineering/tsup'},
+                                    {text: 'Rollup', link: '/forntEngineering/rollup'},
+                                ]
+                            },
                         ]
                     },
-                    {text: '多包管理与任务编排', link: '/forntEngineering/monorepo'},
-                    {text: '包管理器', link: '/forntEngineering/packageManagers'},
-                    {text: '规范与拦截', link: '/forntEngineering/linters'},
+                    {text: '代码规范与质量控制', link: '/forntEngineering/linters'},
                     {text: '自动化测试', link: '/forntEngineering/testing'},
+                    {
+                        text: '架构演进:Monorepo与微前端',
+                        collapsed: true, // 初始状态为“展开”
+                        items: [
+                            {text: 'Monorepo（单体仓库）', link: '/forntEngineering/monorepo'},
+                        ]
+                    },
+
                 ]
             },
             {

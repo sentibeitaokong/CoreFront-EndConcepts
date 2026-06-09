@@ -329,8 +329,8 @@ function create<T>(c: { new (): T }): T {
 interface Map<T> {
   [key: string]: T
 }
-let keys: keyof Map<number> // string
-let value: Map<number>['foo'] // number
+let keys: keyof Map<number> // string | number
+let value: Map<number>['foo'] // number | undefined
 ```
 
 ### 2.5 类型别名(Type Aliases)
@@ -929,8 +929,8 @@ project-root/
 ### 5.3 `void` 和 `never` 有什么区别？
 
 - **答**：
-  - `void` 表示**“空”**。函数正常执行完毕了，只是它**没有返回任何有意义的值**（实际上在 JS 中隐式返回了 `undefined`）。常用于普通的副作用函数。
-  - `never` 表示**“永远不可能”**。函数**永远无法执行到终点**（比如抛出了一个 Error 直接中断了程序，或者陷入了 `while(true)` 死循环）。它代表代码执行的异常中断或无法返回。
+  - `void` 表示 **“空”**。函数正常执行完毕了，只是它**没有返回任何有意义的值**（实际上在 JS 中隐式返回了 `undefined`）。常用于普通的副作用函数。
+  - `never` 表示 **“永远不可能”**。函数**永远无法执行到终点**（比如抛出了一个 Error 直接中断了程序，或者陷入了 `while(true)` 死循环）。它代表代码执行的异常中断或无法返回。
 
 ### 5.4 为什么不推荐过度使用 `any`？可以用什么替代？
 
