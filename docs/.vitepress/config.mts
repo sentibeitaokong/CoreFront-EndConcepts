@@ -38,7 +38,7 @@ export default defineConfig({
                 },
                 // SVG 矢量图防破损配置
                 svg: {
-                    multipass: true,
+                    multipass: false,
                     plugins: [
                         'preset-default',
                         {

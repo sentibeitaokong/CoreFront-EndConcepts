@@ -1350,7 +1350,7 @@ export const helperNameMap: any = {
 
 ### 7.2 完整流程图
 
-![Logo](/transformResource.png)
+![Logo](/img/transformResource.png)
 
 ## 8. 总结
 

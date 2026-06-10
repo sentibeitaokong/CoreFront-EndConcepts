@@ -150,7 +150,7 @@ const value = inject(myKey) // value 类型为 number | undefined
 
 ## 7. 完整流程图
 
-![Logo](/provide_inject.png)
+![Logo](/img/provide_inject.png)
 
 ## 8. 总结
 

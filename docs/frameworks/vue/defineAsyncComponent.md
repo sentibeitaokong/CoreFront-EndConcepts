@@ -311,7 +311,7 @@ const AsyncComp = defineAsyncComponent({
 
 ### 4.3 完整流程图
 
-![Logo](/defineAsyncComponent.png)
+![Logo](/img/defineAsyncComponent.png)
 
 ## 5. 总结
 

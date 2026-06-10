@@ -374,7 +374,7 @@ watch(keyword, async (newVal, oldVal, onCleanup) => {
 
 ### 5.2 完整流程图
 
-![Watch Flow](/watch.png)
+![Watch Flow](/img/watch.png)
 
 ## 6. `watch` 与 `computed` 对比
 

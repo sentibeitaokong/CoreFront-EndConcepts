@@ -894,7 +894,7 @@ function startsWithEndTagOpen(source: string, tag: string): boolean {
 
 ### 7.2 完整流程图
 
-![Logo](/parseExample.png)
+![Logo](/img/parseExample.png)
 
 ## 8. 总结
 

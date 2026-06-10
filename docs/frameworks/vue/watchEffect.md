@@ -287,7 +287,7 @@ setInterval(() => {
 
 ### 5.2 完整流程图
 
-![Logo](/watchEffect.png)
+![Logo](/img/watchEffect.png)
 
 ## 6. 总结
 

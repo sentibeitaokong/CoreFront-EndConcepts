@@ -267,7 +267,7 @@ const currentComponent = ref(Home)
 
 ### 4.2 完整流程图
 
-![Logo](/keepAlive.png)
+![Logo](/img/keepAlive.png)
 
 ## 5. 总结
 

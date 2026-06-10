@@ -243,7 +243,7 @@ count.value = 1 // 输出:  1
 
 ### 4.2 完整流程图
 
-![Logo](/ref.png)
+![Logo](/img/ref.png)
 
 ## 5. 工具函数实现
 

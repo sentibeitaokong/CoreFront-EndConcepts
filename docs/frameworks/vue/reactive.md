@@ -403,7 +403,7 @@ function trackEffects(dep: Dep) {
 
 ### 3.3 流程图
 
-![Logo](/trackReactive.png)
+![Logo](/img/trackReactive.png)
 
 ## 4. 触发更新流程（trigger）
 
@@ -527,7 +527,7 @@ function triggerEffect(effect: ReactiveEffect) {
 
 ### 4.3 流程图
 
-![Logo](/triggerReactive.png)
+![Logo](/img/triggerReactive.png)
 
 ## 5. effect副作用函数
 
@@ -693,7 +693,7 @@ state.count = 1 // 输出: count changed: 1
 
 ### 7.2 完整流程图
 
-![Logo](/reactive3.png)
+![Logo](/img/reactive3.png)
 
 ## 8. 工具函数实现
 

@@ -368,7 +368,7 @@ render(vnode2, container)
 
 ### 4.2 完整流程图
 
-![Logo](/processElement.png)
+![Logo](/img/processElement.png)
 
 ## 5. 更新策略对比：快速路径 vs 慢速路径
 

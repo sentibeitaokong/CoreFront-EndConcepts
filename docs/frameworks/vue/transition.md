@@ -1,5 +1,5 @@
 ---
-outline: [2,3] # 这个页面将显示 h2 和 h3 标题
+outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 ---
 
 # Vue 过渡与动画(`<Transition>`)
@@ -10,35 +10,36 @@ outline: [2,3] # 这个页面将显示 h2 和 h3 标题
 
 Vue 提供了一个内置的魔法组件 **`<Transition>`**（以及处理列表的 `<TransitionGroup>`）。它的核心使命是：**在 DOM 元素被插入（Enter）或移除（Leave）的过程中，极其优雅地为你自动挂载/卸载 CSS 类名或触发 JavaScript 钩子函数。**
 
-| 核心触发时机 | 详细说明 |
-| :--- | :--- |
-| **`v-if` / `v-show`** | 元素的条件渲染与显示隐藏的切换。这是 `<Transition>` 最常见的使用场景。 |
-| **动态组件切换** | 使用 `<component :is="activeComponent">` 切换不同组件时的转场动画。 |
-| **路由切换** | 配合 Vue Router 的 `<router-view>`，实现页面级别平滑的过渡效果。 |
+| 核心触发时机          | 详细说明                                                                                                |
+| :-------------------- | :------------------------------------------------------------------------------------------------------ |
+| **`v-if` / `v-show`** | 元素的条件渲染与显示隐藏的切换。这是 `<Transition>` 最常见的使用场景。                                  |
+| **动态组件切换**      | 使用 `<component :is="activeComponent">` 切换不同组件时的转场动画。                                     |
+| **路由切换**          | 配合 Vue Router 的 `<router-view>`，实现页面级别平滑的过渡效果。                                        |
 | **特殊的 `key` 改变** | 当元素的 `key` 属性发生变化时，Vue 会认为旧元素被移除了，新元素被插入了，从而触发完整的离开和进入动画。 |
 
 ## 2. 核心机制：CSS 过渡类名生命周期
 
 当一个元素被 `<Transition>` 包裹并触发显示/隐藏时，Vue 会在**特定并且极其精确的物理帧 (Frame)** 上，自动为该 DOM 元素添加或移除以下 6 个 CSS 类名。
 
-![Logo](/transition.png)
+![Logo](/img/transition.png)
 
 假设你没有给 `<Transition>` 起名字（即没有设置 `name` 属性），默认的类名前缀是 `v-`：
 
 ### 2.1 进入 (Enter) 阶段的三个状态
 
-1.  **`v-enter-from`**：**进入动画的起点**。在元素被插入之前生效，在元素被插入之后的下一帧移除。*(通常在这里写透明度为 0，或者偏移出屏幕)*。
-2.  **`v-enter-active`**：**进入动画的生效状态**。在整个进入过渡的阶段中应用。*(这是最关键的类，在这里写 `transition: all 0.5s ease`，定义动画的持续时间和缓动曲线)*。
-3.  **`v-enter-to`**：**进入动画的终点**。在 `v-enter-from` 被移除的同时生效，在过渡/动画完成之后移除。*(通常在这里写目标状态，如透明度 1，这其实是元素默认的原始状态，很多时候可以省略不写)*。
+1.  **`v-enter-from`**：**进入动画的起点**。在元素被插入之前生效，在元素被插入之后的下一帧移除。_(通常在这里写透明度为 0，或者偏移出屏幕)_。
+2.  **`v-enter-active`**：**进入动画的生效状态**。在整个进入过渡的阶段中应用。_(这是最关键的类，在这里写 `transition: all 0.5s ease`，定义动画的持续时间和缓动曲线)_。
+3.  **`v-enter-to`**：**进入动画的终点**。在 `v-enter-from` 被移除的同时生效，在过渡/动画完成之后移除。_(通常在这里写目标状态，如透明度 1，这其实是元素默认的原始状态，很多时候可以省略不写)_。
 
 ### 2.2 离开 (Leave) 阶段的三个状态
 
 与进入阶段完全对称：
+
 1.  **`v-leave-from`**：**离开动画的起点**。在离开过渡触发时立刻生效，下一帧移除。
 2.  **`v-leave-active`**：**离开动画的生效状态**。定义离开的过程和持续时间。
-3.  **`v-leave-to`**：**离开动画的终点**。在离开过渡触发之后下一帧生效。*(通常在这里写元素最终消失的样子，比如透明度变 0，高度变 0)*。
+3.  **`v-leave-to`**：**离开动画的终点**。在离开过渡触发之后下一帧生效。_(通常在这里写元素最终消失的样子，比如透明度变 0，高度变 0)_。
 
-*(💡 **命名提示**：如果你写了 `<Transition name="fade">`，上面所有的 `v-` 前缀都会被替换为 `fade-`。)*
+_(💡 **命名提示**：如果你写了 `<Transition name="fade">`，上面所有的 `v-` 前缀都会被替换为 `fade-`。)_
 
 ```css
 .fade-enter-active,
@@ -106,23 +107,23 @@ const show = ref(true)
 </template>
 
 <style>
-  .bounce-enter-active {
-    animation: bounce-in 0.5s;
+.bounce-enter-active {
+  animation: bounce-in 0.5s;
+}
+.bounce-leave-active {
+  animation: bounce-in 0.5s reverse;
+}
+@keyframes bounce-in {
+  0% {
+    transform: scale(0);
   }
-  .bounce-leave-active {
-    animation: bounce-in 0.5s reverse;
+  50% {
+    transform: scale(1.25);
   }
-  @keyframes bounce-in {
-    0% {
-      transform: scale(0);
-    }
-    50% {
-      transform: scale(1.25);
-    }
-    100% {
-      transform: scale(1);
-    }
+  100% {
+    transform: scale(1);
   }
+}
 </style>
 ```
 
@@ -132,7 +133,10 @@ const show = ref(true)
 
 ```vue
 <!-- 引入 Animate.css -->
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+/>
 
 <!-- 使用 enter-active-class 和 leave-active-class 强行注入第三方类名 -->
 <Transition
@@ -207,7 +211,7 @@ function onLeaveCancelled(el) {}
 <script setup>
 import { ref } from 'vue'
 // 假设你引入了专业的 JS 动画库 anime.js
-import anime from 'animejs/lib/anime.es.js';
+import anime from 'animejs/lib/anime.es.js'
 
 const show = ref(false)
 
@@ -218,8 +222,8 @@ const onEnter = (el, done) => {
     targets: el,
     translateX: 250,
     duration: 800,
-    complete: done // 动画完成时调用 Vue 的 done
-  });
+    complete: done, // 动画完成时调用 Vue 的 done
+  })
 }
 
 const onLeave = (el, done) => {
@@ -227,20 +231,16 @@ const onLeave = (el, done) => {
     targets: el,
     translateX: 0,
     duration: 800,
-    complete: done
-  });
+    complete: done,
+  })
 }
 </script>
 
 <template>
   <button @click="show = !show">Toggle</button>
-  
+
   <!-- 必须加上 :css="false"，告诉 Vue 彻底跳过低效的 CSS 类名嗅探检测 -->
-  <Transition
-    @enter="onEnter"
-    @leave="onLeave"
-    :css="false"
-  >
+  <Transition @enter="onEnter" @leave="onLeave" :css="false">
     <div v-if="show" class="box"></div>
   </Transition>
 </template>
@@ -249,33 +249,37 @@ const onLeave = (el, done) => {
 ## 4. 常见问题 (FAQ) 与避坑指南
 
 ### 4.1 我的 `<Transition>` 动画有时生效，有时像瞬移一样失效，且控制台毫无报错？
-*   **答**：这往往是因为你的组件内部**包含多个根节点 (Fragment)** 或者是**内部直接就是一个注释节点**。
-    *   **Vue 的物理限制**：`<Transition>` 能够施展魔法的前提是，它必须能够精确地找到**一个单一的、明确的真实原生 DOM 节点**去挂载 CSS 类名或触发事件。
-    *   **避坑指南**：被 `<Transition>` 直接包裹的内容，**必须是一个绝对单一的根元素**。如果你包裹了一个自定义组件 `<MyComponent />`，请确保该组件内部最外层只有一个普通的 `<div>`，而不是好平级的元素。
+
+- **答**：这往往是因为你的组件内部**包含多个根节点 (Fragment)** 或者是**内部直接就是一个注释节点**。
+  - **Vue 的物理限制**：`<Transition>` 能够施展魔法的前提是，它必须能够精确地找到**一个单一的、明确的真实原生 DOM 节点**去挂载 CSS 类名或触发事件。
+  - **避坑指南**：被 `<Transition>` 直接包裹的内容，**必须是一个绝对单一的根元素**。如果你包裹了一个自定义组件 `<MyComponent />`，请确保该组件内部最外层只有一个普通的 `<div>`，而不是好平级的元素。
 
 ### 4.2 路由切换时，两个页面的内容重叠在一起卡住了，导致动画极其难看！
-*   **答**：这是因为默认情况下，进入动画和离开动画是**同时发生**的。
-    *   **场景重现**：新页面在进入（透明度 0变1），旧页面在离开（透明度 1变0），这会导致两套完整的 DOM 树在页面上同时存在，把页面排版瞬间撑爆。
-    *   **解决方案**：使用 `mode` 属性，强制改变两套动画的执行顺序。
-    ```vue
-    <!-- out-in：旧元素先执行离开动画，它完全消失且 DOM 被销毁后，新元素再开始进入。这是最常用的模式！ -->
-    <!-- in-out：新元素先进入，完成后旧元素再离开（很少用）。 -->
-    <Transition name="fade" mode="out-in">
-      <component :is="activeComponent"></component>
-    </Transition>
-    ```
+
+- **答**：这是因为默认情况下，进入动画和离开动画是**同时发生**的。
+  - **场景重现**：新页面在进入（透明度 0变1），旧页面在离开（透明度 1变0），这会导致两套完整的 DOM 树在页面上同时存在，把页面排版瞬间撑爆。
+  - **解决方案**：使用 `mode` 属性，强制改变两套动画的执行顺序。
+  ```vue
+  <!-- out-in：旧元素先执行离开动画，它完全消失且 DOM 被销毁后，新元素再开始进入。这是最常用的模式！ -->
+  <!-- in-out：新元素先进入，完成后旧元素再离开（很少用）。 -->
+  <Transition name="fade" mode="out-in">
+    <component :is="activeComponent"></component>
+  </Transition>
+  ```
 
 ### 4.3 为什么元素的 `display: none` (`v-show`) 切换时，我的动画不起作用了？
-*   **答**：这可能与 CSS 浏览器引擎底层的渲染机制有关。
-    *   如果你的动画涉及 `height` (从 0 到 auto) 这种无法做线性计算的属性，CSS transition 原生是不支持的，只能瞬间突变。
-    *   对于这种特殊场景，要么改用 `max-height` 做折中处理，要么放弃 CSS 动画，老老实实在 `<Transition>` 的 `@enter` / `@leave` 钩子里用 JS 去动态获取实际高度并执行动画。
+
+- **答**：这可能与 CSS 浏览器引擎底层的渲染机制有关。
+  - 如果你的动画涉及 `height` (从 0 到 auto) 这种无法做线性计算的属性，CSS transition 原生是不支持的，只能瞬间突变。
+  - 对于这种特殊场景，要么改用 `max-height` 做折中处理，要么放弃 CSS 动画，老老实实在 `<Transition>` 的 `@enter` / `@leave` 钩子里用 JS 去动态获取实际高度并执行动画。
 
 ### 4.4 初始化页面时，那个包裹在 `v-if="true"` 里的元素为什么直接生硬地出现了，没有触发动画？
-*   **答**：这是 Vue 的默认性能策略。
-    *   `<Transition>` 默认只在节点被**后续动态插入或移除**时才会触发。页面初次加载渲染（Initial Render）时，Vue 为了最快把页面画出来，直接跳过了动画计算。
-    *   **解决方案**：如果你希望页面刚一打开，某个标题就执行极其炫酷的入场动画，请给 `<Transition>` 加上 **`appear`** 属性。
-    ```vue
-    <Transition name="slide-up" appear>
-      <h1>我是拥有首屏登场特效的超级标题</h1>
-    </Transition>
-    ```
+
+- **答**：这是 Vue 的默认性能策略。
+  - `<Transition>` 默认只在节点被**后续动态插入或移除**时才会触发。页面初次加载渲染（Initial Render）时，Vue 为了最快把页面画出来，直接跳过了动画计算。
+  - **解决方案**：如果你希望页面刚一打开，某个标题就执行极其炫酷的入场动画，请给 `<Transition>` 加上 **`appear`** 属性。
+  ```vue
+  <Transition name="slide-up" appear>
+    <h1>我是拥有首屏登场特效的超级标题</h1>
+  </Transition>
+  ```

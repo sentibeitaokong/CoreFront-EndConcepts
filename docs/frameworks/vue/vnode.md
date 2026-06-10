@@ -432,7 +432,7 @@ render(vnode, document.body)
 
 ### 4.2 完整流程图
 
-![Logo](/vnode.png)
+![Logo](/img/vnode.png)
 
 ## 5. 工具函数实现
 

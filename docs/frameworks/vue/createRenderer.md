@@ -325,7 +325,7 @@ createApp(App).mount(app.stage)
 
 ### 3.2 完整流程图
 
-![Logo](/createRenderer.png)
+![Logo](/img/createRenderer.png)
 
 ## 4. 总结
 

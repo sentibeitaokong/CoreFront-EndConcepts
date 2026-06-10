@@ -565,7 +565,7 @@ function baseCreateRenderer(options: RendererOptions) {
 
 展示一个简单的元素挂载流程中 `nodeOps` 方法的调用顺序。
 
-![Logo](/nodeOps.png)
+![Logo](/img/nodeOps.png)
 
 ## 6. `nodeOps` 跨平台实现对比
 

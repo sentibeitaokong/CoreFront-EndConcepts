@@ -60,7 +60,7 @@ div.style.marginTop = '10px'
 
 ## 4. 完整流程图
 
-![Logo](/render.png)
+![Logo](/img/render.png)
 
 ## 5. 常见问题 (FAQ) 与性能优化实战
 

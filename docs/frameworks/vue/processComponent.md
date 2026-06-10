@@ -1480,11 +1480,11 @@ function unmount(vnode) {
 
 ### 6.1 组件的挂载与更新
 
-![Logo](/processComponent.png)
+![Logo](/img/processComponent.png)
 
 ### 6.2 组件的卸载
 
-![Logo](/unmountComponent.png)
+![Logo](/img/unmountComponent.png)
 
 ## 7. 性能优化关键点
 

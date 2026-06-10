@@ -16,7 +16,7 @@
 
 ## 3. TCP 报文段（Segment）首部解剖
 
-![Logo](/tcpFirst.png)
+![Logo](/img/tcpFirst.png)
 
 TCP 首部默认 20 字节，里面藏着 TCP 实现可靠性的所有秘密：
 
@@ -31,7 +31,7 @@ TCP 首部默认 20 字节，里面藏着 TCP 实现可靠性的所有秘密：
   - **PSH (Push)**：催促接收方尽快将数据交付给应用层。
   - **URG (Urgent)**：紧急指针有效。
 
-![Logo](/tcpSecond.png)
+![Logo](/img/tcpSecond.png)
 
 - **窗口大小 (Window Size, 16 位)**：用于**流量控制**，告诉对方“我还能接收多少字节的数据”。
 
@@ -50,7 +50,7 @@ TCP 首部默认 20 字节，里面藏着 TCP 实现可靠性的所有秘密：
 - **第三次握手 (C -> S)**：客户端收到后，回复 `ACK=1, seq=x+1, ack=y+1`。（双方进入 `ESTABLISHED` 状态）
   - _“收到你的确认，连接建立成功，准备发数据！”_
 
-![Logo](/tcpFifth.png)
+![Logo](/img/tcpFifth.png)
 
 ### 4.2 四次挥手 (断开连接)
 
@@ -65,7 +65,7 @@ TCP 首部默认 20 字节，里面藏着 TCP 实现可靠性的所有秘密：
 - **第四次挥手 (C -> S)**：客户端收到后，回复 `ACK=1, seq=v+1, ack=y+1`。（客户端进入 `TIME_WAIT` 等待 2MSL，服务端收到后进入 `CLOSED`）
   - _“好的，再见。”_
 
-![Logo](/tcpSixth.png)
+![Logo](/img/tcpSixth.png)
 
 ## 5. TCP 进阶：如何保证可靠性与高效性？
 

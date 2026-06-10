@@ -63,7 +63,7 @@ IP 协议最核心的能力就是**路由寻址（Routing）**。
 
 ## 6. 完整流程图
 
-![Logo](/ip.png)
+![Logo](/img/ip.png)
 
 ## 7. 常见问题 (FAQ)
 

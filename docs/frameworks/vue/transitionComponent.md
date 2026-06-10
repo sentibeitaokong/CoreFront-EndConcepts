@@ -520,7 +520,7 @@ const remove = vnode => {
 
 ### 5.2 完整流程图
 
-![Logo](/transitionComponent.png)
+![Logo](/img/transitionComponent.png)
 
 ## 6. 总结
 

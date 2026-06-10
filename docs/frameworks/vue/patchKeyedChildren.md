@@ -118,7 +118,7 @@ function patchChildren(n1, n2, container) {
 
 ### 2.3 图解
 
-![Logo](/easyDiff.png)
+![Logo](/img/easyDiff.png)
 
 ## 3. Vue2 双端 Diff 算法
 
@@ -250,7 +250,7 @@ function patchKeyedChildren(n1, n2, container) {
 
 ### 3.3 图解
 
-![Logo](/twoEndDiff.png)
+![Logo](/img/twoEndDiff.png)
 
 ## 4. Vue3 快速 Diff 算法
 
@@ -557,7 +557,7 @@ function getSequence(arr) {
 
 ### 4.3 图解
 
-![Logo](/fastDiff.png)
+![Logo](/img/fastDiff.png)
 
 ## 5. 总结
 

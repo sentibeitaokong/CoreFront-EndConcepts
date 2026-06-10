@@ -167,7 +167,7 @@ Vite 虽然在后台跑起来了，但它和我们面前的黑框框（终端）
 
 #### 5.2.7 完整流程图
 
-![Logo](/viteFlow.png)
+![Logo](/img/viteFlow.png)
 
 ### 5.3 `node_modules/.bin` 里面到底装了什么？
 

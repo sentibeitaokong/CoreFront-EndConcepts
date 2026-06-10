@@ -18,7 +18,7 @@
 | **反射型 (Reflected)** | 恶意脚本作为**请求参数（如 URL）**发送给服务器，服务器**未做处理**直接将脚本“反射”回 HTML 页面。 | 1. 攻击者构造恶意链接 `http://test.com/search?q=<script>...</script>` 并发送给受害者。<br>2. 受害者点击链接。<br>3. 服务器返回包含恶意脚本的搜索结果页面。<br>4. 脚本在受害者浏览器执行。 |
 | **DOM 型 (DOM-based)** | 纯粹的**前端漏洞**。前端 JS 代码在处理 URL 参数、Hash 或其他输入时，未经转义直接操作了 DOM。     | 1. 网址带有恶意参数 `http://test.com/#<script>...</script>`。<br>2. 页面上的 JS 代码读取了 Hash 值并直接用 `innerHTML` 插入到页面。<br>3. 脚本执行。整个过程**恶意代码不经过服务器**。    |
 
-![Logo](/xssAttack.png)
+![Logo](/img/xssAttack.png)
 
 ### 1.2 XSS 的危害
 
@@ -36,7 +36,7 @@
 - **防线三：内容安全策略 (CSP, Content Security Policy)**。
   - 通过 HTTP 响应头配置，建立一个白名单，告诉浏览器“只允许加载和执行来自特定域名的脚本”。即使黑客注入了脚本，浏览器也会拒绝执行。
 
-![Logo](/xssDefense.png)
+![Logo](/img/xssDefense.png)
 
 ## 2. CSRF (Cross-Site Request Forgery) 跨站请求伪造
 
@@ -56,7 +56,7 @@
 5.  **最关键的一步**：因为用户之前登录过 `bank.com`，浏览器在发起这个请求时，会**自动、默认地带上 `bank.com` 的 Cookie**。
 6.  银行服务器收到请求，验证 Cookie 发现是合法用户，于是执行了转账操作。
 
-![Logo](/csrfAttack.png)
+![Logo](/img/csrfAttack.png)
 
 ### 2.2 CSRF 攻击成功的三个条件
 
@@ -74,7 +74,7 @@
 - **防线三：Cookie 的 `SameSite` 属性**。
   - 现代浏览器的神器。为 Cookie 设置 `SameSite=Strict` 或 `Lax`。这会告诉浏览器：“只有在当前网页和 Cookie 所属域名**完全一致**（同站）时，才允许携带此 Cookie；如果是从其他网站（跨站）发起的请求，**绝对不允许**携带”。这从根本上切断了 CSRF 的命脉。
 
-![Logo](/csrfDefense.png)
+![Logo](/img/csrfDefense.png)
 
 ## 3. XSS vs CSRF 深度对比及常见问题 (FAQ)
 

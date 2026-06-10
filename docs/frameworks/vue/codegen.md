@@ -740,7 +740,7 @@ export function render(_ctx, _cache) {
 
 ### 5.2 完整流程图
 
-![Logo](/generate.png)
+![Logo](/img/generate.png)
 
 ## 6. 总结
 

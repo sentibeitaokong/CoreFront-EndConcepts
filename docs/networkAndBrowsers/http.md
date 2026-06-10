@@ -59,7 +59,7 @@ HTTP 报文是服务器和客户端之间交换数据的方式，分为两种：
 
 ### 2.3 完整流程图
 
-![Logo](/http.png)
+![Logo](/img/http.png)
 
 ## 3. HTTP 请求方法 (Methods)
 

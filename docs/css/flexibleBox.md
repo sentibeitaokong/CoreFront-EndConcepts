@@ -33,33 +33,31 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 
 > **注意**：设为 Flex 布局以后，子元素的`float`、`clear`和`vertical-align`属性将失效。
 
-
 ## 2. 基本概念
 
 采用 Flex 布局的元素，称为 **Flex 容器（flex container）**，简称"容器"。它的所有子元素自动成为容器成员，称为 **Flex 项目（flex item）**，简称"项目"。
 
-![Logo](/flexBase.png)
+![Logo](/img/flexBase.png)
 
-*   **轴线**：容器默认存在两根轴。
-    *   **主轴（main axis）**：水平方向。
-    *   **交叉轴（cross axis）**：垂直方向。
-*   **位置**：
-    *   主轴的开始位置叫做 `main start`，结束位置叫做 `main end`。
-    *   交叉轴的开始位置叫做 `cross start`，结束位置叫做 `cross end`。
-*   **排列**：项目默认沿主轴排列。
-*   **尺寸**：单个项目占据的主轴空间叫做 `main size`，占据的交叉轴空间叫做 `cross size`。
-
+- **轴线**：容器默认存在两根轴。
+  - **主轴（main axis）**：水平方向。
+  - **交叉轴（cross axis）**：垂直方向。
+- **位置**：
+  - 主轴的开始位置叫做 `main start`，结束位置叫做 `main end`。
+  - 交叉轴的开始位置叫做 `cross start`，结束位置叫做 `cross end`。
+- **排列**：项目默认沿主轴排列。
+- **尺寸**：单个项目占据的主轴空间叫做 `main size`，占据的交叉轴空间叫做 `cross size`。
 
 ## 3. 容器的属性
 
 以下 6 个属性设置在**容器**上：
 
-*   `flex-direction`
-*   `flex-wrap`
-*   `flex-flow`
-*   `justify-content`
-*   `align-items`
-*   `align-content`
+- `flex-direction`
+- `flex-wrap`
+- `flex-flow`
+- `justify-content`
+- `align-items`
+- `align-content`
 
 ### 3.1 flex-direction 属性
 
@@ -70,12 +68,13 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
   flex-direction: row | row-reverse | column | column-reverse;
 }
 ```
-![Logo](/flexDirection.png)
 
-*   `row`（默认值）：主轴为水平方向，起点在左端。
-*   `row-reverse`：主轴为水平方向，起点在右端。
-*   `column`：主轴为垂直方向，起点在上沿。
-*   `column-reverse`：主轴为垂直方向，起点在下沿。
+![Logo](/img/flexDirection.png)
+
+- `row`（默认值）：主轴为水平方向，起点在左端。
+- `row-reverse`：主轴为水平方向，起点在右端。
+- `column`：主轴为垂直方向，起点在上沿。
+- `column-reverse`：主轴为垂直方向，起点在下沿。
 
 ### 3.2 flex-wrap 属性
 
@@ -86,19 +85,20 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
   flex-wrap: nowrap | wrap | wrap-reverse;
 }
 ```
-![Logo](/flexWrap.png)
 
-*   `nowrap`（默认）：不换行。
+![Logo](/img/flexWrap.png)
 
-    ![Logo](/nowrap.png)
+- `nowrap`（默认）：不换行。
 
-*   `wrap`：换行，第一行在上方。
+  ![Logo](/img/nowrap.png)
 
-    ![Logo](/wrap.jpg)
+- `wrap`：换行，第一行在上方。
 
-*   `wrap-reverse`：换行，第一行在下方。
+  ![Logo](/img/wrap.jpg)
 
-    ![Logo](/wrapReverse.jpg)
+- `wrap-reverse`：换行，第一行在下方。
+
+  ![Logo](/img/wrapReverse.jpg)
 
 ### 3.3 flex-flow 属性
 
@@ -120,14 +120,15 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](/justifyContent.png)
+![Logo](/img/justifyContent.png)
 
 假设主轴为从左到右：
-*   `flex-start`（默认值）：左对齐。
-*   `flex-end`：右对齐。
-*   `center`：居中。
-*   `space-between`：两端对齐，项目之间的间隔都相等。
-*   `space-around`：每个项目两侧的间隔相等。所以，项目之间的间隔比项目与边框的间隔大一倍。
+
+- `flex-start`（默认值）：左对齐。
+- `flex-end`：右对齐。
+- `center`：居中。
+- `space-between`：两端对齐，项目之间的间隔都相等。
+- `space-around`：每个项目两侧的间隔相等。所以，项目之间的间隔比项目与边框的间隔大一倍。
 
 ### 3.5 align-items 属性
 
@@ -139,14 +140,15 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](/alignItems.png)
+![Logo](/img/alignItems.png)
 
 假设交叉轴从上到下：
-*   `flex-start`：交叉轴的起点对齐。
-*   `flex-end`：交叉轴的终点对齐。
-*   `center`：交叉轴的中点对齐。
-*   `baseline`: 项目的第一行文字的基线对齐。
-*   `stretch`（默认值）：如果项目未设置高度或设为 auto，将占满整个容器的高度。
+
+- `flex-start`：交叉轴的起点对齐。
+- `flex-end`：交叉轴的终点对齐。
+- `center`：交叉轴的中点对齐。
+- `baseline`: 项目的第一行文字的基线对齐。
+- `stretch`（默认值）：如果项目未设置高度或设为 auto，将占满整个容器的高度。
 
 ### 3.6 align-content 属性
 
@@ -154,29 +156,30 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 
 ```css
 .box {
-  align-content: flex-start | flex-end | center | space-between | space-around | stretch;
+  align-content: flex-start | flex-end | center | space-between | space-around |
+    stretch;
 }
 ```
 
-![Logo](/alignContent.png)
+![Logo](/img/alignContent.png)
 
-*   `flex-start`：与交叉轴的起点对齐。
-*   `flex-end`：与交叉轴的终点对齐。
-*   `center`：与交叉轴的中点对齐。
-*   `space-between`：与交叉轴两端对齐，轴线之间的间隔平均分布。
-*   `space-around`：每根轴线两侧的间隔都相等。所以，轴线之间的间隔比轴线与边框的间隔大一倍。
-*   `stretch`（默认值）：轴线占满整个交叉轴。
+- `flex-start`：与交叉轴的起点对齐。
+- `flex-end`：与交叉轴的终点对齐。
+- `center`：与交叉轴的中点对齐。
+- `space-between`：与交叉轴两端对齐，轴线之间的间隔平均分布。
+- `space-around`：每根轴线两侧的间隔都相等。所以，轴线之间的间隔比轴线与边框的间隔大一倍。
+- `stretch`（默认值）：轴线占满整个交叉轴。
 
 ## 4. 项目的属性
 
 以下 6 个属性设置在**项目**（子元素）上：
 
-*   `order`
-*   `flex-grow`
-*   `flex-shrink`
-*   `flex-basis`
-*   `flex`
-*   `align-self`
+- `order`
+- `flex-grow`
+- `flex-shrink`
+- `flex-basis`
+- `flex`
+- `align-self`
 
 ### 4.1 order 属性
 
@@ -188,7 +191,7 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](/order.png)
+![Logo](/img/order.png)
 
 ### 4.2 flex-grow 属性
 
@@ -200,10 +203,10 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](/flexGrow.png)
+![Logo](/img/flexGrow.png)
 
-*   如果所有项目的`flex-grow`属性都为 1，则它们将等分剩余空间（如果有的话）。
-*   如果一个项目的`flex-grow`属性为 2，其他项目都为 1，则前者占据的剩余空间将比其他项多一倍。
+- 如果所有项目的`flex-grow`属性都为 1，则它们将等分剩余空间（如果有的话）。
+- 如果一个项目的`flex-grow`属性为 2，其他项目都为 1，则前者占据的剩余空间将比其他项多一倍。
 
 ### 4.3 flex-shrink 属性(不换行才有效)
 
@@ -215,11 +218,11 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](/flexShrink.jpg)
+![Logo](/img/flexShrink.jpg)
 
-*   如果所有项目的`flex-shrink`属性都为 1，当空间不足时，都将等比例缩小。
-*   如果一个项目的`flex-shrink`属性为 0，其他项目都为 1，则空间不足时，前者不缩小。
-*   负值对该属性无效。
+- 如果所有项目的`flex-shrink`属性都为 1，当空间不足时，都将等比例缩小。
+- 如果一个项目的`flex-shrink`属性为 0，其他项目都为 1，则空间不足时，前者不缩小。
+- 负值对该属性无效。
 
 ### 4.4 flex-basis 属性
 
@@ -239,16 +242,17 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 
 ```css
 .item {
-  flex: none | [ <'flex-grow'> <'flex-shrink'>? || <'flex-basis'> ]
+  flex: none | [ < 'flex-grow' > < 'flex-shrink' >? || < 'flex-basis' >];
 }
 ```
 
 该属性有两个快捷值：
-* **`flex: 1:`** 代表 1 1 0%。含义：自动填满剩余空间。
 
-* **`flex: auto:`** 代表 1 1 auto。含义：根据内容自动调整，且会放大缩小。
+- **`flex: 1:`** 代表 1 1 0%。含义：自动填满剩余空间。
 
-* **`flex: none:`** 代表 0 0 auto。含义：固定大小，不放大也不缩小。
+- **`flex: auto:`** 代表 1 1 auto。含义：根据内容自动调整，且会放大缩小。
+
+- **`flex: none:`** 代表 0 0 auto。含义：固定大小，不放大也不缩小。
 
 > **建议**：优先使用这个属性，而不是单独写三个分离的属性，因为浏览器会推算相关值。
 
@@ -262,6 +266,6 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 }
 ```
 
-![Logo](/alignSelf.png)
+![Logo](/img/alignSelf.png)
 
 该属性可能取 6 个值，除了 auto，其他都与 align-items 属性完全一致。

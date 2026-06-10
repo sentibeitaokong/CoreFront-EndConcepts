@@ -12,31 +12,30 @@
 
 1.  **类型不同？** -> `false`
 2.  **类型相同？** -> 比较值。
-    *   **原始类型** (`Number`, `String`, `Boolean`等): 比较它们的值是否相同。
-    *   **引用类型** (`Object`, `Array`等): 比较它们是否指向内存中的**同一个对象**（即比较内存地址）。
-    *   **特殊情况**:
-        *   `NaN === NaN` -> `false` (NaN 不与任何值相等，包括它自己)
-        *   `+0 === -0` -> `true`
+    - **原始类型** (`Number`, `String`, `Boolean`等): 比较它们的值是否相同。
+    - **引用类型** (`Object`, `Array`等): 比较它们是否指向内存中的**同一个对象**（即比较内存地址）。
+    - **特殊情况**:
+      - `NaN === NaN` -> `false` (NaN 不与任何值相等，包括它自己)
+      - `+0 === -0` -> `true`
 
 ### 1.2 示例
 
-| 表达式 | 结果 | 原因 |
-| :--- | :--- | :--- |
-| `77 === "77"` | `false` | 类型不同 (Number vs String)。 |
-| `true === 1` | `false` | 类型不同 (Boolean vs Number)。 |
-| `null === undefined` | `false` | 类型不同。 |
+| 表达式                                | 结果    | 原因                                        |
+| :------------------------------------ | :------ | :------------------------------------------ |
+| `77 === "77"`                         | `false` | 类型不同 (Number vs String)。               |
+| `true === 1`                          | `false` | 类型不同 (Boolean vs Number)。              |
+| `null === undefined`                  | `false` | 类型不同。                                  |
 | `const a = {}; const b = {}; a === b` | `false` | `a` 和 `b` 是两个不同的对象，内存地址不同。 |
-| `const a = {}; const b = a; a === b` | `true` | `a` 和 `b` 指向同一个内存地址。 |
-| `NaN === NaN` | `false` | `NaN` 的特殊规则。 |
+| `const a = {}; const b = a; a === b`  | `true`  | `a` 和 `b` 指向同一个内存地址。             |
+| `NaN === NaN`                         | `false` | `NaN` 的特殊规则。                          |
 
 > **✅ 黄金法则：** 在你的代码中，**始终默认使用 `===`**。它能避免大量由类型转换带来的意外行为。
-
 
 ## 2. 宽松相等运算符 (`==` 和 `!=`)
 
 这是 JavaScript 中一个复杂且容易出错的部分。它在比较之前会尝试**转换值的类型**。
 
-### 2.1  工作原理
+### 2.1 工作原理
 
 `a == b` 的比较会经过一个复杂的**抽象相等比较算法**，主要规则如下：
 
@@ -46,12 +45,12 @@
 4.  **`Boolean == 任何类型`？** -> 将 `Boolean` 转换为 `Number` (`true` -> `1`, `false` -> `0`) 再比较。
 5.  **`Object == (String | Number | Symbol)`？** -> 将 `Object` 转换为原始类型（会调用内部的 ToPrimitive 操作。这个操作会根据上下文决定优先调用 `valueOf()` 还是 `toString()`方法`）再比较。
 
-![Logo](/equal.png)
+![Logo](/img/equal.png)
 
 ### 2.2 示例
 
-| 表达式                 | 结果      | 转换过程                                            |
-|:--------------------|:--------|:------------------------------------------------|
+| 表达式              | 结果    | 转换过程                                        |
+| :------------------ | :------ | :---------------------------------------------- |
 | `77 == "77"`        | `true`  | `"77"` -> `77`                                  |
 | `true == 1`         | `true`  | `true` -> `1`                                   |
 | `false == 0`        | `true`  | `false` -> `0`                                  |
@@ -60,14 +59,13 @@
 | `[1] == 1`          | `true`  | `[1]` -> `"1"` -> `1`                           |
 | `[] == 0`           | `true`  | `[]` -> `""` -> `0`                             |
 | `[] == false`       | `true`  | `[]` -> `""` -> `0`; `false` -> `0`             |
-| `null == undefined` | `true`  | `规范中的特例。`                                       |
+| `null == undefined` | `true`  | `规范中的特例。`                                |
 | `[]==![]`           | `true`  | `[]` -> `""` -> `0`;`![]`->`false` -> `0`       |
-| `[]==[]`            | `false` | `两个数组的内存地址不同`                                   |
-| `{}=={}`            | `false` | `两个对象的内存地址不同`                                   |
+| `[]==[]`            | `false` | `两个数组的内存地址不同`                        |
+| `{}=={}`            | `false` | `两个对象的内存地址不同`                        |
 | `{}==!{}`           | `false` | `{}`->`'[object object]'`->`NaN`;`!{}`->`false` |
 
 > **❌ 为什么应避免使用 `==`：** 它的类型转换规则复杂、不直观，是许多常见 bug 的根源。你很难记住所有的转换规则，这使得代码的行为难以预测。
-
 
 ## 3. 同值相等 (`Object.is()`)
 
@@ -81,39 +79,39 @@
 2.  `Object.is(+0, -0)` -> `false` (与 `===` 不同)
 
 ```js
-object.is=function(a,b){
-    // 情况 1: 处理 +0 和 -0
-    // 如果 x 和 y 都是 0，它们通过 `===` 比较会是 true。
-    // 但我们需要区分 +0 和 -0。
-    // 技巧：1 / +0 === Infinity，而 1 / -0 === -Infinity。
-    // 所以，如果它们的倒数不相等，说明一个是 +0，另一个是 -0。
-    if (x === 0 && y === 0) {
-        return 1 / x === 1 / y;
-    }
+object.is = function (a, b) {
+  // 情况 1: 处理 +0 和 -0
+  // 如果 x 和 y 都是 0，它们通过 `===` 比较会是 true。
+  // 但我们需要区分 +0 和 -0。
+  // 技巧：1 / +0 === Infinity，而 1 / -0 === -Infinity。
+  // 所以，如果它们的倒数不相等，说明一个是 +0，另一个是 -0。
+  if (x === 0 && y === 0) {
+    return 1 / x === 1 / y
+  }
 
-    // 情况 2: 处理 NaN
-    // NaN 是唯一一个不等于自身的值 (NaN !== NaN)。
-    // 所以，如果 x 不等于 x，那么 x 就是 NaN。
-    // 如果 x 和 y 都是 NaN，那么它们应该被认为是相等的。
-    if (x !== x) {
-        return y !== y;
-    }
+  // 情况 2: 处理 NaN
+  // NaN 是唯一一个不等于自身的值 (NaN !== NaN)。
+  // 所以，如果 x 不等于 x，那么 x 就是 NaN。
+  // 如果 x 和 y 都是 NaN，那么它们应该被认为是相等的。
+  if (x !== x) {
+    return y !== y
+  }
 
-    // 情况 3: 其他所有情况
-    // 对于所有其他值 (包括 null, undefined, string, boolean, object引用等)，
-    // Object.is() 的行为与 === 完全相同。
-    return x === y;
+  // 情况 3: 其他所有情况
+  // 对于所有其他值 (包括 null, undefined, string, boolean, object引用等)，
+  // Object.is() 的行为与 === 完全相同。
+  return x === y
 }
 ```
 
 ### 3.2 示例
 
-| 表达式 | 结果 |
-| :--- | :--- |
+| 表达式                | 结果    |
+| :-------------------- | :------ |
 | `Object.is(77, "77")` | `false` |
-| `Object.is({}, {})` | `false` |
-| `Object.is(NaN, NaN)` | `true` |
-| `Object.is(+0, -0)` | `false` |
+| `Object.is({}, {})`   | `false` |
+| `Object.is(NaN, NaN)` | `true`  |
+| `Object.is(+0, -0)`   | `false` |
 
 > **用途：** `Object.is()` 在某些需要精确区分 `NaN` 或 `+0` 和 `-0` 的数学计算或算法场景中非常有用。在日常的业务逻辑中，`===` 依然是首选。
 
@@ -127,16 +125,19 @@ object.is=function(a,b){
 `if (myVar == true)` 这样的代码可能不会按预期工作。
 
 **代码示例**:
-```js
-const value = "1";
 
-if (value == true) { // "1" == true -> "1" == 1 -> 1 == 1 -> true
-    console.log("Value is true"); // ✅ 执行
+```js
+const value = '1'
+
+if (value == true) {
+  // "1" == true -> "1" == 1 -> 1 == 1 -> true
+  console.log('Value is true') // ✅ 执行
 }
 
-const text = "hello";
-if (text == true) { // "hello" == true -> NaN == 1 -> false
-    console.log("Text is true"); // ❌ 不执行
+const text = 'hello'
+if (text == true) {
+  // "hello" == true -> NaN == 1 -> false
+  console.log('Text is true') // ❌ 不执行
 }
 ```
 
@@ -145,8 +146,8 @@ if (text == true) { // "hello" == true -> NaN == 1 -> false
 
 ```js
 // 正确的方式
-if (value) { 
-    console.log("Value is truthy");
+if (value) {
+  console.log('Value is truthy')
 }
 ```
 
@@ -156,15 +157,17 @@ if (value) {
 `[]` 本身是一个“真值” (truthy)，但 `[] == false` 的结果却是 `true`。
 
 **代码示例**:
+
 ```js
 if ([]) {
-    console.log("Empty array is truthy"); // ✅ 执行
+  console.log('Empty array is truthy') // ✅ 执行
 }
 
-console.log([] == false); // true
+console.log([] == false) // true
 ```
 
 **原因 (逐步转换)**:
+
 1.  `[] == false`
 2.  `[]` 是对象，`false` 是布尔值。
 3.  `false` 转换为数字 `0` -> `[] == 0`
@@ -181,33 +184,34 @@ console.log([] == false); // true
 `null == 0` 是 `false`，但 `null > 0` 和 `null >= 0` 却表现不一。
 
 **代码示例**:
-```js
-console.log(null == 0); // false (宽松相等有 null 和 undefined 的特例)
 
-console.log(null > 0);  // false (关系比较中，null -> 0)
-console.log(null >= 0); // true (关系比较中，null -> 0)
+```js
+console.log(null == 0) // false (宽松相等有 null 和 undefined 的特例)
+
+console.log(null > 0) // false (关系比较中，null -> 0)
+console.log(null >= 0) // true (关系比较中，null -> 0)
 ```
 
 **✅ 解决方案**:
 同样，使用 `===` 进行显式检查，避免依赖 `null` 的隐式转换。
 
 ```js
-const value = null;
+const value = null
 
 if (value === 0) {
-    // ...
+  // ...
 }
 if (value === null) {
-    // ...
+  // ...
 }
 ```
 
 ## 5. 总结与最终建议
 
-| 运算符 | 描述 | 类型转换 | 适合场景 |
-| :--- | :--- | :--- | :--- |
-| **`===`** | **严格相等** | **否** | **99% 的情况。** 你的默认选择。 |
-| **`==`** | **宽松相等** | **是** | 几乎从不。唯一的例外可能是 `val == null` (等价于 `val === null || val === undefined`)，但显式检查更清晰。 |
-| **`Object.is()`** | **同值相等** | **否** | 需要精确区分 `NaN` 或 `+0` / `-0` 的特殊情况。 |
+| 运算符            | 描述         | 类型转换 | 适合场景                                                       |
+| :---------------- | :----------- | :------- | :------------------------------------------------------------- | --- | --------------------------------------- |
+| **`===`**         | **严格相等** | **否**   | **99% 的情况。** 你的默认选择。                                |
+| **`==`**          | **宽松相等** | **是**   | 几乎从不。唯一的例外可能是 `val == null` (等价于 `val === null |     | val === undefined`)，但显式检查更清晰。 |
+| **`Object.is()`** | **同值相等** | **否**   | 需要精确区分 `NaN` 或 `+0` / `-0` 的特殊情况。                 |
 
 **最终建议：** 养成只使用 `===` 的习惯，你会为自己省去无数调试的时间，并写出更可预测、更可靠的代码。
