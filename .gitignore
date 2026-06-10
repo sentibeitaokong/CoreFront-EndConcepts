@@ -1,2 +1,4 @@
 node_modules
 .turbo
+.vitepress/cache/
+.vitepress/dist/
