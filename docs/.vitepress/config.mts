@@ -93,7 +93,7 @@ export default defineConfig({
     base: '/CoreFront-EndConcepts/',
     title: "寻北",
     description: "vitePress",
-    head: [['link', {rel: 'icon', href: '/CoreFront-EndConcepts/myAddress.svg'}]], //要在页面 HTML 的 <head> 标签中呈现的其他元素
+    head: [['link', {rel: 'icon', href: '/CoreFront-EndConcepts/img/myAddress.svg'}]], //要在页面 HTML 的 <head> 标签中呈现的其他元素
     cleanUrls: true,         //生成简洁的url
     // 🚨 2. 必须配置 markdown 字段
     markdown: {
@@ -105,7 +105,7 @@ export default defineConfig({
         }
     },
     themeConfig: {
-        logo: '/blog.svg',  //导航栏上显示的 Logo，位于站点标题前
+        logo: '/img/blog.svg',  //导航栏上显示的 Logo，位于站点标题前
 
      /*   markdown: {
             // Shiki 主题配置
