@@ -65,6 +65,8 @@
     "prettier": "^3.6.2",
     "rollup": "^4.60.1",
     "rollup-plugin-esbuild": "^6.2.1",
+    "sharp": "^0.34.5",
+    "svgo": "^4.0.1",
     "tslib": "^2.8.1",
     "turbo": "^2.9.16",
     "typescript": "~5.9.0",
@@ -87,5 +89,10 @@
     "lodash-es": "^4.17.23",
     "viewerjs": "^1.11.7",
     "xb-element": "^1.0.6"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp"
+    ]
   }
 }

@@ -1,5 +1,6 @@
 allowBuilds:
   esbuild: false
+  sharp: false
   vue-demi: false
 minimumReleaseAgeExclude:
   - xb-element@1.0.6
