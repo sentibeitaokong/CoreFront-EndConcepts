@@ -645,6 +645,15 @@ export default defineConfig({
                     {text: '代码规范与质量控制', link: '/forntEngineering/linters'},
                     {text: '自动化测试', link: '/forntEngineering/testing'},
                     {
+                        text: 'CI/CD 与持续部署',
+                        collapsed: true, // 初始状态为“展开”
+                        items: [
+                            {text: 'CI/CD 工具', link: '/forntEngineering/ci-cd'},
+                            {text: '部署环境', link: '/forntEngineering/deploymentEnvironments'},
+                        ]
+                    },
+                    {text: '异常捕获与性能监控', link: '/forntEngineering/performanceMonitoring'},
+                    {
                         text: '架构演进:Monorepo与微前端',
                         collapsed: true, // 初始状态为“展开”
                         items: [
