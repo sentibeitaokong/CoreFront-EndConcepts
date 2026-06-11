@@ -5,5 +5,8 @@
     "docs:build": "vitepress build",
     "docs:dev": "vitepress dev",
     "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vite-plugin-image-optimizer": "^2.0.3"
   }
 }

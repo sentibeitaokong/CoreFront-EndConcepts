@@ -2,6 +2,7 @@ import {defineConfig} from 'vitepress'
 import {componentPreview, containerPreview} from '@vitepress-demo-preview/plugin'
 import lightbox from "vitepress-plugin-lightbox";
 import {fileURLToPath, URL} from 'node:url'
+// import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 import path from 'path'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -9,6 +10,45 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     vite: {
+        /*plugins:[
+            ViteImageOptimizer({
+                // 核心防坑 1：必须开启 includePublic！
+                // 因为你的图片采用的是 ![logo](/logo.png) 的绝对路径写法，它们存放在 docs/public 目录下。
+                // 默认情况下 Vite 会忽略该目录，开启此项会在最后一刻拦截并压缩 public 里的资产。
+                includePublic: true,
+
+                // 核心防坑 2：开启日志显示
+                // 配合重定向命令（如 pnpm run docs:build > log.txt）可以查看被吞掉的压缩体积
+                logStats: true,
+
+                // 3. 针对不同图片格式的有损/无损压缩精细微调
+                png: {
+                    quality: 80, // PNG 默认是无损的，设置 quality 会触发有损色板量化，体积能瞬间暴减 70%
+                },
+                jpeg: {
+                    quality: 80, // 80 质量是肉眼无损与体积的最佳平衡点
+                },
+                jpg: {
+                    quality: 80,
+                },
+                webp: {
+                    lossless: false, // 明确关闭完全无损模式，采用高效的有损算法
+                    quality: 80,
+                },
+                // SVG 矢量图防破损配置
+                svg: {
+                    multipass: false,
+                    plugins: [
+                        'preset-default',
+                        {
+                            name: 'removeViewBox' as const,
+                            active: false
+                        }
+                    ],
+                },
+            }) as any
+        ],*/
+
         build: {
             minify: 'esbuild',
             sourcemap: false,
