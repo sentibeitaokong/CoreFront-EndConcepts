@@ -19,7 +19,7 @@ jobs:
           API_KEY: ${{ secrets.ALGOLIA_ADMIN_API_KEY }}
         run: |
           # 等待一下，确保部署的最新页面已经可以访问（可选）
-          sleep 10 
+          sleep 150
           
           # 运行官方开源的爬虫 Docker 镜像
           docker run \
