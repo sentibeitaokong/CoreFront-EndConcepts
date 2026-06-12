@@ -20,7 +20,7 @@
       "global": true
     }
   },
-  "settings": {
+  "custom_settings": {
     "attributesForFaceting": [
       "lang",
       "tags",
