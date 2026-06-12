@@ -14,5 +14,13 @@
     "lvl3": ".VPContent h4",
     "lvl4": ".VPContent h5",
     "text": ".VPContent p, .VPContent li"
+  },
+  "settings": {
+    "attributesForFaceting": [
+      "lang",
+      "tags",
+      "hierarchy.lvl0",
+      "hierarchy.lvl1"
+    ]
   }
 }
