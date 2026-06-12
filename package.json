@@ -15,7 +15,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "monitor:lh": "./node_modules/.bin/unlighthouse-ci --site http://localhost:5173",
+    "monitor:lh": "unlighthouse-ci --site http://localhost:5173 --throttle",
     "type-check": "turbo run type-check",
     "docs:dev": "turbo run docs:dev --filter=docs",
     "docs:build": "turbo run docs:build --filter=docs",

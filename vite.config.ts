@@ -12,6 +12,7 @@ export default defineConfig({
   build: {
     // Vite 8 默认使用 'oxc' 压缩器（基于 Rust，极快）
     // 如果你仍想使用 esbuild，保持 'esbuild' 即可（需安装 esbuild 依赖）
+    sourcemap: false,
     minify: 'oxc', // 推荐使用 oxc，性能更好
     chunkSizeWarningLimit: 800,
     // Vite 8 推荐使用 rolldownOptions 代替 rollupOptions
