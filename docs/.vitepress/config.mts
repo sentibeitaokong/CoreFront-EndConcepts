@@ -138,8 +138,8 @@ export default defineConfig({
             provider: 'algolia',
             options: {
                 appId: 'LQ0ZTS4SKC',
-                apiKey: 'a0e5fa8638d3a3bebe5de3cb0fdd01da', //注意：这里一定要用 Search-Only 的那个！
-                indexName: 'CoreFront-EndConcepts',       // 比如 vue3-blog-index，必须和 docsearch.json 里的一模一样
+                apiKey: 'a0e5fa8638d3a3bebe5de3cb0fdd01da',
+                indexName: 'CoreFront-EndConcepts',
                 placeholder: '搜索文档',
                 translations: {
                     button: {
