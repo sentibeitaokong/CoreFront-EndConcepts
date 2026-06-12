@@ -97,7 +97,7 @@ export default defineConfig({
     description: "vitePress",
     head: [
         ['link', {rel: 'icon', href: '/CoreFront-EndConcepts/img/myAddress.svg'}],
-        ['meta', { name: 'docsearch:language', content: 'zh-CN' }]
+        ['meta', { name: 'docsearch:lang', content: 'zh-CN' }]
     ], //要在页面 HTML 的 <head> 标签中呈现的其他元素
     cleanUrls: true,         //生成简洁的url
     // 🚨 2. 必须配置 markdown 字段
