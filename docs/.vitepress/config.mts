@@ -4,7 +4,8 @@ import lightbox from "vitepress-plugin-lightbox";
 import {fileURLToPath, URL} from 'node:url'
 // import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
 import path from 'path'
-
+//监控打包体积
+import { visualizer } from 'rollup-plugin-visualizer';
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vitepress.dev/reference/site-config
@@ -50,7 +51,15 @@ export default defineConfig({
                 },
             }) as any
         ],*/
-
+        plugins: [
+            // 建议放到插件数组的最后
+            visualizer({
+                filename: 'stats.html', // 默认生成在项目根目录
+                open: true, // 打包完成后自动在浏览器打开报告
+                gzipSize: true, // 企业级配置：显示 gzip 压缩后的真实体积（更具参考价值）
+                brotliSize: true // 显示 br 压缩后的体积
+            })
+        ],
         build: {
             minify: 'esbuild',
             sourcemap: false,
