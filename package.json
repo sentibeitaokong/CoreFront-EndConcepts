@@ -91,5 +91,10 @@
     "lodash-es": "^4.17.23",
     "viewerjs": "^1.11.7",
     "xb-element": "^1.0.6"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "sharp"
+    ]
   }
 }
