@@ -9,7 +9,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
+    lang: 'zh-CN',
     vite: {
+        //图片压缩
         /*plugins:[
             ViteImageOptimizer({
                 // 核心防坑 1：必须开启 includePublic！
@@ -130,18 +132,52 @@ export default defineConfig({
         //     placement: 'your-carbon-placement'
         // },   //显示广告
         search: {
-            //默认搜索
-            provider: 'local',
-            // provider: 'algolia',
-            // options: {
-            //     appId: 'JBYWX2AU99',
-            //     apiKey: '7b09e641cc188266965bc3753120e5d3',
-            //     indexName: 'CoreFront-EndConcepts',
-            //     /* askAi: {
-            //          assistantId: 'XXXYYY'
-            //      }*/
-            // }
-        },   //支持使用 Algolia DocSearch 搜索站点文档
+            provider: 'algolia',
+            options: {
+                appId: 'LQ0ZTS4SKC',
+                apiKey: 'a0e5fa8638d3a3bebe5de3cb0fdd01da', //注意：这里一定要用 Search-Only 的那个！
+                indexName: 'CoreFront-EndConcepts',       // 比如 vue3-blog-index，必须和 docsearch.json 里的一模一样
+                placeholder: '搜索文档',
+                translations: {
+                    button: {
+                        buttonText: '搜索文档',
+                        buttonAriaLabel: '搜索文档'
+                    },
+                    modal: {
+                        searchBox: {
+                            resetButtonTitle: '清除查询条件',
+                            resetButtonAriaLabel: '清除查询条件',
+                            cancelButtonText: '取消',
+                            cancelButtonAriaLabel: '取消'
+                        },
+                        startScreen: {
+                            recentSearchesTitle: '搜索历史',
+                            noRecentSearchesText: '没有搜索历史',
+                            saveRecentSearchButtonTitle: '保存至搜索历史',
+                            removeRecentSearchButtonTitle: '从搜索历史中移除',
+                            favoriteSearchesTitle: '收藏',
+                            removeFavoriteSearchButtonTitle: '从收藏中移除'
+                        },
+                        errorScreen: {
+                            titleText: '无法获取结果',
+                            helpText: '你可能需要检查你的网络连接'
+                        },
+                        footer: {
+                            selectText: '选择',
+                            navigateText: '切换',
+                            closeText: '关闭',
+                            searchByText: '搜索提供者'
+                        },
+                        noResultsScreen: {
+                            noResultsText: '无法找到相关结果',
+                            suggestedQueryText: '你可以尝试查询',
+                            reportMissingResultsText: '你认为该查询应该有结果？',
+                            reportMissingResultsLinkText: '点击反馈'
+                        },
+                    }
+                }
+            }
+        },//支持使用 Algolia DocSearch 搜索站点文档
         lightModeSwitchTitle: '切换到白天主题',    //用于自定义悬停时显示的浅色模式开关标题。
         darkModeSwitchTitle: '切换到黑夜主题',     //用于自定义悬停时显示的深色模式开关标题。
         langMenuLabel: '切换语言',
