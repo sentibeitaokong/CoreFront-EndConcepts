@@ -13,7 +13,12 @@
     "lvl2": ".VPContent h3",
     "lvl3": ".VPContent h4",
     "lvl4": ".VPContent h5",
-    "text": ".VPContent p, .VPContent li"
+    "text": ".VPContent p, .VPContent li",
+    "lang": {
+      "selector": "/html/@lang",
+      "type": "xpath",
+      "global": true
+    }
   },
   "settings": {
     "attributesForFaceting": [
