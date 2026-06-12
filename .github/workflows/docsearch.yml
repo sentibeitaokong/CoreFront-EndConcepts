@@ -1,0 +1,29 @@
+name: Algolia DocSearch Crawler
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # 允许你在 GitHub 网页上手动点击运行按钮
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Run Algolia Scraper
+        env:
+          APPLICATION_ID: ${{ secrets.ALGOLIA_APP_ID }}
+          API_KEY: ${{ secrets.ALGOLIA_ADMIN_API_KEY }}
+        run: |
+          # 等待一下，确保部署的最新页面已经可以访问（可选）
+          sleep 10 
+          
+          # 运行官方开源的爬虫 Docker 镜像
+          docker run \
+            --env APPLICATION_ID=${APPLICATION_ID} \
+            --env API_KEY=${API_KEY} \
+            -e "CONFIG=$(cat docsearch.json | jq -r tostring)" \
+            algolia/docsearch-scraper

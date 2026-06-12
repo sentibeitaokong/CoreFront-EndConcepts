@@ -1,0 +1,19 @@
+{
+  "index_name": "CoreFront-EndConcepts",
+  "start_urls": ["https://sentibeitaokong.github.io/"],
+  "sitemap_urls": ["https://sentibeitaokong.github.io/CoreFront-EndConcepts/"],
+  "sitemap_alternate_links": true,
+  "stop_urls": [],
+  "selectors": {
+    "lvl0": {
+      "selector": ".VPContent h1",
+      "global": true,
+      "default_value": "Documentation"
+    },
+    "lvl1": ".VPContent h2",
+    "lvl2": ".VPContent h3",
+    "lvl3": ".VPContent h4",
+    "lvl4": ".VPContent h5",
+    "text": ".VPContent p, .VPContent li"
+  }
+}

@@ -107,13 +107,13 @@ export default defineConfig({
     themeConfig: {
         logo: '/img/blog.svg',  //导航栏上显示的 Logo，位于站点标题前
 
-     /*   markdown: {
-            // Shiki 主题配置
-            theme: {
-                light: 'material-theme-lighter', // 亮色模式下的主题
-                dark: 'material-theme-palenight' // 暗色模式下的主题
-            }
-        },*/
+        /*   markdown: {
+               // Shiki 主题配置
+               theme: {
+                   light: 'material-theme-lighter', // 亮色模式下的主题
+                   dark: 'material-theme-palenight' // 暗色模式下的主题
+               }
+           },*/
         lastUpdated: {
             text: '最后更新于',      //自定义名称
             formatOptions: {
@@ -130,20 +130,18 @@ export default defineConfig({
         //     placement: 'your-carbon-placement'
         // },   //显示广告
         search: {
-            provider: 'local'
-        },
-        /* search: {
-
-             provider: 'algolia',
-             options: {
-                 appId: '...',
-                 apiKey: '...',
-                 indexName: '...',
-                /!* askAi: {
-                     assistantId: 'XXXYYY'
-                 }*!/
-             }
-         },*/   //支持使用 Algolia DocSearch 搜索站点文档
+            //默认搜索
+            provider: 'local',
+            // provider: 'algolia',
+            // options: {
+            //     appId: 'JBYWX2AU99',
+            //     apiKey: '7b09e641cc188266965bc3753120e5d3',
+            //     indexName: 'CoreFront-EndConcepts',
+            //     /* askAi: {
+            //          assistantId: 'XXXYYY'
+            //      }*/
+            // }
+        },   //支持使用 Algolia DocSearch 搜索站点文档
         lightModeSwitchTitle: '切换到白天主题',    //用于自定义悬停时显示的浅色模式开关标题。
         darkModeSwitchTitle: '切换到黑夜主题',     //用于自定义悬停时显示的深色模式开关标题。
         langMenuLabel: '切换语言',
