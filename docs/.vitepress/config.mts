@@ -10,6 +10,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     lang: 'zh-CN',
+    //  加上这一块，专门写给爬虫看的！
+    head: [
+        ['meta', { name: 'docsearch:language', content: 'zh-CN' }]
+    ],
     vite: {
         //图片压缩
         /*plugins:[
