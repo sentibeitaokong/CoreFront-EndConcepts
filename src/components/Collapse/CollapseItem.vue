@@ -14,7 +14,7 @@
          @click="handleClick"
     >
       <slot name="title">{{title}}</slot>
-      <Icon icon="angle-right" class="header-angle" />
+      <Icon :icon="faAngleRight" class="header-angle" />
     </div>
     <Transition name="slide" v-on="transitionEvents">
       <div
@@ -32,6 +32,7 @@
 
 <script setup lang="ts">
 import Icon from '../Icon/Icon.vue'
+import {faAngleRight} from "@fortawesome/free-solid-svg-icons/faAngleRight";
 import { computed} from 'vue'
 import {inject} from 'vue'
 import {collapseContextKey} from '@/components/Collapse/type.ts'

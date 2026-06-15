@@ -23,7 +23,7 @@ npm config set registry https://registry.npmmirror.com
 ::: code-group
 ```ts [main.ts]
 import { createApp } from 'vue'
-import XBElement from "xb-element/dist/es/x-element";
+import XBElement from "xb-element";
 import "xb-element/dist/x-element.css"
 import App from './App.vue'
 

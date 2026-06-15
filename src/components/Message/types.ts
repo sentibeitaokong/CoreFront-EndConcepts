@@ -4,7 +4,7 @@ export interface MessageProps{
   message: string | VNode;
   duration?: number;
   showClose?:boolean;
-  type?:'success'|'info'|'warning'|'danger';
+  type?:'success'|'info'|'warning'|'error';
   onDestory:()=>void;
   id:string;
   zIndex:number;

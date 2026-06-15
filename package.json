@@ -15,7 +15,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "monitor:lh": "unlighthouse-ci --site http://localhost:5173 --throttle",
+    "monitor:lh": "unlighthouse-ci --site http://localhost:4173/CoreFront-EndConcepts/ --desktop --worker 6",
     "type-check": "turbo run type-check",
     "docs:dev": "turbo run docs:dev --filter=docs",
     "docs:build": "turbo run docs:build --filter=docs",
@@ -83,14 +83,12 @@
     "@fancyapps/ui": "^6.1.14",
     "@floating-ui/vue": "^1.1.11",
     "@fortawesome/fontawesome-svg-core": "^7.1.0",
-    "@fortawesome/free-brands-svg-icons": "^7.1.0",
-    "@fortawesome/free-regular-svg-icons": "^7.1.0",
     "@fortawesome/free-solid-svg-icons": "^7.1.0",
     "@fortawesome/vue-fontawesome": "^3.1.2",
     "async-validator": "^4.2.5",
     "lodash-es": "^4.17.23",
     "viewerjs": "^1.11.7",
-    "xb-element": "^1.0.6"
+    "xb-element": "^1.0.8"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

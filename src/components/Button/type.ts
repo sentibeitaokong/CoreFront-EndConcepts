@@ -1,3 +1,5 @@
+import type {IconDefinition} from "@fortawesome/fontawesome-svg-core";
+
 export type ButtonType='primary'| 'success'| 'warning'| 'danger'| 'info'  //按钮类型
 export type ButtonSize='large'| 'small'| 'mini'              //按钮大小
 export type NativeType='button'| 'submit'| 'reset'           //按钮功能
@@ -9,7 +11,7 @@ export  interface ButtonProps{
   round?:boolean                             //圆角
   circle?:boolean                            //圆形
   disabled?:boolean                          //禁用
-  icon?:string                              //图标
+  icon?: object | Array<string> | string | IconDefinition  //图标
   loading?:boolean                           //过渡
   nativeType?:NativeType                     //原生type功能
   autofocus?:boolean                         //自动对焦

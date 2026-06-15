@@ -32,7 +32,6 @@ import { formContextKey, formItemContextKey } from '@/components/Form/types.ts'
 import Schema from 'async-validator'
 import { computed, inject, provide, reactive, onMounted, onUnmounted } from 'vue'
 import { isNil } from 'lodash-es'
-import {nextTick} from "vue";
 
 defineOptions({
   name: 'VkFormItem',
@@ -113,7 +112,7 @@ const clearValidate = () => {
   validateStatus.errorMsg = ''
   validateStatus.state = 'init'
 }
-const resetField = async () => {
+const resetField = () => {
   clearValidate()
   const model = formContext?.model
   if (model && prop && !isNil(model[prop])) {

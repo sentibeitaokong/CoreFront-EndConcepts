@@ -23,7 +23,7 @@
         </slot>
       </div>
       <div class="vk-message__close" v-if="showClose">
-        <Icon @click.stop="close" icon="xmark"></Icon>
+        <Icon @click.stop="close" :icon="faXmark"></Icon>
       </div>
     </div>
   </Transition>
@@ -36,6 +36,7 @@ import Icon from '@/components/Icon'
 import { onMounted,ref, computed } from 'vue'
 import { getLastBottomOffset} from '@/components/Message/method.ts'
 import useEventListener from '@/hooks/useEventListener.ts'
+import {faXmark} from "@fortawesome/free-solid-svg-icons/faXmark";
 
 const { type='info',duration=3000,offset=30,transitionName='fade-up',onDestory,id,zIndex } = defineProps<MessageProps>()
 const visible=ref(false)

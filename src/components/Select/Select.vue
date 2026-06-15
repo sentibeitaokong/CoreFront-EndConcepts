@@ -27,13 +27,13 @@
           <Icon
             @click.stop="onClear"
             @mousedown.prevent="NOOP"
-            icon="circle-xmark"
+            :icon="faCircleXmark"
             class="vk-input__clear"
             v-if="showClearIcon"
           ></Icon>
           <Icon
             v-else
-            icon="angle-down"
+            :icon="faAngleDown"
             class="header-angle"
             :class="{ 'is-active': isDropdownShow }"
           ></Icon>
@@ -41,7 +41,7 @@
       </Input>
       <template #content>
         <div class="vk-select__loading" v-if="states.loading">
-          <Icon icon="spinner" spin></Icon>
+          <Icon :icon="faSpinner" spin></Icon>
         </div>
         <div class="vk-select__noData" v-else-if="filterable && filterOptions.length === 0">
           no matching data
@@ -84,6 +84,9 @@ import Icon from '@/components/Icon'
 import { computed } from 'vue'
 import RenderVnode from '@/components/Common/RenderVnode.ts'
 import { debounce, isFunction } from 'lodash-es'
+import {faSpinner} from "@fortawesome/free-solid-svg-icons/faSpinner";
+import {faCircleXmark} from "@fortawesome/free-solid-svg-icons/faCircleXmark";
+import {faAngleDown} from "@fortawesome/free-solid-svg-icons/faAngleDown";
 
 defineOptions({
   name: 'VkSelect',

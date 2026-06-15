@@ -103,7 +103,7 @@ const arrowStyles = computed(() => {
     right: 'left',
     bottom: 'top',
     left: 'right',
-  }[basePlacement.value];
+  }[basePlacement.value!];
   return {
     left: x != null ? `${x}px` : '',
     top: y != null ? `${y}px` : '',
@@ -111,7 +111,7 @@ const arrowStyles = computed(() => {
     bottom: '',
     // 将箭头向外推出其自身大小的一半（假设箭头是 8x8，这里就是 -4px）
     // 这使得箭头呈现“一半在 Tooltip 内，一半在 Tooltip 外”的视觉效果
-    [staticSide]: '-4px',
+    [staticSide as string]: '-4px',
   };
 });
 

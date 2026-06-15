@@ -1,5 +1,7 @@
 <script setup>
 import { ref } from 'vue'
+import {faUser} from "@fortawesome/free-solid-svg-icons";
+
 const test = ref('')
 </script>
 <template>
@@ -10,10 +12,10 @@ const test = ref('')
 
   <vk-input v-model="test" placeholder="prefix suffix">
     <template #prefix>
-      <vk-icon icon="fa-user" />
+      <vk-icon :icon="faUser" />
     </template>
     <template #suffix>
-      <vk-icon icon="fa-user" />
+      <vk-icon :icon="faUser" />
     </template>
   </vk-input>
 </template>

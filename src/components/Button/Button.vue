@@ -15,11 +15,16 @@
     :autofocus="autofocus"
     :nativeType="nativeType"
   >
-    <Icon icon="spinner" spin v-if="loading" /><Icon :icon="icon" v-if="icon" /><slot></slot>
+    <Icon :icon="faSpinner" spin v-if="loading" />
+    <Icon :icon="icon" v-if="icon" />
+    <span>
+      <slot></slot>
+    </span>
   </button>
 </template>
 
 <script setup lang="ts">
+import {faSpinner} from "@fortawesome/free-solid-svg-icons/faSpinner";
 import Icon from '../Icon/Icon.vue'
 import type {ButtonProps,ButtonInstance} from "@/components/Button/type.ts";
 import {ref} from 'vue'

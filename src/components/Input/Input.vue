@@ -9,7 +9,7 @@
       'is-append': $slots.append,
       'is-suffix': $slots.suffix,
       'is-prefix': $slots.prefix,
-      'is-focus':isFocus
+      'is-focus': isFocus,
     }"
   >
     <!-- input   -->
@@ -40,27 +40,31 @@
           @change="handleChange"
           @focus="handleFocus"
           @blur="handleBlur"
-          :type="showPassword?(passwordVisible?'text':'password'):type"
+          :type="showPassword ? (passwordVisible ? 'text' : 'password') : type"
         />
         <!--    suffix slots    -->
-        <div v-if="$slots.suffix || showClear ||showPassword" class="vk-input__suffix" @click="keepFocuse">
+        <div
+          v-if="$slots.suffix || showClear || showPassword"
+          class="vk-input__suffix"
+          @click="keepFocuse"
+        >
           <slot name="suffix"></slot>
           <Icon
-            icon="circle-xmark"
+            :icon="faCircleXmark"
             v-if="showClear"
             class="vk-input__clear"
             @click="clear"
             @mousedown.prevent="NOOP"
           ></Icon>
           <Icon
-            icon="eye"
-            v-if="showPasswordArea&&passwordVisible"
+            :icon="faEye"
+            v-if="showPasswordArea && passwordVisible"
             class="vk-input__password"
             @click="togglePasswordVisible"
           ></Icon>
           <Icon
-            icon="eye-slash"
-            v-if="showPasswordArea&&!passwordVisible"
+            :icon="faEyeSlash"
+            v-if="showPasswordArea && !passwordVisible"
             class="vk-input__password"
             @click="togglePasswordVisible"
           ></Icon>
@@ -94,63 +98,89 @@
 </template>
 
 <script setup lang="ts">
-import type { InputProps,InputEmits } from '@/components/Input/types.ts'
-import { computed, nextTick, ref, useAttrs,watch } from 'vue';
+import type { InputProps, InputEmits } from '@/components/Input/types.ts'
+import { computed, nextTick, ref, useAttrs, watch } from 'vue'
 import Icon from '@/components/Icon'
+import {faCircleXmark} from "@fortawesome/free-solid-svg-icons/faCircleXmark";
+import {faEye} from "@fortawesome/free-solid-svg-icons/faEye";
+import {faEyeSlash} from "@fortawesome/free-solid-svg-icons/faEyeSlash";
+// import { inject } from 'vue'
+// import { formItemContextKey } from '@/components/Form'
+
 defineOptions({
   name: 'VkInput',
   inheritAttrs: false,
 })
-const { type = 'text',autocomplete='false',modelValue,clearable,disabled,showPassword,placeholder,autoFocus,readonly,form } = defineProps<InputProps>()
-const emits=defineEmits<InputEmits>()
-const innerValue=ref(modelValue)
-const isFocus=ref(false)
-const passwordVisible=ref(false)
-const attrs=useAttrs()
-const inputRef=ref<HTMLInputElement>()
+const {
+  type = 'text',
+  autocomplete = 'false',
+  modelValue,
+  clearable,
+  disabled,
+  showPassword,
+  placeholder,
+  autoFocus,
+  readonly,
+  form,
+} = defineProps<InputProps>()
+const emits = defineEmits<InputEmits>()
+const innerValue = ref(modelValue)
+const isFocus = ref(false)
+const passwordVisible = ref(false)
+const attrs = useAttrs()
+const inputRef = ref<HTMLInputElement>()
 
-const showClear=computed(()=>clearable&&!disabled&&!!innerValue.value&&isFocus.value)
-const showPasswordArea=computed(()=>showPassword&&!disabled&&!!innerValue.value)
-const togglePasswordVisible=()=>{
-  passwordVisible.value=!passwordVisible.value
+const showClear = computed(() => clearable && !disabled && !!innerValue.value && isFocus.value)
+const showPasswordArea = computed(() => showPassword && !disabled && !!innerValue.value)
+const togglePasswordVisible = () => {
+  passwordVisible.value = !passwordVisible.value
 }
-const keepFocuse=async ()=>{
+/* 可能的表单校验 */
+// const formItemContext = inject(formItemContextKey)
+// const runValidation = (trigger: string) => {
+//   formItemContext?.validate?.(trigger).catch((e: any) => console.log(e.errors))
+// }
+const keepFocuse = async () => {
   await nextTick()
   inputRef.value?.focus()
 }
-const handleInput=()=>{
-  emits('update:modelValue',innerValue.value)
-  emits('input',innerValue.value)
+const handleInput = () => {
+  emits('update:modelValue', innerValue.value)
+  emits('input', innerValue.value)
+  // runValidation('input')
 }
-const handleChange=()=>{
-  emits('change',innerValue.value)
+const handleChange = () => {
+  emits('change', innerValue.value)
+  // runValidation('change')
 }
-const handleFocus=(event:FocusEvent)=>{
-  isFocus.value=true
-  emits('focus',event)
+const handleFocus = (event: FocusEvent) => {
+  isFocus.value = true
+  emits('focus', event)
 }
-const handleBlur=(event:FocusEvent)=>{
-  isFocus.value=false
-  emits('blur',event)
+const handleBlur = (event: FocusEvent) => {
+  isFocus.value = false
+  emits('blur', event)
+  // runValidation('blur')
 }
-const clear=()=>{
-  innerValue.value=''
-  emits('update:modelValue','')
-  emits('input','')
-  emits('change','')
+const clear = () => {
+  innerValue.value = ''
+  emits('update:modelValue', '')
+  emits('input', '')
+  emits('change', '')
   emits('clear')
 }
 
 //空函数不触发任何操作
-const NOOP=()=>{
-
-}
+const NOOP = () => {}
 //当modelValue改变时，innerValue值也得变，需要用watch监听
-watch(()=>modelValue,(newVal)=>{
-  innerValue.value=newVal
-})
+watch(
+  () => modelValue,
+  (newVal) => {
+    innerValue.value = newVal
+  },
+)
 defineExpose({
-  ref:inputRef
+  ref: inputRef,
 })
 </script>
 

@@ -10,15 +10,11 @@ import DefaultTheme from 'vitepress/theme'
 import Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
 import './style.css'
-import { library } from '@fortawesome/fontawesome-svg-core'
-import { fas } from '@fortawesome/free-solid-svg-icons'
 import { ElementPlusContainer } from '@vitepress-demo-preview/component'
 import '@vitepress-demo-preview/component/dist/style.css'
-import XElement from 'xb-element/dist/es/x-element'
+import XElement from 'xb-element'
 import 'xb-element/dist/x-element.css'
 import './custom.css'
-
-library.add(fas)
 
 export default {
   extends: DefaultTheme,

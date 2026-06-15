@@ -1,14 +1,20 @@
 <script setup>
+import {faSearch} from "@fortawesome/free-solid-svg-icons";
+import {faSearchPlus} from "@fortawesome/free-solid-svg-icons";
+import {faAngleDoubleRight} from "@fortawesome/free-solid-svg-icons";
+import {faShuttleVan} from "@fortawesome/free-solid-svg-icons";
+import {faSyncAlt} from "@fortawesome/free-solid-svg-icons";
+import {faAddressCard} from "@fortawesome/free-solid-svg-icons";
 </script>
 <template>
   <div class="button-example">
     <div class="button-row">
-      <vk-button   icon="fa-search" >search</vk-button>
-      <vk-button type="primary"  icon="fa-search-plus"></vk-button>
-      <vk-button type="success"  icon="fa-angle-double-right"></vk-button>
-      <vk-button type="info"   icon="fa-shuttle-van"></vk-button>
-      <vk-button type="warning"  icon="fa-sync-alt"></vk-button>
-      <vk-button type="danger"  icon="address-card"></vk-button>
+      <vk-button  circle :icon="faSearch" ></vk-button>
+      <vk-button type="primary" circle :icon="faSearchPlus"></vk-button>
+      <vk-button type="success" circle :icon="faAngleDoubleRight"></vk-button>
+      <vk-button type="info" circle  :icon="faShuttleVan"></vk-button>
+      <vk-button type="warning" circle :icon="faSyncAlt"></vk-button>
+      <vk-button type="danger" circle :icon="faAddressCard"></vk-button>
     </div>
   </div>
 </template>

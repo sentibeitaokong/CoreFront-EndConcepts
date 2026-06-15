@@ -71,8 +71,6 @@ export default defineConfig({
                 '@fortawesome/fontawesome-svg-core',
                 '@fortawesome/vue-fontawesome',
                 '@fortawesome/free-solid-svg-icons',
-                '@fortawesome/free-regular-svg-icons',
-                '@fortawesome/free-brands-svg-icons'
             ],
             // 🌟 强行让 Vite 处理 xb-element，利用 Vite 的后缀补全机制绕过 Node.js 的死板规则！
             noExternal: ['xb-element']
@@ -86,7 +84,8 @@ export default defineConfig({
             // 防止 Vite 去预构建庞大的 SVG 图标树
             exclude: [
                 '@fortawesome/fontawesome-svg-core',
-                '@fortawesome/free-solid-svg-icons'
+                '@fortawesome/free-solid-svg-icons',
+                '@fortawesome/vue-fontawesome'
             ]
         },
         resolve: {
