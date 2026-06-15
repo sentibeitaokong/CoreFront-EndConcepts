@@ -36,7 +36,7 @@ jobs:
         run: npx serve docs/.vitepress/dist -l 4173 &
 
       - name: 等待服务就绪
-        run: npx wait-on http://localhost:4173/
+        run: npx wait-on tcp:4173
 
       - name: 执行 Unlighthouse 极速扫描
         run: |
