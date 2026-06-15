@@ -36,11 +36,11 @@ jobs:
         run: npx serve docs/.vitepress/dist -l 4173 &
 
       - name: 等待服务就绪
-        run: npx wait-on http://localhost:4173/CoreFront-EndConcepts/
+        run: npx wait-on http://localhost:4173/
 
       - name: 执行 Unlighthouse 极速扫描
         run: |
-          npx unlighthouse@latest --site http://localhost:4173/CoreFront-EndConcepts/ \
+          npx unlighthouse@latest --site http://localhost:4173/ \
           --build-static \
           --no-throttle \
           --desktop \
