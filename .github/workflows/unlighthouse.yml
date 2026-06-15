@@ -33,7 +33,7 @@ jobs:
 
       - name: 启动本地预览服务 (使用 serve 托管)
         # 直接指定 VitePress 的输出目录，彻底解决找不到 dist 的问题
-        run: npx serve docs/.vitepress/dist -l 4173 &
+        run: npx vitepress preview docs --port 4173 &
 
       - name: 探测文件结构
         # 这行命令会打印出 dist 目录下所有文件的相对路径
@@ -44,7 +44,7 @@ jobs:
 
       - name: 执行 Unlighthouse 极速扫描
         run: |
-          npx unlighthouse@latest --site http://localhost:4173/ \
+          npx unlighthouse@latest --site http://localhost:4173/CoreFront-EndConcepts/ \
           --build-static \
           --no-throttle \
           --desktop \
