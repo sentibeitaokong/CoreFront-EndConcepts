@@ -44,7 +44,7 @@ jobs:
 
       - name: 执行 Unlighthouse 极速扫描
         run: |
-          npx unlighthouse@latest-ci --site http://localhost:4173/CoreFront-EndConcepts/ \
+          npx --package unlighthouse unlighthouse-ci --site http://localhost:4173/CoreFront-EndConcepts/ \
           --build-static \
           --no-throttle \
           --desktop \
