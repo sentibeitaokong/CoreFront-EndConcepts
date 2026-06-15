@@ -31,8 +31,9 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=4096
 
-      - name: 启动本地预览服务 (后台)
-        run: pnpm run preview &
+      - name: 启动本地预览服务 (使用 serve 托管)
+        # 直接指定 VitePress 的输出目录，彻底解决找不到 dist 的问题
+        run: npx serve docs/.vitepress/dist -l 4173 &
 
       - name: 等待服务就绪
         run: npx wait-on http://localhost:4173/CoreFront-EndConcepts/
