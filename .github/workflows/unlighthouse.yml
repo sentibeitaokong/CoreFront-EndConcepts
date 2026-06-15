@@ -30,6 +30,12 @@ jobs:
         run: pnpm run build
         env:
           NODE_OPTIONS: --max-old-space-size=4096
+      - name: 暴力搜索 HTML 产物位置
+        # 不管它打包到了哪里，我们直接在整个项目里搜索 index.html
+        run: |
+          echo "=== 正在全盘搜索 index.html ==="
+          find . -name "index.html"
+          echo "=== 搜索结束 ==="
 
       - name: 启动本地预览服务 (使用 serve 托管)
         # 直接指定 VitePress 的输出目录，彻底解决找不到 dist 的问题
