@@ -1,6 +1,9 @@
 {
   "index_name": "CoreFront-EndConcepts",
   "start_urls": ["https://sentibeitaokong.github.io/CoreFront-EndConcepts/"],
+  "sitemap_urls": [
+    "https://sentibeitaokong.github.io/CoreFront-EndConcepts/sitemap.xml"
+  ],
   "sitemap_alternate_links": true,
   "stop_urls": [],
   "selectors": {

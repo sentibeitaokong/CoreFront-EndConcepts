@@ -11,6 +11,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
     lang: 'zh-CN',
+    sitemap:{
+        hostname: 'https://sentibeitaokong.github.io'
+    },
     vite: {
         //图片压缩
         /*plugins:[
