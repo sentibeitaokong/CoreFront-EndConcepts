@@ -2,7 +2,7 @@ import {defineConfig} from 'vitepress'
 import {componentPreview, containerPreview} from '@vitepress-demo-preview/plugin'
 import lightbox from "vitepress-plugin-lightbox";
 import {fileURLToPath, URL} from 'node:url'
-// import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';
+// import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';  //压缩图片
 import path from 'path'
 //监控打包体积
 import { visualizer } from 'rollup-plugin-visualizer';
@@ -61,7 +61,7 @@ export default defineConfig({
                 open: true, // 打包完成后自动在浏览器打开报告
                 gzipSize: true, // 企业级配置：显示 gzip 压缩后的真实体积（更具参考价值）
                 brotliSize: true // 显示 br 压缩后的体积
-            })
+            }),
         ],
         build: {
             minify: 'esbuild',
@@ -107,7 +107,10 @@ export default defineConfig({
     title: "寻北",
     description: "vitePress",
     head: [
-        ['link', {rel: 'icon', href: '/CoreFront-EndConcepts/img/myAddress.svg'}],
+        //性能优化：预连接，预加载
+        ['link', { rel: 'preconnect', href: 'https://lq0zts4skc-dsn.algolia.net', crossorigin: '' }],
+        ['link', {rel: 'preload', href: '/CoreFront-EndConcepts/img/myAddress.svg', as: 'image', fetchpriority: 'high' }],
+        ['link', {rel: 'preload', href: '/CoreFront-EndConcepts/img/vitepress.svg', as: 'image', fetchpriority: 'high' }],
         ['meta', { name: 'docsearch:lang', content: 'zh-CN' }]
     ], //要在页面 HTML 的 <head> 标签中呈现的其他元素
     cleanUrls: true,         //生成简洁的url
@@ -121,8 +124,6 @@ export default defineConfig({
         }
     },
     themeConfig: {
-        logo: '/img/blog.svg',  //导航栏上显示的 Logo，位于站点标题前
-
         /*   markdown: {
                // Shiki 主题配置
                theme: {
@@ -130,6 +131,12 @@ export default defineConfig({
                    dark: 'material-theme-palenight' // 暗色模式下的主题
                }
            },*/
+        logo: {
+            src: '/img/blog.svg',
+            width: 24,   // 明确告诉浏览器宽度
+            height: 24,  // 明确告诉浏览器高度
+            alt: 'CoreFront-EndConcepts Logo' // 顺手把无障碍 alt 属性补上，Lighthouse 还会给你加分！
+        },
         lastUpdated: {
             text: '最后更新于',      //自定义名称
             formatOptions: {

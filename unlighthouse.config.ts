@@ -12,6 +12,7 @@ export default {
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage', // 使用 /tmp 代替 /dev/shm，防止内存不够时卡死
       '--disable-gpu',
+      '--js-flags="--max-old-space-size=1024"',
     ],
   },
   ci: {
