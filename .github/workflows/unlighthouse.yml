@@ -27,25 +27,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 构建生产环境产物
-        run: pnpm run build
+        run: pnpm run docs:build
         env:
           NODE_OPTIONS: --max-old-space-size=4096
-      - name: 暴力搜索 HTML 产物位置
-          # 🌟 关键所在：不管上面的 build 是成功还是失败，此步骤必须执行
-        if: always()
-        run: |
-          echo "=========================================="
-          echo "当前工作目录 (pwd):"
-          pwd
-          echo "=========================================="
-          echo "正在全盘搜索 index.html 的真实物理路径..."
-          # 从根目录开始递归查找所有 index.html
-          find . -name "index.html"
-          echo "=========================================="
-          echo "正在查看 package.json 中的脚本定义..."
-          # 顺便看一下你的 build 脚本到底是怎么写的，防止命令打错
-          cat package.json | grep -A 5 "scripts" || true
-          echo "=========================================="
 
       - name: 启动本地预览服务 (使用 serve 托管)
         # 直接指定 VitePress 的输出目录，彻底解决找不到 dist 的问题
