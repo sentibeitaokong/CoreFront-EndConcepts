@@ -2,9 +2,9 @@
   "name": "docs",
   "version": "1.0.0",
   "scripts": {
-    "docs:build": "cross-env NODE_OPTIONS=\\\"--max-old-space-size=8192\\\" vitepress build",
-    "docs:dev": "vitepress dev",
-    "docs:preview": "vitepress preview",
+    "build": "cross-env NODE_OPTIONS=\\\"--max-old-space-size=8192\\\" vitepress build",
+    "ev": "vitepress dev",
+    "preview": "vitepress preview",
     "lh": "pnpm -w run monitor:lh"
   },
   "devDependencies": {
