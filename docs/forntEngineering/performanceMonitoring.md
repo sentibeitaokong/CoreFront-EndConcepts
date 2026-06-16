@@ -83,6 +83,15 @@
 
 现代监控 SDK 绝对不会用笨重的定时器去计算时间。而是利用浏览器底层的 `PerformanceObserver` 接口，它允许应用**异步且非阻塞**地订阅这些性能事件，不会对页面原本的性能造成任何负担。
 
+```js
+// 示例：监听 LCP 并打印
+new PerformanceObserver(entryList => {
+  for (const entry of entryList.getEntries()) {
+    console.log('最大内容渲染时间 (LCP):', entry.startTime)
+  }
+}).observe({ type: 'largest-contentful-paint', buffered: true })
+```
+
 ## 5. 数据上报的底层策略 (Transport Architecture)
 
 拿到了错误和性能数据，怎么把它们发送给后端的统计服务器？这就涉及到了前端的“**网络工程学**”。
@@ -107,6 +116,362 @@ img.src = `https://monitor.com/report?data=${encodeURIComponent(JSON.stringify(e
 ```
 
 - **为什么是 GIF？** 体积最小，不会引发跨域警告（图片天生支持跨域），而且不需要挂载到 DOM 树上就能悄无声息地发出 GET 请求。
+
+## 6. 企业级性能测试实战
+
+在现代前端工程（尤其是基于 Vite 的开发模式）中，`Unlighthouse` 的接入体验可以说是极其丝滑。
+
+在企业级落地中，我们通常会把它分为**本地开发时的伴生雷达**和**流水线上的全站质检**两个阶段。
+
+### 6.1 本地极速集成 (Vite 插件模式)
+
+在日常开发中，我们希望每改一行组件代码，就能实时看到全站性能的波动。直接将其作为 Vite 插件侵入到构建流程中，是目前 DX（开发者体验）最好的方式。
+
+**安装核心依赖**
+在项目根目录执行：
+
+```bash
+pnpm add -D @unlighthouse/vite @unlighthouse/cli puppeteer
+```
+
+_(注：显式安装 `puppeteer` 是为了确保无头浏览器的底层依赖在你的 Mac 或后续的 CI 环境中都能稳定获取。)_
+
+**注入 Vite 插件**
+打开 `vite.config.ts`，进行极其简练的侵入：
+
+```typescript
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import Unlighthouse from '@unlighthouse/vite'
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    // 仅在本地开发模式下启动 Unlighthouse 仪表盘，防止污染生产构建
+    process.env.NODE_ENV !== 'production'
+      ? Unlighthouse({
+          // 我们将在下一步分离具体配置
+        })
+      : undefined,
+  ],
+})
+```
+
+配置好后，只需像平时一样运行 `pnpm run dev`，你的终端就会额外输出一个本地 URL（通常是 `http://localhost:5678`）。打开它，这就是你的全站性能仪表盘。
+
+### 6.2 企业级独立配置 (unlighthouse.config.ts)
+
+当你的组件库或应用规模变大，有上百个路由时，我们需要精准控制扫描器的行为，防止扫描耗时过长或占用过多 CPU。
+
+在项目根目录新建一个 `unlighthouse.config.ts` 文件。这是企业级配置的心脏：
+
+```typescript
+import { defineConfig } from 'unlighthouse'
+
+export default defineConfig({
+  // 1. 目标站点：通常在 CI/CD 中会通过环境变量覆盖这里
+  site: 'http://localhost:3000',
+
+  // 2. 扫描器策略 (核心调优)
+  scanner: {
+    // 模拟移动端还是 PC 端？通常企业要求两端都跑，这里先设为 mobile
+    device: 'mobile',
+    // 🚦 企业级核心防坑：动态路由采样
+    // 如果你有 /user/1, /user/2 等上千个动态路由，开启此项。它会自动通过 URL 模式匹配，同类路由只抽样扫 1-2 个，极大缩短全站扫描时间。
+    dynamicSampling: true,
+  },
+
+  // 3. 断言与卡点 (Performance Budget)
+  // 如果这里的分数不达标，在 CI/CD 环境下执行 unlighthouse --ci 时会返回 Exit Code 1，强制阻断流水线
+  ci: {
+    budget: 85, // 全站页面的性能中位数必须大于 85 分
+    buildStatic: false, // 是否在本地打包一份静态的 HTML 报告
+  },
+
+  // 4. 钩子系统 (用于复杂业务鉴权)
+  hooks: {
+    // 如果你的后台系统需要登录才能看到具体页面，必须在这里写脚本
+    'puppeteer:before-goto': async page => {
+      // 这里的 page 就是 Puppeteer 的 Page 实例
+      // 方案 A: 注入 Cookie/Token
+      await page.setExtraHTTPHeaders({
+        Authorization: 'Bearer YOUR_TEST_TOKEN',
+      })
+
+      // 方案 B: 让浏览器自动去输入账号密码
+      // 检查当前无头浏览器是否已经有我们业务逻辑里的鉴权 Token
+      const cookies = await page.cookies()
+      const hasToken = cookies.some(c => c.name === 'admin_token')
+
+      // 如果没登录，先执行一波黑客式的“自动填表”
+      if (!hasToken) {
+        console.log('🔒 正在突破登录网关...')
+        await page.goto('http://localhost:3000/login', {
+          waitUntil: 'networkidle0',
+        })
+
+        // 这里的选择器必须和你们 Vue 组件里的 id/class 严丝合缝
+        await page.type('input[name="username"]', 'admin_test')
+        await page.type('input[name="password"]', 'System@2026!')
+
+        // 点击登录按钮，并死等页面发生路由跳转
+        await Promise.all([
+          page.click('.el-button--primary'), // 假设使用了类似 Element Plus 的类名
+          page.waitForNavigation({ waitUntil: 'networkidle0' }),
+        ])
+        console.log('🔓 登录成功，开始全站深网扫描...')
+      }
+    },
+  },
+})
+```
+
+### 6.3 自动化流水线接入 (CI/CD 质检)
+
+本地调优完成后，我们要把它搬到远端。因为 `Unlighthouse` 跑起来需要拉起多个无头浏览器实例，对机器性能要求较高。
+
+在你的 `package.json` 中添加 CI 专属命令：
+
+```json
+"scripts": {
+  "build": "vite build",
+  "test:perf": "unlighthouse --ci --site https://your-staging-env.com"
+}
+```
+
+**GitHub Actions 示例 (`.github/workflows/perf.yml`)**
+
+```yaml
+name: Unlighthouse Site Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  performance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install Dependencies
+        run: pnpm install
+
+      # 启动一个本地的预览服务器，或者直接指向你们内部的测试服
+      - name: Start Preview Server
+        run: pnpm run preview &
+
+      # 等待服务启动并执行自动化扫描
+      - name: Run Unlighthouse
+        run: pnpm run test:perf
+```
+
+## 7. 企业级性能监控实战
+
+在企业级前端工程化体系中，将 Sentry 性能监控与 CI/CD（持续集成/持续部署）流水线深度融合，是实现“从代码提交到线上报警”全链路闭环的终极形态。
+
+这套架构的核心诉求有三个：**安全（SourceMap 绝不泄露到公网）**、**精准（报警直接关联到具体的 Git Commit 和代码行）**、**可控（精细化管理海量并发下的 API 额度和采样率）**。
+
+### 7.1 应用层基座封装与动态采样配置
+
+在代码层面，不能简单地调用初始化方法。必须封装一个独立的监控基座，根据环境变量实行严格的隔离，并针对 `Performance`（性能）和 `Session Replay`（录屏）制定动态采样策略。
+
+**核心初始化基座 (`src/utils/sentry.ts`)**
+
+```typescript
+import * as Sentry from '@sentry/vue'
+import type { App } from 'vue'
+
+export function initPerformanceMonitoring(app: App) {
+  const env = import.meta.env.MODE
+
+  // 坚决阻断本地开发环境的数据上报，防止污染生产大盘数据
+  if (env === 'development') {
+    console.info('[Monitor] 本地开发环境，Sentry 已禁用')
+    return
+  }
+
+  Sentry.init({
+    app,
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    environment: env,
+    // 从环境变量注入当前构建版本的 Hash，这是关联 CI/CD 的核心钥匙
+    release: import.meta.env.VITE_RELEASE_VERSION || 'unknown',
+
+    // --- 流量与成本管控矩阵 ---
+    // 生产环境全量采集会导致资源枯竭，通常性能数据采样率控制在 5% - 10%
+    tracesSampleRate: env === 'production' ? 0.05 : 1.0,
+    // 正常用户的会话不录屏（节省海量存储），仅当发生 Error 时 100% 录制错误发生前 30 秒的回放
+    replaysSessionSampleRate: 0.0,
+    replaysOnErrorSampleRate: 1.0,
+
+    integrations: [
+      Sentry.browserTracingIntegration({
+        // 全链路打通：当前端请求发往以下白名单域名时，自动在 Header 中注入 trace-id
+        tracePropagationTargets: [
+          'localhost',
+          /^https:\/\/api\.yourcompany\.com/,
+        ],
+      }),
+      Sentry.replayIntegration({
+        // 隐私合规 (GDPR/PII)：强制脱敏页面上的所有输入框内容和媒体资源
+        maskAllText: true,
+        blockAllMedia: true,
+      }),
+    ],
+
+    // --- 降噪与数据清洗 ---
+    beforeSend(event, hint) {
+      const error = hint.originalException
+      // 过滤常见的无害浏览器插件报错或底层断网异常
+      if (
+        error &&
+        typeof error === 'string' &&
+        error.includes('ResizeObserver loop limit')
+      ) {
+        return null
+      }
+      return event
+    },
+    beforeSendTransaction(transaction) {
+      // 聚合动态路由，防止 Sentry 面板被 /user/1, /user/2 等散列路由淹没
+      if (transaction.transaction) {
+        transaction.transaction = transaction.transaction.replace(
+          /\/user\/\d+/g,
+          '/user/:id',
+        )
+      }
+      return transaction
+    },
+  })
+}
+```
+
+### 7.2 构建流入侵与 SourceMap 安全管控
+
+这是企业级基建的安全生命线。我们需要利用 Vite 插件，在打包阶段生成 `.map` 文件，**将其私密上传给 Sentry 服务器，随后在推送到远端服务器前将其彻底删除**。
+
+:::code-group
+
+```typescript [vite.config.ts]
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
+
+export default defineConfig({
+  build: {
+    // 必须开启，否则无法生成供 Sentry 解析的映射文件
+    sourcemap: true,
+  },
+  plugins: [
+    vue(),
+    sentryVitePlugin({
+      org: 'your-enterprise-org',
+      project: 'vue-admin-system',
+      // 鉴权 Token 必须通过 CI/CD 环境变量注入，严禁硬编码
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      telemetry: false,
+      release: {
+        // 与 SDK 初始化的 VITE_RELEASE_VERSION 保持绝对一致
+        name: process.env.VITE_RELEASE_VERSION,
+        setCommits: {
+          auto: true, // 极其关键：自动抓取当前的 Git Commits 记录绑定到此版本
+        },
+      },
+      sourcemaps: {
+        assets: './dist/**',
+        // 安全红线：上传成功后，立刻销毁本地 dist 目录下的所有 .map 文件
+        filesToDeleteAfterUpload: './dist/**/*.map',
+      },
+    }),
+  ],
+})
+```
+
+:::
+
+### 7.3 CI/CD 流水线编排 (GitHub Actions 示例)
+
+真正的自动化体现在流水线脚本中。流水线承担着环境注入、打包编译、产物推送以及向 Sentry 发送“上线通知”的职责。
+
+:::code-group
+
+```yaml [.github/workflows/deploy.yml]
+name: Enterprise Production Deploy
+
+on:
+  push:
+    branches:
+      - main # 仅响应主分支的合并发布
+
+env:
+  # 获取当前 Git Commit 的 SHA 前 7 位作为唯一版本号
+  RELEASE_VERSION: ${{ github.sha }}
+  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+  SENTRY_ORG: 'your-enterprise-org'
+  SENTRY_PROJECT: 'vue-admin-system'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码 (必须 fetch 完整历史以提取 Commit 信息)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 设置 Node 与 pnpm 缓存
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # --- 1. 编译与安全处理环节 ---
+      - name: 执行生产构建 (自动触发 Sentry 插件上传并删除 SourceMap)
+        run: VITE_RELEASE_VERSION=${{ env.RELEASE_VERSION }} pnpm run build
+
+      # --- 2. 部署环节 ---
+      - name: 部署至生产服务器 (此处替换为实际的 CDN/Nginx/OSS 部署命令)
+        run: |
+          echo "Syncing ./dist/ to production servers..."
+          # 例如：aws s3 sync ./dist s3://your-production-bucket
+
+      # --- 3. 监控闭环环节 ---
+      - name: 安装 Sentry CLI
+        run: curl -sL https://sentry.io/get-cli/ | bash
+
+      - name: 通知 Sentry 部署成功并激活版本监控
+        run: |
+          # 告诉 Sentry 该版本已正式部署到 production 环境，开始计算崩溃率等核心指标
+          sentry-cli releases deploys "$RELEASE_VERSION" new -e production
+```
+
+:::
+
+### 7.4 大盘监控与嫌疑人追踪 (Suspect Commits)
+
+当这套 CI/CD 流程跑通后，你的团队将获得堪比“上帝视角”的研发体验：
+
+- **源码级报错还原：** 线上用户触发了一个报错，Sentry 面板不仅能展示具体的 `App.vue:142` 行代码，还会直接高亮出那行代码的内容。
+- **精准责任落实 (Suspect Commits)：** 因为我们在 CI 中注入了 Git 信息，Sentry 会自动分析报错行对应的 `git blame`。面板会醒目地提示：**“此错误极有可能是由 [开发者A] 在 4小时前的 Commit `refactor: 重构权限计算钩子` 引发的”**，并直接附带跳转到代码托管平台的 PR 链接。
+- **版本性能劣盘 (Release Health)：** 在 Sentry 的 Releases 面板中，你可以对比本次 `main` 分支发布与上个版本的指标差异。如果新版本的 INP（交互延迟）从平均 120ms 暴增到 400ms，或者无崩溃会话率（Crash Free Sessions）跌破 99%，团队可以立刻决定启动自动化回滚策略。
 
 ## 6. 常见问题 (FAQ) 与架构级避坑指南
 

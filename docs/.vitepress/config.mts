@@ -77,6 +77,12 @@ export default defineConfig(({mode}) => {
                     authToken: sentryToken,
                     // 关闭 Sentry 插件自身的遥测日志
                     telemetry: false,
+                    sourcemaps: {
+                        // 1. 指定要上传的范围
+                        assets: "./docs/.vitepress/dist/**/*.map",
+                        // 2. 开启自动清理：直接设为 true，告诉插件“凡是上传成功的，都给我删掉”
+                        filesToDeleteAfterUpload: true,
+                    },
                 }),
             ],
             build: {

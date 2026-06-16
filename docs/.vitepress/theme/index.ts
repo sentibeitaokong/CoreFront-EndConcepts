@@ -33,11 +33,9 @@ export default {
           // 录制用户操作，方便复现复杂问题
           Sentry.replayIntegration(),
         ],
-
-        // 性能监控采样率 (0.0 到 1.0)，建议线上文档站调低此数值（如 0.1）
-        tracesSampleRate: 0.2,
-        replaysSessionSampleRate: 0.1,
-        replaysOnErrorSampleRate: 1.0,
+        tracesSampleRate: 0.1, // 性能监控只采集 10% 的用户数据
+        replaysSessionSampleRate: 0, // 关闭正常用户的录屏采集
+        replaysOnErrorSampleRate: 1.0, // 只在发生错误时才录制 1 次回放
       })
     }
     // 👇 注册一个自定义的高阶组件代替直接注册 ElementPlusContainer
@@ -53,36 +51,36 @@ export default {
   },
   //Fancybox:图片放大库
   /* setup() {
-            const route = useRoute()
+              const route = useRoute()
 
-            const initFancybox = () => {
-                // 绑定所有的 Markdown 图片
-                Fancybox.bind('.vp-doc img', {
-                    // 开启滚轮缩放功能 (默认其实也是开启的)
-                    wheel: 'zoom',
-                    // 隐藏不需要的 UI 按钮 (保持 VitePress 的极简风格)
-                    Toolbar: {
-                        display: {
-                            left: [],
-                            middle: ['zoomIn', 'zoomOut', 'toggle1to1'],
-                            right: ['close'],
-                        },
-                    },
-                    // 移除多余的图片底部提示信息
-                    Caption: false,
-                })
-            }
+              const initFancybox = () => {
+                  // 绑定所有的 Markdown 图片
+                  Fancybox.bind('.vp-doc img', {
+                      // 开启滚轮缩放功能 (默认其实也是开启的)
+                      wheel: 'zoom',
+                      // 隐藏不需要的 UI 按钮 (保持 VitePress 的极简风格)
+                      Toolbar: {
+                          display: {
+                              left: [],
+                              middle: ['zoomIn', 'zoomOut', 'toggle1to1'],
+                              right: ['close'],
+                          },
+                      },
+                      // 移除多余的图片底部提示信息
+                      Caption: false,
+                  })
+              }
 
-            onMounted(() => {
-                initFancybox()
-            })
+              onMounted(() => {
+                  initFancybox()
+              })
 
-            // 监听路由变化，切换页面后重新绑定
-            watch(
-                () => route.path,
-                () => nextTick(() => initFancybox())
-            )
-        },*/
+              // 监听路由变化，切换页面后重新绑定
+              watch(
+                  () => route.path,
+                  () => nextTick(() => initFancybox())
+              )
+          },*/
   setup() {
     const route = useRoute()
     let viewer: Viewer | null = null

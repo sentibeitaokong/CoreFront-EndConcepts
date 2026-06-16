@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "build": "cross-env NODE_OPTIONS=\\\"--max-old-space-size=8192\\\" vitepress build",
-    "ev": "vitepress dev",
+    "dev": "vitepress dev",
     "preview": "vitepress preview",
     "lh": "pnpm -w run monitor:lh"
   },
