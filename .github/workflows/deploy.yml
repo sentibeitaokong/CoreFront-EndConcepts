@@ -33,7 +33,7 @@ jobs:
         with:
           fetch-depth: 0 # 如果未启用 lastUpdated，则不需要
 
-      # 🌟 核心修改 1：在配置 Node 环境之前，必须先安装并锁定 pnpm 大版本
+      # 在配置 Node 环境之前，必须先安装并锁定 pnpm 大版本
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
@@ -41,17 +41,22 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22 # 生产环境建议使用更稳定的 LTS 版本（如 20），也可以保持 24
-          cache: pnpm      # 🌟 核心修改 2：将依赖缓存机制明确指定为 pnpm
+          cache: pnpm      # 将依赖缓存机制明确指定为 pnpm
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
-      # 🌟 核心修改 3：严禁使用 npm ci，改用 pnpm 的全量锁定安装命令
+      # 严禁使用 npm ci，改用 pnpm 的全量锁定安装命令
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # 🌟 核心修改 4：调用工作区配置好的 turbo 调度命令进行极速构建
+      # 调用工作区配置好的 turbo 调度命令进行极速构建
+      # 新增 Sentry 注入：在这里配置 env 环境变量
       - name: Build with VitePress
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          #  告诉 Node 尽情使用内存，限制在 6GB 左右，防止把 GitHub Runner 彻底卡死
+          NODE_OPTIONS: "--max-old-space-size=6144"
         run: pnpm run docs:build
 
       - name: Upload artifact

@@ -14,6 +14,7 @@ import { ElementPlusContainer } from '@vitepress-demo-preview/component'
 import '@vitepress-demo-preview/component/dist/style.css'
 import XElement from 'xb-element'
 import './custom.css'
+import * as Sentry from '@sentry/vue'
 
 export default {
   extends: DefaultTheme,
@@ -22,6 +23,22 @@ export default {
     if (typeof window !== 'undefined') {
       // 这样 Vite 会把它单独打包成一个异步 chunk，绝不阻塞首屏渲染 (FCP)
       import('xb-element/dist/x-element.css')
+      // 关键：仅在浏览器环境下初始化 Sentry，防止破坏 Node.js 端的构建过程
+      Sentry.init({
+        app,
+        dsn: 'https://b288271c3fd985d21205cbd7e36e3a43@o4511569356718080.ingest.us.sentry.io/4511569367269376', // 替换为你的 DSN
+        integrations: [
+          // 捕获路由切换的性能数据
+          Sentry.browserTracingIntegration(),
+          // 录制用户操作，方便复现复杂问题
+          Sentry.replayIntegration(),
+        ],
+
+        // 性能监控采样率 (0.0 到 1.0)，建议线上文档站调低此数值（如 0.1）
+        tracesSampleRate: 0.2,
+        replaysSessionSampleRate: 0.1,
+        replaysOnErrorSampleRate: 1.0,
+      })
     }
     // 👇 注册一个自定义的高阶组件代替直接注册 ElementPlusContainer
     app.component('demo-preview', {
@@ -36,36 +53,36 @@ export default {
   },
   //Fancybox:图片放大库
   /* setup() {
-          const route = useRoute()
+            const route = useRoute()
 
-          const initFancybox = () => {
-              // 绑定所有的 Markdown 图片
-              Fancybox.bind('.vp-doc img', {
-                  // 开启滚轮缩放功能 (默认其实也是开启的)
-                  wheel: 'zoom',
-                  // 隐藏不需要的 UI 按钮 (保持 VitePress 的极简风格)
-                  Toolbar: {
-                      display: {
-                          left: [],
-                          middle: ['zoomIn', 'zoomOut', 'toggle1to1'],
-                          right: ['close'],
-                      },
-                  },
-                  // 移除多余的图片底部提示信息
-                  Caption: false,
-              })
-          }
+            const initFancybox = () => {
+                // 绑定所有的 Markdown 图片
+                Fancybox.bind('.vp-doc img', {
+                    // 开启滚轮缩放功能 (默认其实也是开启的)
+                    wheel: 'zoom',
+                    // 隐藏不需要的 UI 按钮 (保持 VitePress 的极简风格)
+                    Toolbar: {
+                        display: {
+                            left: [],
+                            middle: ['zoomIn', 'zoomOut', 'toggle1to1'],
+                            right: ['close'],
+                        },
+                    },
+                    // 移除多余的图片底部提示信息
+                    Caption: false,
+                })
+            }
 
-          onMounted(() => {
-              initFancybox()
-          })
+            onMounted(() => {
+                initFancybox()
+            })
 
-          // 监听路由变化，切换页面后重新绑定
-          watch(
-              () => route.path,
-              () => nextTick(() => initFancybox())
-          )
-      },*/
+            // 监听路由变化，切换页面后重新绑定
+            watch(
+                () => route.path,
+                () => nextTick(() => initFancybox())
+            )
+        },*/
   setup() {
     const route = useRoute()
     let viewer: Viewer | null = null

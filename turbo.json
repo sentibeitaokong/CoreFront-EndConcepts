@@ -5,6 +5,7 @@
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".vitepress/dist/**"],
+      "passThroughEnv": ["SENTRY_AUTH_TOKEN"],
       "cache": true
     },
     "type-check": {
