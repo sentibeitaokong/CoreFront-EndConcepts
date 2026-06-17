@@ -1,8 +1,8 @@
-import {defineConfig} from 'vitepress'
+import type {DefaultTheme, UserConfigFn} from 'vitepress'
 import {componentPreview, containerPreview} from '@vitepress-demo-preview/plugin'
 import lightbox from "vitepress-plugin-lightbox";
 import {fileURLToPath, URL} from 'node:url'
-import { loadEnv } from 'vite'
+import {loadEnv} from 'vite'
 import {sentryVitePlugin} from "@sentry/vite-plugin"
 // import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';  //压缩图片
 import path from 'path'
@@ -12,7 +12,7 @@ import {visualizer} from 'rollup-plugin-visualizer';
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vitepress.dev/reference/site-config
-export default defineConfig(({mode}) => {
+const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
     const env = loadEnv(mode, process.cwd(), '')
     // 兼容本地读取 env 文件和 CI/CD 读取系统变量
     const sentryToken = env.SENTRY_AUTH_TOKEN || process.env.SENTRY_AUTH_TOKEN
@@ -24,46 +24,45 @@ export default defineConfig(({mode}) => {
             hostname: 'https://sentibeitaokong.github.io'
         },
         vite: {
-            //图片压缩
-            /*plugins:[
-                ViteImageOptimizer({
-                    // 核心防坑 1：必须开启 includePublic！
-                    // 因为你的图片采用的是 ![logo](/logo.png) 的绝对路径写法，它们存放在 docs/public 目录下。
-                    // 默认情况下 Vite 会忽略该目录，开启此项会在最后一刻拦截并压缩 public 里的资产。
-                    includePublic: true,
 
-                    // 核心防坑 2：开启日志显示
-                    // 配合重定向命令（如 pnpm run docs:build > log.txt）可以查看被吞掉的压缩体积
-                    logStats: true,
-
-                    // 3. 针对不同图片格式的有损/无损压缩精细微调
-                    png: {
-                        quality: 80, // PNG 默认是无损的，设置 quality 会触发有损色板量化，体积能瞬间暴减 70%
-                    },
-                    jpeg: {
-                        quality: 80, // 80 质量是肉眼无损与体积的最佳平衡点
-                    },
-                    jpg: {
-                        quality: 80,
-                    },
-                    webp: {
-                        lossless: false, // 明确关闭完全无损模式，采用高效的有损算法
-                        quality: 80,
-                    },
-                    // SVG 矢量图防破损配置
-                    svg: {
-                        multipass: false,
-                        plugins: [
-                            'preset-default',
-                            {
-                                name: 'removeViewBox' as const,
-                                active: false
-                            }
-                        ],
-                    },
-                }) as any
-            ],*/
             plugins: [
+                //图片压缩
+                /* ViteImageOptimizer({
+                     // 核心防坑 1：必须开启 includePublic！
+                     // 因为你的图片采用的是 ![logo](/logo.png) 的绝对路径写法，它们存放在 docs/public 目录下。
+                     // 默认情况下 Vite 会忽略该目录，开启此项会在最后一刻拦截并压缩 public 里的资产。
+                     includePublic: true,
+
+                     // 核心防坑 2：开启日志显示
+                     // 配合重定向命令（如 pnpm run docs:build > log.txt）可以查看被吞掉的压缩体积
+                     logStats: true,
+
+                     // 3. 针对不同图片格式的有损/无损压缩精细微调
+                     png: {
+                         quality: 80, // PNG 默认是无损的，设置 quality 会触发有损色板量化，体积能瞬间暴减 70%
+                     },
+                     jpeg: {
+                         quality: 80, // 80 质量是肉眼无损与体积的最佳平衡点
+                     },
+                     jpg: {
+                         quality: 80,
+                     },
+                     webp: {
+                         lossless: false, // 明确关闭完全无损模式，采用高效的有损算法
+                         quality: 80,
+                     },
+                     // SVG 矢量图防破损配置
+                     svg: {
+                         multipass: false,
+                         plugins: [
+                             'preset-default',
+                             {
+                                 name: 'removeViewBox' as const,
+                                 active: false
+                             }
+                         ],
+                     },
+                 }) as any*/
                 // 建议放到插件数组的最后
                 visualizer({
                     filename: 'stats.html', // 默认生成在项目根目录
@@ -150,7 +149,7 @@ export default defineConfig(({mode}) => {
         cleanUrls: true,         //生成简洁的url
         // 🚨 2. 必须配置 markdown 字段
         markdown: {
-            config(md) {
+            config(md: any) {
                 // 注册插件，让 VitePress 认识 :::preview 和 <preview>
                 md.use(containerPreview)
                 md.use(componentPreview)
@@ -337,7 +336,10 @@ export default defineConfig(({mode}) => {
                                         {text: '圆角', link: '/css/advanced/visual-decoration/borderRadius'},
                                         {text: '阴影', link: '/css/advanced/visual-decoration/boxShadow'},
                                         {text: '渐变', link: '/css/advanced/visual-decoration/gradients'},
-                                        {text: '背景增强', link: '/css/advanced/visual-decoration/backgroundEnhancement'},
+                                        {
+                                            text: '背景增强',
+                                            link: '/css/advanced/visual-decoration/backgroundEnhancement'
+                                        },
                                         {text: '文字效果', link: '/css/advanced/visual-decoration/textEffects'},
                                         {text: '颜色', link: '/css/advanced/visual-decoration/colors'},
                                     ]
@@ -527,11 +529,26 @@ export default defineConfig(({mode}) => {
                                                     text: '命令式编程与声明式编程',
                                                     link: '/frameworks/vue/advanced/core-design/imperativeAndDeclarative'
                                                 },
-                                                {text: '编译时和运行时', link: '/frameworks/vue/advanced/core-design/compileAndRun'},
-                                                {text: '响应式副作用 (effect)', link: '/frameworks/vue/advanced/core-design/slideEffect'},
-                                                {text: 'TreeShaking', link: '/frameworks/vue/advanced/core-design/treeShaking'},
-                                                {text: 'TypeScript支持', link: '/frameworks/vue/advanced/core-design/typescriptSupport'},
-                                                {text: '声明式UI', link: '/frameworks/vue/advanced/core-design/declarativeUI'},
+                                                {
+                                                    text: '编译时和运行时',
+                                                    link: '/frameworks/vue/advanced/core-design/compileAndRun'
+                                                },
+                                                {
+                                                    text: '响应式副作用 (effect)',
+                                                    link: '/frameworks/vue/advanced/core-design/slideEffect'
+                                                },
+                                                {
+                                                    text: 'TreeShaking',
+                                                    link: '/frameworks/vue/advanced/core-design/treeShaking'
+                                                },
+                                                {
+                                                    text: 'TypeScript支持',
+                                                    link: '/frameworks/vue/advanced/core-design/typescriptSupport'
+                                                },
+                                                {
+                                                    text: '声明式UI',
+                                                    link: '/frameworks/vue/advanced/core-design/declarativeUI'
+                                                },
                                                 {text: '虚拟 DOM', link: '/frameworks/vue/advanced/core-design/vDom'},
                                                 {text: '编译器', link: '/frameworks/vue/advanced/core-design/compiler'},
                                                 {text: '渲染器', link: '/frameworks/vue/advanced/core-design/renderer'},
@@ -545,43 +562,82 @@ export default defineConfig(({mode}) => {
                                             text: '从源码看本质：Vue 3 响应式系统、编译器与渲染器',
                                             collapsed: true, // 初始状态为“展开”
                                             items: [
-                                                {text: 'Vue 3 源码目录结构', link: '/frameworks/vue/advanced/source-code/vueCatalog'},
-                                                {text: '响应式系统演进', link: '/frameworks/vue/advanced/source-code/reactivityUpdate'},
+                                                {
+                                                    text: 'Vue 3 源码目录结构',
+                                                    link: '/frameworks/vue/advanced/source-code/vueCatalog'
+                                                },
+                                                {
+                                                    text: '响应式系统演进',
+                                                    link: '/frameworks/vue/advanced/source-code/reactivityUpdate'
+                                                },
                                                 {
                                                     text: '响应式系统核心',
                                                     collapsed: true, // 初始状态为“展开”
                                                     items: [
-                                                        {text: 'reactive', link: '/frameworks/vue/advanced/source-code/reactivity-core/reactive'},
-                                                        {text: 'ref', link: '/frameworks/vue/advanced/source-code/reactivity-core/ref'},
-                                                        {text: 'computed', link: '/frameworks/vue/advanced/source-code/reactivity-core/computed'},
-                                                        {text: 'watch', link: '/frameworks/vue/advanced/source-code/reactivity-core/watch'},
-                                                        {text: 'watchEffect', link: '/frameworks/vue/advanced/source-code/reactivity-core/watchEffect'},
+                                                        {
+                                                            text: 'reactive',
+                                                            link: '/frameworks/vue/advanced/source-code/reactivity-core/reactive'
+                                                        },
+                                                        {
+                                                            text: 'ref',
+                                                            link: '/frameworks/vue/advanced/source-code/reactivity-core/ref'
+                                                        },
+                                                        {
+                                                            text: 'computed',
+                                                            link: '/frameworks/vue/advanced/source-code/reactivity-core/computed'
+                                                        },
+                                                        {
+                                                            text: 'watch',
+                                                            link: '/frameworks/vue/advanced/source-code/reactivity-core/watch'
+                                                        },
+                                                        {
+                                                            text: 'watchEffect',
+                                                            link: '/frameworks/vue/advanced/source-code/reactivity-core/watchEffect'
+                                                        },
                                                     ]
                                                 },
                                                 {
                                                     text: '调度与异步更新',
                                                     collapsed: true, // 初始状态为“展开”
                                                     items: [
-                                                        {text: 'scheduler', link: '/frameworks/vue/advanced/source-code/scheduler/scheduler'},
-                                                        {text: 'nextTick', link: '/frameworks/vue/advanced/source-code/scheduler/nextTick'},
+                                                        {
+                                                            text: 'scheduler',
+                                                            link: '/frameworks/vue/advanced/source-code/scheduler/scheduler'
+                                                        },
+                                                        {
+                                                            text: 'nextTick',
+                                                            link: '/frameworks/vue/advanced/source-code/scheduler/nextTick'
+                                                        },
                                                     ]
                                                 },
-                                                {text: '依赖注入', link: '/frameworks/vue/advanced/source-code/provideAndInject'},
+                                                {
+                                                    text: '依赖注入',
+                                                    link: '/frameworks/vue/advanced/source-code/provideAndInject'
+                                                },
                                                 {
                                                     text: '虚拟 DOM 与渲染器',
                                                     collapsed: true, // 初始状态为“展开”
                                                     items: [
-                                                        {text: 'vnode', link: '/frameworks/vue/advanced/source-code/renderer/vnode'},
+                                                        {
+                                                            text: 'vnode',
+                                                            link: '/frameworks/vue/advanced/source-code/renderer/vnode'
+                                                        },
                                                         {
                                                             text: 'createRenderer',
                                                             link: '/frameworks/vue/advanced/source-code/renderer/createRenderer'
                                                         },
-                                                        {text: 'nodeOps', link: '/frameworks/vue/advanced/source-code/renderer/nodeOps'},
+                                                        {
+                                                            text: 'nodeOps',
+                                                            link: '/frameworks/vue/advanced/source-code/renderer/nodeOps'
+                                                        },
                                                         {
                                                             text: 'processElement',
                                                             link: '/frameworks/vue/advanced/source-code/renderer/processElement'
                                                         },
-                                                        {text: 'processText', link: '/frameworks/vue/advanced/source-code/renderer/processText'},
+                                                        {
+                                                            text: 'processText',
+                                                            link: '/frameworks/vue/advanced/source-code/renderer/processText'
+                                                        },
                                                         {
                                                             text: 'processCommentNode',
                                                             link: '/frameworks/vue/advanced/source-code/renderer/processCommentNode'
@@ -596,7 +652,10 @@ export default defineConfig(({mode}) => {
                                                         },
                                                     ]
                                                 },
-                                                {text: 'Diff 算法演进', link: '/frameworks/vue/advanced/source-code/patchKeyedChildren'},
+                                                {
+                                                    text: 'Diff 算法演进',
+                                                    link: '/frameworks/vue/advanced/source-code/patchKeyedChildren'
+                                                },
                                                 {
                                                     text: 'Vue 3 特殊组件揭秘',
                                                     collapsed: true, // 初始状态为“展开”
@@ -605,7 +664,10 @@ export default defineConfig(({mode}) => {
                                                             text: '异步组件',
                                                             link: '/frameworks/vue/advanced/source-code/special-components/defineAsyncComponent'
                                                         },
-                                                        {text: '组件缓存', link: '/frameworks/vue/advanced/source-code/special-components/keepAliveComponent'},
+                                                        {
+                                                            text: '组件缓存',
+                                                            link: '/frameworks/vue/advanced/source-code/special-components/keepAliveComponent'
+                                                        },
                                                         {
                                                             text: 'Teleport组件',
                                                             link: '/frameworks/vue/advanced/source-code/special-components/teleportComponent'
@@ -624,9 +686,18 @@ export default defineConfig(({mode}) => {
                                                             text: '编译器核心技术概览',
                                                             link: '/frameworks/vue/advanced/source-code/compiler/compilerInfo'
                                                         },
-                                                        {text: '解析阶段', link: '/frameworks/vue/advanced/source-code/compiler/parser'},
-                                                        {text: '转换/优化阶段', link: '/frameworks/vue/advanced/source-code/compiler/transform'},
-                                                        {text: '代码生成阶段', link: '/frameworks/vue/advanced/source-code/compiler/codegen'},
+                                                        {
+                                                            text: '解析阶段',
+                                                            link: '/frameworks/vue/advanced/source-code/compiler/parser'
+                                                        },
+                                                        {
+                                                            text: '转换/优化阶段',
+                                                            link: '/frameworks/vue/advanced/source-code/compiler/transform'
+                                                        },
+                                                        {
+                                                            text: '代码生成阶段',
+                                                            link: '/frameworks/vue/advanced/source-code/compiler/codegen'
+                                                        },
                                                     ]
                                                 },
                                             ]
@@ -685,31 +756,58 @@ export default defineConfig(({mode}) => {
                                                 {text: 'useState', link: '/frameworks/react/basic/hooks/useState'},
                                                 {text: 'useReducer', link: '/frameworks/react/basic/hooks/useReducer'},
                                                 {text: 'useEffect', link: '/frameworks/react/basic/hooks/useEffect'},
-                                                {text: 'useEffectEvent', link: '/frameworks/react/basic/hooks/useEffectEvent'},
-                                                {text: 'useLayoutEffect', link: '/frameworks/react/basic/hooks/useLayoutEffect'},
+                                                {
+                                                    text: 'useEffectEvent',
+                                                    link: '/frameworks/react/basic/hooks/useEffectEvent'
+                                                },
+                                                {
+                                                    text: 'useLayoutEffect',
+                                                    link: '/frameworks/react/basic/hooks/useLayoutEffect'
+                                                },
                                                 {text: 'useContext', link: '/frameworks/react/basic/hooks/useContext'},
-                                                {text: 'useCallback', link: '/frameworks/react/basic/hooks/useCallback'},
+                                                {
+                                                    text: 'useCallback',
+                                                    link: '/frameworks/react/basic/hooks/useCallback'
+                                                },
                                                 {text: 'useMemo', link: '/frameworks/react/basic/hooks/useMemo'},
                                                 {text: 'useRef', link: '/frameworks/react/basic/hooks/useRef'},
                                                 {
                                                     text: 'useImperativeHandle',
                                                     link: '/frameworks/react/basic/hooks/useImperativeHandle'
                                                 },
-                                                {text: 'useActionState', link: '/frameworks/react/basic/hooks/useActionState'},
-                                                {text: 'useDebugValue', link: '/frameworks/react/basic/hooks/useDebugValue'},
-                                                {text: 'useDeferredValue', link: '/frameworks/react/basic/hooks/useDeferredValue'},
-                                                {text: 'useTransition', link: '/frameworks/react/basic/hooks/useTransition'},
+                                                {
+                                                    text: 'useActionState',
+                                                    link: '/frameworks/react/basic/hooks/useActionState'
+                                                },
+                                                {
+                                                    text: 'useDebugValue',
+                                                    link: '/frameworks/react/basic/hooks/useDebugValue'
+                                                },
+                                                {
+                                                    text: 'useDeferredValue',
+                                                    link: '/frameworks/react/basic/hooks/useDeferredValue'
+                                                },
+                                                {
+                                                    text: 'useTransition',
+                                                    link: '/frameworks/react/basic/hooks/useTransition'
+                                                },
                                                 {text: 'useId', link: '/frameworks/react/basic/hooks/useId'},
                                                 {
                                                     text: 'useInsertionEffect',
                                                     link: '/frameworks/react/basic/hooks/useInsertionEffect'
                                                 },
-                                                {text: 'useOptimistic', link: '/frameworks/react/basic/hooks/useOptimistic'},
+                                                {
+                                                    text: 'useOptimistic',
+                                                    link: '/frameworks/react/basic/hooks/useOptimistic'
+                                                },
                                                 {
                                                     text: 'useSyncExternalStore',
                                                     link: '/frameworks/react/basic/hooks/useSyncExternalStore'
                                                 },
-                                                {text: 'useFormStatus', link: '/frameworks/react/basic/hooks/useFormStatus'},
+                                                {
+                                                    text: 'useFormStatus',
+                                                    link: '/frameworks/react/basic/hooks/useFormStatus'
+                                                },
                                             ]
                                         },
                                         {text: '自定义Hooks', link: '/frameworks/react/basic/customHook'},
@@ -786,7 +884,10 @@ export default defineConfig(({mode}) => {
                                         {text: 'parcel', link: '/forntEngineering/build-tools/bundlers/parcel'},
                                     ]
                                 },
-                                {text: '底层编译与打包引擎', link: '/forntEngineering/build-tools/compilers/codeCompilers'},
+                                {
+                                    text: '底层编译与打包引擎',
+                                    link: '/forntEngineering/build-tools/compilers/codeCompilers'
+                                },
                                 {
                                     text: '类库独立打包',
                                     collapsed: true, // 初始状态为“展开”
@@ -877,12 +978,18 @@ export default defineConfig(({mode}) => {
                                 {text: '递归算法', link: '/dataStructuresAndAlgorithms/algorithms/recursionAlgorithms'},
                                 {text: '动态规划', link: '/dataStructuresAndAlgorithms/algorithms/dynamicProgramming'},
                                 {text: '贪心算法', link: '/dataStructuresAndAlgorithms/algorithms/greedyAlgorithms'},
-                                {text: '回溯算法', link: '/dataStructuresAndAlgorithms/algorithms/backTrackingAlgorithms'},
+                                {
+                                    text: '回溯算法',
+                                    link: '/dataStructuresAndAlgorithms/algorithms/backTrackingAlgorithms'
+                                },
                                 {text: '广度优先遍历', link: '/dataStructuresAndAlgorithms/algorithms/BFS'},
                                 {text: '深度优先遍历', link: '/dataStructuresAndAlgorithms/algorithms/DFS'},
                                 {text: '双指针', link: '/dataStructuresAndAlgorithms/algorithms/twoPointers'},
                                 {text: '滑动窗口', link: '/dataStructuresAndAlgorithms/algorithms/slideWindow'},
-                                {text: '算法复杂度', link: '/dataStructuresAndAlgorithms/algorithms/algorithmComplexity'},
+                                {
+                                    text: '算法复杂度',
+                                    link: '/dataStructuresAndAlgorithms/algorithms/algorithmComplexity'
+                                },
                             ]
                         },
                     ]
@@ -913,4 +1020,6 @@ export default defineConfig(({mode}) => {
             ]
         }
     }
-})
+}
+
+export default config

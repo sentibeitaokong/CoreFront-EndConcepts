@@ -16,7 +16,8 @@
     "baseUrl": ".",
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
-    "rewriteRelativeImportExtensions": true,
+    "jsxImportSource": "vue",
+    "rewriteRelativeImportExtensions": false,
 
     "paths": {
       "@/*": ["./src/*"],

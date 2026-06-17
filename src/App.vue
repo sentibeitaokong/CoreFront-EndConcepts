@@ -100,13 +100,11 @@ import Button from '@/components/Button/Button.vue'
 import Collapse from '@/components/Collapse/Collapse.vue'
 import CollapseItem from '@/components/Collapse/CollapseItem.vue'
 import Dropdown from '@/components/Dropdown/Dropdown.vue'
-// import Dropdown from '@/components/Dropdown/Dropdown.tsx'
 import Icon from '@/components/Icon/Icon.vue'
-import Message from '@/components/Message/Message.vue'
 import Input from '@/components/Input/Input.vue'
 import Switch from '@/components/Switch/Switch.vue'
 import Select from '@/components/Select/Select.vue'
-import Form, { type FormInstance, type FormRules } from '@/components/Form'
+import Form, {  type FormRules } from '@/components/Form'
 import { FormItem } from '@/components/Form'
 
 import type { TooltipInstance } from '@/components/Tooltip/type.ts'
@@ -114,7 +112,6 @@ import type { UseFloatingOptions } from '@floating-ui/vue'
 import { onMounted, reactive, ref } from 'vue'
 import type { MenuOptions } from '@/components/Dropdown/types.ts'
 import { h } from 'vue'
-import { createMessage } from '@/components/Message/method.ts'
 import type { SelectOption } from '@/components/Select/types.ts'
 import Progress from '@/components/Progress/Progress.vue'
 import {faAddressCard} from "@fortawesome/free-solid-svg-icons/faAddressCard";
@@ -139,15 +136,15 @@ onMounted(() => {
 //tooltip测试
 const tooltipRef = ref<TooltipInstance | null>(null)
 const trigger = ref<any>('click')
-const options: UseFloatingOptions = { placement: 'bottom' }
+// const options: UseFloatingOptions = { placement: 'bottom' }
 //打开tooltip
-const open = () => {
-  tooltipRef.value?.show()
-}
+// const open = () => {
+//   tooltipRef.value?.show()
+// }
 //关闭tooltip
-const close = () => {
-  tooltipRef.value?.hide()
-}
+// const close = () => {
+//   tooltipRef.value?.hide()
+// }
 
 //测试dropdown
 const menuOptions: MenuOptions[] = [
@@ -173,19 +170,24 @@ const selectOptions: SelectOption[] = [
   { value: '3', label: 'item3' },
   { value: '4', label: 'item4', disabled: true },
 ]
-const customRender = (option: any) => {
-  return h('div', { className: 'xyz' }, [h('b', option.label), h('span', option.value)])
-}
+// const customRender = (option: any) => {
+//   return h('div', { className: 'xyz' }, [h('b', option.label), h('span', option.value)])
+// }
 const selectValue = ref('')
 
-const handleFetch = (query) => {
-  if (!query) return Promise.resolve([])
-  return fetch(`https://api.github.com/search/repositories?q=${query}`)
-    .then((res) => res.json())
-    .then(({ items }) => {
-      return items.slice(0, 10).map((item) => ({ label: item.name, value: item.node_id }))
-    })
+interface GithubRepository {
+  name: string
+  node_id: string
 }
+
+// const handleFetch = (query: string) => {
+//   if (!query) return Promise.resolve([])
+//   return fetch(`https://api.github.com/search/repositories?q=${query}`)
+//     .then((res) => res.json())
+//     .then(({ items }: { items: GithubRepository[] }) => {
+//       return items.slice(0, 10).map((item: GithubRepository) => ({ label: item.name, value: item.node_id }))
+//     })
+// }
 
 //测试form
 const formRef=ref()
