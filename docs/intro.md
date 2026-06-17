@@ -24,8 +24,8 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
   - **选择器 (Selectors):** 用来选中需要应用样式的 HTML 元素。权重计算是样式的核心。
   - **盒模型 (Box Model):** 理解 `content`, `padding`, `border`, `margin` 是如何共同决定元素尺寸和间距的。
   - **布局 (Layout):**
-    - **[Flexbox](/css/flexibleBox):** 现代一维布局的黄金标准，非常适合对齐组件内的元素。
-    - **[Grid](/css/grid):** 现代二维布局的利器，非常适合构建页面级的宏观布局。
+    - **[Flexbox](/css/advanced/layout/flexibleBox):** 现代一维布局的黄金标准，非常适合对齐组件内的元素。
+    - **[Grid](/css/advanced/layout/grid):** 现代二维布局的利器，非常适合构建页面级的宏观布局。
   - **响应式设计 (Responsive Web Design):** 使用 `媒体查询（Media Queries）` 等技术，让网站能够在不同尺寸的设备上都提供良好的浏览体验。
   - **层叠与继承 (Cascading and Inheritance):** 理解 CSS 规则如何应用、覆盖（层叠），以及子元素如何从父元素继承样式。
 

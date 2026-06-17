@@ -1,5 +1,5 @@
 // https://vitepress.dev/guide/custom-theme
-import { h, nextTick, onMounted, watch } from 'vue'
+import { h, nextTick, onMounted, watch, defineComponent } from 'vue'
 import type { Theme } from 'vitepress'
 import { useRoute } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
@@ -45,15 +45,27 @@ export default {
       }
     }
     // 👇 注册一个自定义的高阶组件代替直接注册 ElementPlusContainer
-    app.component('demo-preview', {
-      // 1. 显式声明接收这三个“罪魁祸首”属性，这样它们就不会变成非 prop 属性往下透传了
-      props: ['suffixName', 'absolutePath', 'relativePath'],
+    app.component(
+      'demo-preview',
+      defineComponent({
+        name: 'DemoPreview',
+        // 1. 改为对象声明，让 TS 能够精确推导 props 类型
+        props: {
+          suffixName: { type: String, default: '' },
+          absolutePath: { type: String, default: '' },
+          relativePath: { type: String, default: '' },
+        },
 
-      // 2. 渲染真正的容器组件，并把剩余的有效属性(attrs)和插槽(slots)传给它
-      setup(props: any, { attrs, slots }) {
-        return () => h(ElementPlusContainer, attrs, slots)
-      },
-    })
+        // 2. 此时 props 已经被完美推导，不再是 any
+        setup(props, { attrs, slots }) {
+          return () => {
+            // 3. 使用 as any 断言 attrs，绕过 h 函数极其严格的泛型校验
+            // 因为 attrs 本身就是透传属性，我们在运行时保证它的安全即可
+            return h(ElementPlusContainer, attrs as any, slots)
+          }
+        },
+      }),
+    )
   },
   //Fancybox:图片放大库
   /* setup() {

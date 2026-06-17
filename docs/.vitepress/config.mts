@@ -282,29 +282,30 @@ export default defineConfig(({mode}) => {
                             text: '基础',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: '基础结构', link: '/html/htmlBasicStructure'},
-                                {text: '常用标签', link: '/html/commonTags'},
-                                {text: 'Dom元素', link: '/html/domAttributes'},
-                                {text: 'Dom事件流', link: '/html/domEvents'},
-                                {text: '异步脚本加载', link: '/html/asyncScript'},
-                                {text: 'ajax请求', link: '/html/ajax'},
+                                {text: '基础结构', link: '/html/basic/htmlBasicStructure'},
+                                {text: '常用标签', link: '/html/basic/commonTags'},
+                                {text: 'Dom元素', link: '/html/basic/domAttributes'},
+                                {text: 'Dom事件流', link: '/html/basic/domEvents'},
+                                {text: '异步脚本加载', link: '/html/basic/asyncScript'},
+                                {text: 'ajax请求', link: '/html/basic/ajax'},
                             ]
                         },
                         {
                             text: '进阶',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: '语义化标签', link: '/html/semanticHtml'},
-                                {text: '多媒体元素', link: '/html/multimediaElements'},
-                                {text: '增强表单', link: '/html/enhancedForms'},
-                                {text: 'Canvas和Svg', link: '/html/canvasAndsvg'},
-                                {text: '地理位置', link: '/html/geolocation'},
-                                {text: 'Web存储', link: '/html/webStorage'},
-                                {text: 'WebWorkers', link: '/html/webWorkers'},
-                                {text: 'WebSockets', link: '/html/webSockets'},
-                                {text: 'history路由', link: '/html/history'},
-                                {text: '拖放', link: '/html/dragAndDrop'},
-                                {text: '自定义数据属性', link: '/html/dataAttributes'},
+                                {text: '语义化标签', link: '/html/advanced/semanticHtml'},
+                                {text: '多媒体元素', link: '/html/advanced/multimediaElements'},
+                                {text: '增强表单', link: '/html/advanced/enhancedForms'},
+                                {text: 'Canvas和Svg', link: '/html/advanced/canvasAndsvg'},
+                                {text: '地理位置', link: '/html/advanced/geolocation'},
+                                {text: 'Web存储', link: '/html/advanced/webStorage'},
+                                {text: 'WebWorkers', link: '/html/advanced/webWorkers'},
+                                {text: 'WebSockets', link: '/html/advanced/webSockets'},
+                                // {text: 'HTML5新特性', link: '/html/advanced/html5NewFeatures'},
+                                {text: 'history路由', link: '/html/advanced/history'},
+                                {text: '拖放', link: '/html/advanced/dragAndDrop'},
+                                {text: '自定义数据属性', link: '/html/advanced/dataAttributes'},
                             ]
                         },
                     ]
@@ -317,12 +318,12 @@ export default defineConfig(({mode}) => {
                             text: '基础',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: '选择器', link: '/css/selectors'},
-                                {text: '继承', link: '/css/inheritance'},
-                                {text: '盒模型', link: '/css/boxModel'},
-                                {text: '文档流', link: '/css/documentFlow'},
-                                {text: '定位', link: '/css/position'},
-                                {text: '浮动', link: '/css/float'},
+                                {text: '选择器', link: '/css/basic/selectors'},
+                                {text: '继承', link: '/css/basic/inheritance'},
+                                {text: '盒模型', link: '/css/basic/boxModel'},
+                                {text: '文档流', link: '/css/basic/documentFlow'},
+                                {text: '定位', link: '/css/basic/position'},
+                                {text: '浮动', link: '/css/basic/float'},
                             ]
                         },
                         {
@@ -333,39 +334,39 @@ export default defineConfig(({mode}) => {
                                     text: '视觉装饰',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: '圆角', link: '/css/borderRadius'},
-                                        {text: '阴影', link: '/css/boxShadow'},
-                                        {text: '渐变', link: '/css/gradients'},
-                                        {text: '背景增强', link: '/css/backgroundEnhancement'},
-                                        {text: '文字效果', link: '/css/textEffects'},
-                                        {text: '颜色', link: '/css/colors'},
+                                        {text: '圆角', link: '/css/advanced/visual-decoration/borderRadius'},
+                                        {text: '阴影', link: '/css/advanced/visual-decoration/boxShadow'},
+                                        {text: '渐变', link: '/css/advanced/visual-decoration/gradients'},
+                                        {text: '背景增强', link: '/css/advanced/visual-decoration/backgroundEnhancement'},
+                                        {text: '文字效果', link: '/css/advanced/visual-decoration/textEffects'},
+                                        {text: '颜色', link: '/css/advanced/visual-decoration/colors'},
                                     ]
                                 },
                                 {
                                     text: '现代布局系统',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: '多列布局', link: '/css/multiColumn'},
-                                        {text: 'Table表格布局', link: '/css/tableLayout'},
-                                        {text: 'Flex弹性布局', link: '/css/flexibleBox'},
-                                        {text: 'Grid栅格布局', link: '/css/grid'},
+                                        {text: '多列布局', link: '/css/advanced/layout/multiColumn'},
+                                        {text: 'Table表格布局', link: '/css/advanced/layout/tableLayout'},
+                                        {text: 'Flex弹性布局', link: '/css/advanced/layout/flexibleBox'},
+                                        {text: 'Grid栅格布局', link: '/css/advanced/layout/grid'},
                                     ]
                                 },
                                 {
                                     text: '动画与变换',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: '变换', link: '/css/transform'},
-                                        {text: '过渡', link: '/css/transitions'},
-                                        {text: '动画', link: '/css/animations'},
+                                        {text: '变换', link: '/css/advanced/animation-transform/transform'},
+                                        {text: '过渡', link: '/css/advanced/animation-transform/transitions'},
+                                        {text: '动画', link: '/css/advanced/animation-transform/animations'},
                                     ]
                                 },
                                 {
                                     text: '响应式设计',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: '媒体查询', link: '/css/mediaQueries'},
-                                        {text: '单位', link: '/css/units'},
+                                        {text: '媒体查询', link: '/css/advanced/responsive/mediaQueries'},
+                                        {text: '单位', link: '/css/advanced/responsive/units'},
                                     ]
                                 }
                             ]
@@ -380,19 +381,21 @@ export default defineConfig(({mode}) => {
                             text: '基础',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: '数据类型', link: '/js/eightTypes'},
-                                {text: '变量声明', link: '/js/variablesDeclare'},
-                                {text: '变量解构赋值', link: '/js/variablesDestructuring'},
-                                {text: '执行上下文和执行栈', link: '/js/executionContextAndStack'},
-                                {text: '作用域', link: '/js/lexicalScope'},
-                                {text: '内存空间', link: '/js/memorySpace'},
-                                {text: '基本引用类型', link: '/js/basicPrimitiveType'},
-                                {text: '集合引用类型', link: '/js/collectionPrimitiveTypes'},
-                                {text: '函数基础', link: '/js/basicFunction'},
-                                {text: '闭包', link: '/js/closure'},
-                                {text: 'This全面解析', link: '/js/this'},
-                                {text: '深浅拷贝原理', link: '/js/copy'},
-                                {text: 'JSON序列化', link: '/js/jsonSerialize'},
+                                {text: '数据类型', link: '/js/basic/eightTypes'},
+                                {text: '变量声明', link: '/js/basic/variablesDeclare'},
+                                {text: '变量解构赋值', link: '/js/basic/variablesDestructuring'},
+                                {text: '执行上下文和执行栈', link: '/js/basic/executionContextAndStack'},
+                                {text: '作用域', link: '/js/basic/lexicalScope'},
+                                {text: '内存空间', link: '/js/basic/memorySpace'},
+                                {text: '基本引用类型', link: '/js/basic/basicPrimitiveType'},
+                                {text: '原始值包装类型', link: '/js/basic/primitiveWrapperTypes'},
+                                {text: '集合引用类型', link: '/js/basic/collectionPrimitiveTypes'},
+                                {text: '函数基础', link: '/js/basic/basicFunction'},
+                                {text: '闭包', link: '/js/basic/closure'},
+                                {text: 'This全面解析', link: '/js/basic/this'},
+                                // {text: '相等性判断', link: '/js/basic/equal'},
+                                {text: '深浅拷贝原理', link: '/js/basic/copy'},
+                                {text: 'JSON序列化', link: '/js/basic/jsonSerialize'},
                             ]
                         },
                         {
@@ -403,74 +406,75 @@ export default defineConfig(({mode}) => {
                                     text: '数据类型扩展',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: '字符串的扩展', link: '/js/string'},
-                                        {text: '正则的扩展', link: '/js/regExp'},
-                                        {text: '数值的扩展', link: '/js/number'},
-                                        {text: '函数的扩展', link: '/js/function'},
-                                        {text: '数组的扩展', link: '/js/array'},
-                                        {text: '对象的扩展', link: '/js/object'},
-                                        {text: '运算符的扩展', link: '/js/operator'},
-                                        {text: 'Set和Map数据结构', link: '/js/setAndmap'},
+                                        {text: '字符串的扩展', link: '/js/advanced/data-types/string'},
+                                        {text: '正则的扩展', link: '/js/advanced/data-types/regExp'},
+                                        {text: '数值的扩展', link: '/js/advanced/data-types/number'},
+                                        {text: '函数的扩展', link: '/js/advanced/data-types/function'},
+                                        {text: '数组的扩展', link: '/js/advanced/data-types/array'},
+                                        {text: '对象的扩展', link: '/js/advanced/data-types/object'},
+                                        {text: '运算符的扩展', link: '/js/advanced/data-types/operator'},
+                                        {text: 'Set和Map数据结构', link: '/js/advanced/data-types/setAndmap'},
                                     ]
                                 },
                                 {
                                     text: '事件循环和异步',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: 'Promise对象', link: '/js/promise'},
-                                        {text: 'Iterator(遍历器)', link: '/js/iterator'},
-                                        {text: 'Generator函数的语法', link: '/js/generator'},
-                                        {text: 'Generator函数的异步应用', link: '/js/generatorApply'},
-                                        {text: 'async函数', link: '/js/async'},
-                                        {text: '任务队列和事件循环', link: '/js/eventLoop'},
+                                        {text: 'Promise对象', link: '/js/advanced/async/promise'},
+                                        {text: 'Iterator(遍历器)', link: '/js/advanced/async/iterator'},
+                                        {text: 'Generator函数的语法', link: '/js/advanced/async/generator'},
+                                        {text: 'Generator函数的异步应用', link: '/js/advanced/async/generatorApply'},
+                                        {text: 'async函数', link: '/js/advanced/async/async'},
+                                        {text: '任务队列和事件循环', link: '/js/advanced/async/eventLoop'},
                                     ]
                                 },
                                 {
                                     text: '类与继承',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: '原型、原型链、继承', link: '/js/prototype'},
-                                        {text: 'Class的基本语法', link: '/js/classBasic'},
-                                        {text: 'Class的继承', link: '/js/classExtends'},
+                                        {text: '原型、原型链、继承', link: '/js/advanced/class-inheritance/prototype'},
+                                        {text: 'Class的基本语法', link: '/js/advanced/class-inheritance/classBasic'},
+                                        {text: 'Class的继承', link: '/js/advanced/class-inheritance/classExtends'},
                                     ]
                                 },
                                 {
                                     text: '元编程',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: 'Symbol', link: '/js/symbol'},
-                                        {text: 'Proxy', link: '/js/proxy'},
-                                        {text: 'Reflect', link: '/js/reflect'},
+                                        {text: 'Symbol', link: '/js/advanced/metaprogramming/symbol'},
+                                        {text: 'Proxy', link: '/js/advanced/metaprogramming/proxy'},
+                                        {text: 'Reflect', link: '/js/advanced/metaprogramming/reflect'},
                                     ]
                                 },
                                 {
                                     text: '模块化',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: 'Module的语法', link: '/js/module'},
-                                        {text: 'Module的加载实现', link: '/js/compareModule'},
+                                        {text: 'Module的语法', link: '/js/advanced/modules/module'},
+                                        {text: 'Module的加载实现', link: '/js/advanced/modules/compareModule'},
                                     ]
                                 },
-                                {text: '严格模式', link: '/js/strict'},
-                                {text: '跨域', link: '/js/crossOrigin'},
-                                {text: '错误处理', link: '/js/errorHandling'},
-                                {text: '性能优化', link: '/js/optimize'},
-                                {text: 'ArrayBuffer', link: '/js/arrayBuffer'},
-                                // {text: 'Decorator(装饰器)', link: '/js/decorator'},
+                                {text: '严格模式', link: '/js/advanced/misc/strict'},
+                                {text: '跨域', link: '/js/advanced/misc/crossOrigin'},
+                                {text: '错误处理', link: '/js/advanced/misc/errorHandling'},
+                                {text: '性能优化', link: '/js/advanced/misc/optimize'},
+                                {text: 'ArrayBuffer', link: '/js/advanced/misc/arrayBuffer'},
+                                // {text: 'Decorator(装饰器)', link: '/js/advanced/misc/decorator'},
+                                // {text: '设计模式', link: '/js/advanced/misc/designPattern'},
                             ]
                         },
                         {
                             text: '深入函数手写',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: '数组方法', link: '/js/arrayHandleWriting'},
-                                {text: '对象方法', link: '/js/objectHandleWriting'},
-                                {text: 'Function原型方法', link: '/js/functionHandleWriting'},
-                                // {text: '继承', link: '/js/inherit'},
-                                {text: '常用全局方法', link: '/js/globalMethods'},
-                                {text: '高阶函数', link: '/js/highLevelFunction'},
-                                {text: 'promise手写', link: '/js/promiseHandleWriting'},
-                                {text: 'axios手写', link: '/js/axiosHandleWriting'},
+                                {text: '数组方法', link: '/js/hand-writing/arrayHandleWriting'},
+                                {text: '对象方法', link: '/js/hand-writing/objectHandleWriting'},
+                                {text: 'Function原型方法', link: '/js/hand-writing/functionHandleWriting'},
+                                // {text: '继承', link: '/js/hand-writing/inherit'},
+                                {text: '常用全局方法', link: '/js/hand-writing/globalMethods'},
+                                {text: '高阶函数', link: '/js/hand-writing/highLevelFunction'},
+                                {text: 'promise手写', link: '/js/hand-writing/promiseHandleWriting'},
+                                {text: 'axios手写', link: '/js/hand-writing/axiosHandleWriting'},
                             ]
                         },
                     ]
@@ -656,61 +660,61 @@ export default defineConfig(({mode}) => {
                                     text: '基础',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: '简介', link: '/frameworks/react/intro'},
-                                        {text: 'JSX语法', link: '/frameworks/react/jsx'},
-                                        {text: '元素渲染', link: '/frameworks/react/elementRendering'},
-                                        {text: '事件处理', link: '/frameworks/react/handlingEvents'},
-                                        {text: '条件渲染', link: '/frameworks/react/conditionalRendering'},
-                                        {text: '列表渲染', link: '/frameworks/react/listRendering'},
-                                        {text: 'state和生命周期', link: '/frameworks/react/stateAndLifecycle'},
-                                        {text: '组件和props', link: '/frameworks/react/componentAndProps'},
-                                        {text: '组件的导入和导出', link: '/frameworks/react/importAndExport'},
-                                        {text: '组件通信', link: '/frameworks/react/componentCommunication'},
-                                        {text: '表单', link: '/frameworks/react/form'},
-                                        {text: '性能优化', link: '/frameworks/react/performanceOptimization'},
-                                        {text: '高阶组件', link: '/frameworks/react/hoc'},
-                                        {text: 'CSS样式工程化', link: '/frameworks/react/style'},
-                                        {text: '动画', link: '/frameworks/react/reactTransitionGroup'},
-                                        {text: 'Portals', link: '/frameworks/react/portals'},
-                                        {text: 'Redux和中间件', link: '/frameworks/react/react_redux'},
-                                        {text: '路由', link: '/frameworks/react/react_router'},
+                                        {text: '简介', link: '/frameworks/react/basic/intro'},
+                                        {text: 'JSX语法', link: '/frameworks/react/basic/jsx'},
+                                        {text: '元素渲染', link: '/frameworks/react/basic/elementRendering'},
+                                        {text: '事件处理', link: '/frameworks/react/basic/handlingEvents'},
+                                        {text: '条件渲染', link: '/frameworks/react/basic/conditionalRendering'},
+                                        {text: '列表渲染', link: '/frameworks/react/basic/listRendering'},
+                                        {text: 'state和生命周期', link: '/frameworks/react/basic/stateAndLifecycle'},
+                                        {text: '组件和props', link: '/frameworks/react/basic/componentAndProps'},
+                                        {text: '组件的导入和导出', link: '/frameworks/react/basic/importAndExport'},
+                                        {text: '组件通信', link: '/frameworks/react/basic/componentCommunication'},
+                                        {text: '表单', link: '/frameworks/react/basic/form'},
+                                        {text: '性能优化', link: '/frameworks/react/basic/performanceOptimization'},
+                                        {text: '高阶组件', link: '/frameworks/react/basic/hoc'},
+                                        {text: 'CSS样式工程化', link: '/frameworks/react/basic/style'},
+                                        {text: '动画', link: '/frameworks/react/basic/reactTransitionGroup'},
+                                        {text: 'Portals', link: '/frameworks/react/basic/portals'},
+                                        {text: 'Redux和中间件', link: '/frameworks/react/basic/react_redux'},
+                                        {text: '路由', link: '/frameworks/react/basic/react_router'},
                                         {
                                             text: 'Hooks',
                                             collapsed: true, // 初始状态为“展开”
                                             items: [
-                                                {text: 'useState', link: '/frameworks/react/useState'},
-                                                {text: 'useReducer', link: '/frameworks/react/useReducer'},
-                                                {text: 'useEffect', link: '/frameworks/react/useEffect'},
-                                                {text: 'useEffectEvent', link: '/frameworks/react/useEffectEvent'},
-                                                {text: 'useLayoutEffect', link: '/frameworks/react/useLayoutEffect'},
-                                                {text: 'useContext', link: '/frameworks/react/useContext'},
-                                                {text: 'useCallback', link: '/frameworks/react/useCallback'},
-                                                {text: 'useMemo', link: '/frameworks/react/useMemo'},
-                                                {text: 'useRef', link: '/frameworks/react/useRef'},
+                                                {text: 'useState', link: '/frameworks/react/basic/hooks/useState'},
+                                                {text: 'useReducer', link: '/frameworks/react/basic/hooks/useReducer'},
+                                                {text: 'useEffect', link: '/frameworks/react/basic/hooks/useEffect'},
+                                                {text: 'useEffectEvent', link: '/frameworks/react/basic/hooks/useEffectEvent'},
+                                                {text: 'useLayoutEffect', link: '/frameworks/react/basic/hooks/useLayoutEffect'},
+                                                {text: 'useContext', link: '/frameworks/react/basic/hooks/useContext'},
+                                                {text: 'useCallback', link: '/frameworks/react/basic/hooks/useCallback'},
+                                                {text: 'useMemo', link: '/frameworks/react/basic/hooks/useMemo'},
+                                                {text: 'useRef', link: '/frameworks/react/basic/hooks/useRef'},
                                                 {
                                                     text: 'useImperativeHandle',
-                                                    link: '/frameworks/react/useImperativeHandle'
+                                                    link: '/frameworks/react/basic/hooks/useImperativeHandle'
                                                 },
-                                                {text: 'useActionState', link: '/frameworks/react/useActionState'},
-                                                {text: 'useDebugValue', link: '/frameworks/react/useDebugValue'},
-                                                {text: 'useDeferredValue', link: '/frameworks/react/useDeferredValue'},
-                                                {text: 'useTransition', link: '/frameworks/react/useTransition'},
-                                                {text: 'useId', link: '/frameworks/react/useId'},
+                                                {text: 'useActionState', link: '/frameworks/react/basic/hooks/useActionState'},
+                                                {text: 'useDebugValue', link: '/frameworks/react/basic/hooks/useDebugValue'},
+                                                {text: 'useDeferredValue', link: '/frameworks/react/basic/hooks/useDeferredValue'},
+                                                {text: 'useTransition', link: '/frameworks/react/basic/hooks/useTransition'},
+                                                {text: 'useId', link: '/frameworks/react/basic/hooks/useId'},
                                                 {
                                                     text: 'useInsertionEffect',
-                                                    link: '/frameworks/react/useInsertionEffect'
+                                                    link: '/frameworks/react/basic/hooks/useInsertionEffect'
                                                 },
-                                                {text: 'useOptimistic', link: '/frameworks/react/useOptimistic'},
+                                                {text: 'useOptimistic', link: '/frameworks/react/basic/hooks/useOptimistic'},
                                                 {
                                                     text: 'useSyncExternalStore',
-                                                    link: '/frameworks/react/useSyncExternalStore'
+                                                    link: '/frameworks/react/basic/hooks/useSyncExternalStore'
                                                 },
-                                                {text: 'useFormStatus', link: '/frameworks/react/useFormStatus'},
+                                                {text: 'useFormStatus', link: '/frameworks/react/basic/hooks/useFormStatus'},
                                             ]
                                         },
-                                        {text: '自定义Hooks', link: '/frameworks/react/customHook'},
-                                        {text: '环境配置和打包', link: '/frameworks/react/buildTools'},
-                                        {text: 'React注意点', link: '/frameworks/react/importantInfo'},
+                                        {text: '自定义Hooks', link: '/frameworks/react/basic/customHook'},
+                                        {text: '环境配置和打包', link: '/frameworks/react/basic/buildTools'},
+                                        {text: 'React注意点', link: '/frameworks/react/basic/importantInfo'},
                                     ]
                                 },
                                 {
@@ -752,9 +756,9 @@ export default defineConfig(({mode}) => {
                             text: '模块化与组件化开发',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: 'js模块化', link: '/forntEngineering/javascriptModules'},
-                                {text: 'css工程化', link: '/forntEngineering/cssProject'},
-                                {text: '组件化思维', link: '/forntEngineering/modules'},
+                                {text: 'js模块化', link: '/forntEngineering/module-component/javascriptModules'},
+                                {text: 'css工程化', link: '/forntEngineering/module-component/cssProject'},
+                                {text: '组件化思维', link: '/forntEngineering/module-component/modules'},
                             ]
                         },
                         {text: '常用工具介绍', link: '/forntEngineering/engineerTools'},
@@ -762,8 +766,8 @@ export default defineConfig(({mode}) => {
                             text: '包管理器与依赖管理',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: '包管理器', link: '/forntEngineering/packageManagers'},
-                                {text: '依赖管理', link: '/forntEngineering/packageJson.md'},
+                                {text: '包管理器', link: '/forntEngineering/package-management/packageManagers'},
+                                {text: '依赖管理', link: '/forntEngineering/package-management/packageJson'},
                             ]
                         },
                         {
@@ -774,41 +778,41 @@ export default defineConfig(({mode}) => {
                                     text: '综合构建与打包',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: 'Webpack', link: '/forntEngineering/webpack'},
-                                        {text: 'vite', link: '/forntEngineering/vite'},
-                                        {text: 'Rspack', link: '/forntEngineering/rspack'},
-                                        {text: 'Turbopack', link: '/forntEngineering/turbopack'},
-                                        {text: 'gulp', link: '/forntEngineering/gulp'},
-                                        {text: 'parcel', link: '/forntEngineering/parcel'},
+                                        {text: 'Webpack', link: '/forntEngineering/build-tools/bundlers/webpack'},
+                                        {text: 'vite', link: '/forntEngineering/build-tools/bundlers/vite'},
+                                        {text: 'Rspack', link: '/forntEngineering/build-tools/bundlers/rspack'},
+                                        {text: 'Turbopack', link: '/forntEngineering/build-tools/bundlers/turbopack'},
+                                        {text: 'gulp', link: '/forntEngineering/build-tools/bundlers/gulp'},
+                                        {text: 'parcel', link: '/forntEngineering/build-tools/bundlers/parcel'},
                                     ]
                                 },
-                                {text: '底层编译与打包引擎', link: '/forntEngineering/codeCompilers'},
+                                {text: '底层编译与打包引擎', link: '/forntEngineering/build-tools/compilers/codeCompilers'},
                                 {
                                     text: '类库独立打包',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: 'tsup', link: '/forntEngineering/tsup'},
-                                        {text: 'Rollup', link: '/forntEngineering/rollup'},
+                                        {text: 'tsup', link: '/forntEngineering/build-tools/library-bundling/tsup'},
+                                        {text: 'Rollup', link: '/forntEngineering/build-tools/library-bundling/rollup'},
                                     ]
                                 },
                             ]
                         },
-                        {text: '代码规范与质量控制', link: '/forntEngineering/linters'},
-                        {text: '自动化测试', link: '/forntEngineering/testing'},
+                        {text: '代码规范与质量控制', link: '/forntEngineering/quality/linters'},
+                        {text: '自动化测试', link: '/forntEngineering/quality/testing'},
                         {
                             text: 'CI/CD 与持续部署',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: 'CI/CD 工具', link: '/forntEngineering/ci-cd'},
-                                {text: '部署环境', link: '/forntEngineering/deploymentEnvironments'},
+                                {text: 'CI/CD 工具', link: '/forntEngineering/ci-cd/ci-cd'},
+                                {text: '部署环境', link: '/forntEngineering/ci-cd/deploymentEnvironments'},
                             ]
                         },
-                        {text: '异常捕获与性能监控', link: '/forntEngineering/performanceMonitoring'},
+                        {text: '异常捕获与性能监控', link: '/forntEngineering/quality/performanceMonitoring'},
                         {
                             text: '架构演进:Monorepo与微前端',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: 'Monorepo（单体仓库）', link: '/forntEngineering/monorepo'},
+                                {text: 'Monorepo（单体仓库）', link: '/forntEngineering/architecture/monorepo'},
                             ]
                         },
 
@@ -818,30 +822,30 @@ export default defineConfig(({mode}) => {
                     text: '设计模式与架构模式',
                     collapsed: true, // 初始状态为“展开”
                     items: [
-                        {text: '单例模式', link: '/designPatterns/singletonPattern'},
-                        {text: '工厂模式', link: '/designPatterns/factoryPattern'},
-                        {text: '构造器模式', link: '/designPatterns/constructorPattern'},
-                        {text: '原型模式', link: '/designPatterns/prototypePattern'},
-                        {text: '策略模式', link: '/designPatterns/strategyPattern'},
-                        {text: '状态模式', link: '/designPatterns/statePattern'},
-                        {text: '模块模式', link: '/designPatterns/modulePattern'},
-                        {text: '代理模式', link: '/designPatterns/proxyPattern'},
-                        {text: '装饰器模式', link: '/designPatterns/decoratorPattern'},
-                        {text: '适配器模式', link: '/designPatterns/adapterPattern'},
-                        {text: '迭代器模式', link: '/designPatterns/iteratorPattern'},
-                        {text: '发布订阅模式', link: '/designPatterns/pubSubPattern'},
-                        {text: '观察者模式', link: '/designPatterns/observerPattern'},
-                        {text: '中介者模式', link: '/designPatterns/mediatorPattern'},
-                        {text: '外观模式', link: '/designPatterns/facadePattern'},
-                        {text: '命令模式', link: '/designPatterns/commandPattern'},
-                        {text: '组合模式', link: '/designPatterns/compositePattern'},
-                        {text: '享元模式', link: '/designPatterns/flyweightPattern'},
-                        {text: '模板方法模式', link: '/designPatterns/templateMethodPattern'},
-                        {text: '职责链模式', link: '/designPatterns/chainofResponsibilityPattern'},
-                        {text: 'MVC模式', link: '/designPatterns/MVC'},
-                        {text: 'MVVM模式', link: '/designPatterns/MVVM'},
-                        {text: '核心原则', link: '/designPatterns/patternPrinciple'},
-                        {text: '总结', link: '/designPatterns/patternSummarize'},
+                        {text: '单例模式', link: '/designPatterns/creational/singletonPattern'},
+                        {text: '工厂模式', link: '/designPatterns/creational/factoryPattern'},
+                        {text: '构造器模式', link: '/designPatterns/creational/constructorPattern'},
+                        {text: '原型模式', link: '/designPatterns/creational/prototypePattern'},
+                        {text: '策略模式', link: '/designPatterns/behavioral/strategyPattern'},
+                        {text: '状态模式', link: '/designPatterns/behavioral/statePattern'},
+                        {text: '模块模式', link: '/designPatterns/behavioral/modulePattern'},
+                        {text: '代理模式', link: '/designPatterns/structural/proxyPattern'},
+                        {text: '装饰器模式', link: '/designPatterns/structural/decoratorPattern'},
+                        {text: '适配器模式', link: '/designPatterns/structural/adapterPattern'},
+                        {text: '迭代器模式', link: '/designPatterns/behavioral/iteratorPattern'},
+                        {text: '发布订阅模式', link: '/designPatterns/behavioral/pubSubPattern'},
+                        {text: '观察者模式', link: '/designPatterns/behavioral/observerPattern'},
+                        {text: '中介者模式', link: '/designPatterns/behavioral/mediatorPattern'},
+                        {text: '外观模式', link: '/designPatterns/structural/facadePattern'},
+                        {text: '命令模式', link: '/designPatterns/behavioral/commandPattern'},
+                        {text: '组合模式', link: '/designPatterns/structural/compositePattern'},
+                        {text: '享元模式', link: '/designPatterns/structural/flyweightPattern'},
+                        {text: '模板方法模式', link: '/designPatterns/behavioral/templateMethodPattern'},
+                        {text: '职责链模式', link: '/designPatterns/behavioral/chainofResponsibilityPattern'},
+                        {text: 'MVC模式', link: '/designPatterns/architecture/MVC'},
+                        {text: 'MVVM模式', link: '/designPatterns/architecture/MVVM'},
+                        {text: '核心原则', link: '/designPatterns/summary/patternPrinciple'},
+                        {text: '总结', link: '/designPatterns/summary/patternSummarize'},
                     ]
                 },
                 {
@@ -852,33 +856,33 @@ export default defineConfig(({mode}) => {
                             text: '数据结构',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: '数组', link: '/dataStructuresAndAlgorithms/array'},
-                                {text: '栈', link: '/dataStructuresAndAlgorithms/stack'},
-                                {text: '队列', link: '/dataStructuresAndAlgorithms/queue'},
-                                {text: '链表', link: '/dataStructuresAndAlgorithms/linkedList'},
-                                {text: '集合', link: '/dataStructuresAndAlgorithms/set'},
-                                {text: '字典', link: '/dataStructuresAndAlgorithms/map'},
-                                {text: '树', link: '/dataStructuresAndAlgorithms/tree'},
-                                {text: '堆', link: '/dataStructuresAndAlgorithms/heap'},
-                                {text: '图', link: '/dataStructuresAndAlgorithms/graph'},
-                                {text: '哈希表', link: '/dataStructuresAndAlgorithms/hashTable'},
+                                {text: '数组', link: '/dataStructuresAndAlgorithms/data-structures/array'},
+                                {text: '栈', link: '/dataStructuresAndAlgorithms/data-structures/stack'},
+                                {text: '队列', link: '/dataStructuresAndAlgorithms/data-structures/queue'},
+                                {text: '链表', link: '/dataStructuresAndAlgorithms/data-structures/linkedList'},
+                                {text: '集合', link: '/dataStructuresAndAlgorithms/data-structures/set'},
+                                {text: '字典', link: '/dataStructuresAndAlgorithms/data-structures/map'},
+                                {text: '树', link: '/dataStructuresAndAlgorithms/data-structures/tree'},
+                                {text: '堆', link: '/dataStructuresAndAlgorithms/data-structures/heap'},
+                                {text: '图', link: '/dataStructuresAndAlgorithms/data-structures/graph'},
+                                {text: '哈希表', link: '/dataStructuresAndAlgorithms/data-structures/hashTable'},
                             ]
                         },
                         {
                             text: '算法',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: '排序算法', link: '/dataStructuresAndAlgorithms/sortAlgorithms'},
-                                {text: '查找算法', link: '/dataStructuresAndAlgorithms/searchAlgorithms'},
-                                {text: '递归算法', link: '/dataStructuresAndAlgorithms/recursionAlgorithms'},
-                                {text: '动态规划', link: '/dataStructuresAndAlgorithms/dynamicProgramming'},
-                                {text: '贪心算法', link: '/dataStructuresAndAlgorithms/greedyAlgorithms'},
-                                {text: '回溯算法', link: '/dataStructuresAndAlgorithms/backTrackingAlgorithms'},
-                                {text: '广度优先遍历', link: '/dataStructuresAndAlgorithms/BFS'},
-                                {text: '深度优先遍历', link: '/dataStructuresAndAlgorithms/DFS'},
-                                {text: '双指针', link: '/dataStructuresAndAlgorithms/twoPointers'},
-                                {text: '滑动窗口', link: '/dataStructuresAndAlgorithms/slideWindow'},
-                                {text: '算法复杂度', link: '/dataStructuresAndAlgorithms/algorithmComplexity'},
+                                {text: '排序算法', link: '/dataStructuresAndAlgorithms/algorithms/sortAlgorithms'},
+                                {text: '查找算法', link: '/dataStructuresAndAlgorithms/algorithms/searchAlgorithms'},
+                                {text: '递归算法', link: '/dataStructuresAndAlgorithms/algorithms/recursionAlgorithms'},
+                                {text: '动态规划', link: '/dataStructuresAndAlgorithms/algorithms/dynamicProgramming'},
+                                {text: '贪心算法', link: '/dataStructuresAndAlgorithms/algorithms/greedyAlgorithms'},
+                                {text: '回溯算法', link: '/dataStructuresAndAlgorithms/algorithms/backTrackingAlgorithms'},
+                                {text: '广度优先遍历', link: '/dataStructuresAndAlgorithms/algorithms/BFS'},
+                                {text: '深度优先遍历', link: '/dataStructuresAndAlgorithms/algorithms/DFS'},
+                                {text: '双指针', link: '/dataStructuresAndAlgorithms/algorithms/twoPointers'},
+                                {text: '滑动窗口', link: '/dataStructuresAndAlgorithms/algorithms/slideWindow'},
+                                {text: '算法复杂度', link: '/dataStructuresAndAlgorithms/algorithms/algorithmComplexity'},
                             ]
                         },
                     ]
@@ -887,19 +891,19 @@ export default defineConfig(({mode}) => {
                     text: '网络协议与浏览器工作原理',
                     collapsed: true, // 初始状态为“展开”
                     items: [
-                        {text: 'Http协议', link: '/networkAndBrowsers/http'},
-                        {text: 'Https协议', link: '/networkAndBrowsers/https'},
-                        {text: 'tcp协议', link: '/networkAndBrowsers/tcp'},
-                        {text: 'udp协议', link: '/networkAndBrowsers/udp'},
-                        {text: 'ip协议', link: '/networkAndBrowsers/ip'},
-                        {text: 'Http常见报文头', link: '/networkAndBrowsers/headers'},
-                        {text: 'DNS解析', link: '/networkAndBrowsers/dns'},
-                        {text: 'CDN加速原理', link: '/networkAndBrowsers/cdn'},
-                        {text: '浏览器缓存机制', link: '/networkAndBrowsers/browserCache'},
-                        {text: '浏览器渲染机制', link: '/networkAndBrowsers/renderingProcess'},
-                        {text: 'csrf和xss防御方式', link: '/networkAndBrowsers/csrfAndXss'},
-                        {text: '进程和线程', link: '/networkAndBrowsers/processAndThread'},
-                        {text: 'OSI七层模型', link: '/networkAndBrowsers/osi'},
+                        {text: 'Http协议', link: '/networkAndBrowsers/protocols/http'},
+                        {text: 'Https协议', link: '/networkAndBrowsers/protocols/https'},
+                        {text: 'tcp协议', link: '/networkAndBrowsers/protocols/tcp'},
+                        {text: 'udp协议', link: '/networkAndBrowsers/protocols/udp'},
+                        {text: 'ip协议', link: '/networkAndBrowsers/protocols/ip'},
+                        {text: 'Http常见报文头', link: '/networkAndBrowsers/protocols/headers'},
+                        {text: 'DNS解析', link: '/networkAndBrowsers/protocols/dns'},
+                        {text: 'CDN加速原理', link: '/networkAndBrowsers/protocols/cdn'},
+                        {text: '浏览器缓存机制', link: '/networkAndBrowsers/browser/browserCache'},
+                        {text: '浏览器渲染机制', link: '/networkAndBrowsers/browser/renderingProcess'},
+                        {text: 'csrf和xss防御方式', link: '/networkAndBrowsers/security/csrfAndXss'},
+                        {text: '进程和线程', link: '/networkAndBrowsers/process-model/processAndThread'},
+                        {text: 'OSI七层模型', link: '/networkAndBrowsers/protocols/osi'},
                     ]
                 },
 
