@@ -4,7 +4,6 @@
     "env.d.ts",
     "src/**/*",
     "src/**/*.vue",
-    "codePackage/vue/vue/src/**/*.ts",
     "docs/.vitepress/**/*.ts",
     "docs/.vitepress/**/*.mts"
   ],

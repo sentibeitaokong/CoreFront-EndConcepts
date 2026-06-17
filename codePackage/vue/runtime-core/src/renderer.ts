@@ -292,8 +292,8 @@ export function createRenderer(options: any) {
       // a,b,(c,e,d),f,g -> a,b,(e,c),f,g
       // 新老节点长度相同左右侧节点相同，中间节点不同
       // s2 新节点起始下标索引
-      let s1: number = i
-      let s2: number = i
+      const s1: number = i
+      const s2: number = i
       //需要patch的节点数量
       const toBePatched = e2 - s2 + 1
       //已经patch完的节点数量
@@ -509,16 +509,16 @@ function updateComponentPreRender(instance: any, nextVnode: any) {
   instance.props = nextVnode.props
 }
 //最大递增序列  返回递增序列的下标 例：[2,3,4,1,5]    返回[2,3,4,5]的下标[0,1,2,4]
-function getSequence(arr: any) {
+function getSequence(arr: number[]) {
   const p = arr.slice()
   const result = [0]
   let i, j, u, v, c
   const len = arr.length
   for (i = 0; i < len; i++) {
-    const arrI = arr[i]
+    const arrI = arr[i]!
     if (arrI !== 0) {
-      j = result[result.length - 1]
-      if (arr[j] < arrI) {
+      j = result[result.length - 1]!
+      if (arr[j]! < arrI) {
         p[i] = j
         result.push(i)
         continue
@@ -527,25 +527,25 @@ function getSequence(arr: any) {
       v = result.length - 1
       while (u < v) {
         c = (u + v) >> 1
-        if (arr[result[c]] < arrI) {
+        if (arr[result[c]!]! < arrI) {
           u = c + 1
         } else {
           v = c
         }
       }
-      if (arrI < arr[result[u]]) {
+      if (arrI < arr[result[u]!]!) {
         if (u > 0) {
-          p[i] = result[u - 1]
+          p[i] = result[u - 1]!
         }
         result[u] = i
       }
     }
   }
   u = result.length
-  v = result[u - 1]
+  v = result[u - 1]!
   while (u-- > 0) {
     result[u] = v
-    v = p[v]
+    v = p[v]!
   }
   return result
 }

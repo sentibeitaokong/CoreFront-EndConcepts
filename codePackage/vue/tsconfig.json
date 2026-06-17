@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.app.json",
+  "include": [
+    "compiler-core/src/**/*.ts",
+    "reactivity/src/**/*.ts",
+    "reactivity/__tests__/**/*.ts",
+    "runtime-core/src/**/*.ts",
+    "runtime-core/__tests__/**/*.ts",
+    "runtime-dom/src/**/*.ts",
+    "shared/src/**/*.ts",
+    "vue/src/**/*.ts",
+    "compiler-core/__test__/**/*.ts"
+  ],
+  "exclude": ["**/node_modules/**", "**/dist/**"],
+  "compilerOptions": {
+    "baseUrl": "../..",
+    "types": ["vitest/globals"],
+    "tsBuildInfoFile": "../../node_modules/.tmp/tsconfig.codepackage-vue.tsbuildinfo"
+  }
+}
