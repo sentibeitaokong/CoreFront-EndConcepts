@@ -50,8 +50,7 @@ export default {
       props: ['suffixName', 'absolutePath', 'relativePath'],
 
       // 2. 渲染真正的容器组件，并把剩余的有效属性(attrs)和插槽(slots)传给它
-      setup(props, { attrs, slots }) {
-        console.log(props)
+      setup(props: any, { attrs, slots }) {
         return () => h(ElementPlusContainer, attrs, slots)
       },
     })

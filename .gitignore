@@ -5,4 +5,3 @@ docs/.vitepress/dist/
 .unlighthouse/
 .env.local
 .env.*.local
-.pnpm-store
