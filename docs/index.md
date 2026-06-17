@@ -28,7 +28,7 @@ features:
       src: /img/frameworks.svg
     title: 前端主流框架
     details: 你是追求快速开发与优雅简洁的 Vue，还是偏爱灵活可控与函数式思维的 React。
-    link: /frameworks/vue/intro
+    link: /frameworks/vue/basic/intro
 
   - icon:
       src: /img/designPatterns.svg

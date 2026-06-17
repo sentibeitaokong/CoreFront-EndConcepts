@@ -16,6 +16,7 @@ export default defineConfig(({mode}) => {
     const env = loadEnv(mode, process.cwd(), '')
     // 兼容本地读取 env 文件和 CI/CD 读取系统变量
     const sentryToken = env.SENTRY_AUTH_TOKEN || process.env.SENTRY_AUTH_TOKEN
+    const isProduction = mode === 'production'
 
     return {
         lang: 'zh-CN',
@@ -70,20 +71,21 @@ export default defineConfig(({mode}) => {
                     gzipSize: true, // 企业级配置：显示 gzip 压缩后的真实体积（更具参考价值）
                     brotliSize: true // 显示 br 压缩后的体积
                 }),
-                sentryVitePlugin({
-                    org: "xubei",
-                    project: "xunbei-project",
-                    // 从加载好的 env 对象中读取 Token
-                    authToken: sentryToken,
-                    // 关闭 Sentry 插件自身的遥测日志
-                    telemetry: false,
-                    // sourcemaps: {
-                    //     // 1. 指定要上传的范围
-                    //     assets: "./docs/.vitepress/dist/**/*.map",
-                    //     // 2. 开启自动清理：直接设为 true，告诉插件“凡是上传成功的，都给我删掉”
-                    //     filesToDeleteAfterUpload: true,
-                    // },
-                }),
+                ...(isProduction
+                    ? [
+                        sentryVitePlugin({
+                            org: "xubei",
+                            project: "xunbei-project",
+                            // 从加载好的 env 对象中读取 Token
+                            authToken: sentryToken,
+                            // 关闭 Sentry 插件自身的遥测日志
+                            telemetry: false,
+                            sourcemaps: {
+                                filesToDeleteAfterUpload: path.resolve(__dirname, 'dist/**/*.map'),
+                            },
+                        }),
+                    ]
+                    : []),
             ],
             build: {
                 minify: 'esbuild',
@@ -485,28 +487,28 @@ export default defineConfig(({mode}) => {
                                     text: '基础',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: '简介', link: '/frameworks/vue/intro'},
-                                        {text: '模板语法', link: '/frameworks/vue/templateSyntax'},
-                                        {text: '响应式状态', link: '/frameworks/vue/reactivityFundamentals'},
-                                        {text: '响应式状态派生', link: '/frameworks/vue/computedAndWatch'},
-                                        {text: '模板引用', link: '/frameworks/vue/templateRefs'},
-                                        {text: '生命周期', link: '/frameworks/vue/lifecycleHooks'},
-                                        {text: '组件通信', link: '/frameworks/vue/componentCommunication'},
-                                        {text: '异步组件', link: '/frameworks/vue/asyncComponents'},
-                                        {text: '组合式函数', link: '/frameworks/vue/customHooks'},
-                                        {text: '自定义指令', link: '/frameworks/vue/customDirectives'},
-                                        {text: '自定义Ref', link: '/frameworks/vue/customRef'},
-                                        {text: '插件', link: '/frameworks/vue/plugins'},
-                                        {text: '过渡', link: '/frameworks/vue/transition'},
-                                        {text: '列表过渡', link: '/frameworks/vue/transitionGroup'},
-                                        {text: '组件缓存', link: '/frameworks/vue/keepAlive'},
-                                        {text: 'Teleport', link: '/frameworks/vue/teleport'},
-                                        {text: '异步依赖边界管理器', link: '/frameworks/vue/suspense'},
-                                        {text: '路由', link: '/frameworks/vue/vueRouter'},
-                                        {text: 'pinia', link: '/frameworks/vue/pinia'},
-                                        {text: 'TS与组合式API', link: '/frameworks/vue/composablesTs'},
-                                        {text: '同构渲染', link: '/frameworks/vue/isomorphicRendering'},
-                                        {text: '环境配置和打包', link: '/frameworks/vue/buildTools'},
+                                        {text: '简介', link: '/frameworks/vue/basic/intro'},
+                                        {text: '模板语法', link: '/frameworks/vue/basic/templateSyntax'},
+                                        {text: '响应式状态', link: '/frameworks/vue/basic/reactivityFundamentals'},
+                                        {text: '响应式状态派生', link: '/frameworks/vue/basic/computedAndWatch'},
+                                        {text: '模板引用', link: '/frameworks/vue/basic/templateRefs'},
+                                        {text: '生命周期', link: '/frameworks/vue/basic/lifecycleHooks'},
+                                        {text: '组件通信', link: '/frameworks/vue/basic/componentCommunication'},
+                                        {text: '异步组件', link: '/frameworks/vue/basic/asyncComponents'},
+                                        {text: '组合式函数', link: '/frameworks/vue/basic/customHooks'},
+                                        {text: '自定义指令', link: '/frameworks/vue/basic/customDirectives'},
+                                        {text: '自定义Ref', link: '/frameworks/vue/basic/customRef'},
+                                        {text: '插件', link: '/frameworks/vue/basic/plugins'},
+                                        {text: '过渡', link: '/frameworks/vue/basic/transition'},
+                                        {text: '列表过渡', link: '/frameworks/vue/basic/transitionGroup'},
+                                        {text: '组件缓存', link: '/frameworks/vue/basic/keepAlive'},
+                                        {text: 'Teleport', link: '/frameworks/vue/basic/teleport'},
+                                        {text: '异步依赖边界管理器', link: '/frameworks/vue/basic/suspense'},
+                                        {text: '路由', link: '/frameworks/vue/basic/vueRouter'},
+                                        {text: 'pinia', link: '/frameworks/vue/basic/pinia'},
+                                        {text: 'TS与组合式API', link: '/frameworks/vue/basic/composablesTs'},
+                                        {text: '同构渲染', link: '/frameworks/vue/basic/isomorphicRendering'},
+                                        {text: '环境配置和打包', link: '/frameworks/vue/basic/buildTools'},
                                     ]
                                 },
                                 {
@@ -519,19 +521,19 @@ export default defineConfig(({mode}) => {
                                             items: [
                                                 {
                                                     text: '命令式编程与声明式编程',
-                                                    link: '/frameworks/vue/imperativeAndDeclarative'
+                                                    link: '/frameworks/vue/advanced/core-design/imperativeAndDeclarative'
                                                 },
-                                                {text: '编译时和运行时', link: '/frameworks/vue/compileAndRun'},
-                                                {text: '响应式副作用 (effect)', link: '/frameworks/vue/slideEffect'},
-                                                {text: 'TreeShaking', link: '/frameworks/vue/treeShaking'},
-                                                {text: 'TypeScript支持', link: '/frameworks/vue/typescriptSupport'},
-                                                {text: '声明式UI', link: '/frameworks/vue/declarativeUI'},
-                                                {text: '虚拟 DOM', link: '/frameworks/vue/vDom'},
-                                                {text: '编译器', link: '/frameworks/vue/compiler'},
-                                                {text: '渲染器', link: '/frameworks/vue/renderer'},
+                                                {text: '编译时和运行时', link: '/frameworks/vue/advanced/core-design/compileAndRun'},
+                                                {text: '响应式副作用 (effect)', link: '/frameworks/vue/advanced/core-design/slideEffect'},
+                                                {text: 'TreeShaking', link: '/frameworks/vue/advanced/core-design/treeShaking'},
+                                                {text: 'TypeScript支持', link: '/frameworks/vue/advanced/core-design/typescriptSupport'},
+                                                {text: '声明式UI', link: '/frameworks/vue/advanced/core-design/declarativeUI'},
+                                                {text: '虚拟 DOM', link: '/frameworks/vue/advanced/core-design/vDom'},
+                                                {text: '编译器', link: '/frameworks/vue/advanced/core-design/compiler'},
+                                                {text: '渲染器', link: '/frameworks/vue/advanced/core-design/renderer'},
                                                 {
                                                     text: '组件的本质：状态与渲染',
-                                                    link: '/frameworks/vue/componentEssence'
+                                                    link: '/frameworks/vue/advanced/core-design/componentEssence'
                                                 },
                                             ]
                                         },
@@ -539,74 +541,74 @@ export default defineConfig(({mode}) => {
                                             text: '从源码看本质：Vue 3 响应式系统、编译器与渲染器',
                                             collapsed: true, // 初始状态为“展开”
                                             items: [
-                                                {text: 'Vue 3 源码目录结构', link: '/frameworks/vue/vueCatalog'},
-                                                {text: '响应式系统演进', link: '/frameworks/vue/reactivityUpdate'},
+                                                {text: 'Vue 3 源码目录结构', link: '/frameworks/vue/advanced/source-code/vueCatalog'},
+                                                {text: '响应式系统演进', link: '/frameworks/vue/advanced/source-code/reactivityUpdate'},
                                                 {
                                                     text: '响应式系统核心',
                                                     collapsed: true, // 初始状态为“展开”
                                                     items: [
-                                                        {text: 'reactive', link: '/frameworks/vue/reactive'},
-                                                        {text: 'ref', link: '/frameworks/vue/ref'},
-                                                        {text: 'computed', link: '/frameworks/vue/computed'},
-                                                        {text: 'watch', link: '/frameworks/vue/watch'},
-                                                        {text: 'watchEffect', link: '/frameworks/vue/watchEffect'},
+                                                        {text: 'reactive', link: '/frameworks/vue/advanced/source-code/reactivity-core/reactive'},
+                                                        {text: 'ref', link: '/frameworks/vue/advanced/source-code/reactivity-core/ref'},
+                                                        {text: 'computed', link: '/frameworks/vue/advanced/source-code/reactivity-core/computed'},
+                                                        {text: 'watch', link: '/frameworks/vue/advanced/source-code/reactivity-core/watch'},
+                                                        {text: 'watchEffect', link: '/frameworks/vue/advanced/source-code/reactivity-core/watchEffect'},
                                                     ]
                                                 },
                                                 {
                                                     text: '调度与异步更新',
                                                     collapsed: true, // 初始状态为“展开”
                                                     items: [
-                                                        {text: 'scheduler', link: '/frameworks/vue/scheduler'},
-                                                        {text: 'nextTick', link: '/frameworks/vue/nextTick'},
+                                                        {text: 'scheduler', link: '/frameworks/vue/advanced/source-code/scheduler/scheduler'},
+                                                        {text: 'nextTick', link: '/frameworks/vue/advanced/source-code/scheduler/nextTick'},
                                                     ]
                                                 },
-                                                {text: '依赖注入', link: '/frameworks/vue/provideAndInject'},
+                                                {text: '依赖注入', link: '/frameworks/vue/advanced/source-code/provideAndInject'},
                                                 {
                                                     text: '虚拟 DOM 与渲染器',
                                                     collapsed: true, // 初始状态为“展开”
                                                     items: [
-                                                        {text: 'vnode', link: '/frameworks/vue/vnode'},
+                                                        {text: 'vnode', link: '/frameworks/vue/advanced/source-code/renderer/vnode'},
                                                         {
                                                             text: 'createRenderer',
-                                                            link: '/frameworks/vue/createRenderer'
+                                                            link: '/frameworks/vue/advanced/source-code/renderer/createRenderer'
                                                         },
-                                                        {text: 'nodeOps', link: '/frameworks/vue/nodeOps'},
+                                                        {text: 'nodeOps', link: '/frameworks/vue/advanced/source-code/renderer/nodeOps'},
                                                         {
                                                             text: 'processElement',
-                                                            link: '/frameworks/vue/processElement'
+                                                            link: '/frameworks/vue/advanced/source-code/renderer/processElement'
                                                         },
-                                                        {text: 'processText', link: '/frameworks/vue/processText'},
+                                                        {text: 'processText', link: '/frameworks/vue/advanced/source-code/renderer/processText'},
                                                         {
                                                             text: 'processCommentNode',
-                                                            link: '/frameworks/vue/processCommentNode'
+                                                            link: '/frameworks/vue/advanced/source-code/renderer/processCommentNode'
                                                         },
                                                         {
                                                             text: 'processFragment',
-                                                            link: '/frameworks/vue/processFragment'
+                                                            link: '/frameworks/vue/advanced/source-code/renderer/processFragment'
                                                         },
                                                         {
                                                             text: 'processComponent',
-                                                            link: '/frameworks/vue/processComponent'
+                                                            link: '/frameworks/vue/advanced/source-code/renderer/processComponent'
                                                         },
                                                     ]
                                                 },
-                                                {text: 'Diff 算法演进', link: '/frameworks/vue/patchKeyedChildren'},
+                                                {text: 'Diff 算法演进', link: '/frameworks/vue/advanced/source-code/patchKeyedChildren'},
                                                 {
                                                     text: 'Vue 3 特殊组件揭秘',
                                                     collapsed: true, // 初始状态为“展开”
                                                     items: [
                                                         {
                                                             text: '异步组件',
-                                                            link: '/frameworks/vue/defineAsyncComponent'
+                                                            link: '/frameworks/vue/advanced/source-code/special-components/defineAsyncComponent'
                                                         },
-                                                        {text: '组件缓存', link: '/frameworks/vue/keepAliveComponent'},
+                                                        {text: '组件缓存', link: '/frameworks/vue/advanced/source-code/special-components/keepAliveComponent'},
                                                         {
                                                             text: 'Teleport组件',
-                                                            link: '/frameworks/vue/teleportComponent'
+                                                            link: '/frameworks/vue/advanced/source-code/special-components/teleportComponent'
                                                         },
                                                         {
                                                             text: 'Transition组件',
-                                                            link: '/frameworks/vue/transitionComponent'
+                                                            link: '/frameworks/vue/advanced/source-code/special-components/transitionComponent'
                                                         },
                                                     ]
                                                 },
@@ -616,11 +618,11 @@ export default defineConfig(({mode}) => {
                                                     items: [
                                                         {
                                                             text: '编译器核心技术概览',
-                                                            link: '/frameworks/vue/compilerInfo'
+                                                            link: '/frameworks/vue/advanced/source-code/compiler/compilerInfo'
                                                         },
-                                                        {text: '解析阶段', link: '/frameworks/vue/parser'},
-                                                        {text: '转换/优化阶段', link: '/frameworks/vue/transform'},
-                                                        {text: '代码生成阶段', link: '/frameworks/vue/codegen'},
+                                                        {text: '解析阶段', link: '/frameworks/vue/advanced/source-code/compiler/parser'},
+                                                        {text: '转换/优化阶段', link: '/frameworks/vue/advanced/source-code/compiler/transform'},
+                                                        {text: '代码生成阶段', link: '/frameworks/vue/advanced/source-code/compiler/codegen'},
                                                     ]
                                                 },
                                             ]
@@ -631,17 +633,17 @@ export default defineConfig(({mode}) => {
                                     text: '自定义组件库',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: '快速开始', link: '/frameworks/vue/quickStart'},
-                                        {text: 'Button 按钮', link: '/frameworks/vue/button'},
-                                        {text: 'Progress 进度条', link: '/frameworks/vue/progress'},
-                                        {text: 'Collapse 折叠面板', link: '/frameworks/vue/collapse'},
-                                        {text: 'Tooltip 文字提示', link: '/frameworks/vue/tooltip'},
-                                        {text: 'Dropdown 下拉菜单', link: '/frameworks/vue/dropdown'},
-                                        {text: 'Message 消息提示', link: '/frameworks/vue/message'},
-                                        {text: 'Input 输入框', link: '/frameworks/vue/input'},
-                                        {text: 'Switch 开关', link: '/frameworks/vue/switch'},
-                                        {text: 'Select 选择器', link: '/frameworks/vue/select'},
-                                        {text: 'Form 表单', link: '/frameworks/vue/form'},
+                                        {text: '快速开始', link: '/frameworks/vue/components/quickStart'},
+                                        {text: 'Button 按钮', link: '/frameworks/vue/components/button'},
+                                        {text: 'Progress 进度条', link: '/frameworks/vue/components/progress'},
+                                        {text: 'Collapse 折叠面板', link: '/frameworks/vue/components/collapse'},
+                                        {text: 'Tooltip 文字提示', link: '/frameworks/vue/components/tooltip'},
+                                        {text: 'Dropdown 下拉菜单', link: '/frameworks/vue/components/dropdown'},
+                                        {text: 'Message 消息提示', link: '/frameworks/vue/components/message'},
+                                        {text: 'Input 输入框', link: '/frameworks/vue/components/input'},
+                                        {text: 'Switch 开关', link: '/frameworks/vue/components/switch'},
+                                        {text: 'Select 选择器', link: '/frameworks/vue/components/select'},
+                                        {text: 'Form 表单', link: '/frameworks/vue/components/form'},
                                     ]
                                 }
                             ]

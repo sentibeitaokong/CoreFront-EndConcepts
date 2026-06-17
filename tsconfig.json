@@ -1,31 +1,5 @@
 {
-  "compilerOptions": {
-    "rootDir": ".",
-    "baseUrl": ".",
-    "target": "es2023",
-    "module": "esnext",
-    "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"],
-    "skipLibCheck": true,
-
-    /* Bundler mode */
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
-    "rewriteRelativeImportExtensions": true,
-    /* Linting */
-    "noUnusedLocals": false,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": false,
-    "noFallthroughCasesInSwitch": true,
-    //路径映射
-    "paths": {
-      "@xunbei-vue/*": ["codePackage/vue/*/src"]
-    }
-  },
-  "include": ["codePackage/vue/vue/src/**/*.ts"],
+  "files": [],
   "references": [
     {
       "path": "./tsconfig.node.json"
