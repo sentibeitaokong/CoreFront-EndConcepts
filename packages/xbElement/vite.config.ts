@@ -39,6 +39,7 @@ export default defineConfig({
           '@fortawesome/free-solid-svg-icons': 'FreeSolidSvgIcons',
           '@fortawesome/vue-fontawesome': 'VueFontAwesome',
         },
+
         //修改输出css文件的名称
         // assetFileNames:(chunkInfo)=>{
         //   if (chunkInfo.names.includes("x-element.css")) {
