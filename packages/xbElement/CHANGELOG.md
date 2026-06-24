@@ -1,5 +1,11 @@
 # xb-element
 
+## 1.0.17
+
+### Patch Changes
+
+- bfe8e46: 修复自动发版
+
 ## 1.0.16
 
 ### Patch Changes
