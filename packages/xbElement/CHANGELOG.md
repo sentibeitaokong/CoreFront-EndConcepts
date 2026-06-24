@@ -1,5 +1,12 @@
 # xb-element
 
+## 1.0.19
+
+### Patch Changes
+
+- 8fd97fb: 测试自动发版
+- 3f53934: 更新自动发布
+
 ## 1.0.18
 
 ### Patch Changes
