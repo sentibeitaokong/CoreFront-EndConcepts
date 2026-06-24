@@ -3,42 +3,45 @@
 layout: home
 
 hero:
-  name: '前端核心概念'
-  text: '个人博客'
-  tagline: 快速浏览前端核心概念，只需几分钟
+  name: 'Core Front-End Concepts'
+  text: '前端核心知识体系'
+  tagline: 从 Web 基础、浏览器原理、框架生态到工程化与源码实现，建立一张可持续扩展的前端能力地图。
   image:
     src: /img/vitepress.svg
-    alt: VitePress
+    alt: Core Front-End Concepts
   actions:
     - theme: brand
-      text: 前端知识体系介绍
+      text: 开始阅读
       link: /intro
     - theme: alt
-      text: GitHub
-      link: https://github.com/sentibeitaokong/CoreFront-EndConcepts
+      text: Vue 源码
+      link: /frameworks/vue/advanced/source-code/vueCatalog
+    - theme: alt
+      text: 工程化指南
+      link: /forntEngineering/intro
 
 features:
   - icon:
       src: /img/handleWriting.svg
-    title: 深入函数手写
-    details: 理解原理的最佳方式，就是亲手实现一遍。
-    link: /js/arrayHandleWriting
+    title: JavaScript 底层与手写
+    details: 从执行上下文、作用域、原型链、异步机制到 Promise、Axios、继承和高阶函数手写。
+    link: /js/hand-writing/promiseHandleWriting
 
   - icon:
       src: /img/frameworks.svg
-    title: 前端主流框架
-    details: 你是追求快速开发与优雅简洁的 Vue，还是偏爱灵活可控与函数式思维的 React。
+    title: Vue / React 双框架
+    details: 覆盖组件通信、路由、状态管理、Hooks、过渡动画、性能优化与框架设计思想。
     link: /frameworks/vue/basic/intro
 
   - icon:
-      src: /img/designPatterns.svg
-    title: 设计模式和架构模式
-    details: 不再只是“写”代码，而是在“设计”代码。
-    link: /designPatterns/singletonPattern
+      src: /img/Vue.svg
+    title: Vue 源码实现
+    details: 以 reactivity、runtime-core、runtime-dom、compiler-core 拆解响应式、渲染器、调度器和编译器。
+    link: /frameworks/vue/advanced/source-code/vueCatalog
 
   - icon:
       src: /img/algorithms.svg
-    title: 数据结构和算法
-    details: 深入数据结构和算法是一场受益终身的修行。它们不是冰冷的公式，而是解决问题的思维工具。
-    link: /dataStructuresAndAlgorithms/array
+    title: 算法与设计模式
+    details: 用数据结构、算法思想和设计模式提升抽象建模能力，服务复杂业务与框架原理理解。
+    link: /dataStructuresAndAlgorithms/data-structures/array
 ---
