@@ -1,0 +1,77 @@
+{
+  "name": "xb-element",
+  "version": "1.0.14",
+  "description": "Vue3 components library",
+  "author": "Xun Bei",
+  "license": "MIT",
+  "keywords": [
+    "VUE3",
+    "Component",
+    "UI"
+  ],
+  "homepage": "https://github.com/sentibeitaokong",
+  "repository": "https://github.com/sentibeitaokong/v-elementPlus",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "dist/x-element.css"
+  ],
+  "main": "./dist/umd/x-element.umd.cjs",
+  "module": "./dist/es/x-element.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/es/x-element.js",
+      "require": "./dist/umd/x-element.umd.cjs"
+    },
+    "./*": "./*",
+    "./dist/": {
+      "import": "./dist/",
+      "require": "./dist/"
+    }
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && npm run build-only && npm run move-style",
+    "preview": "vite preview",
+    "test": "vitest run --root .",
+    "build-only": "run-p build-umd build-es",
+    "build-umd": "vite build --config vite.umd.config.ts",
+    "build-es": "vite build --config vite.es.config.ts",
+    "move-style": "cp dist/es/x-element.css dist/x-element.css",
+    "release": "pnpm publish --access public",
+    "type-check": "vue-tsc -b --noEmit",
+    "lint": "eslint . --fix --cache",
+    "format": "prettier --write --experimental-cli src/",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@floating-ui/vue": "^1.1.11",
+    "async-validator": "^4.2.5",
+    "lodash-es": "^4.17.23"
+  },
+  "peerDependencies": {
+    "@fortawesome/fontawesome-svg-core": "^7.1.0",
+    "@fortawesome/free-solid-svg-icons": "^7.1.0",
+    "@fortawesome/vue-fontawesome": "^3.1.2",
+    "vue": "^3.5.25"
+  },
+  "peerDependenciesMeta": {
+    "@fortawesome/fontawesome-svg-core": {
+      "optional": true
+    },
+    "@fortawesome/free-solid-svg-icons": {
+      "optional": true
+    },
+    "@fortawesome/vue-fontawesome": {
+      "optional": true
+    }
+  }
+}

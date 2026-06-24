@@ -18,23 +18,23 @@
       "outputs": [],
       "cache": true
     },
-    "dev": {
-      "dependsOn": ["^dev"],
-      "persistent": true,
-      "cache": false
-    },
-    "docs:dev": {
-      "persistent": true,
-      "cache": false
-    },
-    "docs:build": {
+    "test": {
       "dependsOn": ["^build"],
-      "outputs": [".vitepress/dist/**"],
+      "outputs": [],
       "cache": true
     },
-    "docs:preview": {
-      "dependsOn": ["docs:build"],
+    "dev": {
       "persistent": true,
+      "cache": false
+    },
+    "preview": {
+      "dependsOn": ["build"],
+      "persistent": true,
+      "cache": false
+    },
+    "release": {
+      "dependsOn": ["build"],
+      "outputs": [],
       "cache": false
     }
   }

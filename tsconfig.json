@@ -5,10 +5,13 @@
       "path": "./tsconfig.node.json"
     },
     {
-      "path": "./tsconfig.app.json"
+      "path": "./apps/docs"
     },
     {
-      "path": "./codePackage/vue"
+      "path": "./packages/xbElement"
+    },
+    {
+      "path": "./packages/vue"
     }
   ]
 }

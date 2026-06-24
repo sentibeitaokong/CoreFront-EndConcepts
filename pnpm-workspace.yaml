@@ -12,4 +12,6 @@ minimumReleaseAgeExclude:
 minimumReleaseAge: 0
 
 packages:
-  - 'docs'
+  - 'packages/*'
+  - 'packages/vue/*'
+  - 'apps/*'
