@@ -1,5 +1,11 @@
 # xb-element
 
+## 1.0.18
+
+### Patch Changes
+
+- fc58154: 更新发版
+
 ## 1.0.17
 
 ### Patch Changes
