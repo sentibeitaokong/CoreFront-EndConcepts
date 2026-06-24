@@ -1,5 +1,11 @@
 # xb-element
 
+## 1.0.21
+
+### Patch Changes
+
+- 9436b5b: 绕过二次验证发版
+
 ## 1.0.20
 
 ### Patch Changes
