@@ -49,8 +49,7 @@
     "release": "pnpm publish --access public",
     "type-check": "vue-tsc -b --noEmit",
     "lint": "eslint . --fix --cache",
-    "format": "prettier --write --experimental-cli src/",
-    "prepublishOnly": "npm run build"
+    "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.11",
