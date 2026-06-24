@@ -1,5 +1,11 @@
 # xb-element
 
+## 1.0.22
+
+### Patch Changes
+
+- 578c721: 再次验证cicd自动发版
+
 ## 1.0.21
 
 ### Patch Changes
