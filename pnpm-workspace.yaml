@@ -5,6 +5,8 @@ allowBuilds:
   puppeteer: false
   sharp: false
   vue-demi: false
+onlyBuiltDependencies:
+  - sharp
 minimumReleaseAgeExclude:
   - xb-element@1.0.6
   - xb-element@1.0.7

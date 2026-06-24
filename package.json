@@ -31,7 +31,7 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "run-s test:xb release:build changeset:publish",
-    "release:build": "pnpm --filter packages/xbElement run build",
+    "release:build": "pnpm --filter xb-element run build",
     "changeset:publish": "changeset publish",
     "preview": "vite preview",
     "test": "run-s test:vue test:xb",
@@ -102,10 +102,5 @@
     "vitest": "^2.1.0",
     "vue": "3.5.38",
     "vue-tsc": "^3.1.5"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "sharp"
-    ]
   }
 }

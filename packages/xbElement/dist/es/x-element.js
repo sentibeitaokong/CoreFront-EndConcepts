@@ -1294,31 +1294,40 @@ var ho = co, go = (e, t) => {
 		hideAfterClick: {
 			type: Boolean,
 			default: !0
-		}
+		},
+		content: {},
+		trigger: {},
+		placement: {},
+		manual: { type: Boolean },
+		popperOptions: {},
+		externalMiddleware: {},
+		transition: {},
+		openDelay: {},
+		closeDelay: {}
 	},
 	emits: ["visible-change", "select"],
 	setup(t, { expose: n, emit: r }) {
-		let s = t, l = r, u = w(), d = (e) => {
-			l("visible-change", e);
-		}, f = (e) => {
-			e.disabled || (l("select", e), s.hideAfterClick && u.value?.hide());
+		let s = r, l = w(), u = (e) => {
+			s("visible-change", e);
+		}, d = (e) => {
+			e.disabled || (s("select", e), t.hideAfterClick && l.value?.hide());
 		};
 		return n({
-			show: () => u.value?.show(),
-			hide: () => u.value?.hide()
+			show: () => l.value?.show(),
+			hide: () => l.value?.hide()
 		}), (n, r) => (x(), a("div", yo, [c(_o, {
-			placement: s.placement,
-			trigger: s.trigger,
-			"close-delay": s.closeDelay,
-			"open-delay": s.openDelay,
-			"popper-options": s.popperOptions,
-			manual: s.manual,
+			placement: t.placement,
+			trigger: t.trigger,
+			"close-delay": t.closeDelay,
+			"open-delay": t.openDelay,
+			"popper-options": t.popperOptions,
+			manual: t.manual,
 			ref_key: "TooltipRef",
-			ref: u,
-			onVisibleChange: d
+			ref: l,
+			onVisibleChange: u
 		}, {
 			content: M(() => [o("ul", bo, [(x(!0), a(e, null, ee(t.menuOptions, (t) => (x(), a(e, { key: t.key }, [t.divided ? (x(), a("li", xo)) : i("", !0), o("li", {
-				onClick: () => f(t),
+				onClick: () => d(t),
 				class: g(["vk-dropdown__item", {
 					"is-disabled": t.disabled,
 					"is-divided": t.divided

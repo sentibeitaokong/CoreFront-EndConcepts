@@ -1,12 +1,12 @@
 <template>
   <div class="vk-dropdown">
     <Tooltip
-      :placement="props.placement"
-      :trigger="props.trigger"
-      :close-delay="props.closeDelay"
-      :open-delay="props.openDelay"
-      :popper-options="props.popperOptions"
-      :manual="props.manual"
+      :placement="placement"
+      :trigger="trigger"
+      :close-delay="closeDelay"
+      :open-delay="openDelay"
+      :popper-options="popperOptions"
+      :manual="manual"
       ref="TooltipRef"
       @visible-change="visibleChange"
     >
@@ -14,11 +14,18 @@
       <template #content>
         <ul class="vk-dropdown__menu">
           <template v-for="item in menuOptions" :key="item.key">
-            <li v-if="item.divided" role="separator" class="divided-placeholder"></li>
+            <li
+              v-if="item.divided"
+              role="separator"
+              class="divided-placeholder"
+            ></li>
             <li
               @click="() => itemClick(item)"
               class="vk-dropdown__item"
-              :class="{ 'is-disabled': item.disabled, 'is-divided': item.divided }"
+              :class="{
+                'is-disabled': item.disabled,
+                'is-divided': item.divided,
+              }"
               :id="`dropdown-item-${item.key}`"
             >
               <RenderVnode :v-node="item.label"></RenderVnode>
@@ -36,18 +43,16 @@ import type {
   DropDownInstance,
   DropDownEmits,
   MenuOptions,
-} from './types.ts'
+} from '@/components/Dropdown/types.ts'
 import Tooltip from '@/components/Tooltip/Tooltip.vue'
 import { type Ref, ref } from 'vue'
-import type { TooltipInstance } from '../Tooltip/type.ts'
+import type { TooltipInstance } from '@/components/Tooltip/type.ts'
 import RenderVnode from '@/components/Common/RenderVnode.ts'
 
 defineOptions({
-  name:'VkDropDown'
+  name: 'VkDropDown',
 })
-const props = withDefaults(defineProps<DropDownProps>(), {
-  hideAfterClick: true,
-})
+const { hideAfterClick = true } = defineProps<DropDownProps>()
 const emits = defineEmits<DropDownEmits>()
 const TooltipRef = ref() as Ref<TooltipInstance>
 const visibleChange = (e: boolean) => {
@@ -58,14 +63,14 @@ const itemClick = (e: MenuOptions) => {
     return
   }
   emits('select', e)
-  if(props.hideAfterClick){
+  if (hideAfterClick) {
     TooltipRef.value?.hide()
   }
 }
 
 defineExpose<DropDownInstance>({
-  show: ()=>TooltipRef.value?.show(),
-  hide: ()=>TooltipRef.value?.hide(),
+  show: () => TooltipRef.value?.show(),
+  hide: () => TooltipRef.value?.hide(),
 })
 </script>
 
