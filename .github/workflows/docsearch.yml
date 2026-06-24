@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '.changeset/**'
+      - 'packages/xbElement/package.json'
+      - 'packages/xbElement/CHANGELOG.md'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
   workflow_dispatch: # 允许你在 GitHub 网页上手动点击运行按钮
 
 jobs:

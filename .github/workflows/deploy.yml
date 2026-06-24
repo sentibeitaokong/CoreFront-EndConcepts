@@ -7,6 +7,12 @@ on:
   # 使用 `master` 分支作为默认分支，请将其更改为 `master`
   push:
     branches: [main]
+    paths-ignore:
+      - '.changeset/**'
+      - 'packages/xbElement/package.json'
+      - 'packages/xbElement/CHANGELOG.md'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
 
   # 允许从 Actions 选项卡手动运行此工作流程
   workflow_dispatch:
@@ -62,7 +68,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/.vitepress/dist
+          path: apps/docs/.vitepress/dist
 
   # 部署工作
   deploy:

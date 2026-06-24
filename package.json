@@ -31,7 +31,7 @@
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "run-s test:xb release:build changeset:publish",
-    "release:build": "npm --filter packages/xbElement run build",
+    "release:build": "pnpm --filter packages/xbElement run build",
     "changeset:publish": "changeset publish",
     "preview": "vite preview",
     "test": "run-s test:vue test:xb",
