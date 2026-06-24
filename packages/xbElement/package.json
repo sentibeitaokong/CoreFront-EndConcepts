@@ -12,6 +12,10 @@
   "homepage": "https://github.com/sentibeitaokong",
   "repository": "https://github.com/sentibeitaokong/v-elementPlus",
   "type": "module",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "files": [
     "dist"
   ],
