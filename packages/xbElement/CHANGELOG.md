@@ -1,5 +1,11 @@
 # xb-element
 
+## 1.0.20
+
+### Patch Changes
+
+- ff93300: 更新发布
+
 ## 1.0.19
 
 ### Patch Changes
