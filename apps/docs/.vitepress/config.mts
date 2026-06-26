@@ -365,6 +365,15 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                         {text: '媒体查询', link: '/css/advanced/responsive/mediaQueries'},
                                         {text: '单位', link: '/css/advanced/responsive/units'},
                                     ]
+                                },
+                                {
+                                    text: '架构与工程化治理',
+                                    collapsed: true, // 初始状态为“展开”
+                                    items: [
+                                        {text: '变量', link: '/css/advanced/project/variables'},
+                                        {text: '级联层', link: '/css/advanced/project/cascadeLayer'},
+                                        {text: '容器查询', link: '/css/advanced/project/containerQueries'},
+                                    ]
                                 }
                             ]
                         }
