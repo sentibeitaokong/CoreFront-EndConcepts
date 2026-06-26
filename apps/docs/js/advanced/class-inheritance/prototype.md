@@ -300,7 +300,7 @@ p.__proto__.__proto__ === Object.prototype // true
 p.__proto__.__proto__.__proto__ === null // true
 ```
 
-### 3.2 **`Function`** 和 **`Object`**鸡蛋问题
+### 3.2 **`Function`** 和 **`Object`** 鸡蛋问题
 
 ![Logo](/img/prototype.png)
 ![Logo](/img/prototypeDesc.png)

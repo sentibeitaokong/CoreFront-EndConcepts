@@ -238,8 +238,8 @@ Parcel 内置了对 `.env` 文件的支持，并且会自动注入 `process.env.
     ```
 2.  在你的 JavaScript 代码中直接访问：
     `javascript
-    console.log(process.env.API_KEY);
-    `
+console.log(process.env.API_KEY);
+`
     **重要**：默认情况下，出于安全考虑，只有以 `PARCEL_` 开头的环境变量会被注入到前端代码中。如果你想暴露其他变量，需要在 `package.json` 中明确指定：
 
 ```json

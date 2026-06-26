@@ -844,23 +844,23 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                     text: '前端工程化',
                     collapsed: true, // 初始状态为“展开”
                     items: [
-                        {text: '简介', link: '/forntEngineering/intro'},
+                        {text: '简介', link: '/frontEngineering/intro'},
                         {
                             text: '模块化与组件化开发',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: 'js模块化', link: '/forntEngineering/module-component/javascriptModules'},
-                                {text: 'css工程化', link: '/forntEngineering/module-component/cssProject'},
-                                {text: '组件化思维', link: '/forntEngineering/module-component/modules'},
+                                {text: 'js模块化', link: '/frontEngineering/module-component/javascriptModules'},
+                                {text: 'css工程化', link: '/frontEngineering/module-component/cssProject'},
+                                {text: '组件化思维', link: '/frontEngineering/module-component/modules'},
                             ]
                         },
-                        {text: '常用工具介绍', link: '/forntEngineering/engineerTools'},
+                        {text: '常用工具介绍', link: '/frontEngineering/engineerTools'},
                         {
                             text: '包管理器与依赖管理',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: '包管理器', link: '/forntEngineering/package-management/packageManagers'},
-                                {text: '依赖管理', link: '/forntEngineering/package-management/packageJson'},
+                                {text: '包管理器', link: '/frontEngineering/package-management/packageManagers'},
+                                {text: '依赖管理', link: '/frontEngineering/package-management/packageJson'},
                             ]
                         },
                         {
@@ -871,44 +871,44 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                     text: '综合构建与打包',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: 'Webpack', link: '/forntEngineering/build-tools/bundlers/webpack'},
-                                        {text: 'vite', link: '/forntEngineering/build-tools/bundlers/vite'},
-                                        {text: 'Rspack', link: '/forntEngineering/build-tools/bundlers/rspack'},
-                                        {text: 'Turbopack', link: '/forntEngineering/build-tools/bundlers/turbopack'},
-                                        {text: 'gulp', link: '/forntEngineering/build-tools/bundlers/gulp'},
-                                        {text: 'parcel', link: '/forntEngineering/build-tools/bundlers/parcel'},
+                                        {text: 'Webpack', link: '/frontEngineering/build-tools/bundlers/webpack'},
+                                        {text: 'vite', link: '/frontEngineering/build-tools/bundlers/vite'},
+                                        {text: 'Rspack', link: '/frontEngineering/build-tools/bundlers/rspack'},
+                                        {text: 'Turbopack', link: '/frontEngineering/build-tools/bundlers/turbopack'},
+                                        {text: 'gulp', link: '/frontEngineering/build-tools/bundlers/gulp'},
+                                        {text: 'parcel', link: '/frontEngineering/build-tools/bundlers/parcel'},
                                     ]
                                 },
                                 {
                                     text: '底层编译与打包引擎',
-                                    link: '/forntEngineering/build-tools/compilers/codeCompilers'
+                                    link: '/frontEngineering/build-tools/compilers/codeCompilers'
                                 },
                                 {
                                     text: '类库独立打包',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
-                                        {text: 'tsup', link: '/forntEngineering/build-tools/library-bundling/tsup'},
-                                        {text: 'Rollup', link: '/forntEngineering/build-tools/library-bundling/rollup'},
+                                        {text: 'tsup', link: '/frontEngineering/build-tools/library-bundling/tsup'},
+                                        {text: 'Rollup', link: '/frontEngineering/build-tools/library-bundling/rollup'},
                                     ]
                                 },
                             ]
                         },
-                        {text: '代码规范与质量控制', link: '/forntEngineering/quality/linters'},
-                        {text: '自动化测试', link: '/forntEngineering/quality/testing'},
+                        {text: '代码规范与质量控制', link: '/frontEngineering/quality/linters'},
+                        {text: '自动化测试', link: '/frontEngineering/quality/testing'},
                         {
                             text: 'CI/CD 与持续部署',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: 'CI/CD 工具', link: '/forntEngineering/ci-cd/ci-cd'},
-                                {text: '部署环境', link: '/forntEngineering/ci-cd/deploymentEnvironments'},
+                                {text: 'CI/CD 工具', link: '/frontEngineering/ci-cd/ci-cd'},
+                                {text: '部署环境', link: '/frontEngineering/ci-cd/deploymentEnvironments'},
                             ]
                         },
-                        {text: '异常捕获与性能监控', link: '/forntEngineering/quality/performanceMonitoring'},
+                        {text: '异常捕获与性能监控', link: '/frontEngineering/quality/performanceMonitoring'},
                         {
                             text: '架构演进:Monorepo与微前端',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: 'Monorepo（单体仓库）', link: '/forntEngineering/architecture/monorepo'},
+                                {text: 'Monorepo（单体仓库）', link: '/frontEngineering/architecture/monorepo'},
                             ]
                         },
 
