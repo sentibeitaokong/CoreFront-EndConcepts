@@ -367,7 +367,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                     ]
                                 },
                                 {
-                                    text: '架构与工程化治理',
+                                    text: '工程化治理',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
                                         {text: '变量', link: '/css/advanced/project/variables'},
