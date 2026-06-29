@@ -1,0 +1,46 @@
+import { ssrRenderAttrs as s, ssrRenderStyle as e } from 'vue/server-renderer'
+import { useSSRContext as a } from 'vue'
+import { _ as d } from './plugin-vue_export-helper.CTtO9zSR.js'
+;(function () {
+  try {
+    var t =
+      typeof window < 'u'
+        ? window
+        : typeof global < 'u'
+          ? global
+          : typeof globalThis < 'u'
+            ? globalThis
+            : typeof self < 'u'
+              ? self
+              : {}
+    t.SENTRY_RELEASE = { id: '63d551497be1158ac55eeefaf1dec4a9182e3c76' }
+    var r = new t.Error().stack
+    r &&
+      ((t._sentryDebugIds = t._sentryDebugIds || {}),
+      (t._sentryDebugIds[r] = '9e397e31-bab2-4694-a67f-3c593e9a1cb9'),
+      (t._sentryDebugIdIdentifier =
+        'sentry-dbid-9e397e31-bab2-4694-a67f-3c593e9a1cb9'))
+  } catch {}
+})()
+const y = JSON.parse(
+    '{"title":"设计模式核心原则","description":"","frontmatter":{},"headers":[],"relativePath":"designPatterns/summary/patternPrinciple.md","filePath":"designPatterns/summary/patternPrinciple.md","lastUpdated":1782271806000}',
+  ),
+  n = { name: 'designPatterns/summary/patternPrinciple.md' }
+function g(t, r, i, l, c, p, u, h) {
+  r(
+    `<div${s(l)}><h1 id="设计模式核心原则" tabindex="-1">设计模式核心原则 <a class="header-anchor" href="#设计模式核心原则" aria-label="Permalink to &quot;设计模式核心原则&quot;">​</a></h1><h2 id="_1-solid-五大原则" tabindex="-1">1. SOLID 五大原则 <a class="header-anchor" href="#_1-solid-五大原则" aria-label="Permalink to &quot;1. SOLID 五大原则&quot;">​</a></h2><h3 id="_1-1-单一职责原则-single-responsibility-principle" tabindex="-1">1.1 单一职责原则 (Single Responsibility Principle) <a class="header-anchor" href="#_1-1-单一职责原则-single-responsibility-principle" aria-label="Permalink to &quot;1.1 单一职责原则 (Single Responsibility Principle)&quot;">​</a></h3><ul><li><strong>核心思想</strong>：一个类或一个函数应该<strong>只做一件事</strong>。如果一个对象承担的职责过多，就等于把这些职责耦合在了一起。</li><li><strong>JS 实战</strong>：不要写一个既负责获取数据、又负责格式化数据、还负责渲染 DOM 的大函数。应该将其拆分为三个独立的小函数。</li></ul><h3 id="_1-2-开闭原则-open-closed-principle" tabindex="-1">1.2 开闭原则 (Open-Closed Principle) <a class="header-anchor" href="#_1-2-开闭原则-open-closed-principle" aria-label="Permalink to &quot;1.2 开闭原则 (Open-Closed Principle)&quot;">​</a></h3><ul><li><strong>核心思想</strong>：<strong>对扩展开放，对修改关闭</strong>。</li><li><strong>解释</strong>：当需求变化时，你应该通过增加新代码来扩展功能，而不是去修改已经写好的、经过测试的旧代码。</li><li><strong>JS 实战</strong>：这是<strong>策略模式</strong>和<strong>装饰器模式</strong>的灵魂。利用配置文件或插件机制来增加功能，而不是在大函数的 <code>if-else</code> 里硬写。</li></ul><h3 id="_1-3-里氏替换原则-liskov-substitution-principle" tabindex="-1">1.3 里氏替换原则 (Liskov Substitution Principle) <a class="header-anchor" href="#_1-3-里氏替换原则-liskov-substitution-principle" aria-label="Permalink to &quot;1.3 里氏替换原则 (Liskov Substitution Principle)&quot;">​</a></h3><ul><li><strong>核心思想</strong>：子类必须能够完全替换掉它们的父类，而不会导致程序出错。</li><li><strong>解释</strong>：子类不应该覆盖父类中已经实现的非抽象方法，否则会破坏继承的意义。</li><li><strong>JS 实战</strong>：如果你写了一个 <code>Bird</code> 类有 <code>fly</code> 方法，那么 <code>Ostrich</code>（鸵鸟）类就不应该继承 <code>Bird</code>，或者你应该把 <code>fly</code> 拆分出来。</li></ul><h3 id="_1-4-接口隔离原则-interface-segregation-principle" tabindex="-1">1.4 接口隔离原则 (Interface Segregation Principle) <a class="header-anchor" href="#_1-4-接口隔离原则-interface-segregation-principle" aria-label="Permalink to &quot;1.4 接口隔离原则 (Interface Segregation Principle)&quot;">​</a></h3><ul><li><strong>核心思想</strong>：不应该强迫客户依赖于它们不使用的接口。</li><li><strong>解释</strong>：一个接口（在 JS 中通常指对象的方法集合）不应该过于臃肿。</li><li><strong>JS 实战</strong>：如果一个组件只需要“读取”权限，就不要传给它一个包含“读取、写入、删除”所有方法的巨大权限对象。</li></ul><h3 id="_1-5-依赖倒置原则-dependency-inversion-principle" tabindex="-1">1.5 依赖倒置原则 (Dependency Inversion Principle) <a class="header-anchor" href="#_1-5-依赖倒置原则-dependency-inversion-principle" aria-label="Permalink to &quot;1.5 依赖倒置原则 (Dependency Inversion Principle)&quot;">​</a></h3><ul><li><strong>核心思想</strong>：面向接口编程，而不是面向实现编程。</li><li><strong>解释</strong>：高层模块不应该依赖于低层模块，两者都应该依赖于抽象。</li><li><strong>JS 实战</strong>：你的业务组件不应该直接依赖具体的 <code>Axios</code> 实例，而应该依赖一个通用的 <code>request</code> 接口。这样当你把底层从 <code>Axios</code> 换成 <code>Fetch</code> 时，业务逻辑不需要改动。</li></ul><h2 id="_2-补充重要原则" tabindex="-1">2. 补充重要原则 <a class="header-anchor" href="#_2-补充重要原则" aria-label="Permalink to &quot;2. 补充重要原则&quot;">​</a></h2><h3 id="_2-1-dry-原则-don-t-repeat-yourself" tabindex="-1">2.1 DRY 原则 (Don&#39;t Repeat Yourself) <a class="header-anchor" href="#_2-1-dry-原则-don-t-repeat-yourself" aria-label="Permalink to &quot;2.1 DRY 原则 (Don&#39;t Repeat Yourself)&quot;">​</a></h3><ul><li><strong>核心思想</strong>：<strong>不要写重复的代码</strong>。</li><li><strong>做法</strong>：通过抽象和封装，将共有的逻辑提取出来。如果同一段代码你写了三次，就该考虑重构它了。</li></ul><h3 id="_2-2-kiss-原则-keep-it-simple-stupid" tabindex="-1">2.2 KISS 原则 (Keep It Simple, Stupid) <a class="header-anchor" href="#_2-2-kiss-原则-keep-it-simple-stupid" aria-label="Permalink to &quot;2.2 KISS 原则 (Keep It Simple, Stupid)&quot;">​</a></h3><ul><li><strong>核心思想</strong>：<strong>保持简单，不要炫技</strong>。</li><li><strong>做法</strong>：能用简单的代码解决问题，就不要强行套用复杂的设计模式。简单意味着好维护、易调试。</li></ul><h3 id="_2-3-最少知识原则-law-of-demeter-least-knowledge" tabindex="-1">2.3 最少知识原则 (Law of Demeter / Least Knowledge) <a class="header-anchor" href="#_2-3-最少知识原则-law-of-demeter-least-knowledge" aria-label="Permalink to &quot;2.3 最少知识原则 (Law of Demeter / Least Knowledge)&quot;">​</a></h3><ul><li><strong>核心思想</strong>：一个对象应该对其他对象有尽可能少的了解。</li><li><strong>JS 实战</strong>：这是<strong>中介者模式</strong>的核心。对象 A 想改对象 C，不应该通过 <code>A -&gt; B -&gt; C</code> 这种长链条，而应该通过一个中介者来管理。</li></ul><p><strong>原则与模式的关系总结</strong></p><table tabindex="0"><thead><tr><th style="${e({ 'text-align': 'left' })}">设计原则</th><th style="${e({ 'text-align': 'left' })}">对应的典型设计模式</th></tr></thead><tbody><tr><td style="${e({ 'text-align': 'left' })}"><strong>单一职责 (S)</strong></td><td style="${e({ 'text-align': 'left' })}">代理模式、单例模式、装饰器模式</td></tr><tr><td style="${e({ 'text-align': 'left' })}"><strong>开闭原则 (O)</strong></td><td style="${e({ 'text-align': 'left' })}">策略模式、观察者模式、适配器模式</td></tr><tr><td style="${e({ 'text-align': 'left' })}"><strong>依赖倒置 (D)</strong></td><td style="${e({ 'text-align': 'left' })}">工厂模式、模板方法模式</td></tr><tr><td style="${e({ 'text-align': 'left' })}"><strong>最少知识</strong></td><td style="${e({ 'text-align': 'left' })}">中介者模式、外观模式</td></tr></tbody></table></div>`,
+  )
+}
+const o = n.setup
+n.setup = (t, r) => {
+  const i = a()
+  return (
+    (i.modules || (i.modules = new Set())).add(
+      'designPatterns/summary/patternPrinciple.md',
+    ),
+    o ? o(t, r) : void 0
+  )
+}
+const _ = d(n, [['ssrRender', g]])
+export { y as __pageData, _ as default }
+//# sourceMappingURL=designPatterns_summary_patternPrinciple.md.js.map

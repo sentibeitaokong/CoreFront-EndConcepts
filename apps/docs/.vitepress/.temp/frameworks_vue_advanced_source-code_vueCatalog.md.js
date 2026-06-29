@@ -1,0 +1,75 @@
+import { ssrRenderAttrs as r, ssrRenderAttr as n } from 'vue/server-renderer'
+import { useSSRContext as t } from 'vue'
+import { _ as i } from './plugin-vue_export-helper.CTtO9zSR.js'
+;(function () {
+  try {
+    var e =
+      typeof window < 'u'
+        ? window
+        : typeof global < 'u'
+          ? global
+          : typeof globalThis < 'u'
+            ? globalThis
+            : typeof self < 'u'
+              ? self
+              : {}
+    e.SENTRY_RELEASE = { id: '63d551497be1158ac55eeefaf1dec4a9182e3c76' }
+    var s = new e.Error().stack
+    s &&
+      ((e._sentryDebugIds = e._sentryDebugIds || {}),
+      (e._sentryDebugIds[s] = 'ab17d054-b50e-49fb-a3ac-f845608f5d9e'),
+      (e._sentryDebugIdIdentifier =
+        'sentry-dbid-ab17d054-b50e-49fb-a3ac-f845608f5d9e'))
+  } catch {}
+})()
+const l = '/CoreFront-EndConcepts/img/vueCatalog.png',
+  _ = JSON.parse(
+    '{"title":"Vue 3 源码目录结构","description":"","frontmatter":{},"headers":[],"relativePath":"frameworks/vue/advanced/source-code/vueCatalog.md","filePath":"frameworks/vue/advanced/source-code/vueCatalog.md","lastUpdated":1782271806000}',
+  ),
+  c = { name: 'frameworks/vue/advanced/source-code/vueCatalog.md' }
+function p(e, s, o, d, u, m, h, g) {
+  s(`<div${r(d)}><h1 id="vue-3-源码目录结构" tabindex="-1">Vue 3 源码目录结构 <a class="header-anchor" href="#vue-3-源码目录结构" aria-label="Permalink to &quot;Vue 3 源码目录结构&quot;">​</a></h1><p>Vue 3 源码采用 <strong>monorepo</strong> 架构管理，所有核心模块都放在 <code>packages/</code> 目录下，每个模块都是一个独立的 npm 包，可以单独发布和使用。这种架构使得职责划分清晰，也方便贡献者理解和维护。</p><p>本文基于 Vue 3 官方仓库 <a href="https://github.com/vuejs/core" target="_blank" rel="noreferrer"><code>vuejs/core</code></a> 的目录结构进行说明。</p><h2 id="_1-根目录结构概览" tabindex="-1">1. 根目录结构概览 <a class="header-anchor" href="#_1-根目录结构概览" aria-label="Permalink to &quot;1. 根目录结构概览&quot;">​</a></h2><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>vue-core/</span></span>
+<span class="line"><span>├── packages/                # 核心模块（monorepo 子包）</span></span>
+<span class="line"><span>├── scripts/                 # 构建、开发、发布等脚本</span></span>
+<span class="line"><span>├── test-dts/                # TypeScript 类型定义测试</span></span>
+<span class="line"><span>├── .github/                 # GitHub 相关配置（CI、Issue 模板等）</span></span>
+<span class="line"><span>├── .vscode/                 # VSCode 推荐配置</span></span>
+<span class="line"><span>├── rollup.config.js         # Rollup 构建配置</span></span>
+<span class="line"><span>├── vitest.config.ts         # Vitest 单元测试配置</span></span>
+<span class="line"><span>├── package.json             # 根 package.json</span></span>
+<span class="line"><span>├── pnpm-workspace.yaml      # pnpm workspace 配置</span></span>
+<span class="line"><span>├── tsconfig.json            # 基础 TypeScript 配置</span></span>
+<span class="line"><span>├── api-extractor.json       # API Extractor 配置（生成 d.ts 汇总）</span></span>
+<span class="line"><span>├── vitest.workspace.ts      # Vitest 工作区配置</span></span>
+<span class="line"><span>├── CHANGELOG.md</span></span>
+<span class="line"><span>├── README.md</span></span>
+<span class="line"><span>└── ...                      # 其他配置文件</span></span></code></pre></div><h2 id="_2-packages-目录-核心模块" tabindex="-1">2. packages/ 目录：核心模块 <a class="header-anchor" href="#_2-packages-目录-核心模块" aria-label="Permalink to &quot;2. packages/ 目录：核心模块&quot;">​</a></h2><p><code>packages/</code> 是 Vue 3 源码的核心，每个子目录对应一个独立的 npm 包（可通过 <code>@vue/xxx</code> 安装）。</p><div class="language- vp-adaptive-theme"><button title="Copy Code" class="copy"></button><span class="lang"></span><pre class="shiki shiki-themes github-light github-dark vp-code" tabindex="0"><code><span class="line"><span>packages/</span></span>
+<span class="line"><span>├── reactivity/              # 响应式系统（独立使用）</span></span>
+<span class="line"><span>├── runtime-core/            # 运行时核心（平台无关）</span></span>
+<span class="line"><span>├── runtime-dom/             # 浏览器 DOM 运行时（基于 runtime-core）</span></span>
+<span class="line"><span>├── runtime-test/            # 测试用的轻量运行时</span></span>
+<span class="line"><span>├── server-renderer/         # 服务端渲染（SSR）</span></span>
+<span class="line"><span>├── compiler-core/           # 编译器核心（平台无关）</span></span>
+<span class="line"><span>├── compiler-dom/            # 浏览器 DOM 编译器（基于 compiler-core）</span></span>
+<span class="line"><span>├── compiler-ssr/            # SSR 专用编译器</span></span>
+<span class="line"><span>├── shared/                  # 内部共享工具函数</span></span>
+<span class="line"><span>├── vue/                     # 完整 Vue 入口（整合运行时+编译器）</span></span>
+<span class="line"><span>├── vue-compat/              # Vue 2 兼容层</span></span>
+<span class="line"><span>├── template-explorer/       # 模板编译探索工具（开发调试用）</span></span>
+<span class="line"><span>├── dts-built-test/          # 类型定义构建测试</span></span>
+<span class="line"><span>├── global.d.ts              # 全局类型声明</span></span>
+<span class="line"><span>└── ...                      # 其他辅助包</span></span></code></pre></div><h3 id="_2-1-reactivity-–-响应式系统" tabindex="-1">2.1 <code>reactivity</code> – 响应式系统 <a class="header-anchor" href="#_2-1-reactivity-–-响应式系统" aria-label="Permalink to &quot;2.1 \`reactivity\` – 响应式系统&quot;">​</a></h3><p><strong>作用</strong>：提供独立于框架的响应式 API，可用于任何 JavaScript 项目。</p><p><strong>核心文件</strong>：</p><ul><li><code>src/index.ts</code> – 入口，导出 <code>ref</code>, <code>reactive</code>, <code>effect</code>, <code>computed</code> 等</li><li><code>src/effect.ts</code> – <code>effect</code> 副作用实现，依赖收集与触发</li><li><code>src/reactive.ts</code> – <code>reactive</code> 和 <code>readonly</code> 的 Proxy 实现</li><li><code>src/ref.ts</code> – <code>ref</code> 实现，包括 <code>.value</code> 访问</li><li><code>src/computed.ts</code> – 计算属性</li><li><code>src/dep.ts</code> – 依赖管理数据结构（<code>targetMap</code>）</li></ul><p><strong>特点</strong>：纯响应式，无虚拟 DOM 相关代码。</p><h3 id="_2-2-runtime-core-–-平台无关运行时" tabindex="-1">2.2 <code>runtime-core</code> – 平台无关运行时 <a class="header-anchor" href="#_2-2-runtime-core-–-平台无关运行时" aria-label="Permalink to &quot;2.2 \`runtime-core\` – 平台无关运行时&quot;">​</a></h3><p><strong>作用</strong>：虚拟 DOM、组件系统、生命周期、渲染器等核心逻辑，与具体平台（浏览器、Native 等）无关。</p><p><strong>核心文件</strong>：</p><ul><li><code>src/index.ts</code> – 导出 <code>h</code>, <code>createVNode</code>, <code>render</code>, <code>createApp</code> 等</li><li><code>src/renderer.ts</code> – <code>createRenderer</code> 工厂函数，核心 diff 算法（<code>patch</code>）</li><li><code>src/component.ts</code> – 组件实例创建、生命周期、<code>setup</code> 函数执行</li><li><code>src/vnode.ts</code> – 虚拟节点（VNode）定义及辅助函数</li><li><code>src/apiCreateApp.ts</code> – <code>createApp</code> 实现</li><li><code>src/apiWatch.ts</code> – <code>watch</code> / <code>watchEffect</code></li><li><code>src/scheduler.ts</code> – 异步任务调度器（<code>queueJob</code>, <code>nextTick</code>）</li><li><code>src/hydration.ts</code> – 服务端渲染水合（hydrate）逻辑</li></ul><p><strong>特点</strong>：不依赖浏览器 DOM API，所有 DOM 操作通过 <code>RendererOptions</code> 接口注入。</p><h3 id="_2-3-runtime-dom-–-浏览器-dom-运行时" tabindex="-1">2.3 <code>runtime-dom</code> – 浏览器 DOM 运行时 <a class="header-anchor" href="#_2-3-runtime-dom-–-浏览器-dom-运行时" aria-label="Permalink to &quot;2.3 \`runtime-dom\` – 浏览器 DOM 运行时&quot;">​</a></h3><p><strong>作用</strong>：针对浏览器的实现，封装 DOM API 和特定属性/事件处理。</p><p><strong>核心文件</strong>：</p><ul><li><code>src/index.ts</code> – 导出 DOM 版本的 <code>createApp</code>, <code>render</code> 等</li><li><code>src/nodeOps.ts</code> – DOM 节点操作（<code>insert</code>, <code>remove</code>, <code>createElement</code> 等）</li><li><code>src/patchProp.ts</code> – DOM 属性更新逻辑（class, style, event 等）</li><li><code>src/modules/</code> – 分类的 prop 处理模块（<code>class.ts</code>, <code>style.ts</code>, <code>events.ts</code> 等）</li><li><code>src/directives/</code> – 内置指令的 DOM 实现（<code>vModel</code>, <code>vShow</code> 等）</li></ul><p><strong>依赖</strong>：<code>runtime-core</code> + <code>compiler-dom</code>（可选）。</p><h3 id="_2-4-runtime-test-–-测试运行时" tabindex="-1">2.4 <code>runtime-test</code> – 测试运行时 <a class="header-anchor" href="#_2-4-runtime-test-–-测试运行时" aria-label="Permalink to &quot;2.4 \`runtime-test\` – 测试运行时&quot;">​</a></h3><p><strong>作用</strong>：用于单元测试的轻量级运行时，模拟 DOM 行为但不依赖真实浏览器。</p><p><strong>核心文件</strong>：</p><ul><li><code>src/index.ts</code> – 导出一个 <code>createRenderer</code> 实例，使用内存节点表示 DOM</li><li>用于 <code>runtime-core</code> 和 <code>compiler-core</code> 的测试。</li></ul><h3 id="_2-5-server-renderer-–-服务端渲染" tabindex="-1">2.5 <code>server-renderer</code> – 服务端渲染 <a class="header-anchor" href="#_2-5-server-renderer-–-服务端渲染" aria-label="Permalink to &quot;2.5 \`server-renderer\` – 服务端渲染&quot;">​</a></h3><p><strong>作用</strong>：提供服务端渲染（SSR）能力，将 Vue 组件渲染为 HTML 字符串。</p><p><strong>核心文件</strong>：</p><ul><li><code>src/index.ts</code> – 导出 <code>renderToString</code>, <code>renderToNodeStream</code> 等</li><li><code>src/render.ts</code> – SSR 渲染逻辑（同步/异步）</li><li><code>src/helpers/</code> – SSR 辅助函数（如 <code>ssrRenderAttrs</code>）</li></ul><p><strong>注意</strong>：SSR 编译器在 <code>compiler-ssr</code> 包中。</p><h3 id="_2-6-compiler-core-–-平台无关编译器" tabindex="-1">2.6 <code>compiler-core</code> – 平台无关编译器 <a class="header-anchor" href="#_2-6-compiler-core-–-平台无关编译器" aria-label="Permalink to &quot;2.6 \`compiler-core\` – 平台无关编译器&quot;">​</a></h3><p><strong>作用</strong>：模板编译核心，将模板字符串解析为 AST，转换并生成 JavaScript 代码。</p><p><strong>核心文件</strong>：</p><ul><li><code>src/index.ts</code> – 导出 <code>baseCompile</code>, <code>compile</code>, <code>parse</code>, <code>transform</code> 等</li><li><code>src/parse.ts</code> – 模板 → AST（有限状态机）</li><li><code>src/transform.ts</code> – AST 转换（包括静态提升、PatchFlag 标记等）</li><li><code>src/codegen.ts</code> – 生成渲染函数代码</li><li><code>src/ast.ts</code> – AST 节点类型定义</li><li><code>src/transforms/</code> – 各类转换插件（<code>transformIf</code>, <code>transformFor</code>, <code>transformElement</code> 等）</li></ul><p><strong>特点</strong>：不依赖 HTML 或 DOM 特定语法，可扩展用于非浏览器平台。</p><h3 id="_2-7-compiler-dom-–-浏览器-dom-编译器" tabindex="-1">2.7 <code>compiler-dom</code> – 浏览器 DOM 编译器 <a class="header-anchor" href="#_2-7-compiler-dom-–-浏览器-dom-编译器" aria-label="Permalink to &quot;2.7 \`compiler-dom\` – 浏览器 DOM 编译器&quot;">​</a></h3><p><strong>作用</strong>：基于 <code>compiler-core</code>，添加 DOM 特定指令和语法（<code>v-html</code>, <code>v-text</code>, <code>v-model</code> 等）。</p><p><strong>核心文件</strong>：</p><ul><li><code>src/index.ts</code> – 导出 DOM 版 <code>compile</code></li><li><code>src/transforms/</code> – DOM 专用转换（如 <code>transformStyle</code>, <code>transformVHtml</code>）</li><li><code>src/parserOptions.ts</code> – DOM 解析选项（区分标签、属性等）</li></ul><h3 id="_2-8-compiler-ssr-–-ssr-编译器" tabindex="-1">2.8 <code>compiler-ssr</code> – SSR 编译器 <a class="header-anchor" href="#_2-8-compiler-ssr-–-ssr-编译器" aria-label="Permalink to &quot;2.8 \`compiler-ssr\` – SSR 编译器&quot;">​</a></h3><p><strong>作用</strong>：生成 SSR 专用的渲染函数代码（直接拼接字符串，不创建 VNode）。</p><p><strong>核心文件</strong>：</p><ul><li><code>src/index.ts</code> – <code>compile</code> 函数</li><li><code>src/ssrCodegen.ts</code> – 生成 <code>ssrRender</code> 相关代码</li></ul><h3 id="_2-9-shared-–-共享工具函数" tabindex="-1">2.9 <code>shared</code> – 共享工具函数 <a class="header-anchor" href="#_2-9-shared-–-共享工具函数" aria-label="Permalink to &quot;2.9 \`shared\` – 共享工具函数&quot;">​</a></h3><p><strong>作用</strong>：内部通用的工具方法，不依赖其他模块，可被所有包使用。</p><p><strong>核心文件</strong>：</p><ul><li><code>src/index.ts</code> – 导出各种工具函数</li><li><code>src/domTagConfig.ts</code> – DOM 标签相关配置</li><li><code>src/codeframe.ts</code> – 错误代码帧生成</li><li><code>src/escapeHtml.ts</code> – HTML 转义</li><li><code>src/makeMap.ts</code> – 快速字符串匹配工具</li></ul><h3 id="_2-10-vue-–-完整-vue-入口" tabindex="-1">2.10 <code>vue</code> – 完整 Vue 入口 <a class="header-anchor" href="#_2-10-vue-–-完整-vue-入口" aria-label="Permalink to &quot;2.10 \`vue\` – 完整 Vue 入口&quot;">​</a></h3><p><strong>作用</strong>：整合运行时和编译器，导出完整的 Vue API（既包含运行时也包含编译器）。</p><p><strong>核心文件</strong>：</p><ul><li><code>src/index.ts</code> – 入口，导出所有公共 API</li><li><code>src/runtime.ts</code> – 仅运行时导出</li><li><code>src/runtimeWithCompiler.ts</code> – 包含编译器的版本</li></ul><p><strong>构建产物</strong>：</p><ul><li><code>vue.global.js</code> – 完整版（包含编译器）</li><li><code>vue.runtime.global.js</code> – 运行时版（不含编译器）</li><li><code>vue.esm-bundler.js</code> – 供打包工具使用的 ESM 版本</li></ul><h2 id="_3-测试目录与类型测试" tabindex="-1">3. 测试目录与类型测试 <a class="header-anchor" href="#_3-测试目录与类型测试" aria-label="Permalink to &quot;3. 测试目录与类型测试&quot;">​</a></h2><p>Vue 3 的测试分为单元测试（<code>__tests__</code>）和类型测试（<code>test-dts</code>），分布在各个包内。</p><ul><li><code>packages/reactivity/__tests__/</code> – 响应式单元测试</li><li><code>packages/runtime-core/__tests__/</code> – 运行时核心测试</li><li><code>packages/compiler-core/__tests__/</code> – 编译器测试</li><li><code>test-dts/</code> – 类型定义正确性测试（使用 <code>tsd</code>）</li></ul><h2 id="_4-模块依赖关系" tabindex="-1">4. 模块依赖关系 <a class="header-anchor" href="#_4-模块依赖关系" aria-label="Permalink to &quot;4. 模块依赖关系&quot;">​</a></h2><p><img${n('src', l)} alt="Logo" data-zoomable="true"></p></div>`)
+}
+const a = c.setup
+c.setup = (e, s) => {
+  const o = t()
+  return (
+    (o.modules || (o.modules = new Set())).add(
+      'frameworks/vue/advanced/source-code/vueCatalog.md',
+    ),
+    a ? a(e, s) : void 0
+  )
+}
+const k = i(c, [['ssrRender', p]])
+export { _ as __pageData, k as default }
+//# sourceMappingURL=frameworks_vue_advanced_source-code_vueCatalog.md.js.map

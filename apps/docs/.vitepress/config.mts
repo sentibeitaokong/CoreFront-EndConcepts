@@ -139,7 +139,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                 as: 'image',
                 fetchpriority: 'high'
             }],
-            ['meta', {name: 'docsearch:lang', content: 'zh-CN'}]
+            ['meta', {name: 'docsearch:lang', content: 'zh-CN'}],
         ], //要在页面 HTML 的 <head> 标签中呈现的其他元素
         cleanUrls: true,         //生成简洁的url
         // 🚨 2. 必须配置 markdown 字段
@@ -461,8 +461,6 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                     ]
                                 },
                                 {text: '严格模式', link: '/js/advanced/misc/strict'},
-                                {text: '跨域', link: '/js/advanced/misc/crossOrigin'},
-                                {text: '错误处理', link: '/js/advanced/misc/errorHandling'},
                                 {text: '性能优化', link: '/js/advanced/misc/optimize'},
                                 {text: 'ArrayBuffer', link: '/js/advanced/misc/arrayBuffer'},
                                 // {text: 'Decorator(装饰器)', link: '/js/advanced/misc/decorator'},
@@ -903,6 +901,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             ]
                         },
                         {text: '代码规范与质量控制', link: '/frontEngineering/quality/linters'},
+                        {text: '错误处理', link: '/frontEngineering/quality/errorHandling'},
                         {text: '自动化测试', link: '/frontEngineering/quality/testing'},
                         {
                             text: 'CI/CD 与持续部署',
@@ -1012,12 +1011,25 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                         {text: 'CDN加速原理', link: '/networkAndBrowsers/protocols/cdn'},
                         {text: '浏览器缓存机制', link: '/networkAndBrowsers/browser/browserCache'},
                         {text: '浏览器渲染机制', link: '/networkAndBrowsers/browser/renderingProcess'},
-                        {text: 'csrf和xss防御方式', link: '/networkAndBrowsers/security/csrfAndXss'},
                         {text: '进程和线程', link: '/networkAndBrowsers/process-model/processAndThread'},
                         {text: 'OSI七层模型', link: '/networkAndBrowsers/protocols/osi'},
                     ]
                 },
-
+                {
+                    text: 'Web 安全体系',
+                    collapsed: true, // 初始状态为“展开”
+                    items: [
+                        {text: 'XSS 与 CSRF', link: '/webSecurity/csrfAndXss'},
+                        {text: '跨域与同源策略', link: '/webSecurity/crossOrigin'},
+                        {text: 'CORS', link: '/webSecurity/cors'},
+                        {text: 'CSP、SRI 与 HSTS', link: '/webSecurity/cspSriHsts'},
+                        {text: 'ClickJacking 与 SameSite Cookie', link: '/webSecurity/clickJackingSameSite'},
+                        {text: 'JWT / Cookie / Session', link: '/webSecurity/authStorageTradeoff'},
+                        {text: 'OAuth2 / OIDC', link: '/webSecurity/oauthOidc'},
+                        {text: '敏感信息与供应链安全', link: '/webSecurity/sensitiveInfoSupplyChain'},
+                        {text: '企业级鉴权与安全方案', link: '/webSecurity/enterpriseAuthSecurity'},
+                    ]
+                },
             ],
             socialLinks: [
                 {icon: 'github', link: 'https://github.com/sentibeitaokong/CoreFront-EndConcepts'}
