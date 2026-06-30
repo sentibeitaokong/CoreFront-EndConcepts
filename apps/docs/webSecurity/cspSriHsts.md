@@ -1,76 +1,35 @@
 # CSP、SRI 与 HSTS
 
-CSP、SRI、HSTS 都属于浏览器安全能力，但它们解决的问题不同：**CSP 控制页面能加载什么资源，SRI 校验第三方资源有没有被篡改，HSTS 强制浏览器只走 HTTPS**。
+CSP、SRI、HSTS 共同构成了现代 Web 架构的底层安全防线。其核心分工极其明确：**CSP 管控资源来源（防注入/外传），SRI 校验资源完整性（防第三方投毒），HSTS 强制加密链路（防降级劫持）。**
 
-## 1. CSP (Content Security Policy)
+## 1. CSP (Content Security Policy) 内容安全策略
 
-**核心本质**：通过 HTTP 响应头声明资源白名单，限制脚本、样式、图片、字体、接口等资源的加载来源。
+**核心本质**：通过 HTTP 响应头配置严格的资源白名单。即使页面存在 XSS 漏洞，也能在浏览器底层阻断恶意代码的执行与数据外传。
 
-**一句话理解**：**“即使页面被注入了恶意代码，浏览器也不允许它随便执行或外连。”**
+### 1.1 核心指令与防御矩阵
 
-### 1.1 CSP 能防什么？
+| 指令类别      | 核心指令                   | 作用对象与防御重点                         | 缺省回退逻辑                                           |
+| ------------- | -------------------------- | ------------------------------------------ | ------------------------------------------------------ |
+| **兜底基线**  | `default-src`              | 全局资源的默认加载策略。                   | 作为所有未显式声明指令的兜底规则。                     |
+| **脚本/样式** | `script-src` / `style-src` | 控制 JS/CSS 来源，防御 XSS 注入的核心。    | 缺省回退至 `default-src`。                             |
+| **网络请求**  | `connect-src`              | 控制 Fetch、XHR、WebSocket 请求目标。      | 阻断 XSS 窃取数据外传；回退至 `default-src`。          |
+| **静态资源**  | `img-src` / `font-src`     | 控制图片、字体等加载源。                   | 缺省回退至 `default-src`。                             |
+| **嵌套管控**  | `frame-ancestors`          | **控制当前页面允许被谁作为 iframe 嵌入。** | **不继承** `default-src`；彻底替代 `X-Frame-Options`。 |
+| **表单/基建** | `form-action` / `base-uri` | 限制表单提交目标与 `<base>` 标签相对路径。 | **不继承** `default-src`；防范表单与路径劫持。         |
+| **审计告警**  | `report-uri` / `report-to` | 指定违规日志的后端收集端点。               | 仅上报不拦截（配合 `Report-Only` 模式极佳）。          |
 
-| 风险            | CSP 的作用                                     |
-| :-------------- | :--------------------------------------------- |
-| XSS 注入脚本    | 禁止内联脚本、限制脚本来源                     |
-| 数据外传        | 限制 `connect-src`，阻止脚本把数据发到陌生域名 |
-| 第三方资源污染  | 只允许可信 CDN、静态资源域名                   |
-| iframe 嵌套风险 | 通过 `frame-ancestors` 控制谁能嵌入当前页面    |
+### 1.2 内联代码放行机制：`nonce` vs `hash`
 
-### 1.2 常见指令
+在禁止 `'unsafe-inline'` 的极严苛模式下，必须通过以下机制精准放行合法的内联脚本/样式。**警告：一旦配置了 `nonce` 或 `hash`，现代浏览器将自动忽略同级指令中的 `'unsafe-inline'` 放行效果。**
 
-| 指令              | 作用                                     |
-| :---------------- | :--------------------------------------- |
-| `default-src`     | 默认资源加载策略，其他指令未声明时使用它 |
-| `script-src`      | 控制 JavaScript 来源                     |
-| `style-src`       | 控制 CSS 来源                            |
-| `img-src`         | 控制图片来源                             |
-| `connect-src`     | 控制 Fetch、XHR、WebSocket 请求目标      |
-| `font-src`        | 控制字体来源                             |
-| `frame-src`       | 控制当前页面能嵌入哪些 iframe            |
-| `frame-ancestors` | 控制当前页面能被哪些页面嵌入             |
-| `base-uri`        | 限制 `<base>` 标签，防止相对路径被劫持   |
-| `form-action`     | 限制表单提交目标                         |
+| 放行机制               | 运行逻辑                                                                    | 适用核心场景                                             |
+| ---------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------- |
+| **`nonce` (动态令牌)** | 服务端每次响应生成随机 UUID，响应头与 `<script nonce="...">` 标签精准匹配。 | **动态渲染页面 (SSR)**，需注入少量运行时配置数据。       |
+| **`hash` (静态指纹)**  | 将固定内联代码的 SHA 系列哈希值写入 CSP 响应头，浏览器比对文本一致性。      | **纯静态页面 (SSG)**，内联代码完全写死，无任何字符变动。 |
 
-### 1.3 CSP 配置层级
+### 1.3 配置层级与部署策略
 
-CSP 不是一条简单的“总开关”，而是一组按资源类型拆分的策略。浏览器判断某个资源能不能加载时，会先找更具体的指令；如果没有，再回退到 `default-src`。
-
-```http
-Content-Security-Policy:
-  default-src 'self';
-  script-src 'self' https://cdn.example.com;
-  img-src 'self' data: https:;
-```
-
-上面的配置可以理解为：
-
-- JS 看 `script-src`：只允许同源脚本和 `https://cdn.example.com`。
-- 图片看 `img-src`：允许同源、`data:` 图片和任意 HTTPS 图片。
-- 其他没有单独声明的资源，例如字体、媒体、Worker，会回退到 `default-src 'self'`。
-
-常见层级关系：
-
-| 层级     | 例子                                                                     | 说明                                                     |
-| :------- | :----------------------------------------------------------------------- | :------------------------------------------------------- |
-| 默认策略 | `default-src 'self'`                                                     | 兜底规则，不等于所有资源都只能写这里                     |
-| 类型策略 | `script-src`、`style-src`、`img-src`                                     | 覆盖对应资源类型的默认策略                               |
-| 细分策略 | `script-src-elem`、`script-src-attr`、`style-src-elem`、`style-src-attr` | 更精细地区分标签资源和属性内联代码                       |
-| 行为策略 | `frame-ancestors`、`base-uri`、`form-action`                             | 不控制普通资源加载，控制页面嵌入、`base`、表单提交等行为 |
-| 上报策略 | `report-uri`、`report-to`                                                | 控制违规上报，不决定是否放行资源                         |
-
-几个容易混淆的点：
-
-- `default-src` 只在具体指令缺失时兜底；一旦写了 `script-src`，脚本就按 `script-src` 判断，不再合并 `default-src`。
-- `frame-src` 控制“**当前页面能嵌入哪些 iframe**”，`frame-ancestors` 控制“**当前页面能被谁嵌入**”，方向相反。
-- `connect-src` 控制 `fetch`、XHR、WebSocket、EventSource 等连接目标，不能用 `script-src` 代替。
-- `base-uri` 和 `form-action` 最好显式配置，因为它们不只是静态资源加载问题。
-
-### 1.4 推荐基础配置
-
-#### 1.4.1 **HTTP 响应头 (标准使用方式)**
-
-这是最稳妥、最安全的方式。服务器在返回任何 HTML 页面时，在 HTTP Header 中加入：
+- **标准 HTTP 响应头 (`Content-Security-Policy`)**：全能力解锁，支持全部高阶指令，生产环境绝对首选。
 
 ```http
 Content-Security-Policy:
@@ -85,9 +44,13 @@ Content-Security-Policy:
   form-action 'self';
 ```
 
-#### 1.4.2 **HTML Meta 标签 (静态站点补救方式)**
+- **审计观察模式 (`Content-Security-Policy-Report-Only`)**：只报警不拦截，上线初期排查误伤的必经阶段。
 
-当无法控制服务器响应头时（例如 GitHub Pages），开发者通常使用 Meta 标签。
+```http
+Content-Security-Policy-Report-Only: default-src 'self'; report-uri /csp-report
+```
+
+- **HTML Meta 标签补救**：`<meta http-equiv="Content-Security-Policy" ...>`，仅作纯静态托管的补救手段，**绝对不支持** `frame-ancestors` 和 `report-uri`。
 
 ```html
 <meta
@@ -96,165 +59,49 @@ Content-Security-Policy:
 />
 ```
 
-Meta 方式适合静态页面补救，但能力不如响应头完整，例如不能配置 `frame-ancestors`、`report-uri`、`sandbox` 等部分指令。因此生产环境优先使用 HTTP 响应头。
+## 2. SRI (Subresource Integrity) 子资源完整性
 
-### 1.5 `nonce` 与 `hash`
+**核心本质**：通过前置声明外部静态文件的强哈希指纹，将第三方 CDN 节点被黑客篡改（投毒）的破坏力降为零。
 
-`nonce` 和 `hash` 都是给“**内联代码**”发通行证的方式。它们解决的是同一个问题：在不打开 `'unsafe-inline'` 的前提下，让少量可信内联脚本或样式可以执行。
+- **基础语法**：`<script src="https://cdn..." integrity="sha384-BASE64_HASH" crossorigin="anonymous"></script>`
+- **运行逻辑**：浏览器下载文件后在内存中计算哈希，若与 `integrity` 属性不匹配，**直接拒绝执行该文件**。
+- **跨域要求**：跨域校验必须开启 `crossorigin="anonymous"`，否则浏览器将因隐私安全策略阻断加载。
 
-默认情况下，下面这种内联脚本会被严格 CSP 拦截：
+### 2.1 适用性排查矩阵
 
-```http
-Content-Security-Policy: script-src 'self'
-```
+| 业务场景                  | SRI 适用性   | 架构师建议                                                 |
+| ------------------------- | ------------ | ---------------------------------------------------------- |
+| **版本锁死的公共 CDN 库** | **极度推荐** | 引入 Vue/React 等稳定版依赖时必须配置。                    |
+| **本地构建的静态产物**    | **推荐**     | 通过 Vite/Webpack 插件在构建流水线中自动注入哈希。         |
+| **动态更新的第三方 SDK**  | **严禁使用** | 统计代码、广告脚本等。供应商一旦静默更新，页面将瞬间崩溃。 |
+| **动态返回的接口数据**    | **严禁使用** | 接口数据实时变化，无法预判哈希。                           |
 
-```html
-<script>
-  window.__APP_CONFIG__ = {}
-</script>
-```
-
-原因是 `script-src 'self'` 允许的是“**从本站 URL 加载的外部脚本**”，不等于允许 HTML 里直接写的内联脚本。
-
-#### 1.5.1 `nonce`：服务端为本次响应生成一次性随机值
-
-```html
-<script nonce="random-value-from-server">
-  window.__APP_CONFIG__ = {}
-</script>
-```
-
-```http
-Content-Security-Policy: script-src 'self' 'nonce-random-value-from-server'
-```
-
-`nonce` 的工作方式是：
-
-1. 服务端为每一次 HTML 响应生成不可预测的随机值。
-2. 响应头里声明 `script-src 'nonce-xxx'`。
-3. 同一份 HTML 中，被允许执行的内联 `<script>` 标签也带上 `nonce="xxx"`。
-4. 浏览器比对响应头和标签属性，匹配才执行，不匹配就拦截。
-
-适合使用 `nonce` 的场景：
-
-- `nonce` 必须由服务端每次响应动态生成，不能写死。
-- 使用 `nonce` 后，只有带正确 `nonce` 的内联脚本能执行。
-- 适合 SSR 页面、模板直出页面、需要注入运行时配置的页面。
-- 不适合纯静态 HTML，因为静态文件无法为每次响应生成新 `nonce`。
-
-#### 1.5.2 `hash`：把固定内联代码的内容加入白名单
-
-如果内联脚本内容是固定的，也可以把这段代码的哈希写入 CSP：
-
-```html
-<script>
-  window.__APP_VERSION__ = '1.0.0'
-</script>
-```
-
-```http
-Content-Security-Policy: script-src 'self' 'sha256-BASE64_HASH'
-```
-
-浏览器会对内联脚本的完整文本计算哈希，和 CSP 中声明的 `sha256-...`、`sha384-...` 或 `sha512-...` 比对。内容完全一致才允许执行。
-
-适合使用 `hash` 的场景：
-
-- 静态站点中少量固定内联脚本。
-- 构建产物中可预先计算内容哈希的内联片段。
-- 不适合经常变动的运行时配置，因为任何字符变化都会导致 hash 失效，包括空格、换行和注释。
-
-#### 1.5.3 `nonce`、`hash`、`SRI` 的区别
-
-| 能力            | 配置位置                       | 主要对象            | 用途                                     |
-| :-------------- | :----------------------------- | :------------------ | :--------------------------------------- |
-| CSP `nonce`     | CSP 响应头 + HTML 标签属性     | 内联脚本 / 内联样式 | 允许本次响应中带正确随机值的内联代码执行 |
-| CSP `hash`      | CSP 响应头                     | 内联脚本 / 内联样式 | 允许内容完全匹配哈希的内联代码执行       |
-| SRI `integrity` | `<script>` / `<link>` 标签属性 | 外部脚本 / 外部样式 | 校验外部资源内容有没有被篡改             |
-
-关键区别：
-
-- `nonce` 和 CSP `hash` 是 CSP 的脚本执行授权机制，主要用来替代 `'unsafe-inline'`。
-- SRI 是外部资源完整性校验机制，不能授权内联脚本执行，也不能控制资源来源。
-- 外链脚本通常用 `script-src` 控制来源，用 SRI 校验内容；内联脚本通常用 `nonce` 或 CSP `hash` 授权执行。
-- 如果 `script-src` 中同时存在 `nonce` 或 `hash`，现代浏览器会忽略 `'unsafe-inline'` 对内联脚本的放行效果，因此不要指望二者混用来放宽策略。
-
-#### 1.5.4 如何选择？
-
-| 场景                                  | 推荐方式                                 |
-| :------------------------------------ | :--------------------------------------- |
-| SSR 每次返回 HTML，并需要注入少量配置 | `nonce`                                  |
-| 完全静态页面，内联代码固定            | CSP `hash`                               |
-| 引入固定版本 CDN 脚本                 | `script-src` 限来源 + SRI 校验内容       |
-| 业务代码可以打包成外链文件            | 去掉内联脚本，只保留 `script-src 'self'` |
-| 为了省事允许所有内联脚本              | 不推荐 `'unsafe-inline'`                 |
-
-需要注意：`nonce` 或 `hash` 只负责“**这段内联代码能不能执行**”，不代表这段代码本身一定安全。如果被授权的内联脚本读取了未转义的用户输入并写入 `innerHTML`，仍然可能制造 DOM 型 XSS。
-
-### 1.6 Report-Only 模式
-
-上线 CSP 前，建议先使用只上报不拦截的模式观察影响。
-
-```http
-Content-Security-Policy-Report-Only: default-src 'self'; report-uri /csp-report
-```
-
-这能避免直接阻断线上资源加载。确认没有误伤后，再切换为 `Content-Security-Policy`。
-
-## 2. SRI (Subresource Integrity)
-
-**核心本质**：浏览器加载外部脚本或样式时，校验文件内容的哈希值是否与页面声明一致。
-
-**一句话理解**：**“CDN 文件可以从别人那里加载，但内容必须和我预期的一模一样。”**
-
-### 2.1 使用方式
-
-```html
-<script
-  src="https://cdn.example.com/lib.min.js"
-  integrity="sha384-BASE64_HASH"
-  crossorigin="anonymous"
-></script>
-```
-
-当 CDN 返回的文件内容被篡改时，浏览器计算出的哈希值会和 `integrity` 不一致，资源会被拒绝执行。
-
-### 2.2 SRI 适用场景
-
-| 场景                    | 是否适合                |
-| :---------------------- | :---------------------- |
-| 固定版本的 CDN 库       | 适合                    |
-| 第三方统计 SDK          | 适合，但要注意 SDK 更新 |
-| 每次构建都会变的业务 JS | 通常由构建工具自动处理  |
-| 动态返回的接口数据      | 不适合                  |
-
-### 2.3 SRI 注意点
+### 2.2 SRI 注意点
 
 - SRI 只校验资源内容，不决定资源来源；来源控制仍然需要 CSP。
-- 对跨域资源使用 SRI 时，通常要加 `crossorigin="anonymous"`。
+- 对跨域资源使用 SRI 时，通常要加 crossorigin="anonymous"。
 - 如果第三方 CDN 自动更新文件，而页面里的 hash 没同步更新，会导致资源加载失败。
 
-## 3. HSTS (HTTP Strict Transport Security)
+## 3. HSTS (HTTP Strict Transport Security) 严格传输安全
 
-**核心本质**：服务端告诉浏览器，以后访问本站时必须使用 HTTPS，不能降级到 HTTP。
+**核心本质**：打破“**先 HTTP 握手再 301/302 跳转 HTTPS**”的传统链路，将安全防线硬编码进浏览器内核，彻底堵死中间人明文嗅探和降级劫持。
 
-**一句话理解**：**“浏览器记住这个站点只能走 HTTPS。”**
-
-### 3.1 配置方式
+### 3.1 核心配置与参数解析
 
 ```http
 Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+
 ```
 
-| 参数                | 说明                         |
-| :------------------ | :--------------------------- |
-| `max-age`           | HSTS 生效秒数                |
-| `includeSubDomains` | 子域名也强制 HTTPS           |
-| `preload`           | 申请加入浏览器内置 HSTS 列表 |
+| 参数                | 核心说明与落地风险                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `max-age`           | 强制内部 307 重定向到 HTTPS 的有效期（秒）。基准通常设为 1 年 (`31536000`)。                                  |
+| `includeSubDomains` | 强制策略向下渗透至所有子域名。**高危操作**：必须确保企业内网、测试环境等所有边缘子域名已 100% 部署 SSL 证书。 |
+| `preload`           | 申请写入浏览器内核的全球预载入列表（HSTS Preload List），彻底消灭用户首次访问时的明文窗口风险。回滚成本极高。 |
 
 ### 3.2 HSTS 防御什么？
 
-- 防止用户手动输入 `http://example.com` 时被中间人劫持。
+- 防止用户手动输入 http://example.com 时被中间人劫持。
 - 防止攻击者把 HTTPS 链接降级成 HTTP。
 - 减少首次跳转到 HTTPS 前的明文窗口。
 
@@ -262,17 +109,27 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
 
 HSTS 是强约束，配置前必须确认 HTTPS 覆盖完整。
 
-- 如果加了 `includeSubDomains`，所有子域名都必须支持 HTTPS。
+- 如果加了 includeSubDomains，所有子域名都必须支持 HTTPS。
 - 如果加入 preload 列表，回滚成本很高。
 - 第一次访问前仍可能存在明文风险，preload 可以缓解这个问题。
 
-## 4. 三者对比
+## 4. 核心对比与生产环境最佳实践
 
-| 能力 | 防御重点                | 配置位置      | 前端关注点                    |
-| :--- | :---------------------- | :------------ | :---------------------------- |
-| CSP  | XSS、资源加载、数据外传 | 响应头 / meta | 脚本、样式、接口、iframe 来源 |
-| SRI  | CDN 资源被篡改          | HTML 标签属性 | 第三方脚本和样式 hash         |
-| HSTS | HTTPS 降级攻击          | 响应头        | 全站 HTTPS、子域名覆盖        |
+### 4.1 能力全景对比
+
+| 维度         | CSP (内容白名单)                 | SRI (内容防篡改)                     | HSTS (强制加密)                   |
+| ------------ | -------------------------------- | ------------------------------------ | --------------------------------- |
+| **主要防范** | XSS 执行、数据暗站外传、点击劫持 | 供应链投毒、CDN 静态文件被篡改       | 中间人流量劫持、HTTP 协议降级攻击 |
+| **控制核心** | 资源**从哪里来** (来源合法性)    | 资源**有没有变** (内容完整性)        | 链路**如何加密** (传输协议强约束) |
+| **配置位置** | HTTP 响应头 / HTML Meta 标签     | HTML 标签属性 (`<script>`, `<link>`) | 仅 HTTP 响应头生效                |
+
+### 4.2 生产环境落地
+
+- **全站加密先行**：全域开启 HTTPS。HSTS 灰度测试时 `max-age` 先从 1 周起步，确认无子域名证书报错后再拉满至 1 年并提报 `preload`。
+- **CSP 平滑过渡**：禁止直接上线强制拦截模式。首发必须通过 `Report-Only` 模式配合企业监控大盘收集误伤日志，清洗规则后再无缝切换为物理拦截。
+- **基建锁死注入**：构建流水线应当强制为所有外部依赖生成并自动注入 `integrity` 哈希，消除人为遗漏。
+- **收敛前端暴露**：彻底淘汰陈旧的 `X-Frame-Options` 改用 CSP 的 `frame-ancestors`。
+- **规范内联代码**：严禁在工程代码中通过 `<script>` 内联编写业务逻辑，统一改用外链引入或 SSR 配合 `nonce` 动态分发。
 
 ## 5. 实战建议
 

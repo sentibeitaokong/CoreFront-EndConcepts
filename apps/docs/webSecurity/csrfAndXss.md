@@ -34,7 +34,7 @@
 - **防线二：设置 `HttpOnly` Cookie**。
   - 在服务器端设置 Cookie 时加上 `HttpOnly` 标志。这会让浏览器**禁止** JavaScript 通过 `document.cookie` 读取该 Cookie。即使 XSS 攻击成功，黑客也偷不到关键的身份令牌。
 - **防线三：内容安全策略 (CSP, Content Security Policy)**。
-  - 通过 HTTP 响应头配置，建立一个白名单，告诉浏览器“只允许加载和执行来自特定域名的脚本”。即使黑客注入了脚本，浏览器也会拒绝执行。
+  - 通过 HTTP 响应头配置，建立一个白名单，告诉浏览器“**只允许加载和执行来自特定域名的脚本**”。即使黑客注入了脚本，浏览器也会拒绝执行。
 
 ![Logo](/img/xssDefense.png)
 
