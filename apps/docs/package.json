@@ -18,5 +18,8 @@
     "viewerjs": "^1.11.7",
     "vue": "3.5.38",
     "xb-element": "workspace:*"
+  },
+  "devDependencies": {
+    "vite-plugin-image-optimizer": "^2.0.3"
   }
 }

@@ -2,6 +2,8 @@ node_modules
 .turbo
 apps/docs/.vitepress/cache/
 apps/docs/.vitepress/dist/
+apps/docs/.vitepress/.temp/
+.continue
 .unlighthouse/
 .env.local
 .env.*.local

@@ -24,10 +24,9 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
             hostname: 'https://sentibeitaokong.github.io'
         },
         vite: {
-
             plugins: [
                 //图片压缩
-                /* ViteImageOptimizer({
+                 /*ViteImageOptimizer({
                      // 核心防坑 1：必须开启 includePublic！
                      // 因为你的图片采用的是 ![logo](/logo.png) 的绝对路径写法，它们存放在 docs/public 目录下。
                      // 默认情况下 Vite 会忽略该目录，开启此项会在最后一刻拦截并压缩 public 里的资产。
@@ -62,7 +61,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                              }
                          ],
                      },
-                 }) as any*/
+                 }) as any,*/
                 // 建议放到插件数组的最后
                 visualizer({
                     filename: 'stats.html', // 默认生成在项目根目录
@@ -844,7 +843,13 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                     text: 'Typescript',
                     collapsed: true, // 初始状态为“展开”
                     items: [
-                        {text: '核心语法', link: '/typescript/typescript'},
+                        {text: '类型基础', link: '/typescript/basicTypes'},
+                        {text: '泛型', link: '/typescript/generics'},
+                        {text: '类型收窄', link: '/typescript/narrowing'},
+                        {text: '高级类型', link: '/typescript/advancedTypes'},
+                        {text: '工具类型', link: '/typescript/utilityTypes'},
+                        {text: '类型体操', link: '/typescript/typeChallenges'},
+                        {text: 'TS 工程配置', link: '/typescript/tsconfigDeclarationModule'},
                     ]
                 },
                 {
