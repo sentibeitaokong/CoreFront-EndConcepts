@@ -9,6 +9,10 @@
     ],
     "*.{css,less,scss,md,json}": [
       "prettier --write"
+    ],
+    "*.md": [
+      "markdownlint-cli2 --fix",
+      "git add"
     ]
   },
   "packageManager": "pnpm@11.2.2",
@@ -18,6 +22,7 @@
     "monitor:lh": "unlighthouse-ci --site http://localhost:4173/CoreFront-EndConcepts/ --desktop",
     "type-check": "turbo run type-check",
     "type-check:tsconfig": "vue-tsc -b --noEmit",
+    "docs:lint": "markdownlint-cli2 \"apps/docs/**/*.md\" \"packages/**/*.md\" \"README.md\"",
     "docs:dev": "run-s xb:build docs:dev-only",
     "docs:dev-only": "vitepress dev apps/docs",
     "docs:build": "run-s xb:build docs:build-only",
@@ -78,6 +83,10 @@
     "jiti": "^2.6.1",
     "jsdom": "^24.1.3",
     "lint-staged": "^17.0.0",
+    "markdown-it-footnote": "^4.0.0",
+    "markdown-it-task-lists": "^2.1.1",
+    "markdownlint-cli2": "^0.23.0",
+    "mermaid": "^11.16.0",
     "npm-run-all2": "^8.0.4",
     "postcss": "^8.5.6",
     "postcss-color-mix": "^1.1.0",
@@ -99,6 +108,7 @@
     "vite-plugin-vue-devtools": "^8.0.5",
     "vitepress": "^1.6.4",
     "vitepress-plugin-lightbox": "^1.0.3",
+    "vitepress-plugin-mermaid": "^2.0.17",
     "vitest": "^2.1.0",
     "vue": "3.5.38",
     "vue-tsc": "^3.1.5"

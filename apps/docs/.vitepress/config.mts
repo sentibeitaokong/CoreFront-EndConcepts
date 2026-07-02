@@ -1,6 +1,9 @@
 import type {DefaultTheme, UserConfigFn} from 'vitepress'
 import {componentPreview, containerPreview} from '@vitepress-demo-preview/plugin'
 import lightbox from "vitepress-plugin-lightbox";
+import {withMermaid} from 'vitepress-plugin-mermaid'
+import footnote from 'markdown-it-footnote'
+import taskLists from 'markdown-it-task-lists'
 import {fileURLToPath, URL} from 'node:url'
 import {loadEnv} from 'vite'
 import {sentryVitePlugin} from "@sentry/vite-plugin"
@@ -18,7 +21,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
     const sentryToken = env.SENTRY_AUTH_TOKEN || process.env.SENTRY_AUTH_TOKEN
     const isProduction = mode === 'production'
 
-    return {
+    return withMermaid({
         lang: 'zh-CN',
         sitemap: {
             hostname: 'https://sentibeitaokong.github.io'
@@ -104,6 +107,8 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                 include: [
                     'lodash-es',
                     'viewerjs',
+                    'dayjs',
+                    'mermaid',
                     'xb-element' // 建议把自研库也加进来预构建
                 ],
                 // 防止 Vite 去预构建庞大的 SVG 图标树
@@ -117,13 +122,19 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                 alias: {
                     '@': fileURLToPath(new URL('../../src', import.meta.url)),
                     // 当代码中尝试引入这个被禁止的路径时
-                    find: 'xb-element/dist/es/x-element',
                     // 直接强行将其映射到真实的物理文件路径上
                     // 注意：这里的相对路径('../../node_modules/...')需要根据你的项目结构调整
                     // 确保它能正确指向你的 node_modules 目录
-                    replacement: path.resolve(__dirname, '../../node_modules/xb-element/dist/es/x-element.js')
+                    'xb-element/dist/es/x-element': path.resolve(__dirname, '../../../packages/xbElement/dist/es/x-element.js')
                 },
             },
+        },
+        mermaid: {
+            startOnLoad: false,
+            securityLevel: 'loose',
+        },
+        mermaidPlugin: {
+            class: 'mermaid',
         },
         base: '/CoreFront-EndConcepts/',
         title: "寻北",
@@ -147,7 +158,9 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                 // 注册插件，让 VitePress 认识 :::preview 和 <preview>
                 md.use(containerPreview)
                 md.use(componentPreview)
-                md.use(lightbox, {});
+                md.use(lightbox, {});      //图片放大
+                md.use(taskLists, {enabled: true})  //任务列表
+                md.use(footnote)        //论文索引
             }
         },
         themeConfig: {
@@ -1061,7 +1074,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                 {icon: 'github', link: 'https://github.com/sentibeitaokong/CoreFront-EndConcepts'}
             ]
         }
-    }
+    })
 }
 
 export default config
