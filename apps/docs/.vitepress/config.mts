@@ -881,35 +881,47 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                         },
                         {text: '常用工具介绍', link: '/frontEngineering/engineerTools'},
                         {
-                            text: '包管理器与依赖管理',
+                            text: '包与依赖管理',
                             collapsed: true, // 初始状态为“展开”
                             items: [
                                 {text: '包管理器', link: '/frontEngineering/package-management/packageManagers'},
-                                {text: '依赖管理', link: '/frontEngineering/package-management/packageJson'},
+                                {text: 'package.json', link: '/frontEngineering/package-management/packageJson'},
+                                {
+                                    text: 'npm 发布',
+                                    link: '/frontEngineering/package-management/npmPublishChangesets'
+                                },
                             ]
                         },
                         {
-                            text: '构建工具',
+                            text: '构建与打包',
                             collapsed: true, // 初始状态为“展开”
                             items: [
                                 {
-                                    text: '综合构建与打包',
+                                    text: '产物构建优化',
+                                    link: '/frontEngineering/build-tools/bundleOptimization'
+                                },
+                                {
+                                    text: '构建工具',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
                                         {text: 'Webpack', link: '/frontEngineering/build-tools/bundlers/webpack'},
-                                        {text: 'vite', link: '/frontEngineering/build-tools/bundlers/vite'},
+                                        {text: 'Vite', link: '/frontEngineering/build-tools/bundlers/vite'},
                                         {text: 'Rspack', link: '/frontEngineering/build-tools/bundlers/rspack'},
                                         {text: 'Turbopack', link: '/frontEngineering/build-tools/bundlers/turbopack'},
-                                        {text: 'gulp', link: '/frontEngineering/build-tools/bundlers/gulp'},
-                                        {text: 'parcel', link: '/frontEngineering/build-tools/bundlers/parcel'},
+                                        {text: 'Gulp', link: '/frontEngineering/build-tools/bundlers/gulp'},
+                                        {text: 'Parcel', link: '/frontEngineering/build-tools/bundlers/parcel'},
                                     ]
                                 },
                                 {
-                                    text: '底层编译与打包引擎',
+                                    text: '编译与打包引擎',
                                     link: '/frontEngineering/build-tools/compilers/codeCompilers'
                                 },
                                 {
-                                    text: '类库独立打包',
+                                    text: 'Source Map',
+                                    link: '/frontEngineering/build-tools/sourceMap'
+                                },
+                                {
+                                    text: '类库打包',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
                                         {text: 'tsup', link: '/frontEngineering/build-tools/library-bundling/tsup'},
@@ -918,23 +930,40 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                 },
                             ]
                         },
-                        {text: '代码规范与质量控制', link: '/frontEngineering/quality/linters'},
-                        {text: '错误处理', link: '/frontEngineering/quality/errorHandling'},
-                        {text: '自动化测试', link: '/frontEngineering/quality/testing'},
                         {
-                            text: 'CI/CD 与持续部署',
+                            text: '质量与测试',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '代码规范', link: '/frontEngineering/quality/linters'},
+                                {text: '错误处理', link: '/frontEngineering/quality/errorHandling'},
+                                {text: '自动化测试', link: '/frontEngineering/quality/testing'},
+                                {text: '异常与性能监控', link: '/frontEngineering/quality/performanceMonitoring'},
+                            ]
+                        },
+                        {
+                            text: 'CI/CD 与部署',
                             collapsed: true, // 初始状态为“展开”
                             items: [
                                 {text: 'CI/CD 工具', link: '/frontEngineering/ci-cd/ci-cd'},
-                                {text: '部署环境', link: '/frontEngineering/ci-cd/deploymentEnvironments'},
+                                {text: '多环境与部署架构', link: '/frontEngineering/ci-cd/deploymentEnvironments'},
                             ]
                         },
-                        {text: '异常捕获与性能监控', link: '/frontEngineering/quality/performanceMonitoring'},
                         {
-                            text: '架构演进:Monorepo与微前端',
+                            text: '架构演进',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: 'Monorepo（单体仓库）', link: '/frontEngineering/architecture/monorepo'},
+                                {
+                                    text: 'Monorepo',
+                                    collapsed: true, // 初始状态为“展开”
+                                    items: [
+                                        {text: '单体仓库', link: '/frontEngineering/architecture/monorepo'},
+                                        {
+                                            text: '任务缓存与版本策略',
+                                            link: '/frontEngineering/architecture/monorepoTasksVersioning'
+                                        },
+                                    ]
+                                },
+
                             ]
                         },
 
