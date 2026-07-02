@@ -1006,18 +1006,39 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                     text: '网络协议与浏览器工作原理',
                     collapsed: true, // 初始状态为“展开”
                     items: [
-                        {text: 'Http协议', link: '/networkAndBrowsers/protocols/http'},
-                        {text: 'Https协议', link: '/networkAndBrowsers/protocols/https'},
-                        {text: 'tcp协议', link: '/networkAndBrowsers/protocols/tcp'},
-                        {text: 'udp协议', link: '/networkAndBrowsers/protocols/udp'},
-                        {text: 'ip协议', link: '/networkAndBrowsers/protocols/ip'},
-                        {text: 'Http常见报文头', link: '/networkAndBrowsers/protocols/headers'},
-                        {text: 'DNS解析', link: '/networkAndBrowsers/protocols/dns'},
-                        {text: 'CDN加速原理', link: '/networkAndBrowsers/protocols/cdn'},
-                        {text: '浏览器缓存机制', link: '/networkAndBrowsers/browser/browserCache'},
-                        {text: '浏览器渲染机制', link: '/networkAndBrowsers/browser/renderingProcess'},
-                        {text: '进程和线程', link: '/networkAndBrowsers/process-model/processAndThread'},
-                        {text: 'OSI七层模型', link: '/networkAndBrowsers/protocols/osi'},
+                        {
+                            text: '网络协议',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: 'Http协议', link: '/networkAndBrowsers/protocols/http'},
+                                {text: 'Https协议', link: '/networkAndBrowsers/protocols/https'},
+                                {text: 'tcp协议', link: '/networkAndBrowsers/protocols/tcp'},
+                                {text: 'udp协议', link: '/networkAndBrowsers/protocols/udp'},
+                                {text: 'ip协议', link: '/networkAndBrowsers/protocols/ip'},
+                                {text: 'Http常见报文头', link: '/networkAndBrowsers/protocols/headers'},
+                                {text: 'DNS解析', link: '/networkAndBrowsers/protocols/dns'},
+                                {text: 'CDN加速原理', link: '/networkAndBrowsers/protocols/cdn'},
+                                {text: 'OSI七层模型', link: '/networkAndBrowsers/protocols/osi'},
+                            ]
+                        },
+                        {
+                            text: '浏览器运行机制',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '浏览器缓存机制', link: '/networkAndBrowsers/browser/browserCache'},
+                                {text: '浏览器渲染机制', link: '/networkAndBrowsers/browser/renderingProcess'},
+                                {text: 'Performance API 性能观测', link: '/networkAndBrowsers/browser/performanceApi'},
+                                {text: 'PWA 与 Service Worker 缓存', link: '/networkAndBrowsers/browser/serviceWorkerPwa'},
+                                {text: 'Web Components', link: '/networkAndBrowsers/browser/webComponents'},
+                            ]
+                        },
+                        {
+                            text: '进程模型',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '进程和线程', link: '/networkAndBrowsers/process-model/processAndThread'},
+                            ]
+                        },
                     ]
                 },
                 {

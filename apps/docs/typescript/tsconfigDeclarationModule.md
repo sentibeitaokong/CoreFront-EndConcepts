@@ -4,7 +4,7 @@
 
 **解决目标**：统一编译标准、隔离多环境配置、解决第三方资源类型缺失、实现代码的类型跳转与自动补全。
 
-### 1. 核心概念与整体架构
+## 1. 核心概念与整体架构
 
 `tsconfig.json` 是 TypeScript 项目的“**大脑**”与控制中心。如果一个目录下存在这个文件，就意味着该目录是 TypeScript 项目的根目录。它主要承担两大核心职责：
 
@@ -19,11 +19,11 @@
 | **`extends`**         | 继承另一个配置文件的基础配置，极大提高多包项目 (Monorepo) 配置的复用性。          | `"extends": "./tsconfig.base.json"` |
 | **`compilerOptions`** | **最核心的区域**。控制编译器的各种具体行为（语法降级、严格模式、模块解析等）。    | 见下文详细解析                      |
 
-### 2. compilerOptions 核心编译选项详解
+## 2. compilerOptions 核心编译选项详解
 
 `compilerOptions` 中的配置项多达上百个，但在实际工程中，我们只需要熟练掌握以下四大维度的核心配置即可。
 
-#### 2.1 基础构建与目标环境 (Build & Target)
+### 2.1 基础构建与目标环境 (Build & Target)
 
 决定了你的 TypeScript 代码最终会被“**翻译**”成什么年代的 JavaScript。
 
@@ -53,7 +53,7 @@
 }
 ```
 
-#### 2.2 严格模式与代码质量 (Strictness & Quality)
+### 2.2 严格模式与代码质量 (Strictness & Quality)
 
 这是 TypeScript 灵魂所在。建议新项目**永远无脑开启** `strict: true`。
 
@@ -86,7 +86,7 @@
 }
 ```
 
-#### 2.3 模块解析与路径映射 (Module Resolution)
+### 2.3 模块解析与路径映射 (Module Resolution)
 
 这部分配置直接影响到代码里 `import` 语句的寻找逻辑。
 
@@ -331,7 +331,7 @@ project-root/
 
 :::
 
-#### 5.3 根目录缝合配置
+#### 5.3.3 根目录缝合配置
 
 使用 **Project References (项目引用)** 将它们在 IDE 层面缝合起来，这样 VS Code 就能聪明地知道哪个文件该用哪套规则。
 

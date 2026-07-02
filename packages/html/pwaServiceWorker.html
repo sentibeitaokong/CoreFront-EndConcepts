@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA 与 Service Worker 示例</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 24px;
+        }
+
+        button {
+            margin-right: 8px;
+            padding: 8px 12px;
+        }
+
+        #status,
+        #cacheList {
+            margin-top: 16px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            background: #f7f7f7;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+<h2>PWA 与 Service Worker 缓存</h2>
+<p>Service Worker 需要在 localhost 或 HTTPS 环境下运行，直接用 file:// 打开时无法注册。</p>
+
+<button onclick="registerServiceWorker()">注册 Service Worker</button>
+<button onclick="showCacheList()">查看缓存</button>
+<button onclick="unregisterServiceWorker()">注销 Service Worker</button>
+
+<div id="status">等待操作...</div>
+<div id="cacheList"></div>
+
+<script>
+    const statusEl = document.getElementById('status');
+    const cacheListEl = document.getElementById('cacheList');
+
+    function setStatus(message) {
+        statusEl.textContent = message;
+    }
+
+    async function registerServiceWorker() {
+        if (!('serviceWorker' in navigator)) {
+            setStatus('当前浏览器不支持 Service Worker。');
+            return;
+        }
+
+        try {
+            const registration = await navigator.serviceWorker.register('../js/pwa-service-worker.js');
+            setStatus(`注册成功。scope: ${registration.scope}`);
+        } catch (error) {
+            setStatus(`注册失败: ${error.message}`);
+        }
+    }
+
+    async function showCacheList() {
+        if (!('caches' in window)) {
+            cacheListEl.textContent = '当前浏览器不支持 Cache Storage。';
+            return;
+        }
+
+        const cacheNames = await caches.keys();
+        const lines = [];
+
+        for (const cacheName of cacheNames) {
+            const cache = await caches.open(cacheName);
+            const requests = await cache.keys();
+            lines.push(`缓存名称: ${cacheName}`);
+            requests.forEach((request) => lines.push(`- ${request.url}`));
+        }
+
+        cacheListEl.textContent = lines.length ? lines.join('\n') : '暂无缓存。';
+    }
+
+    async function unregisterServiceWorker() {
+        if (!('serviceWorker' in navigator)) {
+            setStatus('当前浏览器不支持 Service Worker。');
+            return;
+        }
+
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+        setStatus('已注销当前源下的 Service Worker。刷新页面后生效。');
+    }
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (event) => {
+            setStatus(event.data);
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Web Components 示例</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 24px;
+        }
+
+        user-card {
+            display: block;
+            margin-bottom: 16px;
+        }
+
+        button {
+            padding: 8px 12px;
+        }
+    </style>
+</head>
+<body>
+<h2>Web Components 自定义元素</h2>
+<p>这个示例展示 Custom Elements、Shadow DOM、slot 和 observedAttributes。</p>
+
+<user-card name="张三" role="前端工程师">
+    <span slot="desc">负责浏览器运行机制、性能优化和组件封装。</span>
+</user-card>
+
+<button onclick="changeUser()">修改属性</button>
+
+<template id="userCardTemplate">
+    <style>
+        .card {
+            width: 320px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            background: #fff;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        .name {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .role {
+            margin: 4px 0 12px;
+            color: #666;
+        }
+
+        ::slotted([slot="desc"]) {
+            color: #333;
+        }
+    </style>
+
+    <article class="card">
+        <h3 class="name"></h3>
+        <p class="role"></p>
+        <slot name="desc">暂无介绍</slot>
+    </article>
+</template>
+
+<script>
+    class UserCard extends HTMLElement {
+        static get observedAttributes() {
+            return ['name', 'role'];
+        }
+
+        constructor() {
+            super();
+
+            const template = document.getElementById('userCardTemplate');
+            const shadowRoot = this.attachShadow({ mode: 'open' });
+            shadowRoot.appendChild(template.content.cloneNode(true));
+        }
+
+        connectedCallback() {
+            this.render();
+        }
+
+        attributeChangedCallback() {
+            this.render();
+        }
+
+        render() {
+            if (!this.shadowRoot) {
+                return;
+            }
+
+            this.shadowRoot.querySelector('.name').textContent = this.getAttribute('name') || '未命名用户';
+            this.shadowRoot.querySelector('.role').textContent = this.getAttribute('role') || '暂无角色';
+        }
+    }
+
+    customElements.define('user-card', UserCard);
+
+    function changeUser() {
+        const card = document.querySelector('user-card');
+        card.setAttribute('name', '李四');
+        card.setAttribute('role', 'Web Components 学习者');
+    }
+</script>
+</body>
+</html>

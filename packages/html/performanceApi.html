@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Performance API 性能观测示例</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 24px;
+        }
+
+        button {
+            margin-right: 8px;
+            padding: 8px 12px;
+        }
+
+        #log {
+            margin-top: 16px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            background: #f7f7f7;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+<h2>Performance API 性能观测</h2>
+<p>这个示例展示 Navigation Timing、Resource Timing、Performance Mark/Measure 和 PerformanceObserver。</p>
+
+<button onclick="runMeasure()">执行一次自定义耗时测量</button>
+<button onclick="loadImage()">加载图片资源</button>
+<button onclick="showNavigationTiming()">查看导航耗时</button>
+<button onclick="clearLog()">清空日志</button>
+
+<div id="log"></div>
+
+<script>
+    const logEl = document.getElementById('log');
+
+    function log(message) {
+        logEl.textContent += `${message}\n`;
+    }
+
+    function clearLog() {
+        logEl.textContent = '';
+    }
+
+    function formatMs(value) {
+        return `${value.toFixed(2)}ms`;
+    }
+
+    const observer = new PerformanceObserver((list) => {
+        list.getEntries().forEach((entry) => {
+            if (entry.entryType === 'measure') {
+                log(`[measure] ${entry.name}: ${formatMs(entry.duration)}`);
+            }
+
+            if (entry.entryType === 'resource') {
+                log(`[resource] ${entry.name}: ${formatMs(entry.duration)}`);
+            }
+        });
+    });
+
+    observer.observe({ entryTypes: ['measure', 'resource'] });
+
+    function runMeasure() {
+        performance.mark('task-start');
+
+        let total = 0;
+        for (let i = 0; i < 5000000; i++) {
+            total += Math.sqrt(i);
+        }
+
+        performance.mark('task-end');
+        performance.measure('复杂计算耗时', 'task-start', 'task-end');
+        log(`计算结果: ${Math.round(total)}`);
+    }
+
+    function loadImage() {
+        const img = new Image();
+        img.width = 160;
+        img.alt = '测试图片';
+        img.src = `https://picsum.photos/160/90?time=${Date.now()}`;
+        img.onload = () => log('图片加载完成，Resource Timing 会记录它的耗时。');
+        img.onerror = () => log('图片加载失败，请检查网络。');
+        document.body.appendChild(img);
+    }
+
+    function showNavigationTiming() {
+        const navigation = performance.getEntriesByType('navigation')[0];
+
+        if (!navigation) {
+            log('当前浏览器不支持 PerformanceNavigationTiming。');
+            return;
+        }
+
+        log(`[navigation] DNS: ${formatMs(navigation.domainLookupEnd - navigation.domainLookupStart)}`);
+        log(`[navigation] TCP: ${formatMs(navigation.connectEnd - navigation.connectStart)}`);
+        log(`[navigation] Request: ${formatMs(navigation.responseStart - navigation.requestStart)}`);
+        log(`[navigation] Response: ${formatMs(navigation.responseEnd - navigation.responseStart)}`);
+        log(`[navigation] DOMContentLoaded: ${formatMs(navigation.domContentLoadedEventEnd - navigation.startTime)}`);
+        log(`[navigation] Load: ${formatMs(navigation.loadEventEnd - navigation.startTime)}`);
+    }
+
+    window.addEventListener('load', () => {
+        log('页面加载完成。点击按钮观察不同类型的性能数据。');
+    });
+</script>
+</body>
+</html>
