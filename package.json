@@ -11,8 +11,7 @@
       "prettier --write"
     ],
     "*.md": [
-      "markdownlint-cli2 --fix",
-      "git add"
+      "markdownlint-cli2 --fix"
     ]
   },
   "packageManager": "pnpm@11.2.2",

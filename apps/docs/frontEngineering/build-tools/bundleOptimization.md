@@ -1,12 +1,14 @@
-# 产物构建优化
+# 产物构建优化：Tree Shaking 与代码分割
 
-前端构建优化的核心目标不是单纯把文件压到最小，而是在**首屏加载、缓存命中、按需加载、构建复杂度**之间取得平衡。Tree Shaking 负责删掉没用的代码，Code Splitting 负责把剩余代码拆到合适的位置，Chunk 策略则决定这些文件如何长期稳定地服务线上流量。
+前端构建优化的核心并非单纯压缩物理体积，而是在**首屏加载 (FCP)、浏览器缓存命中率、按需加载机制与构建复杂度**之间寻找极致的平衡点。Tree Shaking 负责在 AST 层面剔除死代码，代码分割 (Code Splitting) 负责规划物理文件的物理分布，而 Chunk 策略则决定了这些资源如何通过 HTTP 协议长期稳定地服务于真实流量。
 
-## 1. Tree Shaking 的底层原理
+## 1. Tree Shaking 的底层原理与局限
 
-Tree Shaking 本质是基于静态模块图的死代码删除。打包器从入口文件出发，分析所有 `import` 和 `export`，标记真正被引用的绑定，然后在生成阶段移除未被使用的声明。
+Tree Shaking 依赖基于 ES Modules (ESM) 的静态模块分析。打包器（如 Rollup/Vite）通过构建全局依赖图，追踪 `import` 和 `export` 的精确绑定，最终在代码生成阶段丢弃未被访问的节点。
 
-它强依赖 ESM 的静态结构：
+**ESM 与 CommonJS 的根本差异：**
+
+* **ESM（强静态）**：依赖关系在编译期确立。`import { Button } from '@acme/ui'` 使得打包器明确知道只需保留 `Button` 的相关逻辑。
 
 ```ts
 import { Button } from '@acme/ui'
@@ -16,20 +18,18 @@ export function render() {
 }
 ```
 
-上面的依赖关系在运行前就能确定，打包器可以知道 `@acme/ui` 中哪些导出被使用。CommonJS 的 `require()` 则更难分析，因为它允许动态路径、条件加载和运行时对象变形。
+* **CommonJS（弱静态/动态）**：依赖关系在运行期确立。`require('./components/' + name)` 存在路径拼接与条件分支，打包器为保证运行时安全，只能实施保守策略，将整个目录或全量代码打入产物。
 
 ```js
 const name = process.env.COMPONENT
 const component = require(`./components/${name}`)
 ```
 
-这种写法会让构建器很难判断最终依赖哪个模块，通常只能保守保留更多代码。
+## 2. Tree Shaking 触发与生效的铁律
 
-## 2. Tree Shaking 生效条件
+### 2.1 强制发布与消费 ESM 产物
 
-### 2.1 优先发布 ESM 产物
-
-npm 包应提供 ESM 入口，并在 `package.json` 中明确声明：
+现代 npm 包必须提供纯正的 ESM 产物，并在 `package.json` 中通过 `exports` 字段显式声明入口路由，以获得最优的静态分析收益：
 
 ```json
 {
@@ -43,78 +43,71 @@ npm 包应提供 ESM 入口，并在 `package.json` 中明确声明：
     }
   }
 }
+
 ```
 
-应用侧使用 Vite、Rollup、Webpack 5、Rspack 时，ESM 入口通常能获得更好的静态分析效果。
+### 2.2 精确圈定 `sideEffects` (副作用)
 
-### 2.2 正确声明副作用
+`sideEffects`用来告诉打包器哪些文件即使没有显式导出被使用，也不能删除。若错误配置为 `false`，会导致按需引入时丢失全局 CSS、Polyfill 或原型链扩展机制。
 
-`sideEffects` 用来告诉打包器哪些文件即使没有显式导出被使用，也不能删除。
+* **最佳实践**：提供精确的白名单数组，而非简单的布尔值。
 
 ```json
-{
-  "sideEffects": ["*.css", "src/polyfills.ts"]
-}
+{ "sideEffects": ["*.css", "src/polyfills.ts"] }
+
 ```
 
-如果一个库把 `sideEffects` 错误写成 `false`，但入口里实际引入了全局 CSS、polyfill、注册逻辑，就可能导致生产环境样式丢失或运行时能力缺失。
+### 2.3 隔离顶层副作用污染
 
-### 2.3 避免顶层副作用污染
-
-下面的代码即使导出未被使用，也可能因为顶层执行逻辑被保留：
+若模块在顶层作用域包含立即执行逻辑（如修改 `window` 对象、打点初始化），即使该模块的 `export` 未被任何文件导入，其代码仍会被打包器强行保留：
 
 ```ts
-console.log('init analytics')
+// ❌ 顶层污染：代码必被打包
 window.__APP_READY__ = true
+export const add = (a, b) => a + b
 
-export function add(a: number, b: number) {
-  return a + b
-}
+// ✅ 惰性初始化：按需触发，安全 Shaking
+export const init = () => { window.__APP_READY__ = true }
+
 ```
 
-工具函数包应尽量保持纯函数导出，把注册、打点、polyfill 等副作用放进显式调用的初始化函数。
+## 3. Code Splitting 的触发边界
 
-## 3. Code Splitting 的触发方式
-
-Code Splitting 解决的是“代码应该什么时候下载”的问题。
+代码分割解决的是“**关键渲染路径上的资源优先级**”问题。
 
 ### 3.1 静态分包
 
-静态 `import` 会进入同步依赖图，默认参与首屏 bundle：
+通过静态 `import` 引入。模块进入主依赖图，参与首屏加载（适合基础框架、全局路由、状态管理）。
 
 ```ts
 import App from './App.vue'
 import router from './router'
 ```
 
-这类模块适合放置首屏必须执行的代码，例如根组件、路由基础设施、状态管理入口。
-
 ### 3.2 动态分包
 
-动态 `import()` 会形成异步边界，打包器会为其生成独立 chunk：
+通过 `import()` 动态引入。打包器会生成独立 Chunk，按需下载（适合路由页面、重型弹窗、图表或富文本编辑器）。
 
 ```ts
 const UserCenter = () => import('./views/UserCenter.vue')
 ```
 
-它适合用于路由页面、重型弹窗、图表编辑器、富文本编辑器、低频后台模块等场景。用户不进入对应路径时，这些代码不会进入首屏下载链路。
+## 4. Chunk 拆包策略与架构设计
 
-## 4. Chunk 策略设计
+Chunk 并非越碎越好。文件过大导致单次下载阻塞（尤其是低带宽环境），过碎则引发 HTTP 并发瓶颈、压缩算法效率断崖式下跌及复杂的缓存失效链。
 
-Chunk 策略不是越碎越好。文件过大导致首屏慢，文件过碎会制造请求瀑布、压缩率下降、缓存管理复杂。
+### 4.1 生产级基础拆分模型
 
-### 4.1 基础拆分模型
+| Chunk 类型 | 内容特征 | 优化目标 |
+| --- | --- | --- |
+| **`runtime`** | 模块加载映射、运行时补丁 | 极小且变动频繁，防止业务更新导致 Vendor 缓存失效。 |
+| **`vendor`** | 核心第三方库 (Vue, 路由, 状态库) | 极少变动，最大化压榨浏览器长时间强缓存收益。 |
+| **`common`** | 跨页面公共业务组件/工具函数 | 提取交集，避免在多个异步页面中重复打包相同的业务逻辑。 |
+| **`async`** | 路由页面、按需懒加载的重型功能 | 隔离业务，大幅降低首屏 Initial JS 体积。 |
 
-常见的生产拆分可以分为四类：
+### 4.2 Vite / Rollup 手动分包实战
 
-| Chunk 类型 | 内容                               | 策略目标     |
-| ---------- | ---------------------------------- | ------------ |
-| `runtime`  | 模块加载器、chunk 映射、运行时代码 | 保持小且稳定 |
-| `vendor`   | 第三方依赖                         | 利用长期缓存 |
-| `common`   | 多页面共享业务代码                 | 减少重复打包 |
-| `async`    | 路由级或功能级懒加载代码           | 降低首屏体积 |
-
-### 4.2 Vite / Rollup 手动分包
+利用 `manualChunks` 将高频共用的底层框架与超大体积的独立库进行物理隔离：
 
 ```ts
 import { defineConfig } from 'vite'
@@ -125,26 +118,19 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (
-              id.includes('vue') ||
-              id.includes('pinia') ||
-              id.includes('vue-router')
-            ) {
-              return 'vue-vendor'
-            }
-            if (id.includes('echarts') || id.includes('chart.js')) {
-              return 'charts-vendor'
-            }
+            // 核心视图框架独立打包，缓存周期极长
+            if (/[\\/](vue|vue-router|pinia)[\\/]/.test(id)) return 'framework'
+            // 超大且独立的图表库单独隔离
+            if (/[\\/](echarts|chart\.js)[\\/]/.test(id)) return 'charts'
+            // 剩余第三方依赖
             return 'vendor'
           }
-        },
-      },
-    },
-  },
+        }
+      }
+    }
+  }
 })
 ```
-
-这类策略适合中大型应用。把框架、图表、编辑器等变化频率低且体积大的依赖拆开，可以显著提高浏览器缓存命中率。
 
 ### 4.3 Webpack / Rspack 分包
 
@@ -178,57 +164,37 @@ module.exports = {
 
 Webpack/Rspack 的 `splitChunks` 更偏规则驱动，可以通过 `minSize`、`maxSize`、`minChunks`、`priority` 精细控制拆包边界。
 
-## 5. 企业级拆包判断标准
+## 5. 企业级分包决策基准
 
-### 5.1 应该拆出去的代码
+### 5.1 必须隔离的场景 (To Split)
 
-- 体积大且首屏不一定需要的模块，例如图表、地图、富文本、PDF 预览。
-- 变化频率低的第三方框架，例如 Vue、React、路由、状态管理。
-- 路由级页面，特别是后台系统的低频管理页面。
-- 多入口应用中重复出现的公共业务模块。
+* **首屏非必须的重载模块**：如 ECharts 渲染引擎、PDF.js 预览核心、Three.js 场景库。
+* **长效缓存库**：Vue/React 及其核心生态链（通常数月甚至数年不升级）。
+* **多实例业务复用模块**：在复杂 Monorepo 或多入口工程中，被 3 个以上 Entry 共同依赖的庞大业务组件。
 
-### 5.2 不应该过度拆分的代码
+### 5.2 严禁过度拆分的场景 (Not To Split)
 
-- 首屏必需的小模块。拆出去只会增加一次网络往返。
-- 强耦合且总是一起更新的业务代码。强行拆分会降低缓存收益。
-- 几 KB 的工具函数。单独成 chunk 的收益通常小于请求成本。
+* **高内聚的细碎逻辑**：将仅有几 KB 的工具函数强行独立成 Chunk，其 HTTP 握手与请求头开销远超文件自身的传输成本。
+* **首屏强依赖链路**：将首屏必须立刻执行的代码拆解为多个存在时序依赖的 Vendor，会人为制造串行请求瀑布。
 
-## 6. 排查与度量
+## 6. 度量与链路排查
 
-优化前后必须看数据，而不是只看配置是否“高级”。
+任何缺乏数据支撑的优化配置都是盲目的。在构建流水线与线上监控中，需建立闭环的数据观测体系：
 
-```bash
-pnpm build
-```
+* **静态体积探查**：通过 `rollup-plugin-visualizer` (Vite) 或 `webpack-bundle-analyzer` 精确穿透每个 Chunk 的模块构成，寻找异常膨胀点。
+* **线上瀑布流观测**：结合真实用户的网络环境，观察 Initial Chunks 的并发数量与最大异步 Chunk 的加载耗时。
+* **企业级 APM 联动**：将构建产物的 Sourcemap 稳定对接至 Sentry 等监控中枢，确保代码分割后不仅能加速首屏，还能在报错时精准还原源码链路。
 
-常见观察指标：
+## 7. 常见问题 (FAQ) 与高级避坑指南
 
-- 首屏 JS 总体积和 gzip / brotli 体积。
-- Initial chunks 数量。
-- 最大异步 chunk 体积。
-- 关键路由的瀑布图请求数量。
-- 发版后 vendor chunk 的缓存命中率。
+### 7.1 仅引入了一个纯函数，为何导致整个工具库被打包?
 
-如果使用 Vite，可以接入 `rollup-plugin-visualizer` 查看每个 chunk 中包含了哪些模块；如果使用 Webpack/Rspack，可以使用 `webpack-bundle-analyzer` 或官方 stats 数据进行分析。
+* 该包缺乏 ESM 规范支持（仅导出 CJS），或在其入口文件存在隐式的顶层副作用。另一常见原因是业务代码采用了命名空间动态访问：`import * as utils from 'utils'; utils[dynamicMethod]()`，迫使打包器保留全量代码以防运行时报错。
 
-## 7. 常见问题
+### 7.2 拆分 Vendor 后，Lighthouse 首屏评分反而下降？
 
-### 7.1 为什么明明只引入一个函数，整个库都被打进来了？
+* 过度拆分导致首屏并发请求数量突破浏览器限制（特别是 HTTP/1.1 环境），引发头部阻塞 (HOL blocking)；或者错误地将首屏关键渲染路径上的模块拆分到了异步加载链条的末端。
 
-常见原因是库只提供 CommonJS 入口、包内存在顶层副作用、`sideEffects` 声明不准确，或业务代码使用了命名空间导入后进行动态访问。
+### 7.3 明确配置了路由懒加载，但该异步页面依然被打入首屏 Main Chunk？
 
-```ts
-import * as utils from '@acme/utils'
-
-const fn = utils[dynamicName]
-```
-
-这种动态访问会迫使打包器保留更多导出。
-
-### 7.2 为什么拆了 vendor 后首屏反而慢了？
-
-可能是首屏请求数量增加、HTTP/1.1 并发受限、拆包边界过碎，或者 vendor 中包含首屏必需代码但被拆成多个串行依赖。拆包需要结合实际瀑布图调整，而不是固定套用配置。
-
-### 7.3 为什么异步页面仍然出现在首屏包里？
-
-通常是因为该页面被某个同步入口静态导入了。例如路由懒加载写对了，但侧边栏、权限表、预加载逻辑又静态引用了页面模块，最终会把它重新拉回首屏依赖图。
+* 存在**隐式的同步依赖逃逸**。检查侧边栏菜单配置、全局路由守卫拦截器或前置权限表中，是否不小心使用了 `import UserCenter from './UserCenter.vue'` 进行了静态导入，从而破坏了懒加载的异步边界。

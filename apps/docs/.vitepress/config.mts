@@ -143,12 +143,12 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
             //性能优化：预连接，预加载
             ['link', {rel: 'preconnect', href: 'https://lq0zts4skc-dsn.algolia.net', crossorigin: ''}],
             ['link', {rel: 'icon', href: '/CoreFront-EndConcepts/myAddress.svg'}],
-            ['link', {
-                rel: 'preload',
-                href: '/CoreFront-EndConcepts/img/vitepress.svg',
-                as: 'image',
-                fetchpriority: 'high'
-            }],
+            // ['link', {
+            //     rel: 'preload',
+            //     href: '/CoreFront-EndConcepts/img/vitepress.svg',
+            //     as: 'image',
+            //     fetchpriority: 'high'
+            // }],
             ['meta', {name: 'docsearch:lang', content: 'zh-CN'}],
         ], //要在页面 HTML 的 <head> 标签中呈现的其他元素
         cleanUrls: true,         //生成简洁的url
@@ -473,7 +473,6 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                     ]
                                 },
                                 {text: '严格模式', link: '/js/advanced/misc/strict'},
-                                {text: '性能优化', link: '/js/advanced/misc/optimize'},
                                 {text: 'ArrayBuffer', link: '/js/advanced/misc/arrayBuffer'},
                                 // {text: 'Decorator(装饰器)', link: '/js/advanced/misc/decorator'},
                                 // {text: '设计模式', link: '/js/advanced/misc/designPattern'},
@@ -493,6 +492,80 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                 {text: 'axios手写', link: '/js/hand-writing/axiosHandleWriting'},
                             ]
                         },
+                    ]
+                },
+                {
+                    text: 'Typescript',
+                    collapsed: true, // 初始状态为“展开”
+                    items: [
+                        {text: '类型基础', link: '/typescript/basicTypes'},
+                        {text: '泛型', link: '/typescript/generics'},
+                        {text: '类型收窄', link: '/typescript/narrowing'},
+                        {text: '高级类型', link: '/typescript/advancedTypes'},
+                        {text: '工具类型', link: '/typescript/utilityTypes'},
+                        {text: '类型体操', link: '/typescript/typeChallenges'},
+                        {text: 'TS 工程配置', link: '/typescript/tsconfigDeclarationModule'},
+                    ]
+                },
+                {
+                    text: '正则表达式',
+                    collapsed: true, // 初始状态为“展开”
+                    items: [
+                        {text: 'Regexp命令', link: '/regexp/regexp'},
+                    ]
+                },
+                {
+                    text: '网络协议与浏览器工作原理',
+                    collapsed: true, // 初始状态为“展开”
+                    items: [
+                        {
+                            text: '网络协议',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: 'Http协议', link: '/networkAndBrowsers/protocols/http'},
+                                {text: 'Https协议', link: '/networkAndBrowsers/protocols/https'},
+                                {text: 'tcp协议', link: '/networkAndBrowsers/protocols/tcp'},
+                                {text: 'udp协议', link: '/networkAndBrowsers/protocols/udp'},
+                                {text: 'ip协议', link: '/networkAndBrowsers/protocols/ip'},
+                                {text: 'Http常见报文头', link: '/networkAndBrowsers/protocols/headers'},
+                                {text: 'DNS解析', link: '/networkAndBrowsers/protocols/dns'},
+                                {text: 'CDN加速原理', link: '/networkAndBrowsers/protocols/cdn'},
+                                {text: 'OSI七层模型', link: '/networkAndBrowsers/protocols/osi'},
+                            ]
+                        },
+                        {
+                            text: '浏览器运行机制',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '浏览器缓存机制', link: '/networkAndBrowsers/browser/browserCache'},
+                                {text: '浏览器渲染机制', link: '/networkAndBrowsers/browser/renderingProcess'},
+                                {text: 'Performance API 性能观测', link: '/networkAndBrowsers/browser/performanceApi'},
+                                {text: 'PWA 与 Service Worker 缓存', link: '/networkAndBrowsers/browser/serviceWorkerPwa'},
+                                {text: 'Web Components', link: '/networkAndBrowsers/browser/webComponents'},
+                            ]
+                        },
+                        {
+                            text: '进程模型',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '进程和线程', link: '/networkAndBrowsers/process-model/processAndThread'},
+                            ]
+                        },
+                    ]
+                },
+                {
+                    text: 'Web 安全体系',
+                    collapsed: true, // 初始状态为“展开”
+                    items: [
+                        {text: 'XSS 与 CSRF', link: '/webSecurity/csrfAndXss'},
+                        {text: '跨域与同源策略', link: '/webSecurity/crossOrigin'},
+                        {text: 'CORS', link: '/webSecurity/cors'},
+                        {text: 'CSP、SRI 与 HSTS', link: '/webSecurity/cspSriHsts'},
+                        {text: 'ClickJacking 与 SameSite Cookie', link: '/webSecurity/clickJackingSameSite'},
+                        {text: 'JWT / Cookie / Session', link: '/webSecurity/authStorageTradeoff'},
+                        {text: 'OAuth2 / OIDC', link: '/webSecurity/oauthOidc'},
+                        {text: '敏感信息与供应链安全', link: '/webSecurity/sensitiveInfoSupplyChain'},
+                        {text: '企业级鉴权与安全方案', link: '/webSecurity/enterpriseAuthSecurity'},
                     ]
                 },
                 {
@@ -839,33 +912,6 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                     ]
                 },
                 {
-                    text: 'Git',
-                    collapsed: true, // 初始状态为“展开”
-                    items: [
-                        {text: 'git命令', link: '/git/git'},
-                    ]
-                },
-                {
-                    text: '正则表达式',
-                    collapsed: true, // 初始状态为“展开”
-                    items: [
-                        {text: 'Regexp命令', link: '/regexp/regexp'},
-                    ]
-                },
-                {
-                    text: 'Typescript',
-                    collapsed: true, // 初始状态为“展开”
-                    items: [
-                        {text: '类型基础', link: '/typescript/basicTypes'},
-                        {text: '泛型', link: '/typescript/generics'},
-                        {text: '类型收窄', link: '/typescript/narrowing'},
-                        {text: '高级类型', link: '/typescript/advancedTypes'},
-                        {text: '工具类型', link: '/typescript/utilityTypes'},
-                        {text: '类型体操', link: '/typescript/typeChallenges'},
-                        {text: 'TS 工程配置', link: '/typescript/tsconfigDeclarationModule'},
-                    ]
-                },
-                {
                     text: '前端工程化',
                     collapsed: true, // 初始状态为“展开”
                     items: [
@@ -897,10 +943,6 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             collapsed: true, // 初始状态为“展开”
                             items: [
                                 {
-                                    text: '产物构建优化',
-                                    link: '/frontEngineering/build-tools/bundleOptimization'
-                                },
-                                {
                                     text: '构建工具',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
@@ -911,6 +953,10 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                         {text: 'Gulp', link: '/frontEngineering/build-tools/bundlers/gulp'},
                                         {text: 'Parcel', link: '/frontEngineering/build-tools/bundlers/parcel'},
                                     ]
+                                },
+                                {
+                                    text: '产物构建优化',
+                                    link: '/frontEngineering/build-tools/bundleOptimization'
                                 },
                                 {
                                     text: '编译与打包引擎',
@@ -967,6 +1013,28 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             ]
                         },
 
+                    ]
+                },
+                {
+                    text: '性能优化',
+                    collapsed: true, // 初始状态为“展开”
+                    items: [
+                        {text: 'Core Web Vitals', link: '/performanceOptimization/coreWebVitals'},
+                        {text: '首屏优化', link: '/performanceOptimization/firstScreen'},
+                        {text: '资源加载优化', link: '/performanceOptimization/resourceLoading'},
+                        {text: '图片优化', link: '/performanceOptimization/imageOptimization'},
+                        {text: 'JS 优化', link: '/performanceOptimization/jsExecution'},
+                        {text: 'CSS 优化', link: '/performanceOptimization/cssPerformance'},
+                        {text: '虚拟列表', link: '/performanceOptimization/virtualList'},
+                        {text: 'Bundle 优化', link: '/performanceOptimization/bundleAnalysis'},
+                        {text: '性能监控', link: '/performanceOptimization/performanceMonitoring'},
+                    ]
+                },
+                {
+                    text: 'Git',
+                    collapsed: true, // 初始状态为“展开”
+                    items: [
+                        {text: 'git命令', link: '/git/git'},
                     ]
                 },
                 {
@@ -1042,60 +1110,6 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                 },
                             ]
                         },
-                    ]
-                },
-                {
-                    text: '网络协议与浏览器工作原理',
-                    collapsed: true, // 初始状态为“展开”
-                    items: [
-                        {
-                            text: '网络协议',
-                            collapsed: true, // 初始状态为“展开”
-                            items: [
-                                {text: 'Http协议', link: '/networkAndBrowsers/protocols/http'},
-                                {text: 'Https协议', link: '/networkAndBrowsers/protocols/https'},
-                                {text: 'tcp协议', link: '/networkAndBrowsers/protocols/tcp'},
-                                {text: 'udp协议', link: '/networkAndBrowsers/protocols/udp'},
-                                {text: 'ip协议', link: '/networkAndBrowsers/protocols/ip'},
-                                {text: 'Http常见报文头', link: '/networkAndBrowsers/protocols/headers'},
-                                {text: 'DNS解析', link: '/networkAndBrowsers/protocols/dns'},
-                                {text: 'CDN加速原理', link: '/networkAndBrowsers/protocols/cdn'},
-                                {text: 'OSI七层模型', link: '/networkAndBrowsers/protocols/osi'},
-                            ]
-                        },
-                        {
-                            text: '浏览器运行机制',
-                            collapsed: true, // 初始状态为“展开”
-                            items: [
-                                {text: '浏览器缓存机制', link: '/networkAndBrowsers/browser/browserCache'},
-                                {text: '浏览器渲染机制', link: '/networkAndBrowsers/browser/renderingProcess'},
-                                {text: 'Performance API 性能观测', link: '/networkAndBrowsers/browser/performanceApi'},
-                                {text: 'PWA 与 Service Worker 缓存', link: '/networkAndBrowsers/browser/serviceWorkerPwa'},
-                                {text: 'Web Components', link: '/networkAndBrowsers/browser/webComponents'},
-                            ]
-                        },
-                        {
-                            text: '进程模型',
-                            collapsed: true, // 初始状态为“展开”
-                            items: [
-                                {text: '进程和线程', link: '/networkAndBrowsers/process-model/processAndThread'},
-                            ]
-                        },
-                    ]
-                },
-                {
-                    text: 'Web 安全体系',
-                    collapsed: true, // 初始状态为“展开”
-                    items: [
-                        {text: 'XSS 与 CSRF', link: '/webSecurity/csrfAndXss'},
-                        {text: '跨域与同源策略', link: '/webSecurity/crossOrigin'},
-                        {text: 'CORS', link: '/webSecurity/cors'},
-                        {text: 'CSP、SRI 与 HSTS', link: '/webSecurity/cspSriHsts'},
-                        {text: 'ClickJacking 与 SameSite Cookie', link: '/webSecurity/clickJackingSameSite'},
-                        {text: 'JWT / Cookie / Session', link: '/webSecurity/authStorageTradeoff'},
-                        {text: 'OAuth2 / OIDC', link: '/webSecurity/oauthOidc'},
-                        {text: '敏感信息与供应链安全', link: '/webSecurity/sensitiveInfoSupplyChain'},
-                        {text: '企业级鉴权与安全方案', link: '/webSecurity/enterpriseAuthSecurity'},
                     ]
                 },
             ],
