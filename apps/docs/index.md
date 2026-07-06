@@ -9,11 +9,6 @@ hero:
   image:
     src: /img/vitepress.svg
     alt: Core Front-End Concepts
-    width: 267
-    height: 320
-    loading: eager
-    decoding: async
-    fetchpriority: high
   actions:
     - theme: brand
       text: 开始阅读
