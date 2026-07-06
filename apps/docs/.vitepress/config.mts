@@ -530,37 +530,67 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                     collapsed: true, // 初始状态为“展开”
                     items: [
                         {
-                            text: '网络协议',
+                            text: '网络基础',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: 'Http协议', link: '/networkAndBrowsers/protocols/http'},
-                                {text: 'Https协议', link: '/networkAndBrowsers/protocols/https'},
-                                {text: 'tcp协议', link: '/networkAndBrowsers/protocols/tcp'},
-                                {text: 'udp协议', link: '/networkAndBrowsers/protocols/udp'},
-                                {text: 'ip协议', link: '/networkAndBrowsers/protocols/ip'},
-                                {text: 'Http常见报文头', link: '/networkAndBrowsers/protocols/headers'},
-                                {text: 'DNS解析', link: '/networkAndBrowsers/protocols/dns'},
-                                {text: 'CDN加速原理', link: '/networkAndBrowsers/protocols/cdn'},
-                                {text: 'OSI七层模型', link: '/networkAndBrowsers/protocols/osi'},
+                                {text: 'OSI七层模型', link: '/networkAndBrowsers/fundamentals/osi'},
+                                {text: 'IP协议', link: '/networkAndBrowsers/fundamentals/ip'},
+                                {text: 'DNS解析', link: '/networkAndBrowsers/fundamentals/dns'},
+                                {text: 'CDN加速原理', link: '/networkAndBrowsers/fundamentals/cdn'},
+                            ]
+                        },
+                        {
+                            text: '传输层协议',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: 'TCP协议', link: '/networkAndBrowsers/transport/tcp'},
+                                {text: 'UDP协议', link: '/networkAndBrowsers/transport/udp'},
+                            ]
+                        },
+                        {
+                            text: 'HTTP体系',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: 'HTTP协议', link: '/networkAndBrowsers/http/http'},
+                                {text: 'HTTP常见报文头', link: '/networkAndBrowsers/http/headers'},
+                                {text: 'HTTPS协议', link: '/networkAndBrowsers/http/https'},
+                            ]
+                        },
+                        {
+                            text: '实时通信',
+                            collapsed: true, // 初始状态为“展开”
+                            link: '/networkAndBrowsers/realtime/realtimeCommunication'
+                        },
+                        {
+                            text: 'API设计与请求治理',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: 'API设计风格', link: '/networkAndBrowsers/api/apiStyles'},
+                                {text: '请求治理', link: '/networkAndBrowsers/api/requestGovernance'},
+                            ]
+                        },
+                        {
+                            text: '缓存体系',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '前端缓存策略', link: '/networkAndBrowsers/caching/frontendCacheStrategy'},
+                                {text: '浏览器缓存机制', link: '/networkAndBrowsers/caching/browserCache'},
+                                {text: 'PWA 与 Service Worker 缓存', link: '/networkAndBrowsers/caching/serviceWorkerPwa'},
                             ]
                         },
                         {
                             text: '浏览器运行机制',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: '浏览器缓存机制', link: '/networkAndBrowsers/browser/browserCache'},
                                 {text: '浏览器渲染机制', link: '/networkAndBrowsers/browser/renderingProcess'},
                                 {text: 'Performance API 性能观测', link: '/networkAndBrowsers/browser/performanceApi'},
-                                {text: 'PWA 与 Service Worker 缓存', link: '/networkAndBrowsers/browser/serviceWorkerPwa'},
                                 {text: 'Web Components', link: '/networkAndBrowsers/browser/webComponents'},
                             ]
                         },
                         {
                             text: '进程模型',
                             collapsed: true, // 初始状态为“展开”
-                            items: [
-                                {text: '进程和线程', link: '/networkAndBrowsers/process-model/processAndThread'},
-                            ]
+                            link: '/networkAndBrowsers/process-model/processAndThread'
                         },
                     ]
                 },
@@ -845,8 +875,8 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                         {text: 'CSS样式工程化', link: '/frameworks/react/basic/style'},
                                         {text: '动画', link: '/frameworks/react/basic/reactTransitionGroup'},
                                         {text: 'Portals', link: '/frameworks/react/basic/portals'},
-                                        {text: 'Redux和中间件', link: '/frameworks/react/basic/react_redux'},
-                                        {text: '路由', link: '/frameworks/react/basic/react_router'},
+                                        {text: 'Redux和中间件', link: '/frameworks/react/basic/reactRedux'},
+                                        {text: '路由', link: '/frameworks/react/basic/reactRouter'},
                                         {
                                             text: 'Hooks',
                                             collapsed: true, // 初始状态为“展开”
@@ -1001,7 +1031,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             text: 'CI/CD 与部署',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: 'CI/CD 工具', link: '/frontEngineering/ci-cd/ci-cd'},
+                                {text: 'CI/CD 工具', link: '/frontEngineering/ci-cd/ciCd'},
                                 {text: '多环境与部署架构', link: '/frontEngineering/ci-cd/deploymentEnvironments'},
                             ]
                         },

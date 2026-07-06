@@ -9,9 +9,6 @@
     ],
     "*.{css,less,scss,md,json}": [
       "prettier --write"
-    ],
-    "*.md": [
-      "markdownlint-cli2 --fix"
     ]
   },
   "packageManager": "pnpm@11.2.2",
