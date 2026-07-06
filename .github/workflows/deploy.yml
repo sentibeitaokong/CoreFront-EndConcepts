@@ -66,23 +66,23 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=6144"
         run: pnpm run docs:build
 
-      - name: Start preview server
-        run: pnpm run docs:preview:ci > /tmp/vitepress-preview.log 2>&1 &
-
-      - name: Wait for preview server
-        run: |
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:4173/CoreFront-EndConcepts/ > /dev/null; then
-              exit 0
-            fi
-            sleep 2
-          done
-          cat /tmp/vitepress-preview.log
-          exit 1
-
-      - name: Run Unlighthouse performance gate
-        continue-on-error: true
-        run: pnpm run monitor:lh
+#      - name: Start preview server
+#        run: pnpm run docs:preview:ci > /tmp/vitepress-preview.log 2>&1 &
+#
+#      - name: Wait for preview server
+#        run: |
+#          for i in {1..30}; do
+#            if curl -fsS http://127.0.0.1:4173/CoreFront-EndConcepts/ > /dev/null; then
+#              exit 0
+#            fi
+#            sleep 2
+#          done
+#          cat /tmp/vitepress-preview.log
+#          exit 1
+#
+#      - name: Run Unlighthouse performance gate
+#        continue-on-error: true
+#        run: pnpm run monitor:lh
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

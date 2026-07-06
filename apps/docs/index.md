@@ -18,7 +18,7 @@ hero:
       link: /frameworks/vue/advanced/source-code/vueCatalog
     - theme: alt
       text: 工程化指南
-      link: /forntEngineering/intro
+      link: /fronttEngineering/intro
 
 features:
   - icon:

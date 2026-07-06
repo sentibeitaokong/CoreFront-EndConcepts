@@ -14,13 +14,17 @@ import {visualizer} from 'rollup-plugin-visualizer';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+const isTruthyFlag = (value: string | undefined) => {
+    return value === 'true' || value === '1'
+}
+
 // https://vitepress.dev/reference/site-config
 const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
     const env = loadEnv(mode, process.cwd(), '')
     // 兼容本地读取 env 文件和 CI/CD 读取系统变量
     const sentryToken = env.SENTRY_AUTH_TOKEN || process.env.SENTRY_AUTH_TOKEN
     const isProduction = mode === 'production'
-    const enableAnalyze = env.BUNDLE_ANALYZE === 'true' || process.env.BUNDLE_ANALYZE === 'true'
+    const enableAnalyze = isTruthyFlag(env.BUNDLE_ANALYZE)
     const enableSentryUpload =
         (env.SENTRY_UPLOAD === 'true' || process.env.SENTRY_UPLOAD === 'true') && Boolean(sentryToken)
 

@@ -6,8 +6,8 @@
 
 现代前端工程的构建产物经历了 TypeScript 剥离、框架模版编译（Vue/React）、AST 降级（Babel/SWC）、Tree Shaking 和代码混淆（Terser/esbuild）。产物早已面目全非。
 
-* **无 Source Map 的报错**：`TypeError: Cannot read properties of undefined at a (assets/index-8f3a2c1d.js:1:43892)`。定位仅指向单行数万字符的压缩文件，排查如同盲人摸象。
-* **有 Source Map 的报错**：上传至 Sentry 等监控平台后，错误栈将瞬间被反向解析为真实源码路径：`src/pages/order/OrderDetail.vue:128:17`。
+- **无 Source Map 的报错**：`TypeError: Cannot read properties of undefined at a (assets/index-8f3a2c1d.js:1:43892)`。定位仅指向单行数万字符的压缩文件，排查如同盲人摸象。
+- **有 Source Map 的报错**：上传至 Sentry 等监控平台后，错误栈将瞬间被反向解析为真实源码路径：`src/pages/order/OrderDetail.vue:128:17`。
 
 ## 2. Source Map 文件结构
 
@@ -23,16 +23,15 @@
   "names": ["msg"],
   "mappings": "AAAA,MAAMA,IAAY,OAAO"
 }
-
 ```
 
-| 字段 | 深度解读 |
-| --- | --- |
-| `version` | 规范版本，目前统一为 `3`。 |
-| `file` | 映射的产物目标文件名（可选）。 |
+| 字段                         | 深度解读                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| `version`                    | 规范版本，目前统一为 `3`。                                                                       |
+| `file`                       | 映射的产物目标文件名（可选）。                                                                   |
 | `sources` / `sourcesContent` | 原始文件路径数组 / 对应的源码内容字符串数组。若包含 `sourcesContent`，平台可直接还原上下文代码。 |
-| `names` | 源码中被提取的符号表（变量名、函数名）。混淆后的 `a` 会通过此表被映射回真实的 `msg`。 |
-| `mappings` | **核心引擎**：经过 Base64 VLQ (Variable-length quantity) 编码的映射字符串矩阵。 |
+| `names`                      | 源码中被提取的符号表（变量名、函数名）。混淆后的 `a` 会通过此表被映射回真实的 `msg`。            |
+| `mappings`                   | **核心引擎**：经过 Base64 VLQ (Variable-length quantity) 编码的映射字符串矩阵。                  |
 
 **架构深度：Base64 VLQ 的极致压缩**
 
@@ -47,19 +46,19 @@
 
 **链路融合原则**：构建工具必须具备“**继承**”能力。Rollup 或 Webpack 在每一步转换时，不仅要处理 AST 代码，还要将当前插件生成的 Map 与上一级传入的 Map 进行矩阵合并计算。
 
-* **断层隐患**：如果链路中某个自定义插件只返回了 `code` 而丢弃了 `map`，整条映射链将被物理切断，最终的线上报错将只能还原到编译过程中的某个中间态（如变成了无意义的 `render` 函数块），无法追溯回 `.ts`。
+- **断层隐患**：如果链路中某个自定义插件只返回了 `code` 而丢弃了 `map`，整条映射链将被物理切断，最终的线上报错将只能还原到编译过程中的某个中间态（如变成了无意义的 `render` 函数块），无法追溯回 `.ts`。
 
 ## 4. 产物关联与加载策略
 
 浏览器 DevTools 如何知道去哪里寻找 Source Map？
 
-* **文件尾部注释（最常用）**：在被压缩的 `.js` 产物最后一行插入魔法注释。
+- **文件尾部注释（最常用）**：在被压缩的 `.js` 产物最后一行插入魔法注释。
 
 ```js
 //# sourceMappingURL=index.js.map
 ```
 
-* **HTTP Header（隐蔽式）**：在 Nginx 或 CDN 侧配置响应头。此方案无需侵入 JS 产物。
+- **HTTP Header（隐蔽式）**：在 Nginx 或 CDN 侧配置响应头。此方案无需侵入 JS 产物。
 
 ```txt
 SourceMap: /assets/index.js.map
@@ -69,13 +68,13 @@ SourceMap: /assets/index.js.map
 
 无论是 Webpack 的 `devtool` 还是其他工具，映射类型都围绕三个维度取舍：**定位精度（行/列）、构建速度（初次/热更）、安全性（是否内联）**。
 
-| 模式名称 / 关键字 | 物理形态 | 核心特征与适用场景 |
-| --- | --- | --- |
-| `source-map` | 独立 `.map` 文件 | **生产首选**。精确定位到行列，完整包含源码。需拦截外部访问。 |
-| `hidden-source-map` | 独立 `.map` 文件 | **监控平台专供**。生成文件但不在 JS 中追加 `//#` 注释，防止浏览器自动嗅探。 |
-| `eval-source-map` | 嵌套在 `eval()` 中 | **开发环境首选**。利用 V8 的 `eval` 缓存机制，重建（HMR）速度极快，定位精准。 |
-| `cheap-source-map` | 独立文件，无列信息 | **低配机器折中方案**。牺牲“列”级别的精准度（只映射到行），大幅提升构建性能。 |
-| `nosources` | 独立文件，无源码内容 | **安全兜底**。报错能看到目录路径和报错行数，但点不开具体的源代码内容。 |
+| 模式名称 / 关键字   | 物理形态             | 核心特征与适用场景                                                            |
+| ------------------- | -------------------- | ----------------------------------------------------------------------------- |
+| `source-map`        | 独立 `.map` 文件     | **生产首选**。精确定位到行列，完整包含源码。需拦截外部访问。                  |
+| `hidden-source-map` | 独立 `.map` 文件     | **监控平台专供**。生成文件但不在 JS 中追加 `//#` 注释，防止浏览器自动嗅探。   |
+| `eval-source-map`   | 嵌套在 `eval()` 中   | **开发环境首选**。利用 V8 的 `eval` 缓存机制，重建（HMR）速度极快，定位精准。 |
+| `cheap-source-map`  | 独立文件，无列信息   | **低配机器折中方案**。牺牲“列”级别的精准度（只映射到行），大幅提升构建性能。  |
+| `nosources`         | 独立文件，无源码内容 | **安全兜底**。报错能看到目录路径和报错行数，但点不开具体的源代码内容。        |
 
 ---
 
@@ -86,8 +85,8 @@ SourceMap: /assets/index.js.map
 在生产环境，标准做法是生成 Source Map，但在上传监控平台后，将其从构建产物中抹除，避免随 HTML 发布到公网 CDN。
 
 ```ts
-import { defineConfig } from 'vite';
-import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { defineConfig } from 'vite'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 
 export default defineConfig({
   build: {
@@ -104,8 +103,7 @@ export default defineConfig({
       },
     }),
   ],
-});
-
+})
 ```
 
 ### 6.2 Webpack 最佳区分
@@ -114,11 +112,11 @@ export default defineConfig({
 
 ```js
 module.exports = {
-  devtool: process.env.NODE_ENV === 'production' 
-    ? 'hidden-source-map' 
-    : 'eval-cheap-module-source-map'
-};
-
+  devtool:
+    process.env.NODE_ENV === 'production'
+      ? 'hidden-source-map'
+      : 'eval-cheap-module-source-map',
+}
 ```
 
 ---
@@ -131,8 +129,9 @@ module.exports = {
 
 若 Nginx 静态目录未做拦截，黑客通过请求 `app.js.map` 即可扒光整个前端项目（包括核心算法与隐藏路由）。
 
-* **阻断方案 A**：CI/CD 流程中，上传 Sentry 后执行 `find dist -name "*.map" -delete`。
-* **阻断方案 B**：Nginx 层级实施强拦截。
+- **阻断方案 A**：CI/CD 流程中，上传 Sentry 后执行 `find dist -name "*.map" -delete`。
+- **阻断方案 B**：Nginx 层级实施强拦截。
+
 ```nginx
 location ~ \.map$ {
     return 404; # 或 403 彻底拒绝响应
@@ -157,8 +156,10 @@ pnpm build
 ## 8. 常见问题 (FAQ) 与高级避坑指南
 
 ### 8.1 为什么 Sentry 已经接收到了 Source Map，线上报错依然是压缩代码？
-  * 检查前端埋点 SDK 初始化传入的 `release` 版本号，是否与构建产物上传时的版本号完全一致。
-  * 检查线上实际运行的 JS 文件名（如 `chunk-a1b2.js`），是否经历了 CDN 的二次重命名或被外部网关再次压缩，导致与 `.map` 绑定关系断裂。
+
+- 检查前端埋点 SDK 初始化传入的 `release` 版本号，是否与构建产物上传时的版本号完全一致。
+- 检查线上实际运行的 JS 文件名（如 `chunk-a1b2.js`），是否经历了 CDN 的二次重命名或被外部网关再次压缩，导致与 `.map` 绑定关系断裂。
 
 ### 8.2 为什么映射定位发生了偏差（差了几行或指到了错误的文件）？
-  * 链路断层：项目中引入了自研的 Babel/Rollup 插件、或是自定义的 Loader，该脚本擅自修改了 AST 代码，但没有同步计算并向下传递 Source Map。
+
+- 链路断层：项目中引入了自研的 Babel/Rollup 插件、或是自定义的 Loader，该脚本擅自修改了 AST 代码，但没有同步计算并向下传递 Source Map。

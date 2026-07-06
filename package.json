@@ -18,7 +18,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "monitor:lh": "unlighthouse-ci --site http://localhost:4173/CoreFront-EndConcepts/ --desktop",
+    "monitor:lh": "unlighthouse-ci --site http://localhost:4173/CoreFront-EndConcepts/ --desktop --budget 80",
     "type-check": "turbo run type-check",
     "type-check:tsconfig": "vue-tsc -b --noEmit",
     "docs:lint": "markdownlint-cli2 \"apps/docs/**/*.md\" \"packages/**/*.md\" \"README.md\"",
@@ -26,6 +26,7 @@
     "docs:dev-only": "vitepress dev apps/docs",
     "docs:build": "run-s xb:build docs:build-only",
     "docs:build-only": "cross-env NODE_OPTIONS=\\\"--max-old-space-size=8192\\\" vitepress build apps/docs",
+    "docs:build-analyze": "cross-env BUNDLE_ANALYZE=true npm run docs:build-only",
     "docs:preview": "vitepress preview apps/docs",
     "docs:preview:ci": "vitepress preview apps/docs --host 127.0.0.1 --port 4173",
     "docs:clean": "rm -rf apps/docs/.vitepress/.temp apps/docs/.vitepress/cache node_modules/.vite",

@@ -3,6 +3,7 @@ node_modules
 apps/docs/.vitepress/cache/
 apps/docs/.vitepress/dist/
 apps/docs/.vitepress/.temp/
+stats.html
 .continue
 .unlighthouse/
 .env.local
