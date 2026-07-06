@@ -6,15 +6,13 @@ import DefaultTheme from 'vitepress/theme'
 // 引入 Fancybox 核心逻辑和样式
 // import { Fancybox } from '@fancyapps/ui'
 // import '@fancyapps/ui/dist/fancybox/fancybox.css'
-// 引入 Viewer.js 和样式
-import Viewer from 'viewerjs'
+import type Viewer from 'viewerjs'
 import 'viewerjs/dist/viewer.css'
 import './style.css'
 import { ElementPlusContainer } from '@vitepress-demo-preview/component'
 import '@vitepress-demo-preview/component/dist/style.css'
 import XElement from 'xb-element'
 import './custom.css'
-import * as Sentry from '@sentry/vue'
 
 export default {
   extends: DefaultTheme,
@@ -24,24 +22,26 @@ export default {
       // 这样 Vite 会把它单独打包成一个异步 chunk，绝不阻塞首屏渲染 (FCP)
       import('xb-element/dist/x-element.css')
       if (import.meta.env.PROD) {
-        // 或者用 !import.meta.env.DEV
-        console.log('🚀 生产环境，Sentry 性能监控已启动')
-        // 关键：仅在浏览器环境下初始化 Sentry，防止破坏 Node.js 端的构建过程
-        Sentry.init({
-          app,
-          dsn: 'https://b288271c3fd985d21205cbd7e36e3a43@o4511569356718080.ingest.us.sentry.io/4511569367269376', // 替换为你的 DSN
-          integrations: [
-            // 捕获路由切换的性能数据
-            Sentry.browserTracingIntegration(),
-            // 录制用户操作，方便复现复杂问题
-            Sentry.replayIntegration(),
-          ],
-          tracesSampleRate: 0.1, // 性能监控只采集 10% 的用户数据
-          replaysSessionSampleRate: 0, // 关闭正常用户的录屏采集
-          replaysOnErrorSampleRate: 1.0, // 只在发生错误时才录制 1 次回放
-        })
+        const initSentry = () => {
+          void import('@sentry/vue').then(Sentry => {
+            Sentry.init({
+              app,
+              dsn: 'https://b288271c3fd985d21205cbd7e36e3a43@o4511569356718080.ingest.us.sentry.io/4511569367269376',
+              integrations: [Sentry.browserTracingIntegration()],
+              tracesSampleRate: 0.02,
+              replaysSessionSampleRate: 0,
+              replaysOnErrorSampleRate: 0,
+            })
+          })
+        }
+
+        if ('requestIdleCallback' in window) {
+          window.requestIdleCallback(initSentry, { timeout: 3000 })
+        } else {
+          window.setTimeout(initSentry, 3000)
+        }
       } else {
-        console.log('⚡ 本地开发环境，Sentry 已安全阻断')
+        console.info('Sentry disabled in development')
       }
     }
     // 👇 注册一个自定义的高阶组件代替直接注册 ElementPlusContainer
@@ -102,18 +102,21 @@ export default {
   setup() {
     const route = useRoute()
     let viewer: Viewer | null = null
+    let ViewerConstructor: typeof Viewer | null = null
 
-    const initViewer = () => {
+    const initViewer = async () => {
       // 销毁旧实例，防止内存泄漏
       if (viewer) {
         viewer.destroy()
+        viewer = null
       }
 
       // 获取当前页面的文章内容容器
       const docContainer = document.querySelector('.vp-doc')
       if (docContainer) {
+        ViewerConstructor ??= (await import('viewerjs')).default
         // Viewer.js 会自动寻找容器内的所有 img 标签并绑定事件
-        viewer = new Viewer(docContainer as HTMLElement, {
+        viewer = new ViewerConstructor(docContainer as HTMLElement, {
           inline: false, // 模态框模式
           button: true, // 显示右上角关闭按钮
           navbar: false, // 隐藏底部的图库缩略图导航 (如果你只需单图放大)
@@ -127,12 +130,20 @@ export default {
     }
 
     onMounted(() => {
-      initViewer()
+      const lazyInitViewer = () => {
+        void initViewer()
+      }
+
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(lazyInitViewer, { timeout: 2000 })
+      } else {
+        window.setTimeout(lazyInitViewer, 1000)
+      }
     })
 
     watch(
       () => route.path,
-      () => nextTick(() => initViewer()),
+      () => nextTick(() => void initViewer()),
     )
   },
 } satisfies Theme

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>虚拟列表基础示例</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: Arial, "Microsoft YaHei", sans-serif;
+            color: #24303f;
+            background: #f4f7fb;
+        }
+
+        h2 {
+            margin: 0 0 8px;
+            font-size: 24px;
+        }
+
+        p {
+            margin: 0 0 16px;
+            color: #5f6f82;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        button {
+            min-width: 88px;
+            padding: 8px 12px;
+            border: 1px solid #b7c4d6;
+            border-radius: 6px;
+            color: #24303f;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        button:hover,
+        button.active {
+            border-color: #2f7de1;
+            color: #fff;
+            background: #2f7de1;
+        }
+
+        .stats {
+            margin-left: 8px;
+            color: #5f6f82;
+            font-size: 14px;
+        }
+
+        .list-viewport {
+            position: relative;
+            width: min(720px, 100%);
+            height: 520px;
+            overflow-y: auto;
+            border: 1px solid #d4deea;
+            border-radius: 8px;
+            background: #fff;
+        }
+
+        .list-spacer {
+            position: relative;
+            width: 100%;
+        }
+
+        .list-content {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+        }
+
+        .list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 44px;
+            padding: 0 16px;
+            border-bottom: 1px solid #edf1f6;
+            background: #fff;
+        }
+
+        .list-item:nth-child(even) {
+            background: #fbfcfe;
+        }
+
+        .index {
+            font-weight: 700;
+            color: #2f7de1;
+        }
+
+        .desc {
+            color: #5f6f82;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<h2>虚拟列表基础示例</h2>
+<p>页面只渲染滚动视口附近的列表项，即使数据量达到 10 万条，也不会一次性创建 10 万个 DOM 节点。</p>
+
+<div class="toolbar">
+    <button class="active" data-count="10000">1 万条</button>
+    <button data-count="50000">5 万条</button>
+    <button data-count="100000">10 万条</button>
+    <span class="stats" id="stats"></span>
+</div>
+
+<div class="list-viewport" id="viewport">
+    <div class="list-spacer" id="spacer">
+        <div class="list-content" id="content"></div>
+    </div>
+</div>
+
+<script>
+    const viewport = document.getElementById('viewport');
+    const spacer = document.getElementById('spacer');
+    const content = document.getElementById('content');
+    const stats = document.getElementById('stats');
+    const buttons = document.querySelectorAll('[data-count]');
+
+    const itemHeight = 44;
+    const buffer = 8;
+    let totalCount = 10000;
+    let ticking = false;
+
+    function createItem(index) {
+        const item = document.createElement('div');
+        item.className = 'list-item';
+        item.style.height = `${itemHeight}px`;
+
+        const title = document.createElement('span');
+        title.className = 'index';
+        title.textContent = `#${index + 1}`;
+
+        const desc = document.createElement('span');
+        desc.className = 'desc';
+        desc.textContent = `列表数据 ${index + 1}`;
+
+        item.append(title, desc);
+        return item;
+    }
+
+    function renderVirtualList() {
+        const scrollTop = viewport.scrollTop;
+        const visibleCount = Math.ceil(viewport.clientHeight / itemHeight);
+        const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - buffer);
+        const endIndex = Math.min(totalCount, startIndex + visibleCount + buffer * 2);
+
+        content.textContent = '';
+        content.style.transform = `translateY(${startIndex * itemHeight}px)`;
+
+        const fragment = document.createDocumentFragment();
+        for (let i = startIndex; i < endIndex; i++) {
+            fragment.appendChild(createItem(i));
+        }
+        content.appendChild(fragment);
+
+        stats.textContent = `总数据 ${totalCount.toLocaleString()} 条，当前渲染 ${endIndex - startIndex} 个 DOM 节点`;
+        ticking = false;
+    }
+
+    function requestRender() {
+        if (ticking) {
+            return;
+        }
+
+        ticking = true;
+        requestAnimationFrame(renderVirtualList);
+    }
+
+    function setTotalCount(count) {
+        totalCount = count;
+        spacer.style.height = `${totalCount * itemHeight}px`;
+        viewport.scrollTop = 0;
+        renderVirtualList();
+    }
+
+    viewport.addEventListener('scroll', requestRender);
+
+    buttons.forEach((button) => {
+        button.addEventListener('click', () => {
+            //排他思想
+            buttons.forEach((item) => item.classList.remove('active'));
+            button.classList.add('active');
+            setTotalCount(Number(button.dataset.count));
+        });
+    });
+
+    setTotalCount(totalCount);
+</script>
+</body>
+</html>

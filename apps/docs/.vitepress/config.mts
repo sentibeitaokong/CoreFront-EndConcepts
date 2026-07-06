@@ -7,7 +7,7 @@ import taskLists from 'markdown-it-task-lists'
 import {fileURLToPath, URL} from 'node:url'
 import {loadEnv} from 'vite'
 import {sentryVitePlugin} from "@sentry/vite-plugin"
-// import { ViteImageOptimizer } from 'vite-plugin-image-optimizer';  //压缩图片
+// import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'
 import path from 'path'
 //监控打包体积
 import {visualizer} from 'rollup-plugin-visualizer';
@@ -20,6 +20,9 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
     // 兼容本地读取 env 文件和 CI/CD 读取系统变量
     const sentryToken = env.SENTRY_AUTH_TOKEN || process.env.SENTRY_AUTH_TOKEN
     const isProduction = mode === 'production'
+    const enableAnalyze = env.BUNDLE_ANALYZE === 'true' || process.env.BUNDLE_ANALYZE === 'true'
+    const enableSentryUpload =
+        (env.SENTRY_UPLOAD === 'true' || process.env.SENTRY_UPLOAD === 'true') && Boolean(sentryToken)
 
     return withMermaid({
         lang: 'zh-CN',
@@ -29,7 +32,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
         vite: {
             plugins: [
                 //图片压缩
-                 /*ViteImageOptimizer({
+                /*ViteImageOptimizer({
                      // 核心防坑 1：必须开启 includePublic！
                      // 因为你的图片采用的是 ![logo](/logo.png) 的绝对路径写法，它们存放在 docs/public 目录下。
                      // 默认情况下 Vite 会忽略该目录，开启此项会在最后一刻拦截并压缩 public 里的资产。
@@ -37,7 +40,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
 
                      // 核心防坑 2：开启日志显示
                      // 配合重定向命令（如 pnpm run docs:build > log.txt）可以查看被吞掉的压缩体积
-                     logStats: true,
+                     logStats: enableAnalyze,
 
                      // 3. 针对不同图片格式的有损/无损压缩精细微调
                      png: {
@@ -66,13 +69,17 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                      },
                  }) as any,*/
                 // 建议放到插件数组的最后
-                visualizer({
-                    filename: 'stats.html', // 默认生成在项目根目录
-                    open: false, // 打包完成后自动在浏览器打开报告
-                    gzipSize: true, // 企业级配置：显示 gzip 压缩后的真实体积（更具参考价值）
-                    brotliSize: true // 显示 br 压缩后的体积
-                }),
-                ...(isProduction
+                ...(enableAnalyze
+                    ? [
+                        visualizer({
+                            filename: 'stats.html', // 默认生成在项目根目录
+                            open: false, // 打包完成后自动在浏览器打开报告
+                            gzipSize: true, // 企业级配置：显示 gzip 压缩后的真实体积（更具参考价值）
+                            brotliSize: true // 显示 br 压缩后的体积
+                        }),
+                    ]
+                    : []),
+                ...(isProduction && enableSentryUpload
                     ? [
                         sentryVitePlugin({
                             org: "xubei",
@@ -90,7 +97,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
             ],
             build: {
                 minify: 'esbuild',
-                sourcemap: true,
+                sourcemap: enableSentryUpload,
                 chunkSizeWarningLimit: 1000,
                 rollupOptions: {}
             },
