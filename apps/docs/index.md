@@ -18,9 +18,18 @@ hero:
       link: /frameworks/vue/advanced/source-code/vueCatalog
     - theme: alt
       text: 工程化指南
-      link: /fronttEngineering/intro
+      link: /frontEngineering/intro
+    - theme: alt
+      text: 组件库
+      link: /frameworks/vue/components/quickStart
 
 features:
+  - icon:
+      src: /img/knowledgeSystem.png
+    title: Web 基础体系
+    details: 覆盖 HTML 语义、CSS 布局与视觉、JavaScript 语言核心、TypeScript 类型系统和正则表达式。
+    link: /intro
+
   - icon:
       src: /img/handleWriting.svg
     title: JavaScript 底层与手写
@@ -34,10 +43,28 @@ features:
     link: /frameworks/vue/basic/intro
 
   - icon:
-      src: /img/Vue.svg
+      src: /img/elementPlus.png
+    title: xb-element 组件库
+    details: 通过 Button、Input、Select、Form、Tooltip、Message 等组件理解 API 设计、样式变量、类型声明与测试。
+    link: /frameworks/vue/components/quickStart
+
+  - icon:
+      src: /img/Vue.png
     title: Vue 源码实现
     details: 以 reactivity、runtime-core、runtime-dom、compiler-core 拆解响应式、渲染器、调度器和编译器。
     link: /frameworks/vue/advanced/source-code/vueCatalog
+
+  - icon:
+      src: /img/networkSafety.png
+    title: 网络、浏览器与安全
+    details: 梳理 DNS、CDN、TCP/UDP、HTTP/HTTPS、缓存、渲染、跨域、XSS、CSRF、CSP 与鉴权安全方案。
+    link: /networkAndBrowsers/fundamentals/osi
+
+  - icon:
+      src: /img/rocket.svg
+    title: 性能优化与工程化
+    details: 从 Core Web Vitals、首屏、资源加载、Bundle 分析到 Vite、Webpack、Monorepo、CI/CD 和监控体系。
+    link: /performanceOptimization/coreWebVitals
 
   - icon:
       src: /img/algorithms.svg
