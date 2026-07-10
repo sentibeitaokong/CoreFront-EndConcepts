@@ -1050,7 +1050,13 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                         },
                                     ]
                                 },
-
+                                {
+                                    text: '微前端',
+                                    collapsed: true, // 初始状态为“展开”
+                                    items: [
+                                        {text: '简介', link: '/frontEngineering/architecture/microFrontend'},
+                                    ]
+                                },
                             ]
                         },
 
