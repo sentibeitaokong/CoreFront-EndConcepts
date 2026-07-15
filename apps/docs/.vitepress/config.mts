@@ -165,6 +165,10 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
         cleanUrls: true,         //生成简洁的url
         // 🚨 2. 必须配置 markdown 字段
         markdown: {
+            theme: {
+                light: 'github-dark',
+                dark: 'github-dark',
+            },
             config(md: any) {
                 // 注册插件，让 VitePress 认识 :::preview 和 <preview>
                 md.use(containerPreview)
@@ -172,7 +176,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                 md.use(lightbox, {});      //图片放大
                 md.use(taskLists, {enabled: true})  //任务列表
                 md.use(footnote)        //论文索引
-            }
+            },
         },
         themeConfig: {
             /*   markdown: {
