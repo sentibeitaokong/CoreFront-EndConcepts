@@ -156,7 +156,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
             ['link', {rel: 'icon', href: '/CoreFront-EndConcepts/img/myAddress.svg'}],
             ['link', {
                 rel: 'preload',
-                href: '/CoreFront-EndConcepts/img/vitepress.svg',
+                href: '/CoreFront-EndConcepts/img/xunbei.svg',
                 as: 'image',
                 fetchpriority: 'high'
             }],

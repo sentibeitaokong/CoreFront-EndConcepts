@@ -7,7 +7,7 @@ hero:
   text: '前端核心知识体系'
   tagline: 从 Web 基础、浏览器原理、框架生态到工程化与源码实现，建立一张可持续扩展的前端能力地图。
   image:
-    src: /img/vitepress.svg
+    src: /img/xunbei.svg
     alt: Core Front-End Concepts
   actions:
     - theme: brand

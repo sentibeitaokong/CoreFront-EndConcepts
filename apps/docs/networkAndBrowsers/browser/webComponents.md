@@ -2,7 +2,7 @@
 
 Web Components 是浏览器原生的组件化标准，通过封装可复用、样式隔离的 UI，实现跨框架的组件交互。其核心由 **Custom Elements**、**Shadow DOM** 与 **HTML Template** 三大技术栈构成。
 
-## 1. Custom Elements (自定义元素)
+## 1. 自定义元素
 
 通过 JavaScript 定义新的 HTML 标签。所有自定义元素必须包含短横线（如 `my-card`），以防与原生标签冲突。
 
@@ -48,7 +48,7 @@ class UserBadge extends HTMLElement {
 customElements.define('user-badge', UserBadge)
 ```
 
-## 2. Shadow DOM (样式与结构隔离)
+## 2. 样式与结构隔离
 
 Shadow DOM 将组件的 DOM 树封装在一个独立的影子根 (Shadow Root) 中，实现真正的样式隔离。
 
@@ -81,9 +81,9 @@ customElements.define('app-button', AppButton)
 - **隔离性**：外部 CSS 无法穿透，内部 CSS 无法污染外部，DOM 结构默认不可见。
 - **Mode**：`open` 允许外部通过 `element.shadowRoot` 访问，`closed` 则完全封闭。
 
-## 3. 插槽 (Slots) 与 Template (模版)
+## 3. 插槽与模版
 
-### 3.1 `<slot>` 插槽
+### 3.1 插槽
 
 `slot` 用于占位，允许外部向组件内部注入内容：
 
@@ -119,7 +119,7 @@ customElements.define('app-button', AppButton)
 </user-panel>
 ```
 
-### 3.2 `<template>` 模版
+### 3.2 模版
 
 `template` 定义了不立即渲染的 HTML 结构，加载时资源不执行，渲染时通过 `cloneNode(true)` 实例化，是复用静态结构的最佳实践。
 

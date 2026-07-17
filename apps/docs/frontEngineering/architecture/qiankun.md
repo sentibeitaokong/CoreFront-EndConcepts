@@ -6,10 +6,9 @@
 
 qiankun 的运行链路本质是一个受控的路由调度状态机与资源加载器的结合：
 
-```text
+```markdown
 注册应用表(register) → 监听路由(hash/popstate) → 匹配规则(activeRule) →
 拉取资源(HTML Entry) → 构建沙箱(Proxy/ShadowDOM) → 运行时调度(bootstrap/mount/unmount)
-
 ```
 
 ## 2. 应用注册机制
