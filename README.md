@@ -26,28 +26,28 @@
 
 ## 目录结构
 
-```text
+```markdown
 .
 ├── apps/
-│   └── docs/                 # VitePress 文档站
-│       ├── .vitepress/        # 文档站配置与主题
-│       ├── components/        # 组件库文档示例
-│       ├── css/               # CSS 基础
-│       ├── dataStructuresAndAlgorithms/
-│       ├── designPatterns/
-│       ├── frontEngineering/
-│       ├── html/
-│       ├── js/
-│       ├── networkAndBrowsers/
-│       ├── performanceOptimization/
-│       ├── regexp/
-│       ├── typescript/
-│       └── webSecurity/
+│ └── docs/ # VitePress 文档站
+│ ├── .vitepress/ # 文档站配置与主题
+│ ├── components/ # 组件库文档示例
+│ ├── css/ # CSS 基础
+│ ├── dataStructuresAndAlgorithms/
+│ ├── designPatterns/
+│ ├── frontEngineering/
+│ ├── html/
+│ ├── js/
+│ ├── networkAndBrowsers/
+│ ├── performanceOptimization/
+│ ├── regexp/
+│ ├── typescript/
+│ └── webSecurity/
 ├── packages/
-│   ├── html/                  # 原生 HTML/CSS/浏览器 API 示例
-│   ├── js/                    # JavaScript 运行机制与手写示例
-│   ├── xbElement/             # Vue3 组件库
-│   └── vue/                   # mini Vue 学习实现
+│ ├── html/ # 原生 HTML/CSS/浏览器 API 示例
+│ ├── js/ # JavaScript 运行机制与手写示例
+│ ├── xbElement/ # Vue3 组件库
+│ └── vue/ # mini Vue 学习实现
 ├── package.json
 ├── pnpm-workspace.yaml
 ├── turbo.json

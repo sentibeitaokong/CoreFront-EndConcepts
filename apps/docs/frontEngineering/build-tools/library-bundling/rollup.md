@@ -490,26 +490,25 @@ pnpm add -D vue
 
 源码目录的设计直接决定了组件库后期的可扩展性。采用“组件与样式分离”的范式：
 
-```text
+```markdown
 enterprise-ui/
 ├── src/
-│   ├── components/
-│   │   ├── Button/
-│   │   │   ├── src/
-│   │   │   │   └── Button.vue     # 核心逻辑与 DOM 结构
-│   │   │   ├── style/
-│   │   │   │   └── index.scss     # 组件专属样式
-│   │   │   └── index.ts           # 组件独立注册入口 (支持按需引入)
-│   │   └── index.ts               # 所有组件统一出口
-│   ├── styles/
-│   │   ├── variables.scss         # 全局 CSS 变量 (Tokens)
-│   │   └── index.scss             # 统一样式总闸
-│   ├── utils/                     # 内部工具函数
-│   └── index.ts                   # 📦 全局安装与全量导出总闸
-├── rollup.config.js               # 核心构建引擎配置
-├── tsconfig.json                  # TS 配置
-└── package.json                   # 产物路由表
-
+│ ├── components/
+│ │ ├── Button/
+│ │ │ ├── src/
+│ │ │ │ └── Button.vue # 核心逻辑与 DOM 结构
+│ │ │ ├── style/
+│ │ │ │ └── index.scss # 组件专属样式
+│ │ │ └── index.ts # 组件独立注册入口 (支持按需引入)
+│ │ └── index.ts # 所有组件统一出口
+│ ├── styles/
+│ │ ├── variables.scss # 全局 CSS 变量 (Tokens)
+│ │ └── index.scss # 统一样式总闸
+│ ├── utils/ # 内部工具函数
+│ └── index.ts # 📦 全局安装与全量导出总闸
+├── rollup.config.js # 核心构建引擎配置
+├── tsconfig.json # TS 配置
+└── package.json # 产物路由表
 ```
 
 ### 4.4 编写核心构建引擎 (`rollup.config.js`)

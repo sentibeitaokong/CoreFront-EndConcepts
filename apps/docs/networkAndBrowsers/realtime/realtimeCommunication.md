@@ -54,13 +54,12 @@ SSE 利用了 HTTP 协议中的 Chunked 传输机制，服务端设置 `Content-
 
 SSE 强制要求使用 UTF-8 编码，事件之间以双换行符 `\n\n` 作为隔离边界。包含四个可选字段：
 
-```text
-id: 1a2b3c                 # 用于断线重连时，客户端自动通过 Last-Event-ID 请求头带回
-event: price_update        # 自定义事件类型，前端可通过 addEventListener('price_update') 监听
-data: {"symbol": "AAPL"}   # 核心载荷，多行数据以换行符分隔
-retry: 5000                # 指示浏览器在连接断开后，等待 5 秒重连
-\n                         # 强制双换行结束当前事件
-
+```markdown
+id: 1a2b3c # 用于断线重连时，客户端自动通过 Last-Event-ID 请求头带回
+event: price_update # 自定义事件类型，前端可通过 addEventListener('price_update') 监听
+data: {"symbol": "AAPL"} # 核心载荷，多行数据以换行符分隔
+retry: 5000 # 指示浏览器在连接断开后，等待 5 秒重连
+\n # 强制双换行结束当前事件
 ```
 
 ### 3.2 现代替代方案：Fetch + ReadableStream

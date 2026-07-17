@@ -1061,8 +1061,8 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                         {text: '简介', link: '/frontEngineering/architecture/microFrontend'},
                                         {text: 'iframe', link: '/frontEngineering/architecture/iframe'},
                                         {text: 'qiankun', link: '/frontEngineering/architecture/qiankun'},
-                                        {text: 'Wujie', link: '/frontEngineering/architecture/wujie'},
                                         {text: 'Micro-app', link: '/frontEngineering/architecture/microApp'},
+                                        {text: 'Wujie', link: '/frontEngineering/architecture/wujie'},
                                         {
                                             text: 'Module Federation',
                                             link: '/frontEngineering/architecture/moduleFederation'

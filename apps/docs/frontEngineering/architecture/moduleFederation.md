@@ -10,13 +10,13 @@ Module Federation 是 Webpack 5 引入的运行时模块共享能力，后来也
 
 传统打包把模块依赖固定在构建时；Module Federation 把一部分模块依赖推迟到运行时解析。
 
-```text
+```markdown
 Host 应用
-    ↓ 动态加载 remoteEntry.js
+↓ 动态加载 remoteEntry.js
 Remote 应用暴露模块
-    ↓
+↓
 import('order/App')
-    ↓
+↓
 运行时渲染远程页面或组件
 ```
 

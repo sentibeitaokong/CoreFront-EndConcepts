@@ -218,13 +218,13 @@ declare global {
 
 不同运行环境支持的全局变量、模块系统完全不同（例如 Node 环境有 `process`，浏览器有 `window`）。因此，最佳实践是采用“基础配置 + 按需扩展”的模式。
 
-```text
+```markdown
 project-root/
-├── tsconfig.base.json    # 核心基础规范（全公司/全项目通用）
-├── tsconfig.app.json     # 浏览器端业务代码配置
-├── tsconfig.node.json    # Node.js 构建脚本配置
-├── tsconfig.test.json    # 测试环境配置
-└── tsconfig.json         # 根入口，用于在 IDE 中统合上述配置（使用 references）
+├── tsconfig.base.json # 核心基础规范（全公司/全项目通用）
+├── tsconfig.app.json # 浏览器端业务代码配置
+├── tsconfig.node.json # Node.js 构建脚本配置
+├── tsconfig.test.json # 测试环境配置
+└── tsconfig.json # 根入口，用于在 IDE 中统合上述配置（使用 references）
 ```
 
 ### 5.2 企业级基础配置模板

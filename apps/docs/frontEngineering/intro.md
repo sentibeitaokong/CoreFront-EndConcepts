@@ -104,21 +104,20 @@
 
 利用 `pnpm workspace`，在一个 Git 仓库内将“业务代码”和“底层基建”进行物理隔离与拓扑关联：
 
-```text
-CoreFront-EndConcepts/        # 仓库根目录
-├── applications/             # 业务应用层 (Apps)
-│   └── basicSOP/             # 具体的业务系统 (Vite + Vue 3)
-│       ├── package.json
-│       └── vite.config.ts
-├── packages/                 # 基础设施层 (Shared Packages)
-│   ├── eslint-config/        # 团队统一 Lint 规范包
-│   └── xunbei-vue/           # 团队自研的跨项目 UI 组件库
-│       ├── package.json
-│       └── src/
-├── pnpm-workspace.yaml       # 🌟 声明工作区领地
-├── package.json              # 锁定 pnpm 版本与全局脚本
-└── turbo.json                # 🌟 Turborepo 任务编排引擎
-
+```markdown
+CoreFront-EndConcepts/ # 仓库根目录
+├── applications/ # 业务应用层 (Apps)
+│ └── basicSOP/ # 具体的业务系统 (Vite + Vue 3)
+│ ├── package.json
+│ └── vite.config.ts
+├── packages/ # 基础设施层 (Shared Packages)
+│ ├── eslint-config/ # 团队统一 Lint 规范包
+│ └── xunbei-vue/ # 团队自研的跨项目 UI 组件库
+│ ├── package.json
+│ └── src/
+├── pnpm-workspace.yaml # 🌟 声明工作区领地
+├── package.json # 锁定 pnpm 版本与全局脚本
+└── turbo.json # 🌟 Turborepo 任务编排引擎
 ```
 
 ### 4.2 彻底告别发包：本地软链魔法

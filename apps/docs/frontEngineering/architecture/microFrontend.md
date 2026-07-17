@@ -58,13 +58,13 @@
 
 一个成熟的微前端架构，主应用应保持轻量，不承载过多业务逻辑，避免重新变为"**巨石基座**"。：
 
-```
+```markdown
 用户访问 URL
-    ↓
+↓
 主应用（基座）：布局、菜单、认证、权限、路由分发
-    ↓
-子应用 A（Vue）  子应用 B（React）  子应用 C（Angular）
-    ↓
+↓
+子应用 A（Vue） 子应用 B（React） 子应用 C（Angular）
+↓
 基础设施：JS 沙箱、CSS 隔离、通信、预加载、监控、错误兜底
 ```
 
@@ -72,8 +72,8 @@
 
 基座是整个应用的网关。它通过底层劫持浏览器的 `history.pushState` 和 `popstate` 事件，监听 URL 变化。根据 URL 前缀激活对应子应用，调度引擎挂起当前子应用，并动态获取下一个子应用的入口资源。
 
-```
-URL: /app-order/list     → 订单子应用处理 /list
+```markdown
+URL: /app-order/list → 订单子应用处理 /list
 URL: /app-goods/detail/1 → 商品子应用处理 /detail/1
 ```
 
@@ -180,16 +180,16 @@ export async function unmount(props) {
 
 > **实践建议：** Monorepo 管理子应用仓库和公共包，微前端方案负责运行时的组合与隔离，两者结合能充分发挥各自优势。
 
-```
+```markdown
 micro-frontend-monorepo/
 ├── apps/
-│   ├── container/        # 主应用 (Monorepo 管理)
-│   ├── app-order/        # 订单子应用 (Monorepo 管理 + 微前端暴露)
-│   └── app-goods/        # 商品子应用
+│ ├── container/ # 主应用 (Monorepo 管理)
+│ ├── app-order/ # 订单子应用 (Monorepo 管理 + 微前端暴露)
+│ └── app-goods/ # 商品子应用
 ├── packages/
-│   ├── shared-ui/        # 公共 UI 组件库
-│   ├── shared-utils/     # 公共工具函数
-│   └── eslint-config/    # 共享 ESLint 配置
+│ ├── shared-ui/ # 公共 UI 组件库
+│ ├── shared-utils/ # 公共工具函数
+│ └── eslint-config/ # 共享 ESLint 配置
 ├── pnpm-workspace.yaml
 ├── turbo.json
 └── package.json
