@@ -1,6 +1,6 @@
 # Wujie 微前端方案
 
-Wujie（无界）是腾讯出品的微前端框架，核心采用 **WebComponent + iframe** 架构。iframe 负责提供独立的 JS 运行环境，WebComponent 的 Shadow DOM 承载子应用 DOM 并实现样式隔离，两者之间通过三层 Proxy 代理系统桥接——这是理解 Wujie 全部设计的关键。
+Wujie（无界）是腾讯出品的微前端框架，核心采用 **WebComponent + iframe** 架构。iframe 负责提供独立的 JS 运行环境，WebComponent 的 Shadow DOM 承载子应用 DOM 并实现样式隔离。
 
 ## 1. 整体架构
 
@@ -59,12 +59,11 @@ startApp(config)
 | 性能     | 无 `with`/`eval`，应用切换无清理开销                          | `with` 包裹有性能损耗                  |
 | ESM 兼容 | 原生支持                                                      | 需借助构建工具或额外转换               |
 
-iframe 的核心代价是：每个子应用需要额外的 iframe 内存开销，且跨上下文调试比单页面复杂。
-
 ### 3.2 iframe 创建
 
-```ts
-// 核心流程（iframe.ts）
+:::code-group
+
+```ts [iframe.ts]
 function iframeGenerator(sandbox: WuJie) {
   const iframe = document.createElement('iframe')
 
@@ -95,6 +94,8 @@ function iframeGenerator(sandbox: WuJie) {
   return iframeWindow
 }
 ```
+
+:::
 
 ### 3.3 Proxy 三层代理
 
@@ -172,8 +173,6 @@ const proxyDocument = new Proxy(
 )
 ```
 
-**重定向决策表：**
-
 | 属性/方法类别                                                                                                                     | 重定向到                                       | 原因                                    |
 | --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | --------------------------------------- |
 | `querySelector` / `querySelectorAll` / `getElementById` / `getElementsByClassName` / `getElementsByTagName` / `getElementsByName` | **ShadowRoot**                                 | 子应用查询 DOM 应找到自己渲染的节点     |
@@ -225,8 +224,9 @@ const proxyLocation = new Proxy(
 
 子应用的 JS 在 iframe 中执行时，通过 IIFE 闭包将 `window`/`self`/`location` 等全局对象替换为 Proxy 对象：
 
-```js
-// sandbox.ts 中 execScript 的核心逻辑
+:::code-group
+
+```js [sandbox.ts]
 const code = `
   (function(window, self, global, location, history, document, eval) {
     ${scriptContent}
@@ -246,6 +246,8 @@ const script = iframeWindow.document.createElement('script')
 script.textContent = code
 iframeWindow.document.head.appendChild(script)
 ```
+
+:::
 
 **为什么用闭包传参而非 Proxy 全局劫持：**
 
@@ -270,9 +272,12 @@ iframeWindow.document.head.appendChild(script)
 
 ### 4.1 WebComponent 定义
 
-```ts
-// shadow.ts — 注册 <wujie-app> 自定义元素
+:::code-group
+
+```ts [sahdow.ts]
+// 注册 <wujie-app> 自定义元素
 class WujieApp extends HTMLElement {
+  //插入文档
   connectedCallback() {
     // 创建 Shadow DOM — 这是 CSS 隔离的基石
     const shadowRoot = this.attachShadow({ mode: 'open' })
@@ -285,6 +290,7 @@ class WujieApp extends HTMLElement {
     patchElementEffect(shadowRoot, sandbox.iframe.contentWindow)
   }
 
+  //移除文档
   disconnectedCallback() {
     // <wujie-app> 从 DOM 移除 → 卸载子应用
     const sandbox = getWujieById(this.getAttribute('data-wujie-id'))
@@ -295,7 +301,7 @@ class WujieApp extends HTMLElement {
 customElements.define('wujie-app', WujieApp)
 ```
 
-`connectedCallback` 和 `disconnectedCallback` 是 WebComponent 的生命周期钩子——前者在元素插入 DOM 时触发（创建 Shadow DOM + 关联沙箱），后者在元素移除时触发（卸载子应用）。
+:::
 
 ### 4.2 CSS 处理流程
 
@@ -348,8 +354,6 @@ iframe.contentWindow.xxx // 直接读写子应用 iframe 的 window
 window.parent.xxx // 直接读写主应用的 window
 ```
 
-这是 Wujie 通信的**底层能力基础**，Props 和 EventBus 都是在它的基础上封装而来。但这种直接访问耦合度高，日常开发应优先使用 Props 或 EventBus。
-
 ### 5.2 Props 通信
 
 主应用通过 `props` 参数向子应用注入数据，Wujie 将 props 挂载到 `window.$wujie.props`：
@@ -368,13 +372,13 @@ const { token, theme, user } = window.$wujie?.props || {}
 
 **源码实现路径：** `sandbox.ts` 中 `Wujie` 类在 `active()` 阶段将 `props` 注入 iframe 的 `window.$wujie` 对象。
 
-Props 适合主→子的单向数据流。如果子应用用 Vue，可以在 `bootstrap` 中将 props 注入全局（如 `provide`），避免在每个组件中重复访问 `window.$wujie.props`。
-
 ### 5.3 EventBus 通信
 
-实现位置：`packages/wujie-core/src/event.ts`
+:::code-group
 
-```ts
+```ts [event.ts]
+//EventBus应用实例容器
+let appEventObjMap = new Map()
 class EventBus {
   id: string
   eventObj: Record<string, callback[]>
@@ -406,6 +410,7 @@ class EventBus {
       const idx = fns.indexOf(fn)
       if (idx > -1) fns.splice(idx, 1)
     }
+    //支持链式调用
     return this
   }
 
@@ -416,14 +421,9 @@ class EventBus {
 }
 ```
 
-**EventBus 的设计精髓：**
+:::
 
-- **全局 `appEventObjMap`**：一个模块级 Map，key 是应用 id，value 是 `eventObj`。所有子应用和主应用的 EventBus 实例都将自己的回调注册到这个全局 Map 中。
-- **`$emit` 遍历全局**：`$emit` 会遍历 `appEventObjMap` 中**所有**应用的 `eventObj`，而非仅遍历当前实例的。这就是"去中心化"的含义——主应用 emit 的事件，子应用能收到；子应用 A emit 的事件，子应用 B 也能收到。
-- **链式调用**：所有方法都 `return this`，支持 `bus.$on("a", fn1).$on("b", fn2)` 写法。
-- **自动清理**：子应用销毁（`unmount`）时，Wujie 自动调用 `$clear()` 清空该应用的所有事件订阅。但组件级订阅仍需开发者在 `unmount` 中手动 `$off`。
-
-**使用示例：**
+:::details 示例
 
 ```ts
 // 主应用
@@ -444,7 +444,7 @@ window.$wujie?.bus.$on('theme-change', theme => {
 window.$wujie?.bus.$off('theme-change', themeHandler)
 ```
 
-**Vue 组件封装中的事件转发：** `wujie-vue3` 内部利用 `$onAll` 将子应用 `$emit` 的事件自动转发为 Vue 组件事件，因此主应用可以直接在 `<WujieVue>` 上通过 `@event-name` 监听子应用发出的任何事件。
+:::
 
 ### 5.4 通信方式选型
 
@@ -460,8 +460,10 @@ window.$wujie?.bus.$off('theme-change', themeHandler)
 
 Wujie 通过劫持 iframe 的 `history.pushState` 和 `history.replaceState` 实现主子应用路由双向同步：
 
-```ts
-// iframe.ts — patchIframeHistory
+:::code-group
+
+```ts [iframe.ts]
+//路由劫持
 function patchIframeHistory(sandbox) {
   const iframeWindow = sandbox.iframe.contentWindow
   const rawPushState = iframeWindow.history.pushState
@@ -479,7 +481,9 @@ function patchIframeHistory(sandbox) {
 }
 ```
 
-**同步链路：**
+:::
+
+:::details 同步链路
 
 ```markdown
 子应用内调用 history.pushState("/detail")
@@ -496,6 +500,8 @@ joint session history 自动作用
 ↓ 监听后同步主子应用 URL
 ```
 
+:::
+
 ## 7. 保活与预加载
 
 ```vue
@@ -503,8 +509,6 @@ joint session history 自动作用
 ```
 
 **保活模式的实现：** `alive: true` 时，路由切走不会销毁 `<wujie-app>` 和 iframe，而是将它们缓存到内存中。重新激活时直接取出挂载，跳过 `importHTML` 和 JS 重新执行的流程，恢复速度快。
-
-三种运行模式：
 
 | 模式                           | 行为                                                            | 适用场景           |
 | ------------------------------ | --------------------------------------------------------------- | ------------------ |
@@ -573,19 +577,6 @@ if (isInWujie) {
 }
 ```
 
-子应用仍需做好卸载清理——全局事件、定时器、WebSocket 和未完成请求在 `unmount` 中清理，保活场景下尤其重要。
-
-## 10. 优势与边界
-
-| 维度      | 表现                                                             |
-| --------- | ---------------------------------------------------------------- |
-| JS 隔离   | iframe 物理级隔离，强于纯 Proxy 沙箱                             |
-| CSS 隔离  | Shadow DOM 原生隔离，无需构建时 prefix                           |
-| Vite 兼容 | 原生支持 ESM，无需改造构建产物                                   |
-| 多实例    | iframe 天然支持多子应用同时激活                                  |
-| 性能      | 无 `with`/`eval` 性能损耗；保活模式切换快；iframe 有额外内存开销 |
-| 调试      | 跨 iframe 上下文调试比单页面 SPA 复杂                            |
-
 ## 11. 常见问题
 
 | 问题                         | 原因与处理                                                                            |
@@ -599,4 +590,10 @@ if (isInWujie) {
 
 ## 12. 落地建议
 
-Wujie 适合作为 Vite 时代的运行时隔离方案。选型时重点设计：保活策略（哪些页面保活、保活上限）、路由同步（一级前缀分配、query 参数同步）、弹窗挂载（UI 库 `getPopupContainer` 配置）、事件解绑（保活场景下的 `$off`）、CORS 配置（开发与生产环境一致）。
+| 设计维度      | 核心目标                 | 落地关键点与建议                                                                                                                                                                                                                 |
+| ------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **保活策略**  | 极致性能与状态还原       | **定义 `alive` 列表**：避免全局保活导致内存溢出；**设置保活上限**：建议单次不超过 3-5 个实例，超出后配合路由守卫采用 LRU（最近最少使用）策略自动销毁最旧的实例。                                                                 |
+| **路由同步**  | 主子应用路由解耦         | **一级前缀分配**：基座与子应用路由划分明确的命名空间（如 `/erp/*`）；**Query 同步**：在子应用的 Vue 3 `setup` 顶层或状态管理中监听 `window.$wujie.props` 变化，实现基座 Query 参数到子应用内部状态的双向同步。                   |
+| **弹窗挂载**  | 避免 UI 组件遮罩层异常   | **Portal 容器化**：配置 UI 组件库（如 Vue 3 的 Element Plus 提供的 `append-to` 或 Ant Design Vue 的 `getPopupContainer`），强制将弹窗挂载到 `document.body` 或指定的 `wujie-app` 内部，打破 Shadow DOM 的物理隔离边界限制。      |
+| **事件解绑**  | 防止内存泄漏与副作用残留 | **生命周期清理**：在子应用组件的 `onBeforeUnmount` 阶段，必须显式调用 `window.$wujie.bus.$off` 清理绑定的事件总线，同时清理全局 `document` 上的定时器与事件监听，避免在重复唤醒时引发多次执行。                                  |
+| **CORS 配置** | 确保跨域资源加载成功     | **开发环境**：子应用的 `vite.config.ts` 中务必开启 `server.cors: true`；**生产环境**：Nginx 服务器或 CDN 的响应头需严格配置 `Access-Control-Allow-Origin: <基座域名>`，杜绝使用 `*` 以保证安全，并确保多环境的配置策略完全一致。 |

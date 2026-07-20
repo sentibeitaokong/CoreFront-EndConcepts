@@ -28,6 +28,10 @@
   --vp-code-block-bg: #0d1117;
   --vp-code-block-divider-color: #30363d;
   --vp-code-lang-color: rgba(255, 255, 255, 0.56);
+  --vp-code-tab-text-color: rgba(237, 233, 254, 0.72);
+  --vp-code-tab-hover-text-color: #f5f3ff;
+  --vp-code-tab-active-text-color: #ddd6fe;
+  --vp-code-tab-active-bar-color: #a78bfa;
   --vp-code-line-highlight-color: rgba(110, 118, 129, 0.28);
   --vp-code-line-number-color: rgba(255, 255, 255, 0.36);
   --vp-code-line-diff-add-color: rgba(46, 160, 67, 0.24);
