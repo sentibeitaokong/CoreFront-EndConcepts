@@ -6,46 +6,46 @@ Vue 3 源码采用 **monorepo** 架构管理，所有核心模块都放在 `pack
 
 ## 1. 根目录结构概览
 
-```
+```markdown
 vue-core/
-├── packages/                # 核心模块（monorepo 子包）
-├── scripts/                 # 构建、开发、发布等脚本
-├── test-dts/                # TypeScript 类型定义测试
-├── .github/                 # GitHub 相关配置（CI、Issue 模板等）
-├── .vscode/                 # VSCode 推荐配置
-├── rollup.config.js         # Rollup 构建配置
-├── vitest.config.ts         # Vitest 单元测试配置
-├── package.json             # 根 package.json
-├── pnpm-workspace.yaml      # pnpm workspace 配置
-├── tsconfig.json            # 基础 TypeScript 配置
-├── api-extractor.json       # API Extractor 配置（生成 d.ts 汇总）
-├── vitest.workspace.ts      # Vitest 工作区配置
+├── packages/ # 核心模块（monorepo 子包）
+├── scripts/ # 构建、开发、发布等脚本
+├── test-dts/ # TypeScript 类型定义测试
+├── .github/ # GitHub 相关配置（CI、Issue 模板等）
+├── .vscode/ # VSCode 推荐配置
+├── rollup.config.js # Rollup 构建配置
+├── vitest.config.ts # Vitest 单元测试配置
+├── package.json # 根 package.json
+├── pnpm-workspace.yaml # pnpm workspace 配置
+├── tsconfig.json # 基础 TypeScript 配置
+├── api-extractor.json # API Extractor 配置（生成 d.ts 汇总）
+├── vitest.workspace.ts # Vitest 工作区配置
 ├── CHANGELOG.md
 ├── README.md
-└── ...                      # 其他配置文件
+└── ... # 其他配置文件
 ```
 
 ## 2. packages/ 目录：核心模块
 
 `packages/` 是 Vue 3 源码的核心，每个子目录对应一个独立的 npm 包（可通过 `@vue/xxx` 安装）。
 
-```
+```markdown
 packages/
-├── reactivity/              # 响应式系统（独立使用）
-├── runtime-core/            # 运行时核心（平台无关）
-├── runtime-dom/             # 浏览器 DOM 运行时（基于 runtime-core）
-├── runtime-test/            # 测试用的轻量运行时
-├── server-renderer/         # 服务端渲染（SSR）
-├── compiler-core/           # 编译器核心（平台无关）
-├── compiler-dom/            # 浏览器 DOM 编译器（基于 compiler-core）
-├── compiler-ssr/            # SSR 专用编译器
-├── shared/                  # 内部共享工具函数
-├── vue/                     # 完整 Vue 入口（整合运行时+编译器）
-├── vue-compat/              # Vue 2 兼容层
-├── template-explorer/       # 模板编译探索工具（开发调试用）
-├── dts-built-test/          # 类型定义构建测试
-├── global.d.ts              # 全局类型声明
-└── ...                      # 其他辅助包
+├── reactivity/ # 响应式系统（独立使用）
+├── runtime-core/ # 运行时核心（平台无关）
+├── runtime-dom/ # 浏览器 DOM 运行时（基于 runtime-core）
+├── runtime-test/ # 测试用的轻量运行时
+├── server-renderer/ # 服务端渲染（SSR）
+├── compiler-core/ # 编译器核心（平台无关）
+├── compiler-dom/ # 浏览器 DOM 编译器（基于 compiler-core）
+├── compiler-ssr/ # SSR 专用编译器
+├── shared/ # 内部共享工具函数
+├── vue/ # 完整 Vue 入口（整合运行时+编译器）
+├── vue-compat/ # Vue 2 兼容层
+├── template-explorer/ # 模板编译探索工具（开发调试用）
+├── dts-built-test/ # 类型定义构建测试
+├── global.d.ts # 全局类型声明
+└── ... # 其他辅助包
 ```
 
 ### 2.1 `reactivity` – 响应式系统
