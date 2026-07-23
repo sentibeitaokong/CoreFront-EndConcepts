@@ -119,7 +119,7 @@ function App() {
 ### 3.1 为什么我写了 `onClick={handleClick()}`，页面一刷新它就自己触发了，点击反而没反应？
 
 - **答**：这是 React 新手犯错率排名第一的雷区。
-  - **原因剖析**：当你在 JSX 里写 `{handleClick()}`（带了括号）时，你并不是在“绑定事件”，而是在告诉 JavaScript 引擎：“**请立刻、马上执行这个函数**，并把它的返回值绑给 `onClick`”。
+  - **原因剖析**：当你在 JSX 里写 `{handleClick()}`（带了括号）时，你并不是在“**绑定事件**”，而是在告诉 JavaScript 引擎：“**请立刻、马上执行这个函数**，并把它的返回值绑给 `onClick`”。
   - **后果**：因为函数在组件渲染的一瞬间就被强行执行了，所以页面一刷新就弹出了 alert。而通常你的 `handleClick` 是没有 `return` 值的，所以它默认返回了 `undefined`。最终，真实的绑定变成了 `onClick={undefined}`，当你真的去点击按钮时，自然毫无反应。
   - **铁律**：传给事件的一定要是**函数的引用**（也就是函数的名字 `onClick={handleClick}`）或者是**一个箭头函数包裹体**（`onClick={() => handleClick(id)}`）。
 
@@ -128,7 +128,7 @@ function App() {
 - **答**：这是一个非常巨大的认知差异。
   - **原生 HTML 的 `onchange`**：对于 `<input type="text">`，它只在用户输入完毕并**光标失去焦点 (blur)** 时，或者敲击回车时才触发。体验非常迟钝。
   - **React 的 `onChange`**：React 极其激进地重写了这个行为。在 React 中，只要输入框的内容发生了**哪怕一个字符的改变（即按键按下的瞬间）**，`onChange` 就会立刻触发。
-  - **最佳实践**：正是由于 React 的这个设定，我们才能实现极其丝滑的**“受控组件 (Controlled Components)”**表单——用户每敲一个字，立刻更新 State，State 立刻更新 Input 的 value，实现完美的双向绑定错觉。
+  - **最佳实践**：正是由于 React 的这个设定，我们才能实现极其丝滑的 **“受控组件 (Controlled Components)”** 表单——用户每敲一个字，立刻更新 State，State 立刻更新 Input 的 value，实现完美的双向绑定错觉。
 
 ### 3.3 什么是“受控组件”？为什么我的输入框连字都打不进去了？
 
