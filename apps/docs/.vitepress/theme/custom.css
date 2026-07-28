@@ -76,6 +76,13 @@ i[class*=' fa-'] {
   margin-right: 0 !important;
 }
 
+/* Mermaid 流程图居中显示 */
+.mermaid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 body {
   color: var(--vp-c-text-1);
 }
