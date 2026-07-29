@@ -972,10 +972,16 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                         {
                                             text: '源码剖析：调度、协调与渲染',
                                             collapsed: true, // 初始状态为”展开”
-                                            items: [{
-                                                text: 'React源码目录结构',
-                                                link: '/frameworks/react/advanced/source-code/sourceCodeCatalog'
-                                            }],
+                                            items: [
+                                                {
+                                                    text: 'React源码目录结构',
+                                                    link: '/frameworks/react/advanced/source-code/sourceCodeCatalog'
+                                                },
+                                                {
+                                                    text: '任务调度器',
+                                                    link: '/frameworks/react/advanced/source-code/scheduler'
+                                                },
+                                            ],
                                         },
                                     ]
                                 },

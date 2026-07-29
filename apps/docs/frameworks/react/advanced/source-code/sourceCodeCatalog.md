@@ -2,7 +2,7 @@
 outline: [2, 3]
 ---
 
-# React 最新源码目录结构解读
+# React 源码目录结构解读
 
 React 官方源码仓库 [`facebook/react`](https://github.com/facebook/react) 使用 monorepo 管理 React 核心、不同宿主环境的渲染器、调度器、服务端组件、开发者工具和测试设施，目标不是罗列每一个文件，而是建立一张能用于源码阅读的模块地图。
 
