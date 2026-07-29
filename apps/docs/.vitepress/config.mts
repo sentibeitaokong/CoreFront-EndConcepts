@@ -654,7 +654,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
                                         {
-                                            text: 'Vue 核心设计原理与基础概念',
+                                            text: '核心架构与设计原理',
                                             collapsed: true, // 初始状态为“展开”
                                             items: [
                                                 {
@@ -691,7 +691,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                             ]
                                         },
                                         {
-                                            text: '从源码看本质：Vue 3 响应式系统、编译器与渲染器',
+                                            text: '源码剖析：响应式、编译与渲染',
                                             collapsed: true, // 初始状态为“展开”
                                             items: [
                                                 {
@@ -952,7 +952,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                     collapsed: true, // 初始状态为”展开”
                                     items: [
                                         {
-                                            text: 'React 核心设计原理与基础概念',
+                                            text: '核心架构与设计原理',
                                             collapsed: true, // 初始状态为”展开”
                                             items: [
                                                 {text: 'React 编译器', link: '/frameworks/react/advanced/core-design/compiler'},
@@ -970,7 +970,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                             ]
                                         },
                                         {
-                                            text: '从源码看本质：React响应式系统、编译器与渲染器',
+                                            text: '源码剖析：调度、协调与渲染',
                                             collapsed: true, // 初始状态为”展开”
                                             items: [{
                                                 text: 'React源码目录结构',
