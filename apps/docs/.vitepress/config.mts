@@ -983,6 +983,16 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                                 },
                                             ],
                                         },
+                                        {
+                                            text: 'React 与 Vue 3 对比',
+                                            collapsed: true,
+                                            items: [
+                                                {
+                                                    text: '核心机制对比',
+                                                    link: '/frameworks/react/advanced/comparisons/reactVueCoreMechanisms'
+                                                },
+                                            ]
+                                        },
                                     ]
                                 },
                             ]

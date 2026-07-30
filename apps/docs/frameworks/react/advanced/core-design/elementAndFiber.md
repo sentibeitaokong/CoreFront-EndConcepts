@@ -1,58 +1,62 @@
 # React Element、Fiber 与 DOM 节点
 
-## 1. 概念辨析：从 JSX 到 DOM
+## 1. 从 JSX 到 DOM
 
-React 应用中存在三个容易混淆的核心概念：**React Element**、**Fiber 节点**和 **DOM 节点**。理解它们的区别和关系是深入 React 内部机制的基础。
+React 应用中存在三个容易混淆的核心概念：**React Element**、**Fiber 节点**和 **DOM 节点**。理解它们的区别和关系是深入 React 内部机制（尤其是并发模式）的基石。
 
-```text
+```markdown
 JSX 源码 → React Element（不可变 UI 描述）→ Fiber 树（工作节点）→ 渲染器 → DOM 节点
 ```
 
-|              | React Element                | Fiber 节点                     | DOM 节点                     |
-| ------------ | ---------------------------- | ------------------------------ | ---------------------------- |
-| **是什么**   | 不可变的 UI 描述对象         | React 运行时的可变工作单元     | 浏览器渲染的真实节点         |
-| **创建方式** | `createElement()` / JSX      | `createFiberFromElement()`     | `document.createElement()`   |
-| **可变性**   | 不可变（每次渲染创建新对象） | 可复用更新                     | 可变（直接修改属性和子节点） |
-| **生命周期** | 一次渲染的瞬间               | 跨渲染持久化（通过 alternate） | 持久化，由 React 管理        |
-| **作用**     | 描述"要渲染什么"             | 保存状态、调度工作、记录副作用 | 实际渲染到屏幕               |
+| 维度         | React Element (元素)               | Fiber Node (纤程/节点)              | DOM Node (宿主节点)          |
+| ------------ | ---------------------------------- | ----------------------------------- | ---------------------------- |
+| **存在形态** | 纯粹的轻量级 JavaScript 对象       | 复杂的运行状态机（包含指针与状态）  | 沉重的浏览器原生对象         |
+| **创建时机** | 每次 Render 阶段（组件函数执行时） | 首次渲染时创建，后续更新时复用/克隆 | Commit 阶段按需增删改        |
+| **可变性**   | **绝对不可变 (Immutable)**         | **高度可变 (Mutable)**              | **可变 (Mutable)**           |
+| **生命周期** | 极短，单次渲染周期结束即被 GC 回收 | 跨渲染周期持久存在（伴随组件一生）  | 挂载到文档后持久存在         |
+| **核心职责** | 描述当前时刻 "**UI 应该长什么样**" | 调度工作、存储 Hook 状态、计算 Diff | 响应交互、触发浏览器重绘重排 |
 
 ## 2. React Element
 
-### 2.1 结构
+### 2.1 内部结构与安全屏障
 
-React Element 是一个**轻量、不可变的纯对象**，描述界面上应该显示什么：
+React Element 是一个**轻量、不可变的纯对象**，它是对 UI 的声明式描述：
 
 ```javascript
-// 一个 React Element 的结构
+// 一个 React Element 的标准结构
 {
-  $$typeof: Symbol(react.element),   // 标识为 React Element
-  type: 'h1',                        // 宿主元素标签名 / 函数组件 / Class 组件
-  key: null,                         // 列表 diff 的 key
-  ref: null,                         // ref 引用
-  props: {                           // 属性（含 children）
+  $$typeof: Symbol.for('react.element'), // 安全标记：防御 JSON 注入型 XSS 攻击
+  type: 'h1',                            // 节点类型：字符串(DOM) / 函数引用(FC) / Class引用
+  key: null,                             // 列表 Diff 的唯一标识，用于同层复用
+  ref: null,                             // 获取底层 DOM 或类实例的引用
+  props: {                               // 属性集合（包含 children）
     className: 'title',
     children: 'Hello World'
   },
-  _owner: null                       // 创建此 Element 的 Fiber（开发模式）
+  _owner: null                           // 记录负责创建此 Element 的 Fiber（开发模式）
 }
+
 ```
 
-### 2.2 不可变性
+> [!NOTE]
+> `$$typeof` 的设计极为巧妙：由于 JSON 无法序列化 `Symbol`，如果攻击者试图通过服务器返回一个伪造的 React Element 对象注入脚本，React 会因为找不到合法的 `Symbol.for('react.element')` 而拒绝渲染，从根源上阻断了 XSS。
 
-React Element 的每个字段都是**不可变的**。一旦创建，你不应该修改它：
+### 2.2 极致的不可变性 (Immutability)
+
+React Element 的每个字段都是被冻结的。这种不可变性是 React 能够安全地在并发模式下**丢弃、暂停和重试渲染**的基础。
 
 ```jsx
 const element = <h1>Hello</h1>
-// ❌ 不要这样做
+// ❌ 绝对禁止：这会破坏 React 的假设，导致不可预期的渲染错误
 element.props.className = 'changed'
 
-// ✅ 如果要变化，创建新的 Element
+// ✅ 正确做法：状态驱动产生全新的 Element
 const newElement = <h1 className="changed">Hello</h1>
 ```
 
-这种不可变性是 React 能够安全地在并发模式下**丢弃和重试渲染**的基础。
+### 2.3 编译转化 (JSX Transform)
 
-### 2.3 JSX 到 Element 的编译
+JSX 只是语法糖，在编译期（Babel / SWC / Vite）会被抹平为函数调用：
 
 ```jsx
 // 源码
@@ -60,11 +64,11 @@ function Greeting({ name }) {
   return <h1 className="title">Hello, {name}!</h1>
 }
 
-// 编译后（Automatic Runtime）
-import { jsx as _jsx } from 'react/jsx-runtime'
+// React 17+ 引入的 Automatic Runtime 编译后：
+import { jsx as _jsx, jsxs as _jsxs } from 'react/jsx-runtime'
 
 function Greeting({ name }) {
-  return _jsx('h1', {
+  return _jsxs('h1', {
     className: 'title',
     children: ['Hello, ', name, '!'],
   })
@@ -95,197 +99,68 @@ createPortal()   // type: Symbol(react.portal)
 
 ## 3. Fiber 节点
 
-### 3.1 Fiber 是什么
+### 3.1 为什么需要 Fiber？
 
-Fiber 是 React 为**持续更新和调度**维护的工作节点。与 Element 不同，Fiber 在整个组件生命周期中**持久存在并不断更新**。
+在 React 15 时代，Element 树的 Diff 是通过**原生调用栈递归**完成的。一旦树变大，递归无法中断，会导致主线程阻塞（掉帧）。
+Fiber 架构的核心使命是：**将不可中断的深层递归，扁平化为基于堆内存的、可中断的单链表循环**。Fiber 就是这个调度过程中的**工作单元**。
 
-可以把 Element 理解为"设计图纸"，Fiber 理解为"施工现场的工作台"——设计图纸每次渲染都可能不同，但工作台跨渲染持久化。
+### 3.2 核心字段域解剖
 
-### 3.2 Fiber 节点的核心字段
+一个 Fiber 节点（`FiberNode`）是一个极其庞大的对象，按职责可划分为四大场域：
 
 ```javascript
 type Fiber = {
-  // === 节点标识 ===
-  tag: WorkTag,          // 节点类型：FunctionComponent(0)、ClassComponent(1)、
-                          // HostComponent(5 原生DOM)、HostText(6 文本)等
-  type: any,             // 对应 Element.type（函数组件本身 / 'div' 等字符串）
-  key: null | string,    // 子节点 diff 的 key
-  elementType: any,      // 原始 type（处理 lazy 后可能与 type 不同）
+  // === 1. 实例与身份域 (Identity) ===
+  tag: WorkTag,          // 节点标识（如 0: FC, 1: Class, 3: HostRoot, 5: HostComponent）
+  type: any,             // 对应 Element.type
+  key: null | string,    // 对应 Element.key
 
-  // === 链表树结构（可中断遍历的基础） ===
-  return: Fiber | null,  // 父 Fiber
-  child: Fiber | null,   // 第一个子 Fiber
-  sibling: Fiber | null, // 下一个兄弟 Fiber
-  index: number,         // 在父节点子列表中的位置索引
+  // === 2. 拓扑结构域 (Tree Structure) - 单链表树 ===
+  return: Fiber | null,  // 指向父节点（工作完成后的返回地）
+  child: Fiber | null,   // 指向第一个子节点
+  sibling: Fiber | null, // 指向右侧第一个兄弟节点
+  index: number,         // 在父节点的 children 中的索引
 
-  // === 状态与工作信息 ===
-  pendingProps: any,     // 新传入的 props（等待处理）
-  memoizedProps: any,    // 上次渲染生效的 props
-  memoizedState: any,    // Hooks 链表头部 / Class 组件 state
-  updateQueue: mixed,    // 待处理的更新队列
+  // === 3. 状态与数据域 (State & Data) ===
+  pendingProps: any,     // 新进入的 props，等待本次 Render 消费
+  memoizedProps: any,    // 上一次 Render 成功后的 props
+  memoizedState: any,    // 核心！FC 这里挂载 Hooks 单向链表；Class 挂载 state
+  updateQueue: mixed,    // 状态更新队列（如 setState 产生的 Update 对象）
 
-  // === 副作用标记 ===
-  flags: Flags,          // 自身副作用（Placement、Update、Deletion 等）
-  subtreeFlags: Flags,   // 子树中累积的副作用（用于快速跳过干净子树）
-  deletions: Array<Fiber> | null, // 待删除的子节点列表
+  // === 4. 副作用与调度域 (Effects & Scheduling) ===
+  flags: Flags,          // 自身发生的副作用（如 Placement 插入、Update 更新）
+  subtreeFlags: Flags,   // 子树累积的副作用（用于 Commit 阶段快速跳过干净的子树）
+  deletions: Array<Fiber> | null, // 待移除的子节点数组
+  lanes: Lanes,          // 当前节点拥有的更新优先级（31位二进制位运算）
+  childLanes: Lanes,     // 子树中拥有的更新优先级
 
-  // === 调度相关 ===
-  lanes: Lanes,          // 自身更新优先级
-  childLanes: Lanes,     // 子树中存在的更新优先级
-
-  // === 双缓冲 ===
-  alternate: Fiber | null, // 指向另一棵树中对应的 Fiber
-
-  // === 输出 ===
-  stateNode: any,        // 对应真实 DOM（HostComponent）/ 组件实例（ClassComponent）
-  ref: any,              // ref 引用
+  // === 5. 架构指针与输出 (Architecture & Output) ===
+  alternate: Fiber | null, // 指向另一棵树（current <-> workInProgress）中的对应节点
+  stateNode: any,        // 物理映射：对应真实的 DOM 节点 或 Class 实例
 }
+
 ```
 
-### 3.3 链表树结构
+### 3.3 拓扑优势：从树到链表
 
-Fiber 放弃了传统的"children 数组"树结构，改用**"第一个子节点 + 兄弟节点"链表**：
+Fiber 放弃了 `children: []` 数组结构，改用 **Child-Sibling-Return** 链表：
 
 ```javascript
-// 传统的树
-//   A
-//  / \
-// B   C
+// 假设结构：
+//   父 (A)
+//  /     \
+// 子(B) - 子(C)
 
-// Fiber 的链表结构：
-A.child = B // A 的第一个子节点是 B
-B.sibling = C // B 的下一个兄弟是 C
-B.return = A // B 的父节点是 A
-C.return = A // C 的父节点是 A
+A.child = B // 父找大儿子
+B.sibling = C // 大儿子找二儿子
+B.return = A // 儿子随时能找到父亲
+C.return = A
 ```
 
-这使得：
+## 4. 总结
 
-- 使用 `while` 循环即可**深度优先遍历**整棵树。
-- 每个节点处理完后可以**随时暂停**，保存当前进度。
-- 不需要系统调用栈，避免了递归深度限制。
-
-## 4. 从 Element 到 Fiber 的转换
-
-```mermaid
-flowchart LR
-    JSX[JSX 源码] -->|编译| Element[React Element<br/>不可变描述]
-    Element -->|协调阶段| Fiber[Fiber 节点<br/>可变工作单元]
-    Fiber -->|Commit 阶段| DOM[真实 DOM<br/>宿主平台输出]
-```
-
-### 4.1 首次渲染（Mount）
-
-1. React 执行组件函数，返回 React Element 树。
-2. 协调器为每个 Element **创建新的 Fiber 节点**。
-3. 构建完整的 work-in-progress Fiber 树。
-4. Commit 阶段创建对应的 DOM 节点。
-
-### 4.2 更新渲染（Update）
-
-1. React 重新执行组件函数，返回**新的** React Element 树。
-2. 协调器对比新 Element 和旧 Fiber（通过 `alternate` 访问 current 树）。
-3. **复用**类型相同的 Fiber 节点，只更新 `memoizedProps`/`memoizedState`。
-4. 标记 `flags` 记录需要执行的 DOM 操作。
-5. Commit 阶段应用变更。
-
-### 4.3 复用 vs 重建
-
-```jsx
-// 类型相同 → 复用 Fiber，更新属性
-// 旧：<div className="old" />
-// 新：<div className="new" />
-// → Fiber 复用，flags 标记 Update
-
-// 类型不同 → 销毁旧 Fiber，创建新 Fiber
-// 旧：<div />
-// 新：<span />
-// → 旧 Fiber 标记 Deletion，新 Fiber 创建并标记 Placement
-```
-
-## 5. 双缓冲（Double Buffering）
-
-React 同时维护两棵 Fiber 树，通过 `alternate` 指针互相引用：
-
-| 树                 | 角色                   | 说明                     |
-| ------------------ | ---------------------- | ------------------------ |
-| **current**        | 当前屏幕上 UI 对应的树 | 稳定状态，不可修改       |
-| **workInProgress** | 正在构建的下一版 UI    | 构建中可修改，完成后切换 |
-
-```javascript
-// 双缓冲的切换流程
-function commitRoot(root) {
-  // Commit 完成后
-  root.current = finishedWork // workInProgress 成为新的 current
-  // 旧的 current 在下次更新时被复用为 workInProgress
-}
-
-// 获取 workInProgress
-function createWorkInProgress(current, pendingProps) {
-  let workInProgress = current.alternate
-  if (workInProgress === null) {
-    // 首次渲染，创建新 Fiber
-    workInProgress = createFiber(current.tag, pendingProps, current.key)
-    workInProgress.alternate = current
-    current.alternate = workInProgress
-  } else {
-    // 复用已有 Fiber，重置相关字段
-    workInProgress.pendingProps = pendingProps
-    workInProgress.flags = NoFlags
-    workInProgress.subtreeFlags = NoFlags
-  }
-  return workInProgress
-}
-```
-
-**双缓冲的好处**：
-
-- 构建过程不影响屏幕上的 UI。
-- 中断或丢弃的渲染不会影响 current 树。
-- Fiber 节点复用，减少 GC 压力。
-
-## 6. Fiber 作为工作单元
-
-Fiber 不仅仅是一个数据结构，还是**调度和渲染的工作单元**。每个 Fiber 节点在 Render 阶段被依次处理：
-
-```javascript
-// Fiber 的工作循环（简化）
-function workLoop(deadline) {
-  let shouldYield = false
-
-  while (nextUnitOfWork && !shouldYield) {
-    nextUnitOfWork = performUnitOfWork(nextUnitOfWork)
-    // 检查是否需要让出主线程
-    shouldYield = deadline.timeRemaining() < 1
-  }
-
-  if (!nextUnitOfWork) {
-    // 所有工作完成 → Commit
-    commitRoot()
-  }
-}
-
-function performUnitOfWork(fiber) {
-  // 1. beginWork：处理当前节点
-  beginWork(fiber)
-  // 2. 有子节点 → 深入
-  if (fiber.child) return fiber.child
-  // 3. 无子节点 → 完成当前节点
-  while (fiber) {
-    completeWork(fiber)
-    // 4. 有兄弟节点 → 横向移动
-    if (fiber.sibling) return fiber.sibling
-    // 5. 无兄弟 → 回到父节点
-    fiber = fiber.return
-  }
-}
-```
-
-## 7. 总结
-
-- **React Element 是一次渲染的不可变 UI 描述**，每次函数组件调用返回新的 Element 对象。
-- **Fiber 是 React 为持续更新维护的可变工作节点**，在整个组件生命周期中持久化和复用。
-- **Element 是输入，Fiber 是协调器的执行和状态存储结构，DOM 是最终输出**。
-- **链表树结构（child/sibling/return）使协程遍历和可中断渲染成为可能**。
-- **双缓冲（current/alternate）保证了 UI 一致性和内存复用**。
+- **React Element (蓝图)** 是每次渲染产生的一次性指令快照，告诉 React "**界面应该是怎样的**"。
+- **Fiber (引擎/工作台)** 是跨越渲染周期长存的状态机。它接住了 Element 的蓝图，通过比对计算出差异（Flags），并维护了所有的 Hooks 状态、调度优先级和链表拓扑。
+- **DOM (产物)** 是底层宿主环境的物理实体。Fiber 的 `stateNode` 引用了它，并在最终的 Commit 阶段对其进行极简的靶向手术。
+- **整体架构**：不可变的数据流（Element）驱动了可变的状态机（Fiber），最终通过双缓冲安全、高效地投射为物理像素（DOM）。
 - **Fiber ≠ "虚拟 DOM 的另一种叫法"**——它是一个更广的概念，涵盖调度、优先级、副作用标记和工作循环。

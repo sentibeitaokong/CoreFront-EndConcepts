@@ -191,21 +191,7 @@ Context **不是状态管理器**，它是**依赖传播机制**。完整的"状
 | **依赖注入**       | 注入服务实例（如 API 客户端）                       |
 | **组件配置**       | 表单的 disabled/layout 等配置                       |
 
-## 7. 与 Vue 的 provide/inject 对比
-
-| 维度         | React Context                              | Vue provide/inject                                 |
-| ------------ | ------------------------------------------ | -------------------------------------------------- |
-| **创建方式** | `createContext()`                          | `provide(key, value)` / `inject(key)`              |
-| **响应性**   | Provider value 变化 → 所有 Consumer 重渲染 | 默认非响应式，需传入 `ref`/`reactive` 才能自动追踪 |
-| **更新粒度** | Consumer 组件级别重渲染                    | 依赖追踪到模板中使用的具体字段                     |
-| **默认值**   | `createContext(defaultValue)`              | `inject(key, defaultValue)`                        |
-| **类型安全** | TypeScript 泛型，类型推导良好              | 需要手动类型声明或使用 InjectionKey                |
-| **实现基础** | Fiber 树 + 依赖链表 + Lane 标记            | 组件实例树 + 响应式依赖收集                        |
-| **性能策略** | 拆分 Context / 稳定 value 引用             | 响应式系统自动细粒度更新                           |
-
-React Context 依赖 Fiber 树上的**显式消费记录**，通过 Lane 模型触发子树更新。Vue 的 `provide/inject` 通过组件实例的响应式依赖连接，更新粒度天然更细。两者都解决跨层传值问题，但更新触发模型有本质差异。
-
-## 8. 总结
+## 7. 总结
 
 - **Context 是依赖注入机制，不是状态管理器**：解决 props 逐层传递的痛点。
 - **Consumer 在 Render 时读取并订阅 Context**：依赖信息记录在当前 Fiber 上。

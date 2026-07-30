@@ -86,37 +86,43 @@ i[class*=' fa-'] {
 /* ── 代码块滚动条样式 ─────────────────────── */
 
 /* 代码块容器滚动条 - Webkit (Chrome/Safari/Edge) */
-div[class*='language-']::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+div[class*='language-']::-webkit-scrollbar,
+div[class*='language-'] pre::-webkit-scrollbar {
+  width: 2px;
+  height: 2px;
 }
 
-div[class*='language-']::-webkit-scrollbar-track {
+div[class*='language-']::-webkit-scrollbar-track,
+div[class*='language-'] pre::-webkit-scrollbar-track {
   background: #0d1117; /* 与代码块背景一致 */
 }
 
-div[class*='language-']::-webkit-scrollbar-thumb {
+div[class*='language-']::-webkit-scrollbar-thumb,
+div[class*='language-'] pre::-webkit-scrollbar-thumb {
   background: #8b5cf6; /* 紫色滑块 */
-  border-radius: 4px;
+  border-radius: 1px;
 }
 
-div[class*='language-']::-webkit-scrollbar-thumb:hover {
+div[class*='language-']::-webkit-scrollbar-thumb:hover,
+div[class*='language-'] pre::-webkit-scrollbar-thumb:hover {
   background: #a78bfa; /* hover 时更浅的紫色 */
 }
 
-div[class*='language-']::-webkit-scrollbar-corner {
+div[class*='language-']::-webkit-scrollbar-corner,
+div[class*='language-'] pre::-webkit-scrollbar-corner {
   background: #0d1117;
 }
 
 /* 代码块容器滚动条 - Firefox */
-div[class*='language-'] {
+div[class*='language-'],
+div[class*='language-'] pre {
   scrollbar-width: thin;
   scrollbar-color: #8b5cf6 #0d1117;
 }
 
 /* 代码组 tabs 滚动条 - Webkit */
 .vp-code-group .tabs::-webkit-scrollbar {
-  height: 4px;
+  height: 2px;
 }
 
 .vp-code-group .tabs::-webkit-scrollbar-track {
@@ -125,7 +131,7 @@ div[class*='language-'] {
 
 .vp-code-group .tabs::-webkit-scrollbar-thumb {
   background: #8b5cf6;
-  border-radius: 2px;
+  border-radius: 1px;
 }
 
 .vp-code-group .tabs::-webkit-scrollbar-thumb:hover {
