@@ -1,17 +1,18 @@
-# React 与 Vue 3 核心机制对比
+# React 与 Vue 3 核心机制
 
 ## 1. 总体架构
 
-React 和 Vue 3 都将声明式 UI 转换为宿主平台节点，但两者分配运行时职责的方式不同：
+React 和 Vue 3 的终极目标高度一致：将声明式的 UI 描述高效地映射到宿主平台（如 DOM）。然而，两者在实现这一目标时，采取了截然不同的架构哲学：**React 走向了“重度运行时调度”的拉（Pull）模型，而 Vue 3 走向了“编译期优化 + 细粒度响应式”的推（Push）模型。**
 
 ```markdown
-React：JSX → React Element → Fiber 协调 → Commit → 宿主节点
-Vue 3：Template/JSX → VNode → 组件更新与 patch → 宿主节点
+React：JSX → React Element (不可变快照) → Fiber 协调 (多优先级、可中断) → Commit (统一同步提交) → 宿主节点
+Vue 3：Template/JSX → 附带编译标记的 VNode → 细粒度响应式更新与靶向 patch (同步或微任务批处理) → 宿主节点
 ```
 
-### 1.1 运行时入口流程对比
+### 1.1 React运行时入口
 
-**React 的启动流程：**
+**React 的启动流程（Concurrent Mode）：**
+React 18 引入的 `createRoot` 不仅仅是 API 的变更，更是底层调度的分水岭。它在内存中初始化了支撑并发特性的全局根基：`FiberRootNode`。
 
 ```javascript
 // React 18 应用的启动入口
@@ -20,16 +21,19 @@ import { createRoot } from 'react-dom/client'
 const root = createRoot(document.getElementById('root'))
 root.render(<App />)
 
-// 内部执行链（简化）：
-// createRoot → createFiberRoot (创建 root Fiber + FiberRootNode)
-// root.render → updateContainer → scheduleUpdateOnFiber
-//   → ensureRootIsScheduled (根据 Lane 选择同步/并发执行)
-//   → renderRootSync (同步) 或 renderRootConcurrent (并发)
-//   → workLoopSync / workLoopConcurrent (遍历 Fiber 树)
-//   → commitRoot (统一提交宿主变更)
+// 内部执行链核心溯源：
+// 1. createRoot → 实例化 FiberRootNode (全局大管家) 和 HostRootFiber (状态树的顶点)
+// 2. root.render → 创建更新对象 (Update)，为其分配默认 Lane，挂载到 HostRootFiber 的更新队列
+// 3. scheduleUpdateOnFiber → 触发向上冒泡，将优先级(Lanes)通知给根节点
+// 4. ensureRootIsScheduled → 调度中枢：比较当前任务与最高优先级任务，决定交由微任务(同步)还是 MessageChannel(并发时间切片) 调度
+// 5. performConcurrentWorkOnRoot → 进入可中断的 workLoopConcurrent (遍历 Fiber 树)
+// 6. commitRoot → 进入不可中断的突变阶段，将双缓冲树(WIP)整体替换并应用真实 DOM 操作
 ```
 
-**Vue 3 的启动流程：**
+### 1.2 Vue3运行时入口
+
+**Vue 3 的启动流程（应用实例与上下文隔离）：**
+Vue 3 抛弃了 Vue 2 的全局 Vue 构造函数，转而采用 `createApp`，这在架构上实现了多实例间的应用上下文（Context、插件、全局组件）的彻底隔离。
 
 ```javascript
 // Vue 3 应用的启动入口
@@ -38,120 +42,81 @@ import App from './App.vue'
 
 createApp(App).mount('#app')
 
-// 内部执行链（简化）：
-// createApp → ensureRenderer → createAppAPI (传入平台 nodeOps + patchProp)
-//   → app.mount → createVNode(App) (将根组件包装为 VNode)
-//   → render → patch(container, vnode) (首次挂载)
-//   → processComponent → mountComponent
-//   → createComponentInstance (创建组件实例)
-//   → setupComponent (执行 setup，初始化响应式)
-//   → setupRenderEffect (建立渲染 Effect——组件更新的核心)
-//   → patch 生成的子树 VNode → 递归挂载 DOM
+// 内部执行链核心溯源：
+// 1. createApp → 调用 ensureRenderer 创建具有特定宿主操作(nodeOps)的渲染器
+// 2. app.mount → 创建根组件的初始 VNode (createVNode)
+// 3. render → 触发初次 patch(null, vnode, container)
+// 4. processComponent → 实例化 ComponentInternalInstance，创建独立的作用域
+// 5. setupComponent → 执行 setup()，在此过程中触发 Proxy getter，建立初步的依赖追踪
+// 6. setupRenderEffect → 【核心】将组件的渲染逻辑包装为一个 ReactiveEffect，并绑定到微任务 Scheduler
+// 7. effect.run() → 执行渲染函数，产出子树 VNode，深度递归进行 mount
 ```
 
-| 维度             | React                                        | Vue 3                                     |
-| ---------------- | -------------------------------------------- | ----------------------------------------- |
-| **UI 描述**      | React Element                                | VNode                                     |
-| **运行时树**     | Fiber 树承载拓扑、状态、更新与调度信息       | VNode 树描述 UI，组件实例保存组件运行状态 |
-| **更新定位**     | 从更新 Fiber 向根标记，再协调相关子树        | 响应式依赖触发对应组件的渲染 Effect       |
-| **更新执行**     | Lane 选择更新，Scheduler 安排并发工作        | Scheduler 使用微任务批量执行组件任务      |
-| **宿主更新**     | Render 阶段生成 flags，Commit 阶段统一提交   | `patch` 过程调用渲染器宿主操作            |
-| **主要优化方向** | 可中断协调、优先级调度、运行时与编译器记忆化 | 响应式依赖追踪、模板编译优化、靶向更新    |
+| 维度             | React (并发与调度驱动)                                           | Vue 3 (响应式与编译驱动)                                                 |
+| ---------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| **UI 描述抽象**  | React Element，纯粹的运行时不可变对象。                          | VNode，不仅描述 UI，还承载编译器注入的静态标记。                         |
+| **运行时载体**   | Fiber 树。集成了拓扑指针、状态、Hooks 链表、副作用标记与优先级。 | VNode 树描述 UI 拓扑，`ComponentInternalInstance` 保存组件闭包状态。     |
+| **更新触发源**   | `setState` 等 API 显式触发，通过树形结构自顶向下协调。           | Proxy 拦截数据变化，通过 ReactiveEffect 自动推导并触发最小组件范围。     |
+| **工作执行模型** | 基于 `MessageChannel` 和时间切片的并发调度，可中断、可废弃。     | 基于 `Promise.resolve().then()` 的微任务批处理，单组件渲染过程不可中断。 |
+| **突变宿主机制** | Render 阶段（纯计算）与 Commit 阶段（突变）严格分离。            | `patch` 过程一边计算差异，一边直接调用宿主操作进行深度突变。             |
 
-两套机制不存在严格的一一对应关系。尤其是 Fiber 同时承担多种运行时职责，不能简单等同于 Vue 的 VNode 或组件实例。
+## 2. React Element 与 Vue VNode：蓝图的构造与安全
 
-## 2. React Element 与 Vue VNode
+### 2.1 React Element：极致的轻量与不可变性
 
-### 2.1 React Element
+React Element 是一个极简的不可变（Immutable）快照。它不承载任何运行时的状态逻辑，一旦生成便无法更改。
 
-React Element 是 `createElement` 或 JSX 编译后的产物，是一个描述 UI 的轻量对象：
+:::code-group
 
-```jsx
-// 源码：JSX
+```jsx [JSX源码与编译产物]
 function Welcome({ name }) {
   return <h1 className="greeting">Hello, {name}!</h1>
 }
 
-// 编译后：React 17+ 的自动 runtime
+// 编译后的自动 runtime (React 17+)
 import { jsx as _jsx } from 'react/jsx-runtime'
-function Welcome({ name }) {
-  return _jsx('h1', {
-    className: 'greeting',
-    children: `Hello, ${name}!`,
-  })
-}
-```
-
-```javascript
-// jsx() 实际输出的 React Element 对象结构
+// Element 结构
 {
-  $$typeof: Symbol.for('react.element'),  // 防止 XSS—JSON 无法序列化 Symbol
-  type: 'h1',                              // 原生标签字符串 或 组件函数/类
-  key: null,                               // 列表 key
-  ref: null,                               // ref
-  props: {
-    className: 'greeting',
-    children: 'Hello, World!',
-  },
-  _owner: null,  // 开发模式下记录哪个组件创建了该 Element
+  $$typeof: Symbol.for('react.element'), // 核心安全机制
+  type: 'h1',
+  key: null,
+  ref: null,
+  props: { className: 'greeting', children: 'Hello, World!' },
 }
+
 ```
 
-React Element 是一个**不可变快照**，每次渲染都会重新创建，Fiber 协调阶段通过比较新旧 Element 决定复用或重建。
+:::
 
-### 2.2 Vue 3 VNode
+> **深度洞察：为什么需要 `$$typeof`？**
+> 这是一个巧妙的防 XSS 设计。如果服务器返回一段恶意的 JSON 数据（如 `{ type: 'script', props: { src: '...' } }`），React 试图渲染它时，由于 JSON 无法序列化 `Symbol` 类型，伪造的节点将缺少或拥有非法的 `$$typeof`，React 会直接拒绝渲染，从根源上阻断了注入攻击。
 
-Vue 3 的 VNode 除了描述 UI 结构外，还携带编译器生成的优化信息：
+### 2.2 Vue 3 VNode：携带编译信息的智能节点
 
-```javascript
-// 模板: <div :class="cls" :id="id">{{ text }}</div>
-// Vue 编译器输出的渲染函数（简化）
-import { openBlock, createBlock, createVNode, toDisplayString } from 'vue'
+Vue 3 的 VNode 突破了传统虚拟 DOM “**纯运行时比较**”的性能瓶颈。它允许编译器（Compiler）在编译模板时，提前将静态信息、动态特征等预判逻辑“**刻**”在 VNode 上，指导运行时的 Diff 算法。
 
-export function render(_ctx, _cache) {
-  return (
-    openBlock(),
-    createBlock('div', null, [
-      createVNode(
-        'div',
-        {
-          class: _ctx.cls,
-          id: _ctx.id,
-        },
-        toDisplayString(_ctx.text),
-        1 /* TEXT */,
-      ),
-    ])
-  )
-}
-```
+:::code-group
 
-```javascript
-// createVNode 实际输出的 VNode 对象结构
+```javascript [携带 PatchFlags 的 VNode]
+// createVNode 输出的底层结构
 {
-  __v_isVNode: true,          // VNode 标识
-  type: 'div',                // 标签名或组件对象
-  props: {                    // 属性
-    class: 'container',
-    id: 'app',
-  },
-  children: [ /* ... */ ],    // 子节点数组
-  key: null,                  // 列表 key
-  ref: null,                  // ref
+  __v_isVNode: true,
+  type: 'div',
+  props: { class: 'container' },
+  children: [ /* ... */ ],
 
-  // --- 编译器优化标记 ---
-  shapeFlag: 17,              // 组合标志：ELEMENT(1) + ARRAY_CHILDREN(16)
-  patchFlag: 1,               // PatchFlags.TEXT — 只需比较文本内容
-  dynamicProps: null,         // 动态属性列表（如 ["class", "id"]）
-  dynamicChildren: null,      // Block 中收集的动态子节点
-
-  // --- 运行时状态 ---
-  el: null,                   // 对应的真实 DOM 引用
-  component: null,            // 组件实例（如果是组件 VNode）
+  // === 编译器注入的超能力 ===
+  shapeFlag: 17,         // 位运算标记：1(ELEMENT) | 16(ARRAY_CHILDREN) 快速断言节点特征
+  patchFlag: 2,          // PatchFlags.CLASS (仅有 class 是动态绑定的)
+  dynamicProps: ['class'], // 记录具体哪个属性是动态的，跳过全量 props 遍历
+  dynamicChildren: [],   // Block Tree 的核心：拍平的所有子代动态节点
 }
+
 ```
 
-### 2.3 关键区别
+:::
+
+### 2.3 对比总结
 
 ```jsx
 // React：动态样式每次创建新对象，依赖 memo/props 比较跳过更新
@@ -175,94 +140,56 @@ export function render(_ctx, _cache) {
 
 React Element 更接近一次渲染产生的输入快照；Vue VNode 除了描述 UI，还可能携带模板编译阶段生成的更新提示。
 
-## 3. Fiber 与 Vue 运行时结构
+## 3. Fiber 架构与 Vue 3 运行时：状态机的不同归宿
 
-### 3.1 React Fiber 节点
+### 3.1 React Fiber：包揽一切的全能节点
 
-React 将工作单元、树拓扑、组件状态、更新信息和调度优先级集中在 Fiber 节点上：
+Fiber 架构是 React 为了实现并发渲染（Concurrent Mode）而发明的用户态协程。一个 Fiber 节点是一个非常庞大的数据结构，它不仅是 DOM 树的映射，更是组件状态的容器、更新任务的载体。
 
-```javascript
-// Fiber 节点的核心结构（简化版）
+:::code-group
+
+```javascript [Fiber 核心结构分类]
 type Fiber = {
-  // === 节点身份 ===
-  tag: WorkTag,            // FunctionComponent(0)、HostComponent(5)、HostText(6) 等
-  type: any,               // 函数组件本身 或 原生标签字符串 'div'
-  key: null | string,      // diff 用的 key
-  elementType: any,        // 原始 type（被 memo/lazy 包裹前的类型）
+  // === 1. 实例与身份 (Identity) ===
+  tag: WorkTag,            // 标识节点类型 (如 0 代表函数组件, 5 代表原生DOM)
+  type: any,               // 函数/类引用 或 标签字符串
 
-  // === 树结构（链表） ===
-  return: Fiber | null,    // 父 Fiber — 完成当前节点后回到这里
-  child: Fiber | null,     // 第一个子 Fiber
-  sibling: Fiber | null,   // 下一个兄弟 Fiber
+  // === 2. 协程树拓扑 (Linked List Tree) ===
+  return: Fiber | null,    // 父亲指针 (执行完毕后的返回目标)
+  child: Fiber | null,     // 大儿子指针
+  sibling: Fiber | null,   // 二弟指针
+  // 这种结构使得深度优先遍历变成了一个可以随时暂停并利用 return 恢复的线性 while 循环
 
-  // === 状态与 Props ===
-  pendingProps: any,       // 本次渲染的新 props
-  memoizedProps: any,      // 上次渲染的已生效 props
-  memoizedState: any,      // Hooks 链表头部（函数组件）或 state（类组件）
-  updateQueue: any,        // 更新的队列（类组件的 setState / 函数组件的 dispatch）
+  // === 3. 状态与数据闭环 (State) ===
+  pendingProps: any,       // 本次渲染即将应用的 props
+  memoizedProps: any,      // 上次渲染生效的 props
+  memoizedState: any,      // Hooks 链表头部 (单向链表，挂载 useState/useEffect 等)
+  updateQueue: any,        // 状态更新环形队列 (收集所有 dispatch)
 
-  // === 副作用标记 ===
-  flags: Flags,            // 自身副作用：Placement | Update | Deletion | ...
-  subtreeFlags: Flags,     // 子树中的副作用聚合（优化：快速跳过干净子树）
-  deletions: Fiber[] | null, // 待删除的子 Fiber 列表
+  // === 4. 副作用与并发标记 (Effects & Scheduling) ===
+  flags: Flags,            // 自身的副作用标记 (Placement, Update, Deletion)
+  subtreeFlags: Flags,     // 子树副作用冒泡合集 (用于 Commit 阶段 $O(1)$ 跳过干净子树)
+  lanes: Lanes,            // 当前节点的任务优先级
 
-  // === 调度优先级 ===
-  lanes: Lanes,            // 自身更新的优先级（位掩码）
-  childLanes: Lanes,       // 子树中的更新优先级（用于向上冒泡）
-
-  // === 双缓冲 ===
-  alternate: Fiber | null, // 指向另一棵树中对应的 Fiber（current ↔ WIP）
-
-  // === 渲染输出 ===
-  stateNode: any,          // 真实 DOM 节点（HostComponent）或组件实例（ClassComponent）
+  // === 5. 双缓冲架构 (Double Buffering) ===
+  alternate: Fiber | null, // 指向对应树的替身 (current ↔ workInProgress)
 }
+
 ```
 
-**双缓冲机制**是 Fiber 架构的核心设计之一——内存中同时存在两棵 Fiber 树：
+:::
 
-```markdown
-current 树（当前屏幕） workInProgress 树（后台构建中）
-A ←─── alternate ────→ A'
-/ \ / \
- B C ←→ B' C'
-│ │
-D D'
-↑ 正在构建到这里
+### 3.2 Vue 3：各司其职的模块化设计
 
-构建完成后：workInProgress 变成新的 current（指针交换），旧 current 等待回收
-```
+Vue 3 并没有类似于 Fiber 的大一统数据结构，而是采用了**高内聚、低耦合**的多重抽象：
 
-```javascript
-// createWorkInProgress — React 源码中创建/复用 WIP Fiber 的核心逻辑（简化）
-function createWorkInProgress(current, pendingProps) {
-  let workInProgress = current.alternate
+- **`VNode`**：只负责描述 UI。
+- **`ComponentInternalInstance`**：作为组件的上下文，保存 `setupState`、生命周期钩子、提供给 `provide/inject` 的作用域。
+- **`ReactiveEffect`**：连接响应式数据与组件更新逻辑的桥梁。
 
-  if (workInProgress === null) {
-    // 首次挂载：为 current 创建对应的 WIP Fiber
-    workInProgress = createFiber(current.tag, pendingProps, current.key)
-    workInProgress.alternate = current
-    current.alternate = workInProgress
-  } else {
-    // 更新：复用已有的 WIP Fiber，重置关键字段
-    workInProgress.pendingProps = pendingProps
-    workInProgress.flags = NoFlags
-    workInProgress.subtreeFlags = NoFlags
-    workInProgress.deletions = null
-    // 保留 memoizedState、updateQueue 等用于恢复
-  }
+:::code-group
 
-  workInProgress.type = current.type
-  workInProgress.lanes = current.lanes
-  workInProgress.childLanes = current.childLanes
-  // ... 复制其他字段
-
-  return workInProgress
-}
-```
-
-### 3.2 Vue 3 运行时结构
-
-```markdown
+```markdown [整体架构]
 Vue 组件运行时
 ├── VNode：描述节点和子树
 ├── ComponentInternalInstance：保存组件状态与上下文
@@ -270,9 +197,24 @@ Vue 组件运行时
 └── Scheduler：批量安排组件任务和回调
 ```
 
-Vue 3 将这些职责拆分到不同结构：
+```javascript [携带 PatchFlags 的 VNode]
+// createVNode 输出的底层结构
+{
+  __v_isVNode: true,
+  type: 'div',
+  props: { class: 'container' },
+  children: [ /* ... */ ],
 
-```javascript
+  // === 编译器注入的超能力 ===
+  shapeFlag: 17,         // 位运算标记：1(ELEMENT) | 16(ARRAY_CHILDREN) 快速断言节点特征
+  patchFlag: 2,          // PatchFlags.CLASS (仅有 class 是动态绑定的)
+  dynamicProps: ['class'], // 记录具体哪个属性是动态的，跳过全量 props 遍历
+  dynamicChildren: [],   // Block Tree 的核心：拍平的所有子代动态节点
+}
+
+```
+
+```javascript [vue组件运行时上下文]
 // ComponentInternalInstance — Vue 3 组件的运行时实例（简化）
 type ComponentInternalInstance = {
   uid: number,                    // 唯一 ID
@@ -306,7 +248,7 @@ type ComponentInternalInstance = {
 }
 ```
 
-```javascript
+```javascript [响应式effect]
 // ReactiveEffect — Vue 3 响应式系统的执行单元（简化）
 class ReactiveEffect {
   fn: () => any              // 要执行的函数（组件更新函数 / watch 回调 / computed getter）
@@ -327,15 +269,17 @@ class ReactiveEffect {
 }
 ```
 
+:::
+
 ### 3.3 对比总结
 
 ```markdown
-React：单一 Fiber 节点 = 状态容器 + 更新队列 + 副作用记录 + 调度信息 + 树拓扑
+React(双缓冲)：单一 Fiber 节点 = 状态容器 + 更新队列 + 副作用记录 + 调度信息 + 树拓扑
 所有信息集中在一个节点上，通过 alternate 实现双缓冲
 
-Vue 3：将职责按关注点分离
+Vue 3（树比对）：将职责按关注点分离
 组件实例存状态、VNode 存 UI 描述、Effect 管理依赖追踪、Scheduler 管理更新时序
-无需双缓冲——直接通过新旧 VNode 比较
+直接通过新旧 VNode 比较
 ```
 
 | 职责           | React                                                     | Vue 3                                        |
@@ -345,6 +289,247 @@ Vue 3：将职责按关注点分离
 | **副作用记录** | `flags` / `subtreeFlags`                                  | VNode 标记、组件更新 Effect 与 patch 分支    |
 | **双缓冲**     | `current` 与 `workInProgress` Fiber 通过 `alternate` 连接 | 没有直接等价结构，更新时比较前后 VNode       |
 | **可中断工作** | Fiber 是可暂停和恢复的工作单元                            | 单个组件的 patch 默认同步完成                |
+
+[//]: # '## 4. 协调 (Reconciliation) 与更新：算法的极致交锋'
+[//]: #
+[//]: # '### 4.1 React：单向遍历与可中断的协调循环'
+[//]: #
+[//]: # 'React 的更新以 Fiber 为单位，分为“递（beginWork）”和“归（completeWork）”。'
+[//]: #
+[//]: # '```javascript'
+[//]: # 'function beginWork(current, workInProgress, renderLanes) {'
+[//]: # '  // 核心优化 1：Bailout (提前跳过)'
+[//]: # '  // 如果 props 未变，Context 未变，且自身及子树没有符合当前优先级的更新 (Lanes 检查)'
+[//]: # '  if (oldProps === newProps && !hasContextChanged() && !includesSomeLane(renderLanes, workInProgress.lanes)) {'
+[//]: # '    return bailoutOnAlreadyFinishedWork(current, workInProgress) '
+[//]: # '  }'
+[//]: # '  '
+[//]: # '  // 执行组件，产生新的 Element 子代，然后协调子节点'
+[//]: # '  reconcileChildren(current, workInProgress, nextChildren, renderLanes)'
+[//]: # '}'
+[//]: #
+[//]: # '```'
+[//]: #
+[//]: # '**React 的子节点 Diff 算法（单向链表限制下的折中）：**'
+[//]: # '由于 Fiber 的拓扑是一个只有 `sibling` 指针的单向链表，React 无法像 Vue 那样从尾部向前遍历。因此，React Diff 分为三轮：'
+[//]: #
+[//]: # '1. **按位置匹配**：从头开始比对，如果 key 和 type 相同，直接复用。一旦遇到不匹配，停止匹配。'
+[//]: # '2. **构建哈希映射**：将剩余未遍历的旧 Fiber 节点存入一个 `Map<key, Fiber>` 中。'
+[//]: # '3. **查找与移动**：遍历剩余的新 Element，在 Map 中查找可复用的旧 Fiber，利用 `lastPlacedIndex` 算法计算哪些节点需要打上 `Placement` (移动) 标签。'
+[//]: #
+[//]: # '### 4.2 Vue 3：靶向更新与双端 LIS 算法'
+[//]: #
+[//]: # 'Vue 3 的 `patch` 过程深受响应式系统的调度和编译标记的加持。'
+[//]: #
+[//]: # '```javascript'
+[//]: # 'function patchElement(oldVNode, newVNode) {'
+[//]: # '  // 核心优化 1：靶向更新 (Targeted Patching)'
+[//]: # '  const { patchFlag } = newVNode'
+[//]: # '  if (patchFlag > 0) {'
+[//]: # '    if (patchFlag & PatchFlags.TEXT) {'
+[//]: # '      // 只需要更改文本内容，彻底跳过属性比对和子节点遍历！'
+[//]: # '      hostSetElementText(el, newVNode.children)'
+[//]: # '    }'
+[//]: # '    if (patchFlag & PatchFlags.CLASS) {'
+[//]: # "      hostPatchProp(el, 'class', null, newVNode.props.class)"
+[//]: # '    }'
+[//]: # '    // ...处理其他特定的 Flag'
+[//]: # '    return '
+[//]: # '  }'
+[//]: # '  // 回退到全量属性 diff'
+[//]: # '}'
+[//]: #
+[//]: # '```'
+[//]: #
+[//]: # '**Vue 3 的子节点 Diff 算法（双端比对 + 最长递增子序列 LIS）：**'
+[//]: # '由于 VNode 的 children 是纯数组，Vue 可以利用索引进行极速比对。'
+[//]: #
+[//]: # '1. **首尾预处理**：从左向右（sync from start），再从右向左（sync from end），剥离两端不变的节点。'
+[//]: # '2. **构建索引图**：针对中间无法匹配的乱序部分，建立 `新节点 key -> 旧节点 index` 的映射表。'
+[//]: # '3. **最长递增子序列 (Longest Increasing Subsequence, LIS)**：通过算法求出旧节点在新序列中保持相对顺序最长的一组节点，这组节点在视图更新时**完全不需要移动真实 DOM**，只对其他节点执行插入或移动，将 DOM 操作的性能压榨到了理论极限。'
+[//]: #
+[//]: # '---'
+[//]: #
+[//]: # '## 5. 调度 (Scheduling) 与批处理：并发时代的控场逻辑'
+[//]: #
+[//]: # '### 5.1 React Lane 模型与微秒级时间切片'
+[//]: #
+[//]: # 'React 从 16 版本的 `ExpirationTime` 模型升级为 18 版本的 `Lane` 算法。Lane 使用 31 位二进制整数表示优先级，这带来了极其优雅的位运算能力。'
+[//]: #
+[//]: # '```javascript'
+[//]: # '// Lane 模型，高位优先级低，低位优先级高'
+[//]: # 'const SyncLane = 0b0000000000000000000000000000001; // 1'
+[//]: # 'const InputContinuousLane = 0b0000000000000000000000000000100; // 4'
+[//]: # 'const TransitionLane = 0b0000000000000000000001000000000; // 512'
+[//]: #
+[//]: # '// 为什么使用位运算？'
+[//]: # '// 合并两批任务：lanes = lane1 | lane2'
+[//]: # '// 剔除已完成任务：lanes &= ~completedLanes'
+[//]: # '// 判断是否包含特定优先级：(lanes & subsetLanes) !== NoLanes'
+[//]: #
+[//]: # '```'
+[//]: #
+[//]: # '**时间切片（Time Slicing）核心原理：**'
+[//]: # '在并发模式下，React 会调用全局的 `Scheduler` 包。Scheduler 维护了一个任务最小堆（Min-Heap），并利用 `MessageChannel` （一种宏任务机制）在浏览器重绘后获取执行权。它将执行权切割为约 `5ms` 的时间片。当执行一个 Fiber 单元后，如果 `performance.now() - startTime > 5ms`，React 就会强制中断 `workLoop`，交出主线程，并在下一个宏任务中恢复。这种精密的控制彻底消灭了大型 React 应用的输入框卡顿。'
+[//]: #
+[//]: # '### 5.2 Vue 3：基于 Event Loop 的微任务批处理去重'
+[//]: #
+[//]: # 'Vue 3 的调度策略相对更加平面化。它的首要目标不是打断，而是**合并同一事件循环内的状态突变**。'
+[//]: #
+[//]: # '```javascript'
+[//]: # '// Vue 3 内部的调度器队列去重逻辑'
+[//]: # 'const queue = [];'
+[//]: # 'let isFlushPending = false;'
+[//]: #
+[//]: # 'function queueJob(job) {'
+[//]: # '  // 利用 Array.includes 或 Set 确保同一个组件的渲染函数在一轮微任务中只被推入一次'
+[//]: # '  if (!queue.includes(job)) {'
+[//]: # '    queue.push(job);'
+[//]: # '  }'
+[//]: # '  // 启动微任务 (Promise.resolve)'
+[//]: # '  if (!isFlushPending) {'
+[//]: # '    isFlushPending = true;'
+[//]: # '    Promise.resolve().then(flushJobs);'
+[//]: # '  }'
+[//]: # '}'
+[//]: #
+[//]: # '// flushJobs 会对 queue 按照组件深度 (父到子) 进行排序，确保父组件总是先于子组件更新'
+[//]: #
+[//]: # '```'
+[//]: #
+[//]: # '如果开发者在同一段同步代码中执行了 `count.value++` 100次，由于响应式系统触发 `queueJob` 的去重特性，微任务队列里始终只有一个更新任务，因此只会触发一次 `patch` 树重绘。这提供了非常直观和可预测的心智模型。'
+[//]: #
+[//]: # '---'
+[//]: #
+[//]: # '## 6. Hooks 与响应式系统：代数效应 vs 数据劫持'
+[//]: #
+[//]: # '### 6.1 React Hooks：基于调用链的代数效应'
+[//]: #
+[//]: # 'Hooks 的本质是在函数式组件中，将状态持久化到了组件对应的 Fiber 节点上。'
+[//]: #
+[//]: # '```javascript'
+[//]: # '// React Hooks 强依赖调用顺序的底层原因'
+[//]: # '// Fiber 节点上维护着一个单向链表'
+[//]: # 'fiber.memoizedState = {'
+[//]: # '  memoizedState: 0, // 第一个 useState 的值'
+[//]: # '  next: {'
+[//]: # '    memoizedState: /* useEffect 的闭包 */, '
+[//]: # '    next: {'
+[//]: # '      // useRef 等其他 hook'
+[//]: # '    }'
+[//]: # '  }'
+[//]: # '}'
+[//]: #
+[//]: # '```'
+[//]: #
+[//]: # '因为 React 在执行组件函数时，纯粹依靠内部一个名为 `workInProgressHook` 的全局指针来按顺序取出对应的状态。如果使用了 `if` 语句包裹 Hook，会导致指针错位，取出错误的状态，这也是 `eslint-plugin-react-hooks` 强制要求 Hook 不能放在条件语句中的根本原因。'
+[//]: #
+[//]: # '### 6.2 Vue 3 Reactivity：基于 Proxy 的透明劫持'
+[//]: #
+[//]: # 'Vue 3 抛弃了 `Object.defineProperty`，利用 ES6 的 `Proxy` 和 `Reflect` 构建了彻底的响应式依赖图。'
+[//]: #
+[//]: # '```javascript'
+[//]: # '// 响应式追踪的灵魂枢纽：targetMap'
+[//]: # '// targetMap 是一个 WeakMap，避免内存泄漏'
+[//]: # '// 结构：WeakMap<Target, Map<Key, Set<ReactiveEffect>>>'
+[//]: # 'const targetMap = new WeakMap()'
+[//]: #
+[//]: # 'function track(target, key) {'
+[//]: # '  if (activeEffect) {'
+[//]: # '    let depsMap = targetMap.get(target)'
+[//]: # '    let dep = depsMap.get(key)'
+[//]: # '    dep.add(activeEffect) // 将当前执行的渲染函数或 watcher 闭包记录到这个具体属性的订阅者列表中'
+[//]: # '  }'
+[//]: # '}'
+[//]: #
+[//]: # '```'
+[//]: #
+[//]: # '当开发者修改 `reactive` 代理对象的属性时，`set` 夹层被触发，直接从 `targetMap` 中提取出所有依赖于该属性的 `ReactiveEffect` 并放入微任务队列执行。这种机制完全摆脱了调用顺序的限制，允许在条件分支、循环甚至普通 JS 文件中自由使用响应式 API。'
+[//]: #
+[//]: # '---'
+[//]: #
+[//]: # '## 7. 副作用时序与浏览器渲染管道集成'
+[//]: #
+[//]: # 'React 和 Vue 对于副作用的处理时机都深刻绑定了浏览器的渲染流水线（DOM 树构建 → 样式计算 → 布局 Layout → 绘制 Paint）。'
+[//]: #
+[//]: # '### 7.1 React 的三段式副作用'
+[//]: #
+[//]: # '在 Commit 阶段，React 区分了三种 Effect 的触发时机：'
+[//]: #
+[//]: # '1. **`useInsertionEffect`**：DOM 突变发生之前。主要用于 CSS-in-JS 库注入样式标签，防止出现样式重算闪烁。'
+[//]: # '2. **`useLayoutEffect`**：DOM 突变刚完成，但**浏览器尚未开始绘制（Paint）**。它是同步执行的，会阻塞浏览器的渲染流水线。非常适合在此处读取 DOM 的最新尺寸（如 `getBoundingClientRect`）并同步触发重渲染，用户不会看到闪烁。'
+[//]: # '3. **`useEffect`**：浏览器已经完成绘制，将控制权交回给 JS 引擎后。它是异步执行的，不会阻塞屏幕更新，用于网络请求、非视觉关键的事件绑定等。'
+[//]: #
+[//]: # '### 7.2 Vue 3 的 flush 机制'
+[//]: #
+[//]: # 'Vue 3 不强调阻塞渲染，而是通过微任务中队列的前后排序来控制执行时机：'
+[//]: #
+[//]: # "1. **`watch(..., { flush: 'pre' })`**（默认）：组件 DOM 树更新前执行，此时可以访问到旧的 DOM 状态。"
+[//]: # "2. **`onUpdated` / `watch(..., { flush: 'post' })**`：在当前组件及所有子孙组件完成 patch 更新之后执行。"
+[//]: # '   若要达到类似 React `useLayoutEffect` 确保不闪屏的同步重绘效果，在 Vue 3 中通常需要在 `onUpdated` 中或紧跟响应式变更后使用 `nextTick()`，但其本质依然是在微任务阶段，在浏览器 Paint 前完成。'
+[//]: #
+[//]: # '---'
+[//]: #
+[//]: # '## 8. 编译器优化：两条不同的进化路线'
+[//]: #
+[//]: # '### 8.1 React Compiler (React Forget)'
+[//]: #
+[//]: # 'React 的哲学是“UI 是状态的函数”，但在复杂的函数体内部，不可避免地会发生冗余的重新计算和子组件不必要的重渲染。传统的解法是让开发者手动编写铺天盖地的 `useMemo` 和 `useCallback`。'
+[//]: # 'React Compiler 通过 AST 抽象语法树分析和 SSA（静态单赋值）算法，在编译期自动推断依赖关系，将函数体改写为自动缓存的版本：'
+[//]: #
+[//]: # '```javascript'
+[//]: # '// 编译后的自动注入逻辑 (简化思路)'
+[//]: # 'function Component(props) {'
+[//]: # '  const $ = useRenderCache(2);'
+[//]: # '  '
+[//]: # '  let computedValue;'
+[//]: # '  if ($[0] !== props.data) {'
+[//]: # '    computedValue = heavyComputation(props.data);'
+[//]: # '    $[0] = props.data;'
+[//]: # '    $[1] = computedValue;'
+[//]: # '  } else {'
+[//]: # '    computedValue = $[1]; // 完全命中缓存，不执行运算'
+[//]: # '  }'
+[//]: # '}'
+[//]: #
+[//]: # '```'
+[//]: #
+[//]: # '**特点**：没有改变 React 的运行时架构，只是使得 Fiber 在 `beginWork` 时更容易触发 bailout（因为传入子组件的 props 引用被自动固化了）。'
+[//]: #
+[//]: # '### 8.2 Vue 3 Compiler 与 Block Tree'
+[//]: #
+[//]: # 'Vue 的模板由于语法受限，天生具备良好的静态可分析性。Vue 3 编译器不仅进行了静态提升（Hoisting），还引入了革命性的 **Block Tree 架构**。'
+[//]: #
+[//]: # '由于 `v-if` 和 `v-for` 会改变 DOM 树的结构，Vue 将这些指令所在的节点以及根节点视作一个 "Block"。在生成 VNode 树时，Block 节点除了拥有 `children` 数组外，还会多维护一个 `dynamicChildren` 数组，这个数组会**扁平化地收集该 Block 内部所有层级的动态节点**。'
+[//]: #
+[//]: # '这使得 Vue 3 在运行时进行 `patch` 时，能够完全忽略数千个静态的包装节点（如无状态的 `<div>`），直接对 `dynamicChildren` 数组进行一维线性遍历比对。UI 的更新复杂度从与**模板整体大小相关**，降维成了与**动态节点数量相关**。'
+[//]: #
+[//]: # '---'
+[//]: #
+[//]: # '## 9. 渲染器与宿主平台：跨端抽象的实现'
+[//]: #
+[//]: # '两套框架都将核心算法（协调、响应式）与宿主平台的底层 API（DOM 操作）进行了优雅的分离。'
+[//]: #
+[//]: # '### 9.1 React 的 Host Config'
+[//]: #
+[//]: # 'React 独立维护了 `react-reconciler` 包。无论是 `react-dom`（Web）、`react-native`（移动端）还是 `react-three-fiber`（WebGL），都是通过实现一个名为 `HostConfig` 的巨大配置对象来驱动。'
+[//]: # '它要求宿主提供极其细致的 API，如 `createInstance`、`appendChild`、甚至用于并发渲染的 `shouldYieldToHost`（判断时间片是否耗尽的宿主感知函数）。'
+[//]: #
+[//]: # '### 9.2 Vue 3 的 Renderer Options'
+[//]: #
+[//]: # 'Vue 3 导出了 `@vue/runtime-core`，通过 `createRenderer(options)` 函数接受特定的 `nodeOps` 和 `patchProp`。'
+[//]: # '相比于 React，Vue 的自定义渲染器 API 更加精简。比如针对微信小程序或 Canvas 的渲染器，开发者只需实现极少量的增删改查函数即可。同时，Vue 提供了更为原生的跨容器处理节点 `<Teleport>`（对应 React 的 `Portal`），其内部逻辑也是完全在核心渲染器中抽象，对宿主透明。'
+[//]: #
+[//]: # '---'
+[//]: #
+[//]: # '## 10. 设计取舍总结：工程复杂度的守恒定律'
+[//]: #
+[//]: # '软件工程的复杂度不会消失，只会被转移。'
+[//]: #
+[//]: # '* **React 选择了“保持开发者心智模型的纯粹（函数即组件），将极其庞大的工程复杂度沉淀在框架底层”。**'
+[//]: # '  为了应对纯函数无差别重渲染的开销，React 被迫发明了 Fiber，发明了 Lane，发明了 Scheduler，并最终造出了 React Compiler。React 更适合重型复杂业务流、极高频次的交互应用，以及高度动态化的架构设计。'
+[//]: # '* **Vue 3 选择了“通过智能的编译器和代理机制（Proxy），将复杂度分散在编译时阶段和响应式依赖收集中”。**'
+[//]: # '  利用明确的模板边界，Vue 把 VDOM 变成了智能地图；利用 Proxy，它让开发者免于思考依赖数组。Vue 在绝大多数中后台系统、数据大屏和标准 C 端应用中，提供了更低的心智负担和几乎不需要手动调优就能获得的高效更新性能。'
 
 ## 4. 协调与更新
 
