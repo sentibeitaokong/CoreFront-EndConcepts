@@ -199,7 +199,7 @@ React 极力避免在每次更新时创建成千上万个新的 Fiber 对象（�
 type FiberRootNode = {
   current: Fiber,         // 指向 current 树的根 Fiber（HostRoot）
   containerInfo: Element, // 真实的 DOM 容器（如 #root）
-  // ... 调度状态
+  finishedWork: Fiber | null //指向构建完成的新 Fiber 树，commit 阶段将其渲染到 DOM
 }
 
 // Fiber 树的根节点（tag = HostRoot = 3）
