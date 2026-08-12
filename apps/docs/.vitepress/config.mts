@@ -1,7 +1,7 @@
 import type {DefaultTheme, UserConfigFn} from 'vitepress'
 import {componentPreview, containerPreview} from '@vitepress-demo-preview/plugin'
 import lightbox from "vitepress-plugin-lightbox";
-import {withMermaid} from 'vitepress-plugin-mermaid'
+import {withMermaid} from 'vitepress-mermaid-viewer'
 import footnote from 'markdown-it-footnote'
 import taskLists from 'markdown-it-task-lists'
 import {fileURLToPath, URL} from 'node:url'

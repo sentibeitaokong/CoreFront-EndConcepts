@@ -25,7 +25,7 @@ flowchart LR
 
 Render 阶段的目标是**构建 work-in-progress Fiber 树并标记副作用**。它是纯计算过程，不产生任何用户可见的 DOM 变更，因此可以被中断、重试或丢弃。
 
-### 2.2 工作单元：performUnitOfWork
+### 2.2 工作单元
 
 `performUnitOfWork` 是 Render 阶段的核心执行单元，它将每个 Fiber 节点的处理分为"**递**"（`beginWork`）和"**归**"（`completeWork`）两步：
 
@@ -83,7 +83,7 @@ function workLoopConcurrent() {
 }
 ```
 
-### 2.3 入口：renderRootSync 与 renderRootConcurrent
+### 2.3 函数入口
 
 在 Render 阶段开始前，React 需要先调用 `prepareFreshStack` 来建立 work-in-progress 树：
 
@@ -268,7 +268,7 @@ subtreeFlags subtreeFlags
 = Update) = Placement)
 ```
 
-### 2.6 Render 阶段的遍历过程
+### 2.6 遍历过程
 
 ```mermaid
 flowchart TD
@@ -315,7 +315,7 @@ function workLoopConcurrent() {
 
 这个机制依赖于双缓冲的稳定性——`current` 树永远不会被修改，所以无论多少次中断重试，React 始终可以从一个干净、一致的起点重新开始。
 
-### 2.8 错误边界与 Render 阶段
+### 2.8 错误边界
 
 当组件在 Render 阶段抛出错误时，React 会沿着 `return` 指针向上查找最近的错误边界（实现了 `getDerivedStateFromError` 或 `componentDidCatch` 的组件）：
 
@@ -350,7 +350,7 @@ function handleError(root, thrownValue) {
 
 当 Render 阶段完成（`workInProgress` 为 `null`），且没有更高优先级的更新打断时，`finishedWork` 指向构建完成的 WIP 树的根 Fiber，进入 Commit 阶段。
 
-### 3.1 commitRoot：Commit 的总入口
+### 3.1 函数入口
 
 ```javascript
 function commitRoot(
@@ -387,7 +387,7 @@ function commitRoot(
 }
 ```
 
-### 3.2 子阶段总览
+### 3.2 commit阶段总览
 
 从逻辑上，Commit 阶段分为四个子阶段（其中 Passive 是异步的）：
 
@@ -563,7 +563,7 @@ function commitPassiveEffects(root) {
 
 Passive 阶段在浏览器绘制后**异步执行** `useEffect`，不阻塞用户看到新 UI。React 内部使用 `scheduleCallback(NormalPriority, flushPassiveEffects)` 将其放进 Scheduler 的任务队列，确保在 Layout 阶段和浏览器绘制完成后才触发。
 
-### 3.7 错误边界与 Commit 阶段
+### 3.7 错误边界
 
 在 Commit 阶段，`componentDidCatch` 在 Layout 子阶段中被调用。如果 `useLayoutEffect` 或 `componentDidMount/Update` 抛出错误，React 仍会尝试向上查找错误边界，但此时 DOM 已经部分变更——因此错误边界在 Commit 阶段的容错是**尽力而为**的，React 建议在 Render 阶段就让错误边界发挥作用（通过 `getDerivedStateFromError`）。
 
@@ -600,13 +600,26 @@ sequenceDiagram
 
 ## 5. 总结
 
-- **Render 阶段是"计算"**：纯函数、可中断、不产生可见效果。组件函数在这里执行。每次只处理一个 Fiber 节点（`performUnitOfWork`），通过 `while` 循环而非递归实现可中断。
-- **Commit 阶段是"提交"**：`commitRoot` 串行执行 Before Mutation → Mutation → Layout → Passive，Mutation 子阶段不可中断，同步应用 DOM 变更。
-- **beginWork 决定了复用/新建 Fiber**：Bailout 跳过无变化子树，`reconcileChildren` 通过 Diff 对比新旧 Element 并为子 Fiber 标记 `Placement` / `Update` / `ChildDeletion` flags。
-- **completeWork 创建 DOM 并冒泡 flags**：`bubbleProperties` 将子树的 `flags` 和 `subtreeFlags` 通过按位或向上聚合，Commit 阶段通过 `subtreeFlags === 0` 快速跳过无副作用子树。
-- **双缓冲保证中断安全**：`current` 树始终保持稳定，Render 阶段在 `workInProgress` 树上操作，被中断时直接废弃 WIP 树，重新基于 current 创建。
-- **prepareFreshStack** 在每次 Render 开始前通过 `createWorkInProgress` 复用或创建 WIP 树根节点，是双缓冲和内存复用的入口。
-- **Mutation 子阶段执行真正的 DOM 操作**：`commitPlacement`（插入）、`commitUpdate`（更新属性）、`commitDeletion`（递归卸载 + 移除 DOM）。这之前所有计算都只存在内存中。
-- **useLayoutEffect 在 Layout 阶段同步执行**（DOM 已更新、浏览器未绘制），**useEffect 在 Passive 阶段异步执行**（绘制完成后）。
-- **错误边界**在 Render 阶段查找最近的 `getDerivedStateFromError` / `componentDidCatch` 捕获组件错误，隔离子树崩溃。
-- **不要将"渲染组件函数"与"更新 DOM"混为同一个阶段**——它们在 Fiber 架构中被严格分离，这是 React 并发模式正确运行的基本前提。
+### 5.1 架构心智：计算与执行的绝对隔离
+
+- **界限分明**：绝不能将“**组件函数的执行**”与“**DOM 的物理更新**”混为一谈。它们在 Fiber 架构中被严格拆分为 `Render`（计算）和 `Commit`（执行）两个完全独立的阶段。这是 React 实现并发模式（Concurrent Mode）的底层物理前提。
+- **双缓冲内存防御**：`current` 树代表当前屏幕的可见状态，始终保持稳定；Render 的一切试探性计算都在 `workInProgress` (WIP) 树上操作。当 Render 被高优先级任务打断时，直接废弃 WIP 树，随后通过 `prepareFreshStack -> createWorkInProgress` 基于纯净的 `current` 树重新克隆，完美保证了中断的安全性。
+
+### 5.2 Render 阶段：可中断的纯计算引擎
+
+- **循环替代递归**：Render 本质是“**纯函数计算**”，不会产生任何屏幕可见的变化。它通过 `while` 循环不断调用 `performUnitOfWork`，每次精准只处理 1 个 Fiber 节点，从而实现了随时可让权（Yield）的中断机制。
+- **递（beginWork）—— 复用与分裂**：自顶向下遍历。利用 Bailout 机制极速跳过毫无变化的子树；不可跳过时，利用 `reconcileChildren` (Diff 算法) 对比新旧 Element，并为新生成的子 Fiber 烙上 `Placement` (插入) / `Update` (更新) / `ChildDeletion` (删除) 等副作用标记 (Flags)。
+- **归（completeWork）—— 组装与冒泡**：自底向上回溯。在内存中离线创建物理 DOM 实例，并通过 `bubbleProperties` 将当前节点的 `flags` 按位或（`|`）合并到父节点的 `subtreeFlags` 中。这是为后续极速遍历铺路的绝杀技。
+
+### 5.3 Commit 阶段：同步且不可逆的物理突变
+
+- **单向流水线**：由 `commitRoot` 驱动，串行贯穿四大子阶段：`Before Mutation` -> `Mutation` -> `Layout` -> `Passive`。在这个阶段，浏览器主线程被死死锁住。
+- **O(1) 掩码跳跃**：得益于 Render 阶段冒泡生成的 `subtreeFlags`，Commit 引擎可以通过判断 `subtreeFlags === 0`，在一瞬间直接跳过没有任何副作用的庞大静态子树。
+- **物理突变 (Mutation)**：真正执行 DOM API 的地方。集中消费之前在内存中算好的标记，调用 `commitPlacement` (塞入 DOM)、`commitUpdate` (更新类名/样式) 以及 `commitDeletion` (卸载组件并移除 DOM)。
+- **Hooks 调度时差**：
+  - **`useLayoutEffect`** 在 Layout 阶段**同步**执行（DOM 已变，但浏览器尚未 Paint，会阻塞渲染）。
+  - **`useEffect`** 在 Passive 阶段**异步**执行（在浏览器 Paint 完成后执行，不阻塞视觉）。
+
+### 5.4 架构护城河：容错与隔离
+
+- **就近拦截 (Error Boundary)**：在 Render 阶段进行节点遍历时，一旦捕捉到组件抛出的异常，React 会顺着 Fiber 树向上回溯，寻找最近的 `getDerivedStateFromError` 或 `componentDidCatch` 进行拦截，将崩溃严格隔离在局部子树，避免整个应用白屏。
