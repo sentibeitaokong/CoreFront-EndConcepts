@@ -200,7 +200,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                 }
             },    //显示最后更新时间
             editLink: {
-                pattern: 'https://github.com/sentibeitaokong/CoreFront-EndConcepts/edit/main/docs/:path',
+                pattern: 'https://github.com/sentibeitaokong/CoreFront-EndConcepts/edit/main/apps/docs/:path',
                 text: '为此页提供修改建议'
             },    //显示链接修改这个页面的github地址
             // carbonAds: {
