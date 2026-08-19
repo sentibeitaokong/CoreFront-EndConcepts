@@ -290,66 +290,6 @@ Vue 3（树比对）：将职责按关注点分离
 | **双缓冲**     | `current` 与 `workInProgress` Fiber 通过 `alternate` 连接 | 没有直接等价结构，更新时比较前后 VNode       |
 | **可中断工作** | Fiber 是可暂停和恢复的工作单元                            | 单个组件的 patch 默认同步完成                |
 
-[//]: # '## 4. 协调 (Reconciliation) 与更新：算法的极致交锋'
-[//]: #
-[//]: # '### 4.1 React：单向遍历与可中断的协调循环'
-[//]: #
-[//]: # 'React 的更新以 Fiber 为单位，分为“递（beginWork）”和“归（completeWork）”。'
-[//]: #
-[//]: # '```javascript'
-[//]: # 'function beginWork(current, workInProgress, renderLanes) {'
-[//]: # '  // 核心优化 1：Bailout (提前跳过)'
-[//]: # '  // 如果 props 未变，Context 未变，且自身及子树没有符合当前优先级的更新 (Lanes 检查)'
-[//]: # '  if (oldProps === newProps && !hasContextChanged() && !includesSomeLane(renderLanes, workInProgress.lanes)) {'
-[//]: # '    return bailoutOnAlreadyFinishedWork(current, workInProgress) '
-[//]: # '  }'
-[//]: # '  '
-[//]: # '  // 执行组件，产生新的 Element 子代，然后协调子节点'
-[//]: # '  reconcileChildren(current, workInProgress, nextChildren, renderLanes)'
-[//]: # '}'
-[//]: #
-[//]: # '```'
-[//]: #
-[//]: # '**React 的子节点 Diff 算法（单向链表限制下的折中）：**'
-[//]: # '由于 Fiber 的拓扑是一个只有 `sibling` 指针的单向链表，React 无法像 Vue 那样从尾部向前遍历。因此，React Diff 分为三轮：'
-[//]: #
-[//]: # '1. **按位置匹配**：从头开始比对，如果 key 和 type 相同，直接复用。一旦遇到不匹配，停止匹配。'
-[//]: # '2. **构建哈希映射**：将剩余未遍历的旧 Fiber 节点存入一个 `Map<key, Fiber>` 中。'
-[//]: # '3. **查找与移动**：遍历剩余的新 Element，在 Map 中查找可复用的旧 Fiber，利用 `lastPlacedIndex` 算法计算哪些节点需要打上 `Placement` (移动) 标签。'
-[//]: #
-[//]: # '### 4.2 Vue 3：靶向更新与双端 LIS 算法'
-[//]: #
-[//]: # 'Vue 3 的 `patch` 过程深受响应式系统的调度和编译标记的加持。'
-[//]: #
-[//]: # '```javascript'
-[//]: # 'function patchElement(oldVNode, newVNode) {'
-[//]: # '  // 核心优化 1：靶向更新 (Targeted Patching)'
-[//]: # '  const { patchFlag } = newVNode'
-[//]: # '  if (patchFlag > 0) {'
-[//]: # '    if (patchFlag & PatchFlags.TEXT) {'
-[//]: # '      // 只需要更改文本内容，彻底跳过属性比对和子节点遍历！'
-[//]: # '      hostSetElementText(el, newVNode.children)'
-[//]: # '    }'
-[//]: # '    if (patchFlag & PatchFlags.CLASS) {'
-[//]: # "      hostPatchProp(el, 'class', null, newVNode.props.class)"
-[//]: # '    }'
-[//]: # '    // ...处理其他特定的 Flag'
-[//]: # '    return '
-[//]: # '  }'
-[//]: # '  // 回退到全量属性 diff'
-[//]: # '}'
-[//]: #
-[//]: # '```'
-[//]: #
-[//]: # '**Vue 3 的子节点 Diff 算法（双端比对 + 最长递增子序列 LIS）：**'
-[//]: # '由于 VNode 的 children 是纯数组，Vue 可以利用索引进行极速比对。'
-[//]: #
-[//]: # '1. **首尾预处理**：从左向右（sync from start），再从右向左（sync from end），剥离两端不变的节点。'
-[//]: # '2. **构建索引图**：针对中间无法匹配的乱序部分，建立 `新节点 key -> 旧节点 index` 的映射表。'
-[//]: # '3. **最长递增子序列 (Longest Increasing Subsequence, LIS)**：通过算法求出旧节点在新序列中保持相对顺序最长的一组节点，这组节点在视图更新时**完全不需要移动真实 DOM**，只对其他节点执行插入或移动，将 DOM 操作的性能压榨到了理论极限。'
-[//]: #
-[//]: # '---'
-[//]: #
 [//]: # '## 5. 调度 (Scheduling) 与批处理：并发时代的控场逻辑'
 [//]: #
 [//]: # '### 5.1 React Lane 模型与微秒级时间切片'
@@ -606,6 +546,62 @@ function reconcileChildren(current, workInProgress, nextChildren, renderLanes) {
 }
 ```
 
+React 的多节点协调（`reconcileChildrenArray`）受 Fiber 单向链表拓扑约束，只能**单向扫描**，用 `lastPlacedIndex` 贪心检测移动：
+
+```javascript
+// reconcileChildrenArray — React 多节点协调（简化）
+function reconcileChildrenArray(returnFiber, currentFirstChild, newChildren) {
+  let oldFiber = currentFirstChild
+  let lastPlacedIndex = 0 // 已复用旧节点在旧列表中的最大 index
+  let newIdx = 0
+
+  // 第一轮：顺序比对，key + type 相同 → 复用，遇到不同立即跳出
+  for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
+    const newChild = newChildren[newIdx]
+    if (oldFiber.key !== newChild.key || oldFiber.type !== newChild.type) break
+    lastPlacedIndex = placeChild(
+      useFiber(oldFiber, newChild),
+      lastPlacedIndex,
+      newIdx,
+    )
+    oldFiber = oldFiber.sibling
+  }
+
+  // 第二轮：剩余旧节点按 key 建 Map，遍历新节点查找复用或新建
+  const existingChildren = mapRemainingChildren(oldFiber)
+  for (; newIdx < newChildren.length; newIdx++) {
+    const matched = existingChildren.get(newChildren[newIdx].key)
+    const newFiber = matched
+      ? updateFromMap(
+          existingChildren,
+          returnFiber,
+          newIdx,
+          newChildren[newIdx],
+        )
+      : createChild(returnFiber, newChildren[newIdx], null)
+    lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx)
+  }
+
+  // 第三轮：Map 中仍剩余的旧节点 → 标记 ChildDeletion
+  existingChildren.forEach(child => deleteChild(returnFiber, child))
+}
+
+// placeChild — lastPlacedIndex 贪心：旧 index < lastPlacedIndex 即相对顺序改变
+function placeChild(newFiber, lastPlacedIndex, newIndex) {
+  newFiber.index = newIndex
+  const oldIndex = newFiber.alternate?.index
+  if (oldIndex === undefined) {
+    newFiber.flags |= Placement // 全新节点 → 插入
+    return lastPlacedIndex
+  }
+  if (oldIndex < lastPlacedIndex) {
+    newFiber.flags |= Placement // 相对顺序改变 → 移动
+    return lastPlacedIndex
+  }
+  return oldIndex // 顺序不变 → 原地复用
+}
+```
+
 ### 4.2 Vue 3：响应式驱动的 patch 流程
 
 Vue 3 的响应式数据变化会触发订阅它的 ReactiveEffect。组件更新任务进入 Scheduler 队列，执行时生成新 VNode 并与旧 VNode 进行 patch：
@@ -696,36 +692,60 @@ function patchElement(oldVNode, newVNode, ...) {
 }
 ```
 
-**React 和 Vue 3 子节点 diff 的核心区别：**
+Vue 3 的多节点 patch（`patchKeyedChildren`）的 VNode 是数组，支持**双端扫描与索引随机访问**，用最长递增子序列（LIS）把移动次数压到最优：
 
 ```javascript
-// React：单轮遍历 + Map 查找
-// 1. 第一轮：从头开始按序比对（key 相同 → 复用，不同 → 跳出）
-// 2. 第二轮：将旧子节点放入 Map<key, Fiber>，用新子节点 key 查找和移动
-// 3. 第三轮：处理无法匹配的剩余节点（删除旧节点，创建新节点)
+// patchKeyedChildren — Vue 3 多节点 patch（简化）
+function patchKeyedChildren(c1, c2, container) {
+  let i = 0,
+    e1 = c1.length - 1,
+    e2 = c2.length - 1
 
-// Vue 3：双端比较 + 最长递增子序列
-// 1. 从头部、尾部同时向中间扫描（synced from start / synced from end）
-// 2. 中间无法匹配的部分才建立 key → index Map 进行查找
-// 3. 通过最长递增子序列算法最小化移动操作
+  // 1. 头部同步：从前往后，type + key 相同 → 复用
+  while (i <= e1 && i <= e2 && isSameVNodeType(c1[i], c2[i])) {
+    patch(c1[i], c2[i])
+    i++
+  }
+  // 2. 尾部同步：从后往前，type + key 相同 → 复用
+  while (i <= e1 && i <= e2 && isSameVNodeType(c1[e1], c2[e2])) {
+    patch(c1[e1], c2[e2])
+    e1--
+    e2--
+  }
 
-// 示例：旧 [A B C D E F] → 新 [A C D B G F]
-// Vue 双端 diff：
-//   头部同步：A = A ✓（复用）
-//   尾部同步：F = F ✓（复用）
-//   剩余 [B C D E] vs [C D B G] → 建 Map，逐个查找
-// React diff：
-//   首轮：A=A, B≠C → 跳出
-//   建 Map: {A, B, C, D, E, F}，遍历新列表查找
+  // 3. 中间乱序部分：建立 新 key → index 映射
+  const keyToNewIndexMap = new Map()
+  for (let j = i; j <= e2; j++) keyToNewIndexMap.set(c2[j].key, j)
+
+  // 4. 遍历旧中间节点：命中 → 复用并记录新旧位置；未命中 → 卸载
+  // 5. 计算最长递增子序列(LIS)：LIS 内的节点相对顺序未变，保持原位
+  const seq = getSequence(newIndexToOldIndexMap)
+  // 6. 从尾到头移动/插入非 LIS 节点，最小化真实 DOM 操作
+}
 ```
 
-| 维度             | React                                       | Vue 3                                                 |
-| ---------------- | ------------------------------------------- | ----------------------------------------------------- |
-| **更新来源**     | `setState`、Hook dispatch、外部 Store 等    | `ref`、`reactive` 等响应式数据触发依赖                |
-| **比较输入**     | 新 React Element 与 current Fiber           | 新旧 VNode                                            |
-| **列表复用依据** | `type` 与 `key`                             | `type` 与 `key`                                       |
-| **变更提交**     | Commit 阶段处理 Placement、Update、Deletion | patch 过程中调用 insert、patchProp、remove 等宿主操作 |
-| **跳过工作**     | Bailout、`memo`、稳定引用、编译器缓存       | 响应式依赖、PatchFlags、Block Tree、静态提升          |
+### 4.3 对比总结
+
+```markdown
+React（单向链表约束）：单次遍历 + lastPlacedIndex
+第一轮顺序比对 → 第二轮 Map 查找 → 第三轮删除剩余
+用"旧 index < lastPlacedIndex"判断移动，只能单向扫描
+
+Vue 3（数组随机访问）：双端比较 + 最长递增子序列
+头尾同步剥离 → 中间建 key Map → LIS 求不动的子序列
+可双向扫描，LIS 内节点保持原位，移动次数接近最优
+```
+
+| 维度             | React                                           | Vue 3                                                   |
+| ---------------- | ----------------------------------------------- | ------------------------------------------------------- |
+| **更新来源**     | `setState`、Hook dispatch、外部 Store 等        | `ref`、`reactive` 等响应式数据触发依赖                  |
+| **比较输入**     | 新 React Element 与 current Fiber               | 新旧 VNode                                              |
+| **列表复用依据** | `type` 与 `key`                                 | `type` 与 `key`                                         |
+| **移动检测**     | `lastPlacedIndex` 贪心（单次遍历）              | 最长递增子序列 LIS（移动次数最优）                      |
+| **变更提交**     | Commit 阶段统一处理 Placement、Update、Deletion | patch 过程直接调用 insert、patchProp、remove 等宿主操作 |
+| **跳过工作**     | Bailout、`memo`、稳定引用、编译器缓存           | 响应式依赖、PatchFlags、Block Tree、静态提升            |
+
+React 的协调受 Fiber 单向链表拓扑约束，只能单向扫描；Vue 3 的 VNode 是数组，天然支持双端与索引随机访问，因而能把 DOM 移动次数压得更低。二者最终都把真实 DOM 操作降到"**必须变化**"的最小集合，只是算法起点不同。
 
 ## 5. 调度与批处理
 

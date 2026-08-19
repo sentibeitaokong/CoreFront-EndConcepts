@@ -955,18 +955,18 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                             text: '核心架构与设计原理',
                                             collapsed: true, // 初始状态为”展开”
                                             items: [
-                                                {text: 'React 编译器', link: '/frameworks/react/advanced/core-design/compiler'},
                                                 {text: 'Element、Fiber 与 DOM', link: '/frameworks/react/advanced/core-design/elementAndFiber'},
                                                 {text: 'Fiber 架构', link: '/frameworks/react/advanced/core-design/fiberArchitecture'},
                                                 {text: '协调算法', link: '/frameworks/react/advanced/core-design/reconciliation'},
+                                                {text: 'Render 与 Commit', link: '/frameworks/react/advanced/core-design/renderCommit'},
                                                 {text: '更新批处理', link: '/frameworks/react/advanced/core-design/updateBatching'},
                                                 {text: '调度与优先级 (Lanes)', link: '/frameworks/react/advanced/core-design/schedulingAndLanes'},
-                                                {text: 'Render 与 Commit', link: '/frameworks/react/advanced/core-design/renderCommit'},
-                                                {text: 'Effects 机制', link: '/frameworks/react/advanced/core-design/effects'},
                                                 {text: 'Hooks 原理', link: '/frameworks/react/advanced/core-design/hooksInternals'},
+                                                {text: 'Effects 机制', link: '/frameworks/react/advanced/core-design/effects'},
                                                 {text: 'Context 机制', link: '/frameworks/react/advanced/core-design/contextPropagation'},
                                                 {text: '渲染器架构', link: '/frameworks/react/advanced/core-design/rendererArchitecture'},
                                                 {text: '并发特性 (Suspense & Hydration)', link: '/frameworks/react/advanced/core-design/suspenseOffscreenHydration'},
+                                                {text: 'React 编译器', link: '/frameworks/react/advanced/core-design/compiler'},
                                             ]
                                         },
                                         {

@@ -1,6 +1,6 @@
 # Render 与 Commit 两阶段渲染
 
-## 1.一次状态更新的完整流程
+## 1. 一次状态更新的完整流程
 
 React 的每一次状态更新都可以概括为三个阶段：
 
@@ -17,7 +17,28 @@ flowchart LR
 | **Render**      | ✅ 可中断   | 构建 Fiber 树、diff 新旧树、标记副作用 | 不可见（内存中计算） |
 | **Commit**      | ❌ 不可中断 | 将变更应用到 DOM、执行副作用           | 用户可见             |
 
-关键认知：**"渲染"在 React 语境中指 Render 阶段（执行组件函数计算 VDOM 差异），而不是提交 DOM 更新。**
+关键认知："**渲染**"在 React 语境中指 Render 阶段（执行组件函数计算 VDOM 差异），而不是提交 DOM 更新。
+
+### 1.1 从 setState 到进入 Render
+
+触发阶段并非“**空等**”——`setState` 会先创建 Update 并标记优先级，再由调度器决定何时真正开始 Render：
+
+```mermaid
+flowchart TD
+    Start[setState / dispatch] --> Update[enqueueUpdate<br/>创建 Update 写入 fiber.updateQueue]
+    Update --> Mark[markUpdateLaneFromFiberToRoot<br/>标记更新优先级 lane]
+    Mark --> Schedule[scheduleUpdateOnFiber<br/>触发调度]
+    Schedule --> Ensure[ensureRootIsScheduled<br/>Scheduler 按优先级排入任务队列]
+    Ensure --> Check{本次更新是否同步 / 可并发?}
+    Check -->|同步更新（离散输入等）| Sync[performSyncWorkOnRoot]
+    Check -->|并发 / 低优先级| Concurrent[performConcurrentWorkOnRoot]
+    Sync --> RenderSync[renderRootSync]
+    Concurrent --> RenderConcurrent[renderRootConcurrent]
+    RenderSync --> Render[进入 Render 阶段<br/>workLoop 开始]
+    RenderConcurrent --> Render
+```
+
+更新的优先级与批处理细节分别见 [调度与优先级](./schedulingAndLanes.md) 和 [更新批处理](./updateBatching.md)。
 
 ## 2. Render 阶段
 
@@ -129,7 +150,7 @@ function prepareFreshStack(root, lanes) {
 
 ```javascript
 // beginWork 的核心逻辑（简化）
-//1. 对比新旧 props/state/context，判断是否可以 **bailout**（跳过）。
+//1. 对比新旧 props/state/context，判断是否可以 bailout（跳过）。
 //2. 不可 bailout 时，执行组件函数或 `render()`，获取新的子 Element 列表。
 //3. 调用 `reconcileChildren` 对比新旧子 Element，为子 Fiber 标记 `flags`。
 function beginWork(current, workInProgress, renderLanes) {
@@ -317,13 +338,12 @@ function workLoopConcurrent() {
 
 ### 2.8 错误边界
 
-当组件在 Render 阶段抛出错误时，React 会沿着 `return` 指针向上查找最近的错误边界（实现了 `getDerivedStateFromError` 或 `componentDidCatch` 的组件）：
+Render 阶段组件函数抛错时，React 沿 `return` 指针向上查找**最近的错误边界**（实现了 `getDerivedStateFromError` 或 `componentDidCatch` 的 Class 组件）：
 
 ```javascript
-// React 源码中错误处理的简化逻辑
-function handleError(root, thrownValue) {
+function handleError(root, thrownValue, lanes) {
   let erroredWork = workInProgress
-  // 沿 Fiber 树向上查找错误边界
+  // 沿 return 逐级向上查找错误边界
   while (erroredWork !== null) {
     if (erroredWork.tag === ClassComponent) {
       const ctor = erroredWork.type
@@ -332,19 +352,20 @@ function handleError(root, thrownValue) {
         typeof ctor.getDerivedStateFromError === 'function' ||
         (instance !== null && typeof instance.componentDidCatch === 'function')
       ) {
-        // 找到错误边界——将渲染切换到 fallback UI
-        // erroredWork 及其子树被标记为需要替换
+        // 命中边界：封装错误入队，标记边界重新渲染 fallback UI
         throwException(root, erroredWork, thrownValue, lanes)
         return
       }
     }
     erroredWork = erroredWork.return
   }
-  // 没有错误边界 → 整个应用卸载
+  // 未找到边界 → 卸载整个应用（白屏）
 }
 ```
 
-错误边界捕获错误后，React 会将其子树的 flags 标记为需要卸载/替换，在本次 Commit 阶段统一处理。这意味着**错误边界以内的组件状态全部丢失**，但边界外的应用状态完好无损。
+`getDerivedStateFromError`（Render，可返回对象合并进 state 派生降级 UI）与 `componentDidCatch`（Commit，仅做日志上报等副作用）可并存、分工不同。
+
+捕获后边界**子树被标记为 `ChildDeletion`**，由本次 Commit 统一卸载。这意味着**边界内状态全部丢失、边界外完好**——因此建议在路由、区块、第三方组件等关键节点单独包裹边界，把崩溃隔离在局部，避免整页白屏。
 
 ## 3. Commit 阶段
 
@@ -387,7 +408,7 @@ function commitRoot(
 }
 ```
 
-### 3.2 commit阶段总览
+### 3.2 Commit 阶段总览
 
 从逻辑上，Commit 阶段分为四个子阶段（其中 Passive 是异步的）：
 
@@ -399,6 +420,30 @@ flowchart TD
     Layout --> Paint[浏览器绘制]
     Paint --> Passive[Passive Effects<br/>异步执行 useEffect]
 ```
+
+Commit 阶段用四个**副作用掩码**（按位标志集合）驱动四个子阶段的遍历，每个 flag 归属一个掩码、对应一个处理函数：
+
+| 子阶段          | 掩码                 | 处理函数                      | 主要 flags                                                        |
+| --------------- | -------------------- | ----------------------------- | ----------------------------------------------------------------- |
+| Before Mutation | `BeforeMutationMask` | `commitBeforeMutationEffects` | `Snapshot`                                                        |
+| Mutation        | `MutationMask`       | `commitMutationEffects`       | `Placement` / `Update` / `ChildDeletion` / `ContentReset` / `Ref` |
+| Layout          | `LayoutMask`         | `commitLayoutEffects`         | `Update` / `Callback` / `Ref`                                     |
+| Passive         | `PassiveMask`        | `commitPassiveEffects`        | `Passive`                                                         |
+
+各 flag 落到 DOM 的具体动作：
+
+| flag            | 阶段              | 处理函数                              | 操作                                       |
+| --------------- | ----------------- | ------------------------------------- | ------------------------------------------ |
+| `Placement`     | Mutation          | `commitPlacement`                     | 插入 DOM（`insertBefore` / `appendChild`） |
+| `Update`        | Mutation          | `commitUpdate`                        | 更新属性 / 样式 / 事件                     |
+| `ChildDeletion` | Mutation          | `commitDeletion`                      | 卸载子树 + `removeChild`                   |
+| `ContentReset`  | Mutation          | `commitResetTextContent`              | 清空文本内容                               |
+| `Ref`           | Mutation / Layout | `safelyDetachRef` / `commitAttachRef` | 解绑 / 绑定 ref                            |
+| `Snapshot`      | Before Mutation   | `commitSnapshotEffect`                | 变更前读取快照                             |
+| `Passive`       | Passive           | `commitPassiveMountEffects`           | `useEffect` 的 cleanup / setup             |
+| `Callback`      | Layout            | `commitUpdateQueue`                   | 触发 `setState` 的回调                     |
+
+关键认知：**遍历时先看 `subtreeFlags`，再看 `flags`**。二者与掩码做按位与（`&`），结果为 `0` 的子树被整树跳过，这是 Commit 阶段能极速跨过静态子树的前提。
 
 ### 3.3 Before Mutation 阶段
 
@@ -490,6 +535,37 @@ function commitMutationEffectsOnFiber(finishedWork, root, lanes) {
 }
 ```
 
+**`commitPlacement`**——通过 `getHostParentFiber` 找到最近的宿主父节点、`getHostSibling` 找到插入参考点；找不到兄弟则 `appendChild`，移动（重排）复用它（`insertBefore` 已存在节点即为“**挪位置**”）：
+
+```javascript
+function commitPlacement(finishedWork) {
+  // 1. 向上跳过 FunctionComponent / Fragment 等无 DOM 的父节点
+  const parentFiber = getHostParentFiber(finishedWork)
+  const parent = parentFiber.stateNode
+
+  // 2. 找到正确的插入位置（insertBefore 的参考兄弟节点）
+  const before = getHostSibling(finishedWork)
+
+  if (before !== null) {
+    insertBefore(parent, finishedWork.stateNode, before)
+  } else {
+    appendChild(parent, finishedWork.stateNode)
+  }
+}
+```
+
+**`commitUpdate`**——消费 `completeWork` 阶段由 `diffProperties` 生成的 `updatePayload`，批量落到 DOM 上：
+
+```javascript
+function commitUpdate(domElement, updatePayload, type, oldProps, newProps) {
+  // 1. 同步 props 引用（供后续读取最新值）
+  updateFiberProps(domElement, newProps)
+
+  // 2. 应用属性差异：className / style / 事件监听 / dangerouslySetInnerHTML 等
+  updateProperties(domElement, updatePayload, type, oldProps, newProps)
+}
+```
+
 **`commitDeletion` 的完整处理**——删除一个 Fiber 不仅移除其 DOM，还要递归清理其整棵子树的所有副作用：
 
 ```javascript
@@ -565,7 +641,32 @@ Passive 阶段在浏览器绘制后**异步执行** `useEffect`，不阻塞用�
 
 ### 3.7 错误边界
 
-在 Commit 阶段，`componentDidCatch` 在 Layout 子阶段中被调用。如果 `useLayoutEffect` 或 `componentDidMount/Update` 抛出错误，React 仍会尝试向上查找错误边界，但此时 DOM 已经部分变更——因此错误边界在 Commit 阶段的容错是**尽力而为**的，React 建议在 Render 阶段就让错误边界发挥作用（通过 `getDerivedStateFromError`）。
+Commit 阶段的错误（`useLayoutEffect`、`componentDidMount/Update` 等同步副作用抛出）无法再派生降级 state（Render 已结束），React 用 `captureCommitPhaseError` 兜底触发 `componentDidCatch`：
+
+```javascript
+function captureCommitPhaseError(fiber, error, lanes) {
+  let boundary = null
+  let node = fiber
+  // 沿 return 向上查找最近的错误边界
+  while (node !== null) {
+    if (
+      node.tag === ClassComponent &&
+      typeof node.type.componentDidCatch === 'function'
+    ) {
+      boundary = node
+      break
+    }
+    node = node.return
+  }
+
+  if (boundary === null) throw error // 未找到边界 → 应用崩溃
+
+  // 将 componentDidCatch 的回调入队，交给 Layout 阶段执行
+  enqueueCapturedUpdate(boundary, error, lanes)
+}
+```
+
+Commit 阶段只能触发 `componentDidCatch` 做日志上报等副作用，且此时 DOM **已部分变更**，容错是"**尽力而为**"的。因此降级逻辑应优先放在 `getDerivedStateFromError`（Render 阶段）中，而非依赖 Commit 阶段容错。
 
 ## 4. 完整时序图
 
