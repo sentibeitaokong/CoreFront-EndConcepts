@@ -76,7 +76,7 @@ packages/react/
 
 - **`src/jsx/`**: JSX 被编译后的执行入口 (`jsx-runtime`)。
 - **`src/ReactElement.js`**: `React.createElement` 的底层实现，产出纯 JS 对象。
-- **`src/ReactHooks.js`**: Hooks 的“空壳”。调用 `useState` 实际上是调用 `Dispatcher`，具体的实现在 `react-reconciler` 中按挂载/更新阶段动态注入。
+- **`src/ReactHooks.js`**: Hooks 的“**空壳**”。调用 `useState` 实际上是调用 `Dispatcher`，具体的实现在 `react-reconciler` 中按挂载/更新阶段动态注入。
 
 ### 3.2 协调层：`react-reconciler` (运行时大脑)
 
