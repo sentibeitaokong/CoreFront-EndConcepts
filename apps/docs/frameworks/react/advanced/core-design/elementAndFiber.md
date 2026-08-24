@@ -359,7 +359,7 @@ Render 阶段计算出的 `flags` 是 Commit 阶段执行 DOM 操作的**唯一�
 | `ChildDeletion` | `commitDeletion`       | 从文档移除节点并清理副作用          |
 | `Snapshot`      | `commitSnapshotEffect` | 变更前读取快照（滚动位置等）        |
 
-关键认知：DOM 是“**结果**”**而非**“过程”。Render 阶段完全不碰 DOM，所有计算都发生在 Element 与 Fiber 这两个廉价对象上；只有到了 Commit 阶段，React 才把已经算好的差异一次性作用到昂贵的 DOM 上。这种“**先算后改**”的隔离，正是并发模式能安全中断、丢弃、重试渲染的物理前提。
+关键认知：DOM 是“**结果**”而非“**过程**”。Render 阶段完全不碰 DOM，所有计算都发生在 Element 与 Fiber 这两个廉价对象上；只有到了 Commit 阶段，React 才把已经算好的差异一次性作用到昂贵的 DOM 上。这种“**先算后改**”的隔离，正是并发模式能安全中断、丢弃、重试渲染的物理前提。
 
 ## 6. 总结
 

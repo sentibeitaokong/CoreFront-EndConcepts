@@ -146,10 +146,10 @@ function reconcileSingleElement(
 
 类型相同、Fiber 被复用时，React 不会立刻改 DOM，而是在 `completeWork` 里调用 `diffProperties` 计算属性最小变更集 `updatePayload`：
 
-```javascript
+```markdown
 // 旧属性: { className: 'old', id: 'box', style: { color: 'red' } }
 // 新属性: { className: 'new', id: 'box', style: { color: 'blue' } }
-//
+
 // updatePayload: ['className', 'new', 'style', { color: 'blue' }]
 // className: old → new；id 不变；style.color: red → blue
 ```
