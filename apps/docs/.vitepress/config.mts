@@ -271,6 +271,31 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
             nav: [
                 {text: '简介', link: '/intro'},
                 {
+                    text: '相关链接',
+                    items: [
+                        {
+                            text: 'Vue3极简源码库',
+                            link: 'https://github.com/sentibeitaokong/xunbei-vue'
+                        },
+                        {
+                            text: 'React极简源码库',
+                            link: 'https://github.com/sentibeitaokong/xunbei-react'
+                        },
+                        {
+                            text: '自定义组件库',
+                            link: 'https://github.com/sentibeitaokong/v-elementPlus'
+                        },
+                        {
+                            text: '微前端架构实践',
+                            link: 'https://github.com/sentibeitaokong/mincroFrontends'
+                        },
+                        {
+                            text: '模块打包器实践',
+                            link: 'https://github.com/sentibeitaokong/moduleBundles'
+                        },
+                    ]
+                },
+                {
                     text: '切换语言',
                     items: [
                         {
