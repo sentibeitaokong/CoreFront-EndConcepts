@@ -290,187 +290,6 @@ Vue 3（树比对）：将职责按关注点分离
 | **双缓冲**     | `current` 与 `workInProgress` Fiber 通过 `alternate` 连接 | 没有直接等价结构，更新时比较前后 VNode       |
 | **可中断工作** | Fiber 是可暂停和恢复的工作单元                            | 单个组件的 patch 默认同步完成                |
 
-[//]: # '## 5. 调度 (Scheduling) 与批处理：并发时代的控场逻辑'
-[//]: #
-[//]: # '### 5.1 React Lane 模型与微秒级时间切片'
-[//]: #
-[//]: # 'React 从 16 版本的 `ExpirationTime` 模型升级为 18 版本的 `Lane` 算法。Lane 使用 31 位二进制整数表示优先级，这带来了极其优雅的位运算能力。'
-[//]: #
-[//]: # '```javascript'
-[//]: # '// Lane 模型，高位优先级低，低位优先级高'
-[//]: # 'const SyncLane = 0b0000000000000000000000000000001; // 1'
-[//]: # 'const InputContinuousLane = 0b0000000000000000000000000000100; // 4'
-[//]: # 'const TransitionLane = 0b0000000000000000000001000000000; // 512'
-[//]: #
-[//]: # '// 为什么使用位运算？'
-[//]: # '// 合并两批任务：lanes = lane1 | lane2'
-[//]: # '// 剔除已完成任务：lanes &= ~completedLanes'
-[//]: # '// 判断是否包含特定优先级：(lanes & subsetLanes) !== NoLanes'
-[//]: #
-[//]: # '```'
-[//]: #
-[//]: # '**时间切片（Time Slicing）核心原理：**'
-[//]: # '在并发模式下，React 会调用全局的 `Scheduler` 包。Scheduler 维护了一个任务最小堆（Min-Heap），并利用 `MessageChannel` （一种宏任务机制）在浏览器重绘后获取执行权。它将执行权切割为约 `5ms` 的时间片。当执行一个 Fiber 单元后，如果 `performance.now() - startTime > 5ms`，React 就会强制中断 `workLoop`，交出主线程，并在下一个宏任务中恢复。这种精密的控制彻底消灭了大型 React 应用的输入框卡顿。'
-[//]: #
-[//]: # '### 5.2 Vue 3：基于 Event Loop 的微任务批处理去重'
-[//]: #
-[//]: # 'Vue 3 的调度策略相对更加平面化。它的首要目标不是打断，而是**合并同一事件循环内的状态突变**。'
-[//]: #
-[//]: # '```javascript'
-[//]: # '// Vue 3 内部的调度器队列去重逻辑'
-[//]: # 'const queue = [];'
-[//]: # 'let isFlushPending = false;'
-[//]: #
-[//]: # 'function queueJob(job) {'
-[//]: # '  // 利用 Array.includes 或 Set 确保同一个组件的渲染函数在一轮微任务中只被推入一次'
-[//]: # '  if (!queue.includes(job)) {'
-[//]: # '    queue.push(job);'
-[//]: # '  }'
-[//]: # '  // 启动微任务 (Promise.resolve)'
-[//]: # '  if (!isFlushPending) {'
-[//]: # '    isFlushPending = true;'
-[//]: # '    Promise.resolve().then(flushJobs);'
-[//]: # '  }'
-[//]: # '}'
-[//]: #
-[//]: # '// flushJobs 会对 queue 按照组件深度 (父到子) 进行排序，确保父组件总是先于子组件更新'
-[//]: #
-[//]: # '```'
-[//]: #
-[//]: # '如果开发者在同一段同步代码中执行了 `count.value++` 100次，由于响应式系统触发 `queueJob` 的去重特性，微任务队列里始终只有一个更新任务，因此只会触发一次 `patch` 树重绘。这提供了非常直观和可预测的心智模型。'
-[//]: #
-[//]: # '---'
-[//]: #
-[//]: # '## 6. Hooks 与响应式系统：代数效应 vs 数据劫持'
-[//]: #
-[//]: # '### 6.1 React Hooks：基于调用链的代数效应'
-[//]: #
-[//]: # 'Hooks 的本质是在函数式组件中，将状态持久化到了组件对应的 Fiber 节点上。'
-[//]: #
-[//]: # '```javascript'
-[//]: # '// React Hooks 强依赖调用顺序的底层原因'
-[//]: # '// Fiber 节点上维护着一个单向链表'
-[//]: # 'fiber.memoizedState = {'
-[//]: # '  memoizedState: 0, // 第一个 useState 的值'
-[//]: # '  next: {'
-[//]: # '    memoizedState: /* useEffect 的闭包 */, '
-[//]: # '    next: {'
-[//]: # '      // useRef 等其他 hook'
-[//]: # '    }'
-[//]: # '  }'
-[//]: # '}'
-[//]: #
-[//]: # '```'
-[//]: #
-[//]: # '因为 React 在执行组件函数时，纯粹依靠内部一个名为 `workInProgressHook` 的全局指针来按顺序取出对应的状态。如果使用了 `if` 语句包裹 Hook，会导致指针错位，取出错误的状态，这也是 `eslint-plugin-react-hooks` 强制要求 Hook 不能放在条件语句中的根本原因。'
-[//]: #
-[//]: # '### 6.2 Vue 3 Reactivity：基于 Proxy 的透明劫持'
-[//]: #
-[//]: # 'Vue 3 抛弃了 `Object.defineProperty`，利用 ES6 的 `Proxy` 和 `Reflect` 构建了彻底的响应式依赖图。'
-[//]: #
-[//]: # '```javascript'
-[//]: # '// 响应式追踪的灵魂枢纽：targetMap'
-[//]: # '// targetMap 是一个 WeakMap，避免内存泄漏'
-[//]: # '// 结构：WeakMap<Target, Map<Key, Set<ReactiveEffect>>>'
-[//]: # 'const targetMap = new WeakMap()'
-[//]: #
-[//]: # 'function track(target, key) {'
-[//]: # '  if (activeEffect) {'
-[//]: # '    let depsMap = targetMap.get(target)'
-[//]: # '    let dep = depsMap.get(key)'
-[//]: # '    dep.add(activeEffect) // 将当前执行的渲染函数或 watcher 闭包记录到这个具体属性的订阅者列表中'
-[//]: # '  }'
-[//]: # '}'
-[//]: #
-[//]: # '```'
-[//]: #
-[//]: # '当开发者修改 `reactive` 代理对象的属性时，`set` 夹层被触发，直接从 `targetMap` 中提取出所有依赖于该属性的 `ReactiveEffect` 并放入微任务队列执行。这种机制完全摆脱了调用顺序的限制，允许在条件分支、循环甚至普通 JS 文件中自由使用响应式 API。'
-[//]: #
-[//]: # '---'
-[//]: #
-[//]: # '## 7. 副作用时序与浏览器渲染管道集成'
-[//]: #
-[//]: # 'React 和 Vue 对于副作用的处理时机都深刻绑定了浏览器的渲染流水线（DOM 树构建 → 样式计算 → 布局 Layout → 绘制 Paint）。'
-[//]: #
-[//]: # '### 7.1 React 的三段式副作用'
-[//]: #
-[//]: # '在 Commit 阶段，React 区分了三种 Effect 的触发时机：'
-[//]: #
-[//]: # '1. **`useInsertionEffect`**：DOM 突变发生之前。主要用于 CSS-in-JS 库注入样式标签，防止出现样式重算闪烁。'
-[//]: # '2. **`useLayoutEffect`**：DOM 突变刚完成，但**浏览器尚未开始绘制（Paint）**。它是同步执行的，会阻塞浏览器的渲染流水线。非常适合在此处读取 DOM 的最新尺寸（如 `getBoundingClientRect`）并同步触发重渲染，用户不会看到闪烁。'
-[//]: # '3. **`useEffect`**：浏览器已经完成绘制，将控制权交回给 JS 引擎后。它是异步执行的，不会阻塞屏幕更新，用于网络请求、非视觉关键的事件绑定等。'
-[//]: #
-[//]: # '### 7.2 Vue 3 的 flush 机制'
-[//]: #
-[//]: # 'Vue 3 不强调阻塞渲染，而是通过微任务中队列的前后排序来控制执行时机：'
-[//]: #
-[//]: # "1. **`watch(..., { flush: 'pre' })`**（默认）：组件 DOM 树更新前执行，此时可以访问到旧的 DOM 状态。"
-[//]: # "2. **`onUpdated` / `watch(..., { flush: 'post' })**`：在当前组件及所有子孙组件完成 patch 更新之后执行。"
-[//]: # '   若要达到类似 React `useLayoutEffect` 确保不闪屏的同步重绘效果，在 Vue 3 中通常需要在 `onUpdated` 中或紧跟响应式变更后使用 `nextTick()`，但其本质依然是在微任务阶段，在浏览器 Paint 前完成。'
-[//]: #
-[//]: # '---'
-[//]: #
-[//]: # '## 8. 编译器优化：两条不同的进化路线'
-[//]: #
-[//]: # '### 8.1 React Compiler (React Forget)'
-[//]: #
-[//]: # 'React 的哲学是“UI 是状态的函数”，但在复杂的函数体内部，不可避免地会发生冗余的重新计算和子组件不必要的重渲染。传统的解法是让开发者手动编写铺天盖地的 `useMemo` 和 `useCallback`。'
-[//]: # 'React Compiler 通过 AST 抽象语法树分析和 SSA（静态单赋值）算法，在编译期自动推断依赖关系，将函数体改写为自动缓存的版本：'
-[//]: #
-[//]: # '```javascript'
-[//]: # '// 编译后的自动注入逻辑 (简化思路)'
-[//]: # 'function Component(props) {'
-[//]: # '  const $ = useRenderCache(2);'
-[//]: # '  '
-[//]: # '  let computedValue;'
-[//]: # '  if ($[0] !== props.data) {'
-[//]: # '    computedValue = heavyComputation(props.data);'
-[//]: # '    $[0] = props.data;'
-[//]: # '    $[1] = computedValue;'
-[//]: # '  } else {'
-[//]: # '    computedValue = $[1]; // 完全命中缓存，不执行运算'
-[//]: # '  }'
-[//]: # '}'
-[//]: #
-[//]: # '```'
-[//]: #
-[//]: # '**特点**：没有改变 React 的运行时架构，只是使得 Fiber 在 `beginWork` 时更容易触发 bailout（因为传入子组件的 props 引用被自动固化了）。'
-[//]: #
-[//]: # '### 8.2 Vue 3 Compiler 与 Block Tree'
-[//]: #
-[//]: # 'Vue 的模板由于语法受限，天生具备良好的静态可分析性。Vue 3 编译器不仅进行了静态提升（Hoisting），还引入了革命性的 **Block Tree 架构**。'
-[//]: #
-[//]: # '由于 `v-if` 和 `v-for` 会改变 DOM 树的结构，Vue 将这些指令所在的节点以及根节点视作一个 "Block"。在生成 VNode 树时，Block 节点除了拥有 `children` 数组外，还会多维护一个 `dynamicChildren` 数组，这个数组会**扁平化地收集该 Block 内部所有层级的动态节点**。'
-[//]: #
-[//]: # '这使得 Vue 3 在运行时进行 `patch` 时，能够完全忽略数千个静态的包装节点（如无状态的 `<div>`），直接对 `dynamicChildren` 数组进行一维线性遍历比对。UI 的更新复杂度从与**模板整体大小相关**，降维成了与**动态节点数量相关**。'
-[//]: #
-[//]: # '---'
-[//]: #
-[//]: # '## 9. 渲染器与宿主平台：跨端抽象的实现'
-[//]: #
-[//]: # '两套框架都将核心算法（协调、响应式）与宿主平台的底层 API（DOM 操作）进行了优雅的分离。'
-[//]: #
-[//]: # '### 9.1 React 的 Host Config'
-[//]: #
-[//]: # 'React 独立维护了 `react-reconciler` 包。无论是 `react-dom`（Web）、`react-native`（移动端）还是 `react-three-fiber`（WebGL），都是通过实现一个名为 `HostConfig` 的巨大配置对象来驱动。'
-[//]: # '它要求宿主提供极其细致的 API，如 `createInstance`、`appendChild`、甚至用于并发渲染的 `shouldYieldToHost`（判断时间片是否耗尽的宿主感知函数）。'
-[//]: #
-[//]: # '### 9.2 Vue 3 的 Renderer Options'
-[//]: #
-[//]: # 'Vue 3 导出了 `@vue/runtime-core`，通过 `createRenderer(options)` 函数接受特定的 `nodeOps` 和 `patchProp`。'
-[//]: # '相比于 React，Vue 的自定义渲染器 API 更加精简。比如针对微信小程序或 Canvas 的渲染器，开发者只需实现极少量的增删改查函数即可。同时，Vue 提供了更为原生的跨容器处理节点 `<Teleport>`（对应 React 的 `Portal`），其内部逻辑也是完全在核心渲染器中抽象，对宿主透明。'
-[//]: #
-[//]: # '---'
-[//]: #
-[//]: # '## 10. 设计取舍总结：工程复杂度的守恒定律'
-[//]: #
-[//]: # '软件工程的复杂度不会消失，只会被转移。'
-[//]: #
-[//]: # '* **React 选择了“保持开发者心智模型的纯粹（函数即组件），将极其庞大的工程复杂度沉淀在框架底层”。**'
-[//]: # '  为了应对纯函数无差别重渲染的开销，React 被迫发明了 Fiber，发明了 Lane，发明了 Scheduler，并最终造出了 React Compiler。React 更适合重型复杂业务流、极高频次的交互应用，以及高度动态化的架构设计。'
-[//]: # '* **Vue 3 选择了“通过智能的编译器和代理机制（Proxy），将复杂度分散在编译时阶段和响应式依赖收集中”。**'
-[//]: # '  利用明确的模板边界，Vue 把 VDOM 变成了智能地图；利用 Proxy，它让开发者免于思考依赖数组。Vue 在绝大多数中后台系统、数据大屏和标准 C 端应用中，提供了更低的心智负担和几乎不需要手动调优就能获得的高效更新性能。'
-
 ## 4. 协调与更新
 
 ### 4.1 React：Fiber 协调流程
@@ -924,236 +743,189 @@ React 的时间切片和 Vue 的微任务批处理解决的是不同问题：前
 
 ## 6. Hooks、响应式系统与 Context
 
-### 6.1 React Hooks
+### 6.1 React：Hooks
 
-React Hooks 按调用顺序存储在 Fiber 的 `memoizedState` 单向链表上：
+React 用「调用顺序」而非「名字」定位状态：所有 Hooks 都挂在 Fiber 的 `memoizedState` 单向链表上，渲染时逐个取用。
 
-```javascript
-// 组件渲染时，Hooks 在 Fiber 上的存储结构
-fiber.memoizedState = {
-  // 第一个 useState(0)
-  memoizedState: 0, // 当前值
+:::code-group
+
+```javascript [Hooks 链表结构]
+// fiber.memoizedState 是一条单向链表，每个节点是一个 Hook
+{
+  memoizedState: 0,      // 当前值：useState 存值，useEffect 存 { create, destroy, deps }
+  baseState: 0,          // 本次更新的基准状态（重放 update 的起点）
   queue: {
-    // dispatch 的更新队列（环形链表）
-    pending: {
-      action: 1, // setState 传入的值或函数
-      lane: SyncLane,
-      next: {
-        /* 下一个 update 或自身 */
-      },
-    },
+    pending: { action, lane, next },  // 待处理 update 的环形链表
+    dispatch: setCount,               // 对应的 setState 引用
   },
-  next: {
-    // 链表指针 → 第二个 Hook
-    // useEffect
-    memoizedState: {
-      create: () => {
-        /* 副作用函数 */
-      },
-      destroy: () => {
-        /* cleanup 函数 */
-      },
-      deps: [count], // 依赖数组
-      next: null, // 同组件多个 useEffect 组成链表
-    },
-    next: {
-      // useRef
-      memoizedState: { current: divElement },
-      next: null,
-    },
+  next: {                 // → 下一个 Hook，按组件内书写顺序串联
+    memoizedState: { create, destroy, deps },  // 第二个 Hook：useEffect
+    next: { memoizedState: { current: el }, next: null },  // 第三个：useRef
   },
 }
 ```
 
-```javascript
-// useState 的简化实现——展示为什么 Hook 调用顺序不能变
-let workInProgressHook = null // 当前正在处理的 Hook 节点
-
+```javascript [useState 核心实现]
+// mount 时追加节点，update 时按顺序取节点——没有 key 可查，跳过即错位
 function mountState(initialState) {
-  const hook = {
-    memoizedState:
-      typeof initialState === 'function' ? initialState() : initialState,
-    queue: { pending: null },
-    next: null,
-  }
-  // 将 hook 追加到当前 Fiber 的 Hooks 链表尾部
-  if (workInProgressHook === null) {
-    // 第一个 Hook → 设置链表头
-    currentlyRenderingFiber.memoizedState = workInProgressHook = hook
-  } else {
-    // 后续 Hook → 追加到尾部
-    workInProgressHook = workInProgressHook.next = hook
-  }
-
-  const dispatch = action => {
-    // 将 update 加入环形链表 → 标记 fiber lanes → scheduleUpdateOnFiber
-    enqueueRenderPhaseUpdate(hook.queue, action)
-    scheduleUpdateOnFiber(root, currentlyRenderingFiber, SyncLane)
-  }
-
+  const hook = mountWorkInProgressHook() // 链表尾追加新 hook
+  hook.memoizedState =
+    typeof initialState === 'function' ? initialState() : initialState
+  hook.queue = { pending: null, dispatch: null }
+  const dispatch = dispatchSetState.bind(
+    null,
+    currentlyRenderingFiber,
+    hook.queue,
+  )
+  hook.queue.dispatch = dispatch
   return [hook.memoizedState, dispatch]
 }
 
 function updateState() {
-  // 按链表顺序取下一个 Hook——跳过就是错位
-  const hook = workInProgressHook
-  workInProgressHook = hook.next
-
-  // 执行更新队列中的所有 action，计算最新状态
-  const queue = hook.queue
-  if (queue.pending !== null) {
-    let newState = hook.memoizedState
-    let update = queue.pending.next // 从最早的 update 开始
+  const hook = updateWorkInProgressHook() // 按顺序取下一个 hook
+  const update = hook.queue.pending?.next // 环形链表中最早的 update
+  if (update != null) {
+    let newState = hook.baseState // 从基准状态重放所有 update
     do {
       newState =
         typeof update.action === 'function'
           ? update.action(newState)
           : update.action
       update = update.next
-    } while (update !== queue.pending.next)
+    } while (update !== hook.queue.pending.next)
     hook.memoizedState = newState
   }
-
-  return [hook.memoizedState, dispatch]
+  return [hook.memoizedState, hook.queue.dispatch]
 }
 ```
 
-### 6.2 Vue 3 响应式系统
+:::
 
-Vue 3 的响应式基于 `Proxy` + `ReactiveEffect` 依赖追踪：
+**顺序为什么不能变**：链表里没有任何 key/名字，每次 `useState`/`useMemo`/`useEffect` 都按「取当前节点 → 指针前进一格」定位。某次渲染一旦跳过某个 Hook，后续所有 Hook 整体错位——`count` 可能读到 `useEffect` 的 `deps`，`setState` 的更新可能写进 `useRef`，这正是 `eslint-plugin-react-hooks` 必须静态检查调用顺序的原因。`useState` 本质是 `useReducer` 的特例（reducer 固定为「覆盖或应用 updater」），两者共享同一套 `updateQueue` 环形链表。
 
-```javascript
-// reactive 的简化实现
+### 6.2 Vue 3：响应式系统
+
+Vue 3 的响应式基于 `Proxy` + `ReactiveEffect`：`get` 时收集依赖、`set` 时触发更新，形成一张精确的依赖图——数据变了只通知依赖它的 Effect，而非整棵树重跑。
+
+:::code-group
+
+```javascript [reactive 与 ref]
+// reactive：Proxy 拦截 get/set，深层对象惰性递归代理
 function reactive(target) {
   return new Proxy(target, {
     get(target, key, receiver) {
-      const value = Reflect.get(target, key, receiver)
-      // 依赖收集：将当前活跃的 Effect 记录为该 key 的依赖
-      track(target, key)
-      // 深度响应式：如果值是对象，递归包装
-      return isObject(value) ? reactive(value) : value
+      track(target, key) // 读即收集依赖
+      const res = Reflect.get(target, key, receiver)
+      return isObject(res)
+        ? reactive(res) // 深层对象再次代理（惰性）
+        : res
     },
-
     set(target, key, value, receiver) {
-      const oldValue = target[key]
-      const result = Reflect.set(target, key, value, receiver)
-      // 触发更新：通知所有依赖该 key 的 Effect 重新执行
-      if (oldValue !== value) {
-        trigger(target, key)
-      }
-      return result
+      const old = target[key]
+      const res = Reflect.set(target, key, value, receiver)
+      if (old !== value) trigger(target, key) // 值变了才触发
+      return res
     },
   })
 }
 
-// ref 的简化实现
+// ref：把任意值包成对象，用 .value 的 get/set 做 track/trigger
 function ref(value) {
-  const r = {
+  return {
     _value: toReactive(value), // 对象走 reactive，原始值直接存
     get value() {
-      track(r, 'value') // 读取时收集依赖
+      track(this, 'value')
       return this._value
     },
-    set value(newValue) {
-      if (newValue !== this._value) {
-        this._value = toReactive(newValue)
-        trigger(r, 'value') // 写入时触发更新
+    set value(v) {
+      if (v !== this._value) {
+        this._value = toReactive(v)
+        trigger(this, 'value')
       }
     },
   }
-  return r
 }
 ```
 
-```javascript
-// track 和 trigger — 响应式系统的连接枢纽（简化）
-const targetMap = new WeakMap() // target → Map<key, Set<Effect>>
+```javascript [track 与 trigger]
+// 依赖图连接枢纽：target → key → 依赖它的 effect 集合
+const targetMap = new WeakMap()
 
 function track(target, key) {
-  if (!activeEffect) return // 不在 Effect 上下文中，不收集
-
+  if (!activeEffect) return // 不在 effect 内，不收集
   let depsMap = targetMap.get(target)
   if (!depsMap) targetMap.set(target, (depsMap = new Map()))
-
   let dep = depsMap.get(key)
   if (!dep) depsMap.set(key, (dep = new Set()))
-
-  dep.add(activeEffect) // 记录：这个 Effect 依赖 target.key
-  activeEffect.deps.push(dep) // Effect 也反向记录自己订阅了哪些 dep（用于 cleanup）
+  dep.add(activeEffect) // 记录「谁依赖了这个 key」
+  activeEffect.deps.push(dep) // effect 反向记录，便于 stop/cleanup
 }
 
 function trigger(target, key) {
-  const depsMap = targetMap.get(target)
-  if (!depsMap) return
-
-  const dep = depsMap.get(key)
-  if (dep) {
-    // 通知所有依赖该 key 的 Effect
-    dep.forEach(effect => {
-      if (effect.scheduler) {
-        effect.scheduler() // 组件更新走 scheduler → queueJob
-      } else {
-        effect.run() // computed 直接执行
-      }
-    })
-  }
+  const dep = targetMap.get(target)?.get(key)
+  dep?.forEach(effect => (effect.scheduler ? effect.scheduler() : effect.run())) // 组件更新走 scheduler（微任务），computed 直接 run
 }
 ```
 
-### 6.3 computed vs useMemo
+:::
 
-```javascript
-// Vue 3 computed 的简化实现——惰性求值 + 缓存
+**ref 与 reactive**：`reactive` 只接受对象、靠 Proxy 拦截；`ref` 可包任意值、靠 `.value` 的 getter/setter。解构 `reactive` 会丢失响应性（需 `toRefs`），解构 `ref` 无碍；二者底层共享同一套 `track`/`trigger`。
+
+### 6.3 computed 与 useMemo
+
+:::code-group
+
+```javascript [Vue computed]
+// 惰性求值 + dirty 缓存：没人读就不算，依赖变了只标脏
 function computed(getter) {
-  let dirty = true // 是否需要重新计算
-  let cachedValue // 缓存的计算结果
-
-  const effect = new ReactiveEffect(getter, () => {
-    // scheduler：依赖变化时只标记 dirty，不立即计算
-    dirty = true
-  })
-
+  let dirty = true
+  let value
+  const effect = new ReactiveEffect(getter, () => (dirty = true))
   return {
     get value() {
       if (dirty) {
-        cachedValue = effect.run() // 重新计算
+        value = effect.run()
         dirty = false
-      }
-      track(this, 'value') // 让外层 Effect 收集到 computed 的依赖
-      return cachedValue
+      } // 首次或失效才重算
+      track(this, 'value') // 让外层 effect 也能收集到 computed 的依赖
+      return value
     },
   }
 }
 ```
 
-```javascript
-// React useMemo — 依赖数组变化后重新计算
-// 实现非常直接：比较 deps，不同则重新执行
+```javascript [React useMemo]
+// 渲染期同步执行：比较 deps，变了才重算
 function useMemo(nextCreate, deps) {
-  const hook = workInProgressHook
-  workInProgressHook = hook.next
-
-  const prevDeps = hook.memoizedState?.[1]
-  // 浅比较依赖数组
-  if (
-    prevDeps !== null &&
-    deps.every((dep, i) => Object.is(dep, prevDeps[i]))
-  ) {
-    return hook.memoizedState[0] // 缓存命中，返回旧值
-  }
-
-  const nextValue = nextCreate()
-  hook.memoizedState = [nextValue, deps]
-  return nextValue
+  const hook = updateWorkInProgressHook()
+  const prev = hook.memoizedState
+  if (prev !== null && deps.every((d, i) => Object.is(d, prev[1][i])))
+    return prev[0] // 缓存命中
+  const value = nextCreate()
+  hook.memoizedState = [value, deps]
+  return value
 }
 ```
 
-**关键区别**：`computed` 通过响应式依赖自动决定何时重新计算，无需手动声明依赖数组；`useMemo` 需要开发者显式列出所有依赖。
+:::
 
-### 6.4 Context vs provide/inject
+两者都缓存派生值，但失效与求值机制截然不同：
 
-```jsx
-// React Context：Provider value 变化 → 标记所有 Consumer Fiber
+| 维度         | Vue 3 `computed`                                     | React `useMemo`                                 |
+| ------------ | ---------------------------------------------------- | ----------------------------------------------- |
+| **依赖声明** | 无需手动声明，读取响应式数据时自动 `track` 收集依赖  | 必须显式传入 `deps` 数组，靠 `Object.is` 浅比较 |
+| **求值时机** | 惰性求值——被读取时才计算，依赖变化只标记 `dirty`     | 渲染时同步求值——每次渲染都检查 deps 并重算      |
+| **失效粒度** | 精确到具体响应式属性，只依赖真正读过的属性           | 整个 deps 数组任一引用变化即整体失效            |
+| **失效传播** | 天然级联，computed 可依赖 computed，外层感知内层失效 | 依赖链需手动在 deps 中逐层声明                  |
+
+**关键区别**：`computed` 把「何时重算」交给响应式依赖图——自动、惰性、按属性粒度失效；`useMemo` 把「何时重算」交给开发者手写的 `deps` 数组——手动、同步、按数组整体失效。前者省心但仅限响应式数据，后者通用但更易写出遗漏依赖或过度失效的代码。
+
+### 6.4 Context 与 provide/inject
+
+:::code-group
+
+```jsx [React Context]
+// Provider value 变化 → 所有读取该 Context 的 Consumer 重渲染（广播式）
 const ThemeContext = createContext('light')
 
 function App() {
@@ -1165,28 +937,54 @@ function App() {
   )
 }
 
-// Consumer 通过 useContext 读取，内部走 beginWork 中的 propagateContextChange
 function Toolbar() {
-  const theme = useContext(ThemeContext) // Provider value 变化 → 该组件重新渲染
+  const theme = useContext(ThemeContext) // 订阅：value 变则重渲染
   return <div className={theme}>...</div>
 }
 ```
 
-```vue
-<!-- Vue 3 provide/inject -->
+```vue [Vue provide/inject]
+<!-- provide/inject 只沿 parent 链查找一次，响应式靠被注入的 ref 本身 -->
 <script setup>
 import { provide, ref } from 'vue'
 
 const theme = ref('light')
-provide('theme', theme) // 注入响应式 ref
-// 注意：provide 普通值不具备响应性——修改不会触发子组件更新
+provide('theme', theme) // 注入 ref 本身（注入普通值不响应）
 </script>
 
 <!-- 子组件 -->
 <script setup>
 import { inject } from 'vue'
-const theme = inject('theme') // 获得 ref 对象本身，读取 .value 触发依赖收集
+const theme = inject('theme') // 读 theme.value 才触发依赖收集
 </script>
+```
+
+:::
+
+> **深度洞察：Context 的“广播式”重渲染 vs provide/inject 的“查找式”注入**
+> React 的 Context 一旦 `Provider.value` 变化，所有读取该 Context 的 Consumer 都会重新渲染（除非用 `memo` 或 React Compiler 拦截），哪怕它们只用到了其中一小部分字段。这是“自上而下广播”的代价，也是拆分多个 Context、用 `useMemo` 稳定 value 的动机。
+> Vue 的 `provide`/`inject` 本身只是沿着组件实例的 `parent` 链向上查找一次，**不建立订阅关系**。真正让跨层数据响应化的是被注入的 `ref`/`reactive` 对象——子组件读取 `inject('theme').value` 时，依赖被收集到子组件自己的 Effect 上，因此更新时只有真正用到的子组件重新执行，粒度天然更细。
+
+| 维度           | React Context                                           | Vue 3 provide/inject                                    |
+| -------------- | ------------------------------------------------------- | ------------------------------------------------------- |
+| **订阅关系**   | `useContext` 读取即订阅，Provider value 变化触发重渲染  | `provide`/`inject` 本身不订阅，只沿 `parent` 链查找一次 |
+| **更新传播**   | 广播式：所有 Consumer 重渲染（除非 memo/Compiler 拦截） | 点对点：注入 ref/reactive 后，仅真正读取的组件更新      |
+| **响应性来源** | Provider 的 `value` 本身，由 React 渲染机制驱动         | 被注入对象自身的响应式，由 Proxy/ref 依赖收集驱动       |
+| **粒度**       | 粗：按 Context 维度，只用到一小部分字段也会整体重渲染   | 细：按具体响应式属性，读哪个属性就订阅哪个              |
+| **默认值**     | `createContext(defaultValue)` 提供                      | `inject(key, defaultValue)` 提供                        |
+
+### 6.5 对比总结
+
+```markdown
+React（顺序链表 + 显式声明）：
+状态挂在 Fiber.memoizedState 单向链表，靠调用顺序定位
+派生值靠 useMemo 手动声明 deps，跨层靠 Context 自上而下广播
+更新是"整棵树重新执行函数"，再由 memo / Compiler 尽量跳过
+
+Vue 3（依赖图 + 自动推导）：
+状态是 Proxy/ref 包裹的响应式对象，靠 track/trigger 建立精确依赖
+派生值靠 computed 自动失效 + 惰性缓存，跨层靠 provide/inject 沿链查找
+更新是"数据 → 依赖它的 Effect"点对点触发，天然最小化
 ```
 
 | 维度         | React                                               | Vue 3                                                           |
@@ -1197,15 +995,17 @@ const theme = inject('theme') // 获得 ref 对象本身，读取 .value 触发�
 | **跨层注入** | Context Provider / `useContext`                     | `provide()` / `inject()`                                        |
 | **注入更新** | Provider value 改变后标记订阅该 Context 的 Consumer | 注入普通值本身不响应；注入 `ref` 或响应式对象时沿响应式依赖更新 |
 
-`useMemo` 与 `computed`、Context 与 provide/inject 的用途存在交集，但触发模型和生命周期并不相同，不能视为完全等价的 API。
+**对比总结**：`useMemo` 与 `computed`、Context 与 provide/inject 的用途确有交集，但触发模型与生命周期并不相同——React 依赖显式声明（deps 数组、Context 订阅）配合整树重算 + 跳过优化；Vue 依赖自动依赖图与点对点失效。二者不能简单视为等价 API，迁移时需重新审视数据流如何组织、依赖如何建立。
 
 ## 7. 副作用时序
 
-### 7.1 React 副作用时序
+### 7.1 React：副作用时序
 
 React 强制区分可重试的 Render 与不可中断的 Commit。不同 Effect 位于不同的提交时机：
 
-```markdown
+:::code-group
+
+```markdown [执行顺序]
 执行顺序（单次渲染）：
 Render 阶段（可中断、可重试，纯计算，无副作用）
 → 计算新 Fiber 树
@@ -1221,42 +1021,38 @@ Commit 阶段（不可中断，宿主操作提交）
 useEffect setup 执行（异步，不阻塞绘制）
 ```
 
-```jsx
-// React 副作用时序验证示例
+```jsx [时序验证示例]
 function TimingDemo() {
   const ref = useRef(null)
 
-  useInsertionEffect(() => {
-    console.log('1. useInsertionEffect — DOM 更新后，绘制前')
-  })
-
+  useInsertionEffect(() =>
+    console.log('1. useInsertionEffect — DOM 更新后，绘制前'),
+  )
   useLayoutEffect(() => {
     console.log('2. useLayoutEffect — 可同步读取/修改 DOM，阻塞绘制')
-    const rect = ref.current.getBoundingClientRect()
-    console.log('   DOM 尺寸:', rect.width)
+    console.log('   DOM 尺寸:', ref.current.getBoundingClientRect().width)
   })
-
-  useEffect(() => {
-    console.log('4. useEffect — 浏览器绘制之后，异步执行')
-  })
+  useEffect(() => console.log('4. useEffect — 浏览器绘制之后，异步执行'))
 
   console.log('0. Render — 纯计算，无副作用')
   return <div ref={ref}>Hello</div>
 }
-
 // 控制台输出：
 // 0. Render — 纯计算，无副作用
 // 1. useInsertionEffect — DOM 更新后，绘制前
-// 2. useLayoutEffect — 可同步读取/修改 DOM，阻塞绘制
-//       （浏览器在此时绘制）
+// 2. useLayoutEffect — 可同步读取/修改 DOM，阻塞绘制（浏览器在此时绘制）
 // 4. useEffect — 浏览器绘制之后，异步执行
 ```
 
-### 7.2 Vue 3 副作用时序
+:::
+
+### 7.2 Vue 3：副作用时序
 
 Vue 3 使用组件更新 Effect、生命周期钩子以及 `watch` / `watchEffect` 表达副作用，并通过 `flush` 控制回调相对组件更新的时机：
 
-```markdown
+:::code-group
+
+```markdown [执行顺序]
 执行顺序（单次组件更新）：
 组件 Effect 触发（响应式数据变化）
 ↓
@@ -1269,53 +1065,30 @@ post flush callbacks 执行（flush: 'post' 的 watcher + onUpdated）
 浏览器绘制
 ```
 
-```vue
+```vue [watch flush 示例]
 <script setup>
-import { ref, watch, watchEffect, onUpdated, nextTick } from 'vue'
-
+import { ref, watch, onUpdated, nextTick } from 'vue'
 const count = ref(0)
 
-// flush: 'pre'（默认）— DOM 更新前执行
-watch(count, (newVal, oldVal) => {
-  console.log('1. watch(pre) — DOM 更新前，可访问旧 DOM 状态')
+watch(count, () => console.log('1. watch(pre) — DOM 更新前，可访问旧 DOM')) // 默认 pre
+watch(count, () => console.log('3. watch(post) — DOM 更新后，可访问新 DOM'), {
+  flush: 'post',
 })
+watch(count, () => console.log('0. watch(sync) — 立即同步执行'), {
+  flush: 'sync',
+}) // 慎用
+onUpdated(() => console.log('2. onUpdated — 组件 DOM 更新后执行'))
 
-// flush: 'post' — DOM 更新后执行
-watch(
-  count,
-  (newVal, oldVal) => {
-    console.log('3. watch(post) — DOM 已更新，可访问新 DOM 状态')
-  },
-  { flush: 'post' },
-)
-
-onUpdated(() => {
-  console.log('2. onUpdated — 组件 DOM 更新后执行')
-})
-
-// flush: 'sync' — 同步执行（每次变更立即触发，慎用）
-watch(
-  count,
-  () => {
-    console.log('0. watch(sync) — 状态变更时立即同步执行')
-  },
-  { flush: 'sync' },
-)
-
-function increment() {
-  count.value++ // 触发以上所有 watch + onUpdated 按 flush 时序执行
-}
-
-// nextTick — 等待 DOM 更新完成
-async function demo() {
-  count.value++
-  await nextTick()
-  console.log('DOM 已更新完毕')
+async function increment() {
+  count.value++ // 依次触发 sync → pre → render/patch → post
+  await nextTick() // post 全部完成，DOM 已更新
 }
 </script>
 ```
 
-### 7.3 时序对比
+:::
+
+### 7.3 对比总结
 
 ```markdown
 React（有 useLayoutEffect 时）:
@@ -1341,21 +1114,22 @@ Vue 3:
 | **副作用清理**             | Effect 返回 cleanup                         | `onCleanup` / `onWatcherCleanup`、生命周期钩子                          |
 | **开发期重复检查**         | Strict Mode 会额外执行 Effect setup/cleanup | 开发模式采用不同的告警与检查策略                                        |
 
+**对比总结**：React 用「Effect 类型」划分执行窗口（`useInsertionEffect` → `useLayoutEffect` → `useEffect`），由 Fiber 的 Commit 阶段统一编排，副作用相对 DOM 提交的位置非常精确；Vue 用「flush 时机」划分（`pre` → 组件 render → `post`），本质是把回调挂到同一个微任务刷新队列的不同阶段。二者都解决了“**副作用应在 DOM 更新的哪个点执行**”的问题，区别在于：React 提供了绘制前同步执行的能力（`useLayoutEffect`），而 Vue 默认把这类需求交给 `onUpdated` + `nextTick` 处理。
+
 ## 8. 编译器优化
 
 ### 8.1 React Compiler
 
 React Compiler 面向 JavaScript 和 JSX 进行数据流与依赖分析，自动插入记忆化缓存：
 
-```jsx
-// 编译前：开发者手写组件的常见非优化模式
+:::code-group
+
+```jsx [编译前]
+// 开发者手写组件的常见非优化模式：每次渲染都重算 + 重建引用
 function ProductList({ products, category }) {
   const filtered = products.filter(p => p.category === category)
   const sorted = [...filtered].sort((a, b) => b.price - a.price)
-
-  const handleAdd = id => {
-    addToCart(id)
-  }
+  const handleAdd = id => addToCart(id)
 
   return (
     <ul>
@@ -1372,13 +1146,13 @@ function ProductList({ products, category }) {
 }
 ```
 
-```jsx
-// React Compiler 编译后：自动注入缓存和稳定引用
+```jsx [编译后]
+// React Compiler 自动注入缓存槽与稳定引用
 function ProductList(t0) {
   const { products, category } = t0
   const $ = _c(5) // 分配 5 个缓存槽
 
-  // 自动 useMemo：filtered 仅在 products 或 category 变化时重新计算
+  // 自动 useMemo：filtered 仅在 products/category 变化时重算
   let filtered
   if ($[0] !== products || $[1] !== category) {
     filtered = products.filter(p => p.category === category)
@@ -1389,7 +1163,7 @@ function ProductList(t0) {
     filtered = $[2]
   }
 
-  // 自动 useMemo：sorted 仅在 filtered 变化时重新计算
+  // 自动 useMemo：sorted 仅在 filtered 变化时重算
   let sorted
   if ($[3] !== filtered) {
     sorted = [...filtered].sort((a, b) => b.price - a.price)
@@ -1399,13 +1173,8 @@ function ProductList(t0) {
     sorted = $[4]
   }
 
-  // 自动 useCallback：handleAdd 引用稳定
-  const handleAdd = _cached(0, () => id => {
-    addToCart(id)
-  })
-
-  // 自动提取不变的对象引用
-  const style = _cached(1, () => ({ border: '1px solid #eee' }))
+  const handleAdd = _cached(0, () => id => addToCart(id)) // 稳定回调引用
+  const style = _cached(1, () => ({ border: '1px solid #eee' })) // 提取不变对象
 
   return (
     <ul>
@@ -1422,14 +1191,17 @@ function ProductList(t0) {
 }
 ```
 
+:::
+
 React Compiler 的核心思路是：在编译时分析 JavaScript 的 SSA（Static Single Assignment）和控制流，找出哪些表达式在哪些条件下会重新计算，然后插入记忆化逻辑。它不改变 React 的运行时模型，只帮助运行时更早地 bailout。
 
 ### 8.2 Vue 3 Compiler
 
 Vue 编译器利用模板语法的结构化约束生成带优化提示的渲染函数：
 
-```vue
-<!-- 编译前：标准 Vue 模板 -->
+:::code-group
+
+```vue [编译前模板]
 <template>
   <div class="container">
     <h1 class="title">商品列表</h1>
@@ -1446,15 +1218,12 @@ Vue 编译器利用模板语法的结构化约束生成带优化提示的渲染�
       </li>
     </ul>
 
-    <footer class="static-footer">
-      <p>底部信息</p>
-    </footer>
+    <footer class="static-footer"><p>底部信息</p></footer>
   </div>
 </template>
 ```
 
-```javascript
-// Vue 3 Compiler 编译后的渲染函数（简化且附加注释）
+```javascript [编译后渲染函数]
 import {
   createVNode as _createVNode,
   createBlock as _createBlock,
@@ -1465,7 +1234,7 @@ import {
   renderList as _renderList,
 } from 'vue'
 
-// 静态提升：不变的 VNode 提升到 render 外部，多次渲染复用
+// 静态提升：不变节点只创建一次，跨渲染复用
 const _hoisted_1 = _createVNode(
   'h1',
   { class: 'title' },
@@ -1473,38 +1242,30 @@ const _hoisted_1 = _createVNode(
   -1 /* HOISTED */,
 )
 const _hoisted_2 = _createVNode(
-  'p',
-  { class: 'hint-static' },
-  '共 100 件商品',
-  -1,
-)
-const _hoisted_3 = _createVNode('p', null, '底部信息', -1)
-const _hoisted_4 = _createVNode(
   'footer',
   { class: 'static-footer' },
-  [_hoisted_3],
+  [_createVNode('p', null, '底部信息', -1)],
   -1,
 )
 
-export function render(_ctx, _cache) {
+export function render(_ctx) {
   return (
     _openBlock(),
     _createBlock('div', { class: 'container' }, [
       _hoisted_1, // 静态节点：永远不参与 diff
-      _hoisted_2, // 静态节点
-
-      // 动态列表：通过 renderList 创建，每个 li 标记为动态
+      // 动态列表：renderList 生成，每个 li 带 patchFlag
       (_openBlock(true),
       _createBlock(
         _Fragment,
         null,
-        _renderList(_ctx.list, item => {
-          return (
+        _renderList(
+          _ctx.list,
+          item => (
             _openBlock(),
             _createBlock(
               'li',
               {
-                key: item.id, // key 用于列表 diff
+                key: item.id, // 列表 diff 依据
                 class: _normalizeClass({ active: item.isActive }), // 2 /* CLASS */
               },
               [
@@ -1522,26 +1283,48 @@ export function render(_ctx, _cache) {
                 ),
               ],
             )
-          )
-        }),
-        256 /* UNKEYED_FRAGMENT */, // Fragment 的 patchFlag
+          ),
+        ),
+        256 /* UNKEYED_FRAGMENT */,
       )),
-
-      _hoisted_4, // 静态节点
+      _hoisted_2, // 静态节点
     ])
   )
 }
 ```
 
-```markdown
-编译优化项详解：
+```markdown [编译优化项]
 -1 /_ HOISTED _/ → 静态提升：VNode 只创建 1 次，永远复用
-1 /_ TEXT _/ → PatchFlags.TEXT：只需比较文本内容
-2 /_ CLASS _/ → PatchFlags.CLASS：只需比较 class
-patch 时只检查标志位，跳过所有其他属性的比较
+1 /_ TEXT _/ → PatchFlags.TEXT：只比较文本内容
+2 /_ CLASS _/ → PatchFlags.CLASS：只比较 class
+patch 时只检查标志位，跳过其它属性的比较
+
 \_openBlock / \_createBlock → Block 树：
-\_createBlock 内部将动态子节点收集到 dynamicChildren 数组
-更新时直接遍历该数组做靶向 diff，跳过静态节点
+动态子节点收集进 dynamicChildren，更新时只遍历该数组做靶向 diff，跳过静态节点
+```
+
+:::
+
+除静态提升、PatchFlags、Block Tree 外，Vue 编译器还利用模板的结构化信息做进一步优化：
+
+- **v-once**：标记只渲染一次的子树，后续更新直接复用缓存的 VNode 与 DOM，跳过整个 diff。
+- **v-memo**：给定依赖数组，只有依赖变化才更新该元素及其子树（模板级的 `memo`）。
+- **缓存事件处理函数（cacheHandlers）**：内联 `@click="..."` 会被缓存，避免每次渲染生成新函数引发子组件多余更新。
+- **静态 props 提升**：完全静态的 props 对象被提升复用，避免重复创建。
+- **class/style 静态前缀拆分**：把静态前缀与动态后缀拆开，运行时只处理动态部分。
+
+### 8.3 对比总结
+
+```markdown
+React Compiler（通用 JavaScript 上的记忆化）：
+输入是任意 JS/JSX，靠 SSA 与控制流分析推断"何时需要重算"
+产物是插入 \_c 缓存槽的组件函数，不改变 React 运行时模型
+收益是自动 useMemo/useCallback/稳定引用 → 更早 bailout，减少不必要更新
+
+Vue 3 Compiler（结构化模板上的静态分析）：
+输入是约束严格的 Template，靠 AST 转换判断"何处动态"
+产物是携带 PatchFlags/Block Tree/静态提升的渲染函数
+收益是运行时靶向 diff → 跳过静态节点，DOM 操作最小化
 ```
 
 | 维度           | React Compiler                              | Vue 3 Compiler                              |
@@ -1550,6 +1333,8 @@ patch 时只检查标志位，跳过所有其他属性的比较
 | **主要目标**   | 自动记忆化，减少重复计算和不必要的子树更新  | 生成渲染函数并标记动态部分，减少 patch 范围 |
 | **分析难点**   | JavaScript 控制流、别名、可变性和副作用分析 | 模板 AST 转换、指令语义和静态/动态节点分析  |
 | **运行时配合** | 缓存槽与 Fiber Bailout                      | PatchFlags、Block Tree 与渲染器 patch       |
+
+**对比总结**：两者都把「本由开发者手动完成的事」下沉到编译器，但方向相反——React Compiler 在**图灵完备的 JavaScript** 上做数据流分析，目标是让运行时“**少算、少更新**”；Vue Compiler 在**结构化模板**上做静态分析，目标是让运行时“**精准、跳过**”。因此 React Compiler 更难但更通用，Vue Compiler 更简单但受限于模板 DSL 的表达能力。二者最终都服务于同一个目标：让运行时用更少的判断到达「必须变化」的最小 DOM 操作集合。
 
 ## 9. 渲染器与宿主平台
 
