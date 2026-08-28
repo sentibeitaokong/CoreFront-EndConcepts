@@ -1009,13 +1009,18 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                             ],
                                         },
                                         {
-                                            text: 'React 与 Vue 3 对比',
+                                            text: 'React与Vue3核心对比',
                                             collapsed: true,
                                             items: [
-                                                {
-                                                    text: '核心机制对比',
-                                                    link: '/frameworks/react/advanced/comparisons/reactVueCoreMechanisms'
-                                                },
+                                                { text: '核心架构与设计取舍', link: '/frameworks/react/advanced/comparisons/overview' },
+                                                { text: 'Element 与 VNode', link: '/frameworks/react/advanced/comparisons/elementAndVNode' },
+                                                { text: 'Fiber 与 Vue 运行时', link: '/frameworks/react/advanced/comparisons/fiberAndRuntime' },
+                                                { text: '协调与更新', link: '/frameworks/react/advanced/comparisons/reconciliation' },
+                                                { text: '调度与批处理', link: '/frameworks/react/advanced/comparisons/scheduling' },
+                                                { text: '更新机制', link: '/frameworks/react/advanced/comparisons/updateMechanism' },
+                                                { text: '副作用时序', link: '/frameworks/react/advanced/comparisons/sideEffects' },
+                                                { text: '编译器优化', link: '/frameworks/react/advanced/comparisons/compiler' },
+                                                { text: '渲染器与宿主', link: '/frameworks/react/advanced/comparisons/renderer' },
                                             ]
                                         },
                                     ]
