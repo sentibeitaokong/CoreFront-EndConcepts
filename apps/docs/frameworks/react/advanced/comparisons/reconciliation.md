@@ -2,7 +2,7 @@
 
 React 和 Vue 3 都通过比较「**新旧 UI 描述**」来找出最小 DOM 变更，但两者的算法起点截然不同：React 受 **Fiber 单向链表** 的拓扑约束，只能**单向扫描**，用 `lastPlacedIndex` 贪心检测移动；Vue 3 的 VNode 是**数组**，天然支持**双端扫描与随机访问**，用最长递增子序列（LIS）把移动次数压到最优。此外，React 的协调发生在 **Render 阶段**（只记账、不碰 DOM），而 Vue 3 的 patch 则**边比较边操作 DOM**。
 
-## 1. React：Fiber 协调流程
+## 1. [React：Fiber 协调流程](../core-design/reconciliation.md)
 
 ### 1.1 更新入队：从 setState 到调度
 
@@ -234,7 +234,7 @@ function mapRemainingChildren(currentFirstChild) {
 }
 ```
 
-## 2. Vue 3：响应式驱动的 patch 流程
+## 2. [Vue 3：响应式驱动的 patch 流程](../../../vue/advanced/source-code/patchKeyedChildren.md)
 
 ### 2.1 组件渲染 Effect 与更新入队
 

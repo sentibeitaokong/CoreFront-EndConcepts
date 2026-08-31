@@ -2,7 +2,7 @@
 
 前端框架的运行时机制决定了其性能上限与开发体验。React 通过 **Fiber 架构** 将渲染过程打造成可中断、可优先级的协程模型，而 Vue 3 则依靠 **响应式系统 + 模块化运行时** 实现精确的依赖追踪与批量更新。
 
-## 1. React Fiber：用户态协程与全功能节点
+## 1. [React Fiber：用户态协程与全功能节点](../core-design/fiberArchitecture.md)
 
 ### 1.1 Fiber 节点的多重身份
 
@@ -109,7 +109,7 @@ function commitRoot(root) {
 }
 ```
 
-## 2. Vue 3 运行时：分层协作的响应式引擎
+## 2. [Vue 3 运行时：分层协作的响应式引擎](../../../vue/advanced/core-design/componentEssence.md)
 
 Vue 3 并未采用类似 Fiber 的单一大结构，而是将职责拆分到多个独立模块，各司其职，协同完成高效的 UI 更新。
 

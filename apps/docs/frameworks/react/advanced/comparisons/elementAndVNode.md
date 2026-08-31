@@ -2,7 +2,7 @@
 
 在 React 与 Vue 的运行时体系中，`Element` 与 `VNode` 是描述 UI 结构的最小单元。它们就像是建筑蓝图，精确地记录了“**页面应该长什么样**”。然而，两大框架在蓝图的构造方式、携带的信息以及设计目标上却有着截然不同的考量。React 追求极致的轻量与不可变性，而 Vue 则选择在编译阶段就将优化情报“**刻**”入节点。
 
-## 1. React Element：纯粹的、不可变的 UI 快照
+## 1. [React Element：纯粹的、不可变的 UI 快照](../core-design/elementAndFiber.md)
 
 ### 1.1 定义与本质
 
@@ -44,7 +44,7 @@ import { jsx as _jsx } from 'react/jsx-runtime'
 
 React 之所以使用 `Symbol.for('react.element')` 作为标识符，是为了**防止 JSON 注入攻击**。如果服务器返回一个伪造的 JSON 对象（如 `{ type: 'script', props: { src: 'evil.js' } }`），由于 JSON 无法序列化 `Symbol` 类型，该对象将缺少合法的 `$$typeof` 属性。React 在渲染时会检查该字段，一旦发现缺失或类型不匹配，就会拒绝渲染，从而在根源上阻止了恶意脚本的执行。
 
-## 2. Vue 3 VNode：携带编译优化信息的智能节点
+## 2. [Vue 3 VNode：携带编译优化信息的智能节点](../../../vue/advanced/source-code/renderer/vnode.md)
 
 Vue 3 的 VNode 同样是一个描述 UI 的 JavaScript 对象，但它不仅承载了结构信息，还**嵌入了编译器生成的优化提示**，它允许编译器（Compiler）在编译模板时，提前将静态信息、动态特征等预判逻辑“**刻**”在 VNode 上，指导运行时的 Diff 算法。
 

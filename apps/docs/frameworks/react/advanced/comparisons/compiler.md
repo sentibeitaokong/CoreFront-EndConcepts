@@ -2,7 +2,7 @@
 
 编译优化正在把「性能优化」这件曾经只能靠开发者手工完成的事，下沉到构建阶段。React Compiler 与 Vue 3 编译器由此走向两条相反的路：React Compiler 在**图灵完备的 JavaScript** 上做数据流分析、自动注入记忆化缓存，让运行时「**少算、少更新**」；Vue 3 编译器在**结构化模板**上做静态分析、标记动态提升静态，让运行时「**精准、跳过**」。前者更难但更通用，后者更简单但受限于模板 DSL。
 
-## 1. React Compiler
+## 1. [React Compiler](../core-design/compiler.md)
 
 React Compiler 面向 JavaScript 和 JSX 进行数据流与依赖分析，自动插入记忆化缓存：
 
@@ -88,7 +88,7 @@ React Compiler 的核心思路是：在编译时分析 JavaScript 的 SSA（Stat
 > [!NOTE]
 > React Compiler 面向任意 JavaScript，因此只能做**保守**的优化：一旦遇到难以静态证明的依赖或副作用（如 `eval`、`delete`、对共享可变状态的读写），它会跳过该处的记忆化，优先保证正确性。
 
-## 2. Vue 3 Compiler
+## 2. [Vue 3 Compiler](../../../vue/advanced/core-design/compiler.md)
 
 Vue 编译器利用模板语法的结构化约束生成带优化提示的渲染函数：
 

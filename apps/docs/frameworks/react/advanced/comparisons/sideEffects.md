@@ -2,7 +2,7 @@
 
 副作用（Side Effects）是前端框架连接“**状态驱动 UI**”与“**外部世界**”的桥梁——无论是操作 DOM、发起网络请求、订阅外部数据源，还是操作计时器。然而，副作用在组件生命周期中的**执行时机**直接决定了应用的性能、一致性和用户体验。React 和 Vue 3 分别基于各自的渲染机制，设计了不同的副作用调度模型。
 
-## 1. React 的副作用时序模型
+## 1. [React 的副作用时序模型](../core-design/effects.md)
 
 React 将渲染过程严格划分为**Render 阶段（可中断、可重试）** 和 **Commit 阶段（不可中断、同步执行）**。副作用（Effect）的执行完全锚定在 Commit 阶段的不同子阶段，从而提供了精确的控制。
 
@@ -45,7 +45,7 @@ useEffect(() => {
 }, [])
 ```
 
-## 2. Vue 3 的副作用时序模型
+## 2. [Vue 3 的副作用时序模型](../../../vue/advanced/core-design/slideEffect.md)
 
 Vue 3 的响应式系统基于 `ReactiveEffect` 和调度器（Scheduler）。组件自身的渲染也是一个 Effect，而 `watch`/`watchEffect` 则是独立于渲染流程的副作用，其执行时机通过 `flush` 选项控制。
 

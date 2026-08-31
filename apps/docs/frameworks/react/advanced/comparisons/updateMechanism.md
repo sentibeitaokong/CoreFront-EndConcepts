@@ -4,7 +4,7 @@
 
 ## 1. 状态存储与定位机制
 
-### 1.1 React：Hooks 顺序链表
+### 1.1 [React：Hooks 顺序链表](../core-design/hooksInternals.md)
 
 React 用**调用顺序**而非名称来定位状态：所有 Hooks 都挂在 Fiber 节点的 `memoizedState` 单向链表上，每次渲染时按顺序逐个取用。
 
@@ -64,7 +64,7 @@ function updateState() {
 
 **顺序为何不能变**：链表里没有任何 key/名字，每次 `useState`/`useMemo`/`useEffect` 都按"**取当前节点 → 指针前进一格**"定位。某次渲染一旦跳过某个 Hook，后续所有 Hook 整体错位——`count` 可能读到 `useEffect` 的 `deps`，`setState` 的更新可能写进 `useRef`。这正是 `eslint-plugin-react-hooks` 必须静态检查调用顺序的原因。
 
-### 1.2 Vue 3：响应式对象代理
+### 1.2 [Vue 3：响应式对象代理](../../../vue/advanced/source-code/reactivity-core/reactive.md)
 
 Vue 3 的状态存储在 **响应式对象** 中，通过 `Proxy` 拦截属性的读写操作，不依赖任何调用顺序。
 
@@ -134,7 +134,7 @@ function trigger(target, key) {
 
 ## 2. 更新触发与依赖追踪
 
-### 2.1 React：自上而下的"执行-跳过"模型
+### 2.1 [React：自上而下的"执行-跳过"模型](../core-design/updateBatching.md)
 
 React 的更新从触发更新的组件开始，**默认整棵子树重新执行函数**，然后通过 `memo`、`useMemo`、`useCallback` 或 React Compiler 来跳过不必要的执行。
 
@@ -164,7 +164,7 @@ function beginWork(current, workInProgress) {
 - 每个组件是否重新执行，取决于 `memo`/`shouldComponentUpdate` 的判断
 - 依赖追踪靠的是"**执行时读到了什么**"——但 React 不会自动记录，需要开发者用 `useMemo`/`useCallback` 显式声明依赖数组
 
-### 2.2 Vue 3：自下而上的"依赖-触发"模型
+### 2.2 [Vue 3：自下而上的"依赖-触发"模型](../../../vue/advanced/source-code/reactivityUpdate.md)
 
 Vue 3 的更新基于 **依赖图（Dependency Graph）**：数据变化时，只有直接或间接依赖了该数据的 Effect 才会被触发。
 
@@ -198,7 +198,7 @@ function trigger(target, key) {
 
 ## 3. 派生状态与缓存机制
 
-### 3.1 React `useMemo`：渲染期同步求值
+### 3.1 [React `useMemo`：渲染期同步求值](../core-design/hooksInternals.md)
 
 ```javascript
 function useMemo(nextCreate, deps) {
@@ -217,7 +217,7 @@ function useMemo(nextCreate, deps) {
 - **依赖声明**：必须显式传入 `deps` 数组，靠 `Object.is` 浅比较
 - **失效粒度**：整个 deps 数组任一引用变化即整体失效
 
-### 3.2 Vue `computed`：惰性求值 + 自动失效
+### 3.2 [Vue `computed`：惰性求值 + 自动失效](../../../vue/advanced/source-code/reactivity-core/computed.md)
 
 ```javascript
 function computed(getter) {
@@ -252,7 +252,7 @@ function computed(getter) {
 
 ## 4. 跨层数据传递
 
-### 4.1 React Context：广播式订阅
+### 4.1 [React Context：广播式订阅](../core-design/contextPropagation.md)
 
 ```jsx
 // Provider value 变化 → 所有读取该 Context 的 Consumer 重渲染（广播式）
@@ -279,7 +279,7 @@ function Toolbar() {
 - 广播式传播：除非用 `memo`/React Compiler 拦截，否则所有 Consumer 都会执行
 - 粗粒度：只用到一小部分字段也会整体重渲染
 
-### 4.2 Vue `provide/inject`：查找式注入
+### 4.2 [Vue `provide/inject`：查找式注入](../../../vue/advanced/source-code/provideAndInject.md)
 
 ```vue
 <!-- provide/inject 只沿 parent 链查找一次，响应式靠被注入的 ref 本身 -->

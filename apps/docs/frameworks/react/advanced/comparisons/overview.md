@@ -2,7 +2,7 @@
 
 React 和 Vue 3 的终极目标高度一致：将声明式的 UI 描述高效地映射到宿主平台（如 DOM）。然而，两者在实现这一目标时，采取了截然不同的架构哲学：**React 走向了“重度运行时调度”的拉（Pull）模型，而 Vue 3 走向了“编译期优化 + 细粒度响应式”的推（Push）模型。**
 
-## 1. React 架构
+## 1. [React 架构](../core-design/rendererArchitecture.md)
 
 ### 1.1 从 JSX 到 React Element：不可变 UI 快照
 
@@ -40,7 +40,7 @@ React 在内存中维护两棵 Fiber 树：**current**（当前屏幕显示）�
 - **Render 阶段**：在 workInProgress 树上执行 `beginWork` / `completeWork`，构建新的 Fiber 树并收集副作用，这一阶段可中断。
 - **Commit 阶段**：一旦 workInProgress 树完成，进入不可中断的提交阶段，依次执行 DOM 突变（mutation）、布局副作用（useLayoutEffect）等，最后将 `root.current` 指向 workInProgress，完成切换。
 
-## 2. Vue 3 架构
+## 2. [Vue 3 架构](../../../vue/advanced/core-design/compileAndRun.md)
 
 ### 2.1 模板编译与 VNode 优化
 
