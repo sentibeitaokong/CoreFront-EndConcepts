@@ -8,24 +8,17 @@ React 将渲染过程严格划分为**Render 阶段（可中断、可重试）**
 
 ### 1.1 渲染流水线概览
 
-```markdown
-触发更新（setState/useReducer/context 变化）
-↓
-Render 阶段（beginWork → completeWork）
+React 的副作用执行严格锚定在 Commit 阶段的三个子阶段，`useEffect` 则被推迟到绘制之后：
 
-- 构建/更新 Fiber 树
-- 纯计算，无 DOM 操作，可被更高优先级中断
-- 标记副作用 flags（Placement、Update、Deletion、Passive 等）
-  ↓
-  Commit 阶段（同步执行，不可中断）
-  ├── 1. Before Mutation：执行 getSnapshotBeforeUpdate（类组件）
-  ├── 2. Mutation：应用 DOM 变更（增删改）
-  │ └── 执行 useInsertionEffect 的 setup（仅限此阶段）
-  ├── 3. Layout：执行 useLayoutEffect 的 setup（同步阻塞）
-  ↓
-  浏览器绘制（Paint）
-  ↓
-  调度执行 useEffect 的 setup（异步，不阻塞绘制）
+```mermaid
+flowchart TD
+    A["触发更新<br/>setState / useReducer / context 变化"] --> B["Render 阶段<br/>beginWork → completeWork<br/>纯计算 · 可中断 · 标记 flags"]
+    B --> C["Commit 阶段（同步不可中断）"]
+    C --> C1["① Before Mutation<br/>getSnapshotBeforeUpdate"]
+    C1 --> C2["② Mutation<br/>应用 DOM 变更<br/>useInsertionEffect setup"]
+    C2 --> C3["③ Layout<br/>useLayoutEffect setup（同步阻塞）"]
+    C3 --> D["浏览器绘制（Paint）"]
+    D --> E["useEffect setup<br/>异步 · 不阻塞绘制"]
 ```
 
 ### 1.2 Effect解析
@@ -58,23 +51,16 @@ Vue 3 的响应式系统基于 `ReactiveEffect` 和调度器（Scheduler）。�
 
 ### 2.1 组件更新流水线
 
-```markdown
-响应式数据变化（如 count.value++）
-↓
-触发组件更新的 Effect（scheduler 将更新任务入队）
-↓
-（微任务队列）flush 队列处理开始
-├── 1. flush: 'pre' 队列（默认）
-│ - 执行所有 `watch`（默认 flush: 'pre'）的回调
-│ - 执行 `watchEffect`（默认）的回调
-│ - 此时 DOM 尚未更新，可访问旧 DOM，但不应修改数据（避免循环）
-├── 2. 组件渲染：执行 render 函数 → 生成新的 VNode 树 → patch（更新 DOM）
-├── 3. flush: 'post' 队列
-│ - 执行 flush: 'post' 的 `watch` 回调
-│ - 执行 `onUpdated` 钩子（所有子组件更新后）
-│ - 此时 DOM 已更新，可安全访问新 DOM
-↓
-浏览器绘制
+Vue 3 的副作用在同一个微任务内按 `flush` 阶段依次执行，组件渲染夹在 `pre` 与 `post` 之间：
+
+```mermaid
+flowchart TD
+    A["响应式数据变化<br/>（如 count.value++）"] --> B["组件 Effect 的 scheduler<br/>将更新任务入队"]
+    B --> C["微任务队列 · flush 处理开始"]
+    C --> C1["① flush: 'pre'（默认）<br/>watch / watchEffect 回调<br/>DOM 未更新 · 可读旧 DOM"]
+    C1 --> C2["② 组件渲染<br/>render → 新 VNode → patch 更新 DOM"]
+    C2 --> C3["③ flush: 'post'<br/>watch(post) / onUpdated<br/>DOM 已更新"]
+    C3 --> D["浏览器绘制"]
 ```
 
 ### 2.2 `flush` 选项详解
@@ -136,11 +122,21 @@ Vue 的 `watch` 和 `watchEffect` 也支持清理回调：
 - **`watchEffect`**：通过 `onCleanup` 注册，在下次 effect 执行前或组件卸载时调用。
 
 ```javascript
+// watchEffect：onCleanup 作为回调的第一个参数
 watchEffect(onCleanup => {
   const timer = setInterval(() => console.log('tick'), 1000)
-  onCleanup(() => clearInterval(timer))
+  onCleanup(() => clearInterval(timer)) // 下次执行前 / 卸载时调用
+})
+
+// watch：onCleanup 作为回调的第三个参数，常用于竞态处理
+watch(keyword, async (newVal, oldVal, onCleanup) => {
+  const controller = new AbortController()
+  onCleanup(() => controller.abort()) // 取消上一次未完成的请求
+  await fetch(`/api?q=${newVal}`, { signal: controller.signal })
 })
 ```
+
+清理时机与 React 对照：二者都遵循「**先清理、再执行**」的次序——React 的 cleanup 在下次 setup 前 / 卸载时执行，Vue 的 `onCleanup` 在下次回调前 / watch 停止时执行。
 
 ## 3. 核心差异对比
 
@@ -153,5 +149,9 @@ watchEffect(onCleanup => {
 | **依赖管理**           | 显式传入依赖数组（或依赖变化检测）                             | 自动追踪响应式依赖（watchEffect）或显式指定源（watch）                            |
 | **严格模式**           | 开发环境额外执行 setup+cleanup 循环                            | 无类似机制，但存在提示（如 `watch` 重复执行）                                     |
 
-- **React** 通过“**Effect 类型 + Commit 阶段划分**”提供强时序保障，尤其适合需要精确控制绘制前后行为的复杂场景，代价是开发者需要理解不同 Effect 的区别。
-- **Vue 3** 通过“**flush 队列 + 微任务调度**”提供足够的灵活性，将副作用纳入统一的响应式任务调度系统，学习曲线更平缓，且自动依赖追踪减少了手动管理负担。
+**关键差异要点：**
+
+- **控制模型不同**：React 靠「Effect 类型 + Commit 子阶段」区分执行时机（`useLayoutEffect` 同步阻塞、`useEffect` 异步）；Vue 靠「`flush` 选项 + 微任务队列」区分（`pre` / `post` / `sync`）。
+- **副作用与渲染的关系不同**：React 的 Render 是纯函数，Effect 是渲染之外的独立机制（Commit 后执行）；Vue 的组件渲染本身就是 Effect，`watch` 是并行挂在响应式依赖图上的另一个 Effect。
+- **清理注册方式不同**：React 通过返回 cleanup 函数注册；Vue 通过 `onCleanup` 回调注册（`watchEffect` 第一参数 / `watch` 第三参数）。
+- **依赖管理不同**：React 需显式声明依赖数组；Vue 自动追踪（`watchEffect`）或显式指定源（`watch`）。

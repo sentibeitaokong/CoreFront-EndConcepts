@@ -21,6 +21,7 @@ function Welcome({ name }) {
 
 // 编译后的自动 runtime (React 17+)
 import { jsx as _jsx } from 'react/jsx-runtime'
+
 // Element 结构
 {
   $$typeof: Symbol.for('react.element'), // 核心安全机制
