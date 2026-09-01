@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>inheritance</title>
+    <style>
+        /* 2.1 inherit (强制继承) */
+        /* 子元素也会有 1px solid red 的边框 */
+        .parent {
+          border: 1px solid red;
+        }
+        .child {
+          border: inherit;
+        }
+
+        /* 2.2 initial (重置为默认值) */
+        /* 变回黑色 (浏览器默认值) */
+        .parent {
+          color: red;
+        }
+        .child {
+          color: initial;
+        }
+
+        /* 3. 常见误区与注意点 */
+        a {
+          color: inherit;
+        }
+    </style>
+</head>
+<body>
+    <h3>2.1 inherit：子元素继承父元素边框</h3>
+    <div class="parent" style="padding:10px;">父元素（红色边框）
+      <div class="child" style="padding:8px;margin-top:6px;">子元素 border:inherit → 也有红色边框</div>
+    </div>
+
+    <h3>2.2 initial：子元素颜色重置为浏览器默认</h3>
+    <div class="parent" style="padding:10px;">父元素（红色文字）
+      <div class="child">子元素 color:initial → 变回黑色</div>
+    </div>
+
+    <h3>3. 误区：a 标签 color:inherit</h3>
+    <div style="color:green;padding:10px;">父级绿色 <a href="#">链接默认蓝色 → color:inherit 后继承绿色</a></div>
+</body>
+</html>

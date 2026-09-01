@@ -1,25 +1,25 @@
 // 新的是 text
 // 老的是 text
-import { ref, h } from '../../dist/XunBei-Vue.esm.js'
+import { ref, h } from "../../dist/XunBei-Vue.esm.js";
 
-const prevChildren = 'oldChild'
-const nextChildren = 'newChild'
+const prevChildren = "oldChild";
+const nextChildren = "newChild";
 
 export default {
-  name: 'TextToText',
+  name: "TextToText",
   setup() {
-    const isChange = ref(false)
-    window.isChange = isChange
+    const isChange = ref(false);
+    window.isChange = isChange;
 
     return {
       isChange,
-    }
+    };
   },
   render() {
-    const self = this
+    const self = this;
 
     return self.isChange === true
-      ? h('div', {}, nextChildren)
-      : h('div', {}, prevChildren)
+      ? h("div", {}, nextChildren)
+      : h("div", {}, prevChildren);
   },
-}
+};

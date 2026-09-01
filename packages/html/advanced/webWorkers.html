@@ -16,7 +16,7 @@
             if (worker) {
                 worker.terminate(); // 终止旧的 worker
             }
-            worker = new Worker('../js/worker.js'); // 创建一个新的 Web Worker
+            worker = new Worker('../../js/advanced/worker.js'); // 创建一个新的 Web Worker
 
             worker.onmessage = function(event) {
                 document.getElementById('result').textContent = event.data;

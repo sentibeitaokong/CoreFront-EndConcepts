@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>multimediaElements</title>
+    <style>
+        /* 5.6 object-fit 是什么？ */
+        img,
+        video {
+          width: 100%;
+          height: 100%;
+          object-fit: cover; /* 类似 background-size: cover */
+        }
+    </style>
+</head>
+<body>
+    <!-- 1.1 基础语法 -->
+    <img src="photo.jpg" alt="风景照" width="300" height="200" />
+
+    <!-- 1.3 响应式图片实战 -->
+    <img
+      src="small.jpg"
+      srcset="small.jpg 500w, medium.jpg 1000w, large.jpg 2000w"
+      sizes="(max-width: 600px) 100vw, 50vw"
+      alt="响应式图片"
+    />
+
+    <!-- 2.1 基础语法 -->
+    <video src="movie.mp4" controls width="100%"></video>
+
+    <!-- 2.3 兼容性写法 (多格式源) -->
+    <video controls poster="cover.jpg">
+      <source src="movie.webm" type="video/webm" />
+      <source src="movie.mp4" type="video/mp4" />
+      <p>您的浏览器不支持 HTML5 视频。</p>
+    </video>
+
+    <!-- 3.1 基础语法 -->
+    <audio src="music.mp3" controls></audio>
+
+    <!-- 4.2 语法 -->
+    <iframe
+      src="https://player.bilibili.com/..."
+      width="600"
+      height="400"
+      frameborder="0"
+      allowfullscreen
+    >
+    </iframe>
+
+    <!-- 5.1 为什么我的 <video autoplay> 不自动播放？ -->
+    <!-- 正确写法 -->
+    <video autoplay muted loop playsinline>...</video>
+
+    <!-- 5.2 视频在 iPhone 上点击播放就自动全屏了？ -->
+    <video playsinline ...></video>
+
+    <!-- 5.5 为什么 GIF 图加载这么慢？ -->
+    <video autoplay loop muted playsinline src="animation.mp4"></video>
+</body>
+</html>

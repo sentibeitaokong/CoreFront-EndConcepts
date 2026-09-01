@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>boxShadow</title>
+    <style>
+        /* 1.1 完整语法 */
+        /* x偏移 y偏移 模糊半径 扩展半径 颜色 (内阴影) */
+        box-shadow: 10px 10px 20px 5px rgba(0, 0, 0, 0.5) inset;
+
+        /* 1.3 常用实战代码 */
+        .card {
+          /* 0偏移，让阴影向四周扩散 */
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 1.3 常用实战代码 */
+        .bottom-only {
+          /* x=0, y=10, blur=10, spread=-5 */
+          box-shadow: 0 10px 10px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 1.3 常用实战代码 */
+        .input-field {
+          box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        /* 1.3 常用实战代码 */
+        .realistic {
+          box-shadow:
+            0 1px 2px rgba(0, 0, 255, 0.6),
+            /* 第一层：紧贴的深色 */ 0 4px 8px rgba(0, 255, 0, 0.7),
+            /* 第二层：中距离 */ 0 8px 16px rgba(255, 0, 0, 0.8); /* 第三层：远距离扩散 */
+        }
+
+        /* 2.1 语法 */
+        /* x偏移 y偏移 模糊半径 颜色 */
+        text-shadow: 2px 2px 4px #000;
+
+        /* 2.2 常见效果 */
+        .neon {
+          color: #fff;
+          /* 多层叠加增加亮度 */
+          text-shadow:
+            0 0 5px #fff,
+            0 0 10px #ff00de,
+            0 0 20px #ff00de;
+        }
+
+        /* 2.2 常见效果 */
+        .emboss {
+          color: #888;
+          background: #eee;
+          /* 下方给白光，看起来像刻进去的 */
+          text-shadow: 0 1px 0 #fff;
+        }
+
+        /* 3. 智能阴影：filter: drop-shadow */
+        /* 给一个红色三角形 加阴影 */
+        .triangle {
+          filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.9));
+          width: 0;
+          height: 0;
+          /* 四个边框都很粗，但内容区是 0 */
+          border-top: 50px solid transparent; /* 上边框透明 */
+          border-right: 50px solid transparent; /* 右边框透明 */
+          border-bottom: 50px solid red; /* 下边框红色 -> 形成向上的三角形 */
+          border-left: 50px solid transparent; /* 左边框透明 */
+        }
+
+        /* 4.3 box-shadow 只能做外阴影吗？ */
+        .rainbow-border {
+          box-shadow:
+            0 0 0 5px red,
+            0 0 0 10px orange,
+            0 0 0 15px yellow;
+          /* 注意：spread 必须是累加的 */
+        }
+
+        /* 4.5 怎么去掉 iOS 按钮自带的阴影？ */
+        button,
+        input {
+          appearance: none; /* 清除系统默认外观 */
+          -webkit-appearance: none;
+          box-shadow: none; /* 显式清除 */
+        }
+    </style>
+</head>
+<body>
+    <h3>1.3 卡片阴影</h3>
+    <div class="card" style="width:120px;height:80px;background:blue;margin:0 0 30px;"></div>
+
+    <h3>1.3 底部阴影</h3>
+    <div class="bottom-only" style="width:120px;height:40px;background:#fff;margin-bottom:30px;"></div>
+
+    <h3>1.3 内阴影（输入框）</h3>
+    <div class="input-field" style="width:160px;height:32px;background:#fff;margin-bottom:30px;"></div>
+
+    <h3>1.3 多层阴影</h3>
+    <div class="realistic" style="width:120px;height:80px;background:#fff;margin-bottom:30px;"></div>
+
+    <h3>2.2 霓虹文字</h3>
+    <div class="neon" style="font-size:28px;background:#fff;padding:10px;display:inline-block;">NEON</div>
+
+    <h3>2.2 浮雕文字</h3>
+    <div class="emboss" style="font-size:28px;padding:10px;display:inline-block;">EMBOSS</div>
+
+    <h3>3. 三角形 drop-shadow</h3>
+    <div class="triangle" style="margin-bottom:20px;"></div>
+
+    <h3>4.3 彩虹边框</h3>
+    <div class="rainbow-border" style="width:80px;height:80px;margin:20px;background:#fff;"></div>
+</body>
+</html>

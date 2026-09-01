@@ -1,15 +1,12 @@
 {
   "name": "xunbei-vue",
   "version": "1.0.0",
-  "private": true,
   "description": "",
   "main": "index.js",
   "directories": {
     "example": "examples"
   },
   "scripts": {
-    "build": "rollup -c ../rollup.config.js",
-    "type-check": "vue-tsc -b ../tsconfig.json --noEmit",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

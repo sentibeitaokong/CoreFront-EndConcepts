@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>html5NewFeatures</title>
+    <style>
+        body { font-family: sans-serif; margin: 16px; }
+        h2 { margin: 24px 0 8px; }
+        iframe { width: 100%; height: 320px; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+<p>HTML5 新特性各示例均为独立完整页面，此处用 iframe 逐项渲染。</p>
+<h2>语义化元素 (Semantic Elements)</h2>
+<iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;HTML5 语义化布局示例&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;!-- 页眉部分，通常包含网站Logo、标题、导航等 --&gt;
+    &lt;header&gt;
+      &lt;h1&gt;我的个人博客&lt;/h1&gt;
+      &lt;nav&gt;
+        &lt;ul&gt;
+          &lt;li&gt;&lt;a href=&quot;/&quot;&gt;首页&lt;/a&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;a href=&quot;/articles&quot;&gt;文章&lt;/a&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;a href=&quot;/about&quot;&gt;关于&lt;/a&gt;&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/nav&gt;
+    &lt;/header&gt;
+
+    &lt;!-- 页面主要内容区域 --&gt;
+    &lt;main&gt;
+      &lt;!-- 一个独立的文章内容 --&gt;
+      &lt;article&gt;
+        &lt;h2&gt;HTML5 新特性解读&lt;/h2&gt;
+        &lt;p&gt;作者：张三，发布日期：2023-10-26&lt;/p&gt;
+        &lt;section&gt;
+          &lt;h3&gt;Canvas API&lt;/h3&gt;
+          &lt;p&gt;Canvas 元素允许通过 JavaScript 绘制图形...&lt;/p&gt;
+        &lt;/section&gt;
+        &lt;section&gt;
+          &lt;h3&gt;语义化标签的好处&lt;/h3&gt;
+          &lt;p&gt;这些标签让网页结构更清晰...&lt;/p&gt;
+        &lt;/section&gt;
+      &lt;/article&gt;
+
+      &lt;!-- 侧边栏内容，与主要内容相关但可独立存在 --&gt;
+      &lt;aside&gt;
+        &lt;h3&gt;相关链接&lt;/h3&gt;
+        &lt;ul&gt;
+          &lt;li&gt;&lt;a href=&quot;#&quot;&gt;WebSockets 介绍&lt;/a&gt;&lt;/li&gt;
+          &lt;li&gt;&lt;a href=&quot;#&quot;&gt;Web Storage 用法&lt;/a&gt;&lt;/li&gt;
+        &lt;/ul&gt;
+      &lt;/aside&gt;
+    &lt;/main&gt;
+
+    &lt;!-- 页脚部分，通常包含版权信息、联系方式等 --&gt;
+    &lt;footer&gt;
+      &lt;p&gt;&amp;copy; 2023 我的博客. All rights reserved.&lt;/p&gt;
+    &lt;/footer&gt;
+  &lt;/body&gt;
+&lt;/html&gt;"></iframe>
+<h2>多媒体元素 (Multimedia Elements)</h2>
+<iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;HTML5 多媒体示例&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h2&gt;视频播放&lt;/h2&gt;
+    &lt;video width=&quot;640&quot; height=&quot;360&quot; controls autoplay muted poster=&quot;poster.jpg&quot;&gt;
+      &lt;!-- 提供多种视频格式以提高兼容性 --&gt;
+      &lt;source src=&quot;video.mp4&quot; type=&quot;video/mp4&quot; /&gt;
+      &lt;source src=&quot;video.webm&quot; type=&quot;video/webm&quot; /&gt;
+      &lt;p&gt;您的浏览器不支持 HTML5 视频。&lt;/p&gt;
+    &lt;/video&gt;
+
+    &lt;h2&gt;音频播放&lt;/h2&gt;
+    &lt;audio controls loop&gt;
+      &lt;source src=&quot;audio.mp3&quot; type=&quot;audio/mpeg&quot; /&gt;
+      &lt;source src=&quot;audio.ogg&quot; type=&quot;audio/ogg&quot; /&gt;
+      &lt;p&gt;您的浏览器不支持 HTML5 音频。&lt;/p&gt;
+    &lt;/audio&gt;
+  &lt;/body&gt;
+&lt;/html&gt;"></iframe>
+<h2>增强的表单特性 (Enhanced Form Features)</h2>
+<iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;HTML5 表单增强示例&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;form action=&quot;/submit&quot; method=&quot;post&quot;&gt;
+      &lt;label for=&quot;email&quot;&gt;邮箱:&lt;/label&gt;
+      &lt;input
+        type=&quot;email&quot;
+        id=&quot;email&quot;
+        name=&quot;email&quot;
+        required
+        placeholder=&quot;请输入邮箱地址&quot;
+        autofocus
+      /&gt;&lt;br /&gt;&lt;br /&gt;
+
+      &lt;label for=&quot;url&quot;&gt;个人网站:&lt;/label&gt;
+      &lt;input
+        type=&quot;url&quot;
+        id=&quot;url&quot;
+        name=&quot;url&quot;
+        placeholder=&quot;请输入您的网址&quot;
+      /&gt;&lt;br /&gt;&lt;br /&gt;
+
+      &lt;label for=&quot;tel&quot;&gt;电话:&lt;/label&gt;
+      &lt;input
+        type=&quot;tel&quot;
+        id=&quot;tel&quot;
+        name=&quot;tel&quot;
+        pattern=&quot;[0-9]{3}-[0-9]{3}-[0-9]{4}&quot;
+        placeholder=&quot;格式: 123-456-7890&quot;
+      /&gt;&lt;br /&gt;&lt;br /&gt;
+
+      &lt;label for=&quot;num&quot;&gt;数量 (1-10):&lt;/label&gt;
+      &lt;input
+        type=&quot;number&quot;
+        id=&quot;num&quot;
+        name=&quot;num&quot;
+        min=&quot;1&quot;
+        max=&quot;10&quot;
+        value=&quot;1&quot;
+      /&gt;&lt;br /&gt;&lt;br /&gt;
+
+      &lt;label for=&quot;date&quot;&gt;选择日期:&lt;/label&gt;
+      &lt;input type=&quot;date&quot; id=&quot;date&quot; name=&quot;date&quot; /&gt;&lt;br /&gt;&lt;br /&gt;
+
+      &lt;label for=&quot;color&quot;&gt;选择颜色:&lt;/label&gt;
+      &lt;input type=&quot;color&quot; id=&quot;color&quot; name=&quot;color&quot; /&gt;&lt;br /&gt;&lt;br /&gt;
+
+      &lt;input type=&quot;submit&quot; value=&quot;提交表单&quot; /&gt;
+      &lt;!-- 不进行验证的提交按钮 --&gt;
+      &lt;input type=&quot;submit&quot; value=&quot;跳过验证提交&quot; formnovalidate /&gt;
+    &lt;/form&gt;
+  &lt;/body&gt;
+&lt;/html&gt;"></iframe>
+<h2>Canvas 和 SVG (Canvas and SVG)</h2>
+<iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;HTML5 Canvas 和 SVG 示例&lt;/title&gt;
+    &lt;style&gt;
+      canvas {
+        border: 1px solid black;
+      }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h2&gt;Canvas 绘图&lt;/h2&gt;
+    &lt;canvas id=&quot;myCanvas&quot; width=&quot;200&quot; height=&quot;100&quot;&gt;&lt;/canvas&gt;
+    &lt;script&gt;
+      const canvas = document.getElementById('myCanvas')
+      const ctx = canvas.getContext('2d')
+      ctx.fillStyle = 'blue'
+      ctx.fillRect(10, 10, 150, 75) // 绘制一个蓝色矩形
+      ctx.font = '20px Arial'
+      ctx.fillStyle = 'white'
+      ctx.fillText('Hello Canvas', 20, 50) // 绘制文本
+    &lt;/script&gt;
+
+    &lt;h2&gt;SVG 图形&lt;/h2&gt;
+    &lt;svg width=&quot;200&quot; height=&quot;100&quot;&gt;
+      &lt;circle
+        cx=&quot;50&quot;
+        cy=&quot;50&quot;
+        r=&quot;40&quot;
+        stroke=&quot;green&quot;
+        stroke-width=&quot;4&quot;
+        fill=&quot;yellow&quot;
+      /&gt;
+      &lt;rect
+        x=&quot;110&quot;
+        y=&quot;10&quot;
+        width=&quot;80&quot;
+        height=&quot;80&quot;
+        stroke=&quot;purple&quot;
+        stroke-width=&quot;3&quot;
+        fill=&quot;orange&quot;
+      /&gt;
+    &lt;/svg&gt;
+  &lt;/body&gt;
+&lt;/html&gt;"></iframe>
+<h2>地理定位 API (Geolocation API)</h2>
+<iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;HTML5 地理定位示例&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h2&gt;您的当前位置&lt;/h2&gt;
+    &lt;p id=&quot;location-display&quot;&gt;正在获取位置信息...&lt;/p&gt;
+    &lt;script&gt;
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          position =&gt; {
+            const lat = position.coords.latitude
+            const lon = position.coords.longitude
+            document.getElementById('location-display').textContent =
+              `纬度: ${lat}, 经度: ${lon}`
+          },
+          error =&gt; {
+            let errorMessage
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                errorMessage = '用户拒绝了位置共享请求。'
+                break
+              case error.POSITION_UNAVAILABLE:
+                errorMessage = '位置信息不可用。'
+                break
+              case error.TIMEOUT:
+                errorMessage = '获取位置信息超时。'
+                break
+              case error.UNKNOWN_ERROR:
+                errorMessage = '未知错误。'
+                break
+            }
+            document.getElementById('location-display').textContent =
+              `错误: ${errorMessage}`
+          },
+        )
+      } else {
+        document.getElementById('location-display').textContent =
+          '您的浏览器不支持地理定位。'
+      }
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;"></iframe>
+<h2>Web 存储 (Web Storage)</h2>
+<iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;HTML5 Web 存储示例&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h2&gt;Web Storage&lt;/h2&gt;
+    &lt;input type=&quot;text&quot; id=&quot;username&quot; placeholder=&quot;请输入您的名字&quot; /&gt;
+    &lt;button onclick=&quot;saveName()&quot;&gt;保存名字 (localStorage)&lt;/button&gt;
+    &lt;button onclick=&quot;loadName()&quot;&gt;加载名字 (localStorage)&lt;/button&gt;
+    &lt;p id=&quot;display-name&quot;&gt;&lt;/p&gt;
+
+    &lt;script&gt;
+      function saveName() {
+        const username = document.getElementById('username').value
+        localStorage.setItem('user_name', username)
+        sessionStorage.setItem('session_data', 'This is session data.')
+        alert('名字已保存到 localStorage！')
+      }
+
+      function loadName() {
+        const storedName = localStorage.getItem('user_name')
+        document.getElementById('display-name').textContent = storedName
+          ? `您好，${storedName}！`
+          : '未找到保存的名字。'
+        console.log('Session Data:', sessionStorage.getItem('session_data'))
+      }
+
+      // 页面加载时尝试加载
+      window.onload = loadName
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;"></iframe>
+<h2>Web Workers (Web Worker)</h2>
+<iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;HTML5 Web Worker 示例&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h2&gt;Web Worker (计算复杂任务)&lt;/h2&gt;
+    &lt;button onclick=&quot;startWorker()&quot;&gt;开始计算 (Worker)&lt;/button&gt;
+    &lt;button onclick=&quot;alert('UI 线程依然响应!')&quot;&gt;点击我 (验证 UI 响应)&lt;/button&gt;
+    &lt;p&gt;计算结果: &lt;span id=&quot;result&quot;&gt;&lt;/span&gt;&lt;/p&gt;
+
+    &lt;script&gt;
+      let worker
+      function startWorker() {
+        if (typeof Worker !== 'undefined') {
+          if (worker) {
+            worker.terminate() // 终止旧的 worker
+          }
+          worker = new Worker('worker.js') // 创建一个新的 Web Worker
+
+          worker.onmessage = function (event) {
+            document.getElementById('result').textContent = event.data
+          }
+
+          worker.onerror = function (error) {
+            console.error('Worker error:', error)
+          }
+
+          worker.postMessage(10000000000) // 发送一个大数字给 worker 计算
+        } else {
+          document.getElementById('result').textContent =
+            '您的浏览器不支持 Web Workers。'
+        }
+      }
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;"></iframe>
+<h2>Web Workers (Web Worker)</h2>
+<iframe srcdoc="
+:::
+
+## WebSockets (WebSockets)
+
+**特性概述:** 提供在单个 TCP 连接上进行全双工（双向）通信的通道，实现客户端和服务器之间的实时通信，非常适合聊天应用、实时数据仪表盘。
+
+**新 API:** `WebSocket` 构造函数。
+
+```html
+&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;HTML5 WebSocket 示例&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h2&gt;WebSocket 实时聊天&lt;/h2&gt;
+    &lt;div
+      id=&quot;messages&quot;
+      style=&quot;border: 1px solid #ccc; height: 200px; overflow-y: scroll; padding: 10px;&quot;
+    &gt;&lt;/div&gt;
+    &lt;input type=&quot;text&quot; id=&quot;messageInput&quot; placeholder=&quot;输入消息&quot; /&gt;
+    &lt;button onclick=&quot;sendMessage()&quot;&gt;发送&lt;/button&gt;
+
+    &lt;script&gt;
+      let ws
+      const messagesDiv = document.getElementById('messages')
+      const messageInput = document.getElementById('messageInput')
+
+      function connectWebSocket() {
+        // 请替换为您的 WebSocket 服务器地址
+        // 例如：const ws = new WebSocket('ws://localhost:3000');
+        ws = new WebSocket('wss://echo.websocket.org') // 使用公共测试服务器
+
+        ws.onopen = function () {
+          messagesDiv.innerHTML += '&lt;p&gt;&lt;strong&gt;连接已建立。&lt;/strong&gt;&lt;/p&gt;'
+        }
+
+        ws.onmessage = function (event) {
+          messagesDiv.innerHTML += `&lt;p&gt;&lt;strong&gt;接收:&lt;/strong&gt; ${event.data}&lt;/p&gt;`
+          messagesDiv.scrollTop = messagesDiv.scrollHeight // 滚动到底部
+        }
+
+        ws.onclose = function () {
+          messagesDiv.innerHTML += '&lt;p&gt;&lt;strong&gt;连接已关闭。&lt;/strong&gt;&lt;/p&gt;'
+        }
+
+        ws.onerror = function (error) {
+          messagesDiv.innerHTML += `&lt;p style=&quot;color: red;&quot;&gt;&lt;strong&gt;错误:&lt;/strong&gt; ${error.message}&lt;/p&gt;`
+        }
+      }
+
+      function sendMessage() {
+        const message = messageInput.value
+        if (message &amp;&amp; ws &amp;&amp; ws.readyState === WebSocket.OPEN) {
+          ws.send(message)
+          messagesDiv.innerHTML += `&lt;p&gt;&lt;strong&gt;发送:&lt;/strong&gt; ${message}&lt;/p&gt;`
+          messageInput.value = ''
+          messagesDiv.scrollTop = messagesDiv.scrollHeight
+        } else if (ws.readyState !== WebSocket.OPEN) {
+          alert('WebSocket 连接未打开，请稍候或重试。')
+        }
+      }
+
+      // 页面加载时连接 WebSocket
+      window.onload = connectWebSocket
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;"></iframe>
+<h2>History API (历史记录 API)</h2>
+<iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;HTML5 History API 示例&lt;/title&gt;
+    &lt;style&gt;
+      #content {
+        border: 1px solid #ccc;
+        padding: 20px;
+        min-height: 100px;
+      }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h2&gt;History API&lt;/h2&gt;
+    &lt;button onclick=&quot;changePage('page1', 'Page One Title', '/page1')&quot;&gt;
+      加载 Page 1
+    &lt;/button&gt;
+    &lt;button onclick=&quot;changePage('page2', 'Page Two Title', '/page2')&quot;&gt;
+      加载 Page 2
+    &lt;/button&gt;
+    &lt;div id=&quot;content&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+      function loadContent(pageName) {
+        document.getElementById('content').textContent =
+          `这是 ${pageName} 的内容。`
+      }
+
+      function changePage(pageName, title, url) {
+        loadContent(pageName)
+        // ⭐ 使用 pushState 修改 URL 和浏览器历史记录，但不重新加载页面
+        history.pushState({ page: pageName }, title, url)
+        document.title = title // 改变页面标题
+      }
+
+      // 监听浏览器历史记录变化（例如点击前进/后退按钮）
+      window.addEventListener('popstate', function (event) {
+        if (event.state &amp;&amp; event.state.page) {
+          loadContent(event.state.page)
+          document.title = event.state.title || 'HTML5 History API 示例'
+        } else {
+          // 处理初始加载或没有 state 的情况
+          loadContent('主页')
+          document.title = 'HTML5 History API 示例'
+        }
+      })
+
+      // 初始加载页面内容
+      loadContent('主页')
+      history.replaceState({ page: '主页' }, 'HTML5 History API 示例', '/') // 设置初始状态
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;"></iframe>
+<h2>Drag and Drop API (拖放 API)</h2>
+<iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;HTML5 Drag and Drop 示例&lt;/title&gt;
+    &lt;style&gt;
+      #draggable {
+        width: 100px;
+        height: 100px;
+        background-color: #f00;
+        color: white;
+        text-align: center;
+        line-height: 100px;
+        cursor: grab;
+        margin-bottom: 20px;
+      }
+      #dropzone {
+        width: 200px;
+        height: 150px;
+        border: 2px dashed #00f;
+        text-align: center;
+        line-height: 150px;
+        background-color: #e0e0ff;
+      }
+    &lt;/style&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h2&gt;拖放示例&lt;/h2&gt;
+    &lt;div id=&quot;draggable&quot; draggable=&quot;true&quot;&gt;拖我!&lt;/div&gt;
+    &lt;div id=&quot;dropzone&quot;&gt;放到这里&lt;/div&gt;
+
+    &lt;script&gt;
+      const draggable = document.getElementById('draggable')
+      const dropzone = document.getElementById('dropzone')
+
+      // 1. 设置可拖动元素
+      draggable.addEventListener('dragstart', event =&gt; {
+        event.dataTransfer.setData('text/plain', event.target.id) // 存储数据
+        event.dataTransfer.effectAllowed = 'move' // 允许的拖放效果
+        console.log('拖动开始')
+      })
+
+      // 2. 设置放置区
+      dropzone.addEventListener('dragover', event =&gt; {
+        event.preventDefault() // 阻止默认行为（允许放置）
+        event.dataTransfer.dropEffect = 'move' // 放置时显示移动图标
+        dropzone.style.backgroundColor = '#c0c0ff' // 放置区高亮
+        console.log('拖动经过')
+      })
+
+      dropzone.addEventListener('dragleave', event =&gt; {
+        dropzone.style.backgroundColor = '#e0e0ff' // 恢复背景色
+        console.log('拖动离开')
+      })
+
+      dropzone.addEventListener('drop', event =&gt; {
+        event.preventDefault() // 阻止默认行为（例如文件打开）
+        const data = event.dataTransfer.getData('text/plain') // 获取数据
+        const draggedElement = document.getElementById(data)
+        if (draggedElement) {
+          dropzone.appendChild(draggedElement) // 将元素添加到放置区
+        }
+        dropzone.style.backgroundColor = '#e0e0ff' // 恢复背景色
+        console.log('放置完成')
+      })
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;"></iframe>
+<h2>自定义数据属性 (data-\* attributes)</h2>
+<iframe srcdoc="&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh-CN&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;HTML5 data-* 属性示例&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;h2&gt;自定义数据属性&lt;/h2&gt;
+    &lt;div
+      id=&quot;product-card&quot;
+      data-product-id=&quot;12345&quot;
+      data-category=&quot;electronics&quot;
+      data-price=&quot;99.99&quot;
+    &gt;
+      &lt;h3&gt;智能手表&lt;/h3&gt;
+      &lt;p&gt;型号: Watch-Pro-X&lt;/p&gt;
+    &lt;/div&gt;
+    &lt;button onclick=&quot;getProductInfo()&quot;&gt;获取产品信息&lt;/button&gt;
+    &lt;p id=&quot;product-info&quot;&gt;&lt;/p&gt;
+
+    &lt;script&gt;
+      function getProductInfo() {
+        const productCard = document.getElementById('product-card')
+        const productId = productCard.dataset.productId // 注意这里是 camelCase
+        const category = productCard.dataset.category
+        const price = productCard.dataset.price
+
+        document.getElementById('product-info').textContent =
+          `产品ID: ${productId}, 分类: ${category}, 价格: $${price}`
+      }
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;"></iframe>
+</body>
+</html>

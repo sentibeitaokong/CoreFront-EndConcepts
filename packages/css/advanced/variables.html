@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>variables</title>
+    <style>
+        /* 1. 基本语法 */
+        :root {
+          --primary-color: #1677ff;
+          --base-radius: 8px;
+        }
+
+        .button {
+          color: #fff;
+          border-radius: var(--base-radius);
+          background-color: var(--primary-color);
+        }
+
+        /* 2. 变量的作用域 */
+        :root {
+          --text-color: #222;
+        }
+
+        .card {
+          --text-color: #666;
+        }
+
+        .card-title {
+          color: var(--text-color);
+        }
+
+        /* 3. fallback 默认值 */
+        .button {
+          background-color: var(--button-bg, #1677ff);
+        }
+
+        /* 3. fallback 默认值 */
+        .button {
+          color: var(--button-color, var(--text-color, #333));
+        }
+
+        /* 4. 与预处理器变量的区别 */
+        .button {
+          background: var(--primary-color);
+        }
+
+        /* 5. 动态主题切换 */
+        :root {
+          --bg-color: #ffffff;
+          --text-color: #1f2329;
+          --border-color: #dcdfe6;
+        }
+
+        [data-theme='dark'] {
+          --bg-color: #141414;
+          --text-color: #f5f5f5;
+          --border-color: #333333;
+        }
+
+        .page {
+          color: var(--text-color);
+          background-color: var(--bg-color);
+        }
+
+        .card {
+          border: 1px solid var(--border-color);
+        }
+
+        /* 6. 变量可以参与计算 */
+        :root {
+          --space: 8px;
+          --primary-h: 220;
+          --primary-s: 90%;
+        }
+
+        .card {
+          padding: calc(var(--space) * 3);
+        }
+
+        .button {
+          background-color: hsl(var(--primary-h), var(--primary-s), 50%);
+        }
+
+        .button:hover {
+          background-color: hsl(var(--primary-h), var(--primary-s), 42%);
+        }
+
+        /* 7. 在组件中的最佳实践 */
+        :root {
+          --color-primary: #1677ff;
+          --radius-base: 6px;
+        }
+
+        .x-button {
+          --button-bg: var(--color-primary);
+          --button-radius: var(--radius-base);
+
+          color: #fff;
+          border-radius: var(--button-radius);
+          background: var(--button-bg);
+        }
+
+        .x-button.is-danger {
+          --button-bg: #ff4d4f;
+        }
+
+        /* 8.2 CSS 变量可以保存一整段属性吗？ */
+        :root {
+          --card-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+        }
+
+        .card {
+          box-shadow: var(--card-shadow);
+        }
+
+        /* 8.2 CSS 变量可以保存一整段属性吗？ */
+        :root {
+          --card-style: color: red;
+        }
+
+        /* 8.3 为什么变量定义了但没有生效？ */
+        .box {
+          --size: red;
+          width: var(--size); /* 无效，因为 width 不能使用 red */
+        }
+    </style>
+</head>
+<body>
+    <h3>1. 基本用法（:root 变量）</h3>
+    <button class="button" style="padding:8px 16px;border:none;">按钮</button>
+
+    <h3>2. 作用域（.card 内重定义变量）</h3>
+    <div class="card" style="border:1px solid #ccc;padding:10px;">
+      <div class="card-title">卡片标题（使用 .card 作用域内的 --text-color）</div>
+    </div>
+
+    <h3>5. 动态主题切换</h3>
+    <div class="page" style="padding:10px;">
+      <div class="card" style="padding:10px;">普通主题卡片</div>
+    </div>
+    <div class="page" data-theme="dark" style="padding:10px;margin-top:8px;">
+      <div class="card" style="padding:10px;">暗黑主题卡片（data-theme=dark）</div>
+    </div>
+
+    <h3>6. 变量参与计算</h3>
+    <div class="card" style="border:1px solid #ccc;padding:10px;">padding: calc(var(--space)*3)</div>
+    <button class="button" style="border:none;padding:8px 16px;margin-top:8px;">HSL 变量按钮</button>
+
+    <h3>7. 组件变量（.x-button / .is-danger）</h3>
+    <button class="x-button" style="padding:6px 14px;border:none;">普通</button>
+    <button class="x-button is-danger" style="padding:6px 14px;border:none;">危险</button>
+
+    <h3>8.2 变量保存阴影</h3>
+    <div class="card" style="width:120px;height:80px;"></div>
+</body>
+</html>

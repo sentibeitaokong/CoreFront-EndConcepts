@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>containerQueries</title>
+    <style>
+        /* 1. 为什么需要容器查询？ */
+        @media (min-width: 768px) {
+          .card {
+            display: flex;
+          }
+        }
+
+        /* 1. 为什么需要容器查询？ */
+        .card-wrapper {
+          container-type: inline-size;
+        }
+
+        @container (min-width: 480px) {
+          .card {
+            display: flex;
+            gap: 16px;
+          }
+        }
+
+        /* 2. 声明查询容器 */
+        .card-wrapper {
+          container-type: inline-size;
+        }
+
+        /* 3. 基本语法 */
+        .product-card-list {
+          container-type: inline-size;
+        }
+
+        .product-card {
+          display: grid;
+          gap: 12px;
+        }
+
+        @container (min-width: 520px) {
+          .product-card {
+            grid-template-columns: 160px 1fr;
+            align-items: center;
+          }
+        }
+
+        /* 4. 命名容器 */
+        .dashboard-panel {
+          container-name: panel;
+          container-type: inline-size;
+        }
+
+        @container panel (min-width: 640px) {
+          .stat-card {
+            grid-template-columns: repeat(3, 1fr);
+          }
+        }
+
+        /* 4. 命名容器 */
+        .dashboard-panel {
+          container: panel / inline-size;
+        }
+
+        /* 5. 查询条件 */
+        @container (width > 480px) {
+          .card {
+            padding: 20px;
+          }
+        }
+
+        @container (320px <= width <= 640px) {
+          .card-title {
+            font-size: 18px;
+          }
+        }
+
+        /* 5. 查询条件 */
+        @container (min-width: 480px) and (max-width: 799px) {
+          .toolbar {
+            flex-wrap: wrap;
+          }
+        }
+
+        /* 6. 容器查询单位 */
+        .card-wrapper {
+          container-type: inline-size;
+        }
+
+        .card-title {
+          font-size: clamp(16px, 6cqw, 28px);
+        }
+
+        /* 8.1 把容器声明放在组件外层 */
+        .article-card-container {
+          container: article-card / inline-size;
+        }
+
+        @container article-card (min-width: 560px) {
+          .article-card {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+          }
+        }
+
+        /* 8.2 断点跟随组件，而不是页面 */
+        @container (min-width: 420px) {
+          .user-card {
+            grid-template-columns: auto 1fr;
+          }
+        }
+
+        /* 8.3 与 CSS 变量配合 */
+        .profile-card {
+          --avatar-size: 48px;
+          --card-gap: 12px;
+
+          display: flex;
+          gap: var(--card-gap);
+        }
+
+        @container (min-width: 480px) {
+          .profile-card {
+            --avatar-size: 72px;
+            --card-gap: 20px;
+          }
+        }
+
+        .profile-card-avatar {
+          width: var(--avatar-size);
+          height: var(--avatar-size);
+        }
+
+        /* 9.1 忘记声明 container-type */
+        @container (min-width: 500px) {
+          .card {
+            display: flex;
+          }
+        }
+
+        /* 9.2 查询当前元素自身宽度 */
+        .card {
+          container-type: inline-size;
+        }
+
+        @container (min-width: 500px) {
+          .card {
+            display: flex;
+          }
+        }
+    </style>
+</head>
+<body>
+    <h3>1. 容器查询（@container，拖动右下角改变容器宽度）</h3>
+    <div class="card-wrapper" style="border:1px solid #ccc;padding:10px;resize:horizontal;overflow:auto;width:400px;">
+      <div class="card">卡片内容（容器宽度变化时布局变化）</div>
+    </div>
+
+    <h3>3. 基本语法</h3>
+    <div class="product-card-list" style="border:1px solid #ccc;padding:10px;resize:horizontal;overflow:auto;width:400px;">
+      <div class="product-card">商品卡片（容器 &gt;520px 时变两列）</div>
+    </div>
+
+    <h3>8.3 与 CSS 变量配合</h3>
+    <div class="profile-card" style="border:1px solid #ccc;padding:10px;">
+      <div class="profile-card-avatar" style="background:#1677ff;border-radius:50%;"></div>
+      <div>用户信息</div>
+    </div>
+</body>
+</html>

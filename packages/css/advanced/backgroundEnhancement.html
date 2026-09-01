@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>backgroundEnhancement</title>
+    <style>
+        /* 2. 高级技巧：多重背景 (Multiple Backgrounds) */
+        .card {
+          background-image:
+            linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+            /* 第一层：半透明遮罩 */ url('icon.png'),
+            /* 第二层：小图标 */ url('photo.jpg'); /* 第三层：底图 */
+
+          background-position:
+            0 0,
+            /* 遮罩位置 */ center center,
+            /* 图标居中 */ center; /* 底图居中 */
+
+          background-repeat: no-repeat;
+        }
+
+        /* 2. 高级技巧：多重背景 (Multiple Backgrounds) */
+        background:
+          url(icon.png) center / 50px no-repeat,
+          /* 这一层的所有属性写在一起 */ url(photo.jpg) center / cover no-repeat;
+
+        /* 3.1 怎么实现背景图片的“视差滚动”效果 (Parallax)？ */
+        .parallax {
+          background-image: url('bg.jpg');
+          background-attachment: fixed; /* 核心 */
+          background-size: cover;
+        }
+
+        /* 3.2 为什么我的背景图片在手机上模糊了？ */
+        .icon {
+          width: 100px;
+          background-image: url('icon@2x.png'); /* 这张图实际宽 200px */
+          background-size: 100px auto; /* 强制压缩显示为 100px */
+        }
+
+        /* 3.3 如何让背景图适应容器高度，而不是宽度？ */
+        background-size: auto 100%; /* 宽度自动，高度撑满 */
+
+        /* 3.4 边框是虚线，为什么看不到背景色透出来？ */
+        .dashed-box {
+          border: 5px dashed #000;
+          background-color: yellow;
+          background-clip: padding-box; /* 关键：背景不延伸到边框 */
+        }
+
+        /* 3.5 background-blend-mode 是什么？ */
+        .tinted-image {
+          background-image: url('bw-photo.jpg');
+          background-color: red;
+          background-blend-mode: multiply; /* 正片叠底：给黑白照片染上红色 */
+        }
+    </style>
+</head>
+<body>
+    <h3>2. 多重背景</h3>
+    <div class="card" style="width:200px;height:120px;border:1px solid #ccc;background-image:linear-gradient(rgba(0,0,0,.5),rgba(0,0,0,.5)),linear-gradient(#1677ff,#52c41a);"></div>
+
+    <h3>3.1 视差滚动背景（fixed）</h3>
+    <div class="parallax" style="height:160px;background-image:linear-gradient(45deg,#1677ff,#52c41a);"></div>
+
+    <h3>3.2 高清图缩放</h3>
+    <div class="icon" style="height:100px;background-image:linear-gradient(#faad14,#f5222d);"></div>
+
+    <h3>3.4 虚线边框 + background-clip</h3>
+    <div class="dashed-box" style="width:120px;height:80px;"></div>
+
+    <h3>3.5 background-blend-mode</h3>
+    <div class="tinted-image" style="width:160px;height:100px;background-image:linear-gradient(#888,#888);"></div>
+</body>
+</html>

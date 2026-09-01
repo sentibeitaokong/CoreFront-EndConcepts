@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>colors</title>
+    <style>
+        /* 1.4 HSL / HSLA (推荐用于 UI 设计) */
+        .btn {
+          background: hsl(200, 100%, 50%); /* 纯亮蓝色 */
+        }
+        .btn:hover {
+          background: hsl(200, 100%, 40%); /* 只要把 L 减小，就是变暗 */
+        }
+
+        /* 3.1 currentColor */
+        .button {
+          color: blue;
+          border: 1px solid currentColor; /* 边框也是蓝色 */
+          box-shadow: 0 0 5px currentColor; /* 阴影也是蓝色 */
+        }
+
+        .button:hover {
+          color: red; /* 此时边框和阴影自动变成红色，无需重写 */
+        }
+
+        /* 4. opacity vs rgba/hsla (高频考点) */
+        /* ❌ 错误：文字也会变成半透明灰色，看不清 */
+        .box {
+          background: black;
+          opacity: 0.5;
+          color: white;
+        }
+
+        /* ✅ 正确：背景半透明，文字不透明 */
+        .box {
+          background: rgba(0, 0, 0, 0.5);
+          color: white;
+        }
+
+        /* 5.2 如何建立一套科学的颜色系统（主题切换）？ */
+        :root {
+          /* 定义主色调：蓝色 */
+          --primary-h: 220;
+          --primary-s: 90%;
+        }
+
+        .btn-primary {
+          /* 基础色 */
+          background-color: hsl(var(--primary-h), var(--primary-s), 50%);
+        }
+
+        .btn-light {
+          /* 浅色变体 (只改亮度 L) */
+          background-color: hsl(var(--primary-h), var(--primary-s), 90%);
+        }
+
+        .dark-mode {
+          /* 暗黑模式只需改这一行，所有按钮自动变色 */
+          --primary-h: 220; /* 甚至可以换个色相 */
+        }
+
+        /* 5.3 为什么 linear-gradient(red, blue) 中间看起来脏脏的（发灰）？ */
+        background: linear-gradient(in oklch, red, blue); /* 颜色过渡非常鲜艳平滑 */
+
+        /* 5.5 怎么从图片中提取颜色？ */
+        /* 混合 红色 和 白色，各占 50% -> 得到粉色 */
+        background: color-mix(in srgb, red, white);
+    </style>
+</head>
+<body>
+    <h3>1.4 HSL 颜色</h3>
+    <button class="btn" style="color:#fff;border:none;padding:8px 16px;">hover 变暗</button>
+
+    <h3>3.1 currentColor</h3>
+    <button class="button" style="padding:8px 16px;">边框/阴影跟随文字颜色</button>
+
+    <h3>4. opacity vs rgba（半透明背景）</h3>
+    <div class="box" style="width:120px;height:60px;display:flex;align-items:center;justify-content:center;">文字清晰</div>
+
+    <h3>5.2 颜色系统（HSL + 变量）</h3>
+    <button class="btn-primary" style="color:#fff;border:none;padding:8px 16px;margin-right:8px;">主色</button>
+    <button class="btn-light" style="border:none;padding:8px 16px;">浅色</button>
+</body>
+</html>

@@ -32,7 +32,7 @@
     ctx.closePath()
     ctx.stroke()*/
     const img = new Image();
-    img.src = '../../docs/public/backgroundImage.png';
+    img.src = '../../../apps/docs/public/img/backgroundImage.png';
     img.onload = () => {
         ctx.drawImage(img, 0, 0); // 确保图片好了再画
         ctx.strokeStyle='red'

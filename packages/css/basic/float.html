@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>float</title>
+    <style>
+        /* 3.1 overflow (BFC 法) —— 推荐用于简单场景 */
+        .parent {
+          /* overflow: hidden;  <-- 最常用，但小心内容溢出被切断 */
+          /* display: flow-root; <-- 现代最佳方案，无副作用 */
+          display: flow-root;
+        }
+
+        /* 3.2 ::after 伪元素 (Micro Clearfix) —— 行业标准 */
+        /* 核心代码 */
+        .clearfix::after {
+          content: ''; /* 1. 必须有内容（哪怕是空） */
+          display: table; /* 2. 转换为块级表格上下文 (比 block 更稳) */
+          clear: both; /* 3. 清除左右浮动 */
+        }
+
+        /* 兼容旧版 IE (可选) */
+        .clearfix {
+          *zoom: 1;
+        }
+    </style>
+</head>
+<body>
+    <h3>3.1 清除浮动（父元素 display: flow-root）</h3>
+    <div class="parent" style="background:#d9f0ff;padding:10px;">
+      <div style="float:left;width:60px;height:60px;background:#1677ff;margin-right:10px;"></div>
+      <div style="float:left;width:60px;height:60px;background:#52c41a;"></div>
+    </div>
+
+    <h3>3.2 clearfix 伪元素清除浮动</h3>
+    <div class="clearfix" style="background:#d9f0ff;padding:10px;">
+      <div style="float:left;width:60px;height:60px;background:#1677ff;"></div>
+    </div>
+</body>
+</html>

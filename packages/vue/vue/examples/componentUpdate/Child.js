@@ -1,10 +1,8 @@
-import { h } from '../../dist/XunBei-Vue.esm.js'
+import { h } from "../../dist/XunBei-Vue.esm.js";
 export default {
-  name: 'Child',
+  name: "Child",
   setup(props, { emit }) {},
   render(proxy) {
-    return h('div', {}, [
-      h('div', {}, 'child - props - msg: ' + this.$props.msg),
-    ])
+    return h("div", {}, [h("div", {}, "child - props - msg: " + this.$props.msg)]);
   },
-}
+};

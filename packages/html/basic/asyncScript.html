@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>asyncScript</title>
+</head>
+<body>
+    <!-- 1.1 defer 属性 -->
+    <script src="script1.js" defer></script>
+    <script src="script2.js" defer></script>
+
+    <!-- 1.2 async 属性 -->
+    <script src="scriptA.js" async></script>
+    <script src="scriptB.js" async></script>
+    <script>
+        // ===== 1.3 动态创建 <script> 标签 =====
+        // // 创建一个新的 <script> 标签
+        // const script = document.createElement('script')
+        // script.src = 'my-dynamic-script.js'
+        //
+        // // 将其添加到 <head> 或 <body>
+        // document.head.appendChild(script)
+    </script>
+</body>
+</html>
