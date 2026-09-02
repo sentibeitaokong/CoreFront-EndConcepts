@@ -1166,7 +1166,9 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                     text: 'Git',
                     collapsed: true, // 初始状态为“展开”
                     items: [
-                        {text: 'git命令', link: '/git/git'},
+                        {text: '核心概念', link: '/git/git'},
+                        {text: '命令速查', link: '/git/commands'},
+                        {text: '应用场景', link: '/git/scenarios'},
                     ]
                 },
                 {
