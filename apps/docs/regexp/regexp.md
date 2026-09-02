@@ -6,24 +6,24 @@ JavaScript 环境下使用正则表达式的实例和技巧。
 
 ### 1.1 纯文本查找
 
-直接使用字符串或简单的正则表达式进行查找。
+最简单的用法：直接匹配一段文本。这里的 `/Ben/` 效果等同于查找字符串 `'Ben'`。
 
 ```js
-var text =
+const text =
   'Hello, my name is Ben. Please visit my website at http://www.forta.com/'
-var n = text.match(/Ben/) // 使用 /Ben/ 效果等同于 'Ben'
+const n = text.match(/Ben/)
 ```
 
 **结果:** `["Ben"]`
 
 ### 1.2 全局匹配 (g)
 
-使用 `g` 标志可以匹配所有出现的结果，而不仅仅是第一个。
+正则默认只匹配第一个结果。加上 `g` 标志可以匹配所有出现的结果。
 
 ```js
-var text =
+const text =
   'Hello, my name is Ben. Please visit my website at http://www.forta.com/'
-var n = text.match(/my/g)
+const n = text.match(/my/g)
 ```
 
 **结果:** `["my", "my"]`
@@ -33,9 +33,9 @@ var n = text.match(/my/g)
 使用 `i` 标志进行不区分大小写的匹配。
 
 ```js
-var text =
+const text =
   'Hello, my name is Ben. Please visit my website at http://www.forta.com/'
-var n = text.match(/ben/i)
+const n = text.match(/ben/i)
 ```
 
 **结果:** `["Ben"]`
@@ -44,22 +44,22 @@ var n = text.match(/ben/i)
 
 ### 2.1 匹配任意字符 (.)
 
-`.` (点) 元字符可以匹配除换行符外的任意单个字符。
+`.`（点）是元字符，可以匹配除换行符外的任意单个字符。
 
 ```js
-var text = 'sales1.xls\nsales2.xls\nsales3.xls'
-var n = text.match(/sales./g)
+const text = 'sales1.xls\nsales2.xls\nsales3.xls'
+const n = text.match(/sales./g)
 ```
 
 **结果:** `["sales1", "sales2", "sales3"]`
 
 ### 2.2 匹配特殊字符本身 (\\)
 
-要匹配 `.`、`*`、`?` 等元字符本身，需要在其前面加上 `\` (反斜杠) 进行转义。
+要匹配 `.`、`*`、`?` 等元字符本身，需要在其前面加上 `\`（反斜杠）进行转义。
 
 ```js
-var text = 'na1.xls\nsa1.xls\nca1.xls'
-var n = text.match(/.a.\.xls/g)
+const text = 'na1.xls\nsa1.xls\nca1.xls'
+const n = text.match(/.a.\.xls/g)
 ```
 
 **结果:** `["na1.xls", "sa1.xls", "ca1.xls"]`
@@ -71,8 +71,8 @@ var n = text.match(/.a.\.xls/g)
 `[abc]` 匹配 `a`、`b`、`c` 中的任意一个。
 
 ```js
-var text = 'na1.xls\nsa1.xls\nca1.xls'
-var n = text.match(/[ns]a.\.xls/g)
+const text = 'na1.xls\nsa1.xls\nca1.xls'
+const n = text.match(/[ns]a.\.xls/g)
 ```
 
 **结果:** `["na1.xls", "sa1.xls"]`
@@ -82,55 +82,53 @@ var n = text.match(/[ns]a.\.xls/g)
 `[0-9]` 匹配 0 到 9 的任意数字，`[a-z]` 匹配任意小写字母。
 
 ```js
-var text = 'na1.xls\nsa2.xls'
-var n = text.match(/[ns]a[0-9]\.xls/g)
+const text = 'na1.xls\nsa2.xls'
+const n = text.match(/[ns]a[0-9]\.xls/g)
 ```
 
 **结果:** `["na1.xls", "sa2.xls"]`
-
-- `[a-zA-Z0-9]` 匹配所有大小写字母和数字。
-- `#[0-9A-Fa-f]{6}` 匹配一个完整的十六进制颜色值。
 
 ### 3.3 取非匹配 (^)
 
 在字符集内部使用 `^` 表示匹配**除了**该集合内字符以外的任何字符。
 
 ```js
-var text = 'na1.xls\nsam.xls'
-var n = text.match(/[ns]a[^0-9]\.xls/g)
+const text = 'na1.xls\nsam.xls'
+const n = text.match(/[ns]a[^0-9]\.xls/g)
 ```
 
-**结果:** `["sam.xls"]` (因为 `m` 不是数字)
+**结果:** `["sam.xls"]`（因为 `m` 不是数字）
 
 ## 4. 预定义元字符
 
-| 元字符 | 描述                      | 等价于           |
-| :----- | :------------------------ | :--------------- |
-| `\d`   | 匹配任意数字              | `[0-9]`          |
-| `\D`   | 匹配任意非数字            | `[^0-9]`         |
-| `\w`   | 匹配字母、数字、下划线    | `[a-zA-Z0-9_]`   |
-| `\W`   | 匹配非字母、数字、下划线  | `[^a-zA-Z0-9_]`  |
-| `\s`   | 匹配任意空白字符          | `[ \t\n\r\f\v]`  |
-| `\S`   | 匹配任意非空白字符        | `[^ \t\n\r\f\v]` |
-| `\r\n` | 匹配 Windows 风格的换行符 |                  |
+| 元字符 | 描述                     | 等价于           |
+| :----- | :----------------------- | :--------------- |
+| `\d`   | 匹配任意数字             | `[0-9]`          |
+| `\D`   | 匹配任意非数字           | `[^0-9]`         |
+| `\w`   | 匹配字母、数字、下划线   | `[a-zA-Z0-9_]`   |
+| `\W`   | 匹配非字母、数字、下划线 | `[^a-zA-Z0-9_]`  |
+| `\s`   | 匹配任意空白字符         | `[ \t\n\r\f\v]`  |
+| `\S`   | 匹配任意非空白字符       | `[^ \t\n\r\f\v]` |
 
-**示例:**
+**示例：**
 
 ```js
-// 匹配 myArray
-var text = 'var myArray=new Array(); if(myArray[0]==0){...}'
-var n = text.match(/myArray\[\d\]/)
+// 匹配 myArray[0]
+const text = 'var myArray=new Array(); if(myArray[0]==0){...}'
+const n = text.match(/myArray\[\d\]/)
 ```
 
 **结果:** `["myArray[0]"]`
 
-## 5. 量词 (Quantifiers)
+## 5. 量词
+
+量词用来指定前面的元素重复出现的次数。
 
 ### 5.1 匹配一次或多次 (+)
 
 ```js
-var text = 'Send personal email to ben@forta.com.'
-var n = text.match(/\w+@\w+\.\w+/g)
+const text = 'Send personal email to ben@forta.com.'
+const n = text.match(/\w+@\w+\.\w+/g)
 ```
 
 **结果:** `["ben@forta.com"]`
@@ -138,17 +136,17 @@ var n = text.match(/\w+@\w+\.\w+/g)
 ### 5.2 匹配零次或多次 (\*)
 
 ```js
-var text = 'Hello .ben@forta.com is my email address.'
-var n = text.match(/\w*[\w.]*@[\w.]+\.\w+/g)
+const text = 'Hello .ben@forta.com is my email address.'
+const n = text.match(/\w*[\w.]*@[\w.]+\.\w+/g)
 ```
 
 **结果:** `[".ben@forta.com"]`
 
-### 5.3 匹配零次或一次 (?)
+### 5.3 匹配零次或一次 `(?)`
 
 ```js
-var text = 'http://www.forta.com/ and https://www.forta.com/'
-var n = text.match(/https?:\/\/[\w./]+/g)
+const text = 'http://www.forta.com/ and https://www.forta.com/'
+const n = text.match(/https?:\/\/[\w./]+/g)
 ```
 
 **结果:** `["http://www.forta.com/", "https://www.forta.com/"]`
@@ -161,40 +159,50 @@ var n = text.match(/https?:\/\/[\w./]+/g)
 
 ```js
 // 匹配十六进制颜色
-var text = 'BGCOLOR="#336633"'
-var n = text.match(/#[0-9a-fA-F]{6}/g)
-
-// 匹配日期
-var text = '4/8/03\n10-6-2004'
-var n = text.match(/\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/g)
+const text1 = 'BGCOLOR="#336633"'
+const color = text1.match(/#[0-9a-fA-F]{6}/g)
+// 结果: ["#336633"]
 ```
 
-### 5.5 防止过度匹配 (懒惰模式)
+```js
+// 匹配日期
+const text2 = '4/8/03\n10-6-2004'
+const date = text2.match(/\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/g)
+// 结果: ["4/8/03", "10-6-2004"]
+```
 
-默认量词是“贪婪的”。在其后加上 `?` 可变为“懒惰”模式，进行最小化匹配。
+### 5.5 防止过度匹配（贪婪 vs 懒惰）
+
+默认量词是「贪婪的」，会尽可能多地匹配；在其后加上 `?` 可变为「懒惰」模式，进行最小化匹配。
 
 ```js
-var text =
+const text =
   'This offer is not available to customers living in <B>AK</B> and <B>HI</B>'
-// 贪婪匹配 (错误)
-var greedy = text.match(/<[Bb]>.*<\/[Bb]>/g)
+
+// 贪婪匹配（错误）：一次性匹配到最后一个 </B>
+const greedy = text.match(/<[Bb]>.*<\/[Bb]>/g)
 // 结果: ["<B>AK</B> and <B>HI</B>"]
 
-// 懒惰匹配 (正确)
-var lazy = text.match(/<[Bb]>.*?<\/[Bb]>/g)
+// 懒惰匹配（正确）：逐个匹配每个标签
+const lazy = text.match(/<[Bb]>.*?<\/[Bb]>/g)
 // 结果: ["<B>AK</B>", "<B>HI</B>"]
 ```
 
+> **原理**：贪婪量词会先尝试匹配尽可能多的字符，只有在后面无法匹配时才「回溯」缩短；懒惰量词则相反，先尝试最少，不够再逐步加长。
+
 ## 6. 边界匹配
 
-### 6.1 单词边界 (`\\b`, `\\B`)
+边界匹配的是「位置」而不是字符。
 
-- `\b`: 匹配单词的开头或结尾（不匹配任何字符，只匹配位置）。
+### 6.1 单词边界 (`\b`, `\B`)
+
+- `\b`: 匹配单词的开头或结尾（即单词字符 `\w` 与非单词字符 `\W` 之间的位置）。
 - `\B`: 匹配非单词边界的位置。
 
 ```js
-var text = 'The cat scattered his food.'
-var n = text.match(/\bcat\b/g) // 只匹配独立的单词 "cat"
+const text = 'The cat scattered his food.'
+const n = text.match(/\bcat\b/g) // 只匹配独立的单词 "cat"，不会匹配 "scattered"
+// 结果: ["cat"]
 ```
 
 ### 6.2 字符串边界 (^, $)
@@ -203,19 +211,19 @@ var n = text.match(/\bcat\b/g) // 只匹配独立的单词 "cat"
 - `$`: 匹配字符串的结尾。
 
 ```js
-var text = '<?xml version="1.0" ?>'
-var n = text.match(/^\s*<\?xml.*\?>/g) // 确保XML声明在文件最开始
+const text = '<?xml version="1.0" ?>'
+const n = text.match(/^\s*<\?xml.*\?>/g) // 确保 XML 声明在文件最开始
 ```
 
-### 6.3 分行匹配模式 (`m`)
+### 6.3 分行匹配模式 `(m)`
 
-使用 `m` 标志，可以使 `^` 和 `$` 也能匹配每一行的开头和结尾。
+使用 `m` 标志，可以让 `^` 和 `$` 也匹配每一行的开头和结尾。
 
-**注意：** JavaScript 正则表达式没有 `(?m)` 语法，`m` 只能作为标志使用 `/.../m`。
+> **注意：** JavaScript 正则表达式没有 `(?m)` 内联语法，`m` 只能作为标志写在正则之外 `/.../m`。
 
 ```js
-var text = '// comment 1\nvar a = 1;\n// comment 2'
-var n = text.match(/^\s*\/\/.*$/gm)
+const text = '// comment 1\nvar a = 1;\n// comment 2'
+const n = text.match(/^\s*\/\/.*$/gm)
 ```
 
 **结果:** `["// comment 1", "// comment 2"]`
@@ -224,198 +232,221 @@ var n = text.match(/^\s*\/\/.*$/gm)
 
 ### 7.1 子表达式 ()
 
-使用 `()` 将表达式分组，作为一个整体来应用量词。
+使用 `()` 将表达式分组，作为一个整体来应用量词或进行捕获。
 
 ```js
 // 匹配连续两个或更多的 &nbsp;
-var text = 'Windows&nbsp;&nbsp;2000'
-var n = text.match(/(&nbsp;){2,}/) //&nbsp;&nbsp;
-
-// 匹配IP地址 (简化版)
-var text = 'Pinging 12.159.46.200'
-var n = text.match(/(\d{1,3}\.){3}\d{1,3}/g) //12.159.46.200
+const text1 = 'Windows&nbsp;&nbsp;2000'
+const n1 = text1.match(/(&nbsp;){2,}/)
+// 结果: ["&nbsp;&nbsp;"]
 ```
 
-### 7.2 回溯引用 (\\1, \\2, ...)
+```js
+// 匹配 IP 地址（简化版）
+const text2 = 'Pinging 12.159.46.200'
+const n2 = text2.match(/(\d{1,3}\.){3}\d{1,3}/g)
+// 结果: ["12.159.46.200"]
+```
 
-`\1` 引用第一个捕获组 `()` 匹配到的**内容**。
+### 7.2 回溯引用 `(\1, \2, ...)`
+
+`\1` 引用第一个捕获组 `()` 匹配到的**内容**，用于「再次匹配相同的内容」。
 
 ```js
 // 查找重复的单词
-var text = 'words here are are repeated'
-var n = text.match(/[ ]+(\w+)[ ]+\1/g) // are are
-
-// 匹配配对的 HTML 标签
-var text = '<H1>Welcome</H1>...<H2>Invalid</H3>'
-var n = text.match(/<[Hh]([1-6])>.*?<\/[Hh]\1>/g) //<H1>Welcome</H1>
+const text1 = 'words here are are repeated'
+const n1 = text1.match(/[ ]+(\w+)[ ]+\1/g)
+// 结果: [" are are"]
 ```
 
-### 7.3 在 `replace` 中使用回溯引用 (`$1`, `$2`, ...)
+```js
+// 匹配配对的 HTML 标签
+const text2 = '<H1>Welcome</H1>...<H2>Invalid</H3>'
+const n2 = text2.match(/<[Hh]([1-6])>.*?<\/[Hh]\1>/g)
+// 结果: ["<H1>Welcome</H1>"]
+```
+
+### 7.3 非捕获分组 (?:...)
+
+如果只是想把表达式作为一个整体、而不需要捕获内容，用 `(?:...)`。它不占用捕获组编号，也不参与反向引用，效率更高。
+
+```js
+const text = 'http://www.forta.com/ https://www.forta.com/'
+const n = text.match(/(?:https?):\/\//g)
+// 结果: ["http://", "https://"]
+// 对比 /(https?):\/\//g 会多捕获 "http"、"https" 两组
+```
+
+### 7.4 命名分组 `(?<name>...)`
+
+用 `(?<name>...)` 给捕获组起一个名字，可读性更好。回溯引用时用 `\k<name>`，替换时用 `$<name>`。
+
+```js
+const text = '2024-09-02'
+const re = /(?<year>\d{4})-(?<month>\d{2})-(?<day>\d{2})/
+const m = text.match(re)
+
+m.groups.year // "2024"
+m.groups.month // "09"
+m.groups.day // "02"
+
+// 反向引用命名分组
+const text2 = 'abc abc'
+text2.match(/(?<word>\w+)\s+\k<word>/) // ["abc abc", "abc"]
+
+// 替换时引用
+text.replace(re, '$<month>/$<day>/$<year>') // "09/02/2024"
+```
+
+### 7.5 在 `replace` 中使用回溯引用 ($1, $2, ...)
 
 在 `replace` 方法的第二个参数中，`$n` 代表第 `n` 个捕获组的内容。
 
 ```js
 // 格式化电话号码
-var text = '313-555-1234'
-var n = text.replace(/(\d{3})-(\d{3})-(\d{4})/, '($1) $2-$3')
+const text1 = '313-555-1234'
+const n1 = text1.replace(/(\d{3})-(\d{3})-(\d{4})/, '($1) $2-$3')
 // 结果: "(313) 555-1234"
-
-// 将邮件地址转为链接
-var text = 'Hello, ben@forta.com is my email address'
-var n = text.replace(/([\w.]+@[\w.]+\.\w+)/, '<a href="mailto:$1">$1</a>')
-//'Hello, <a href="mailto:ben@forta.com">ben@forta.com</a> is my email address'
 ```
 
-![Logo](/img/regexpThird.png)
+```js
+// 将邮件地址转为链接
+const text2 = 'Hello, ben@forta.com is my email address'
+const n2 = text2.replace(/([\w.]+@[\w.]+\.\w+)/, '<a href="mailto:$1">$1</a>')
+// 结果: 'Hello, <a href="mailto:ben@forta.com">ben@forta.com</a> is my email address'
+```
 
-## 8. 高级主题
+## 8. 前后查找 (Lookaround)
 
-### 8.1 前后查找 (Lookaround)
+环视只匹配一个「位置」，断言该位置前面或后面的内容符合某种模式，但被断言的内容**不会**成为最终匹配结果的一部分。
 
-**注意:** JavaScript 在 ES2018 之后才完整支持向后查找。
+> **注意：** JavaScript 在 ES2018 之后才支持向后查找（lookbehind）。
 
-- **`(?=...)` (正向前瞻)**: 匹配其后紧跟着 `...` 的位置。
-- **`(?!...)` (负向前瞻)**: 匹配其后**不**是 `...` 的位置。
-- **`(?<=...)` (正向后顾)**: 匹配其前是 `...` 的位置。
-- **`(?<!...)` (负向后顾)**: 匹配其前**不**是 `...` 的位置。
+- **`(?=...)`（正向前瞻）**: 匹配其后紧跟着 `...` 的位置。
+- **`(?!...)`（负向前瞻）**: 匹配其后**不**是 `...` 的位置。
+- **`(?<=...)`（正向后顾）**: 匹配其前是 `...` 的位置。
+- **`(?<!...)`（负向后顾）**: 匹配其前**不**是 `...` 的位置。
 
 ```js
-// 提取协议名
-var text = 'http://www.forta.com/'
-var n = text.match(/.+(?=:)/g)
+// 提取协议名（正向前瞻）
+const text1 = 'http://www.forta.com/'
+const n1 = text1.match(/.+(?=:)/g)
 // 结果: ["http"]
+```
 
-// 提取不带'$'符号的数字
-var text = 'I paid $30 for 100 apples'
-var n = text.match(/\b(?<!\$)\d+\b/g)
+```js
+// 提取不带 '$' 符号的数字（负向后顾）
+const text2 = 'I paid $30 for 100 apples'
+const n2 = text2.match(/\b(?<!\$)\d+\b/g)
 // 结果: ["100"]
 ```
 
-### 8.2 嵌入条件
+```js
+// 千位分隔符（正向后顾 + 正向前瞻）
+const text3 = '1234567'
+const n3 = text3.replace(/(?<=\d)(?=(\d{3})+(?!\d))/g, ',')
+// 结果: "1,234,567"
+```
 
-**注意:** JavaScript 正则表达式不支持 `(?(...)...|...)` 这种复杂的嵌入条件语法。通常需要通过多个正则表达式或逻辑代码来实现。
+## 9. 标志详解
 
-## 9. JavaScript 中的正则方法
+标志写在正则字面量之外（如 `/regex/gmi`），或作为 `RegExp` 构造函数的第二个参数（如 `new RegExp('regex', 'g')`）。
 
-| 方法                        | 描述                                                                        |
-| :-------------------------- | :-------------------------------------------------------------------------- |
-| `regexp.test(str)`          | 检测字符串是否匹配，返回 `true` 或 `false`。                                |
-| `regexp.exec(str)`          | 检索匹配项，返回一个包含详细信息的数组，或 `null`。                         |
-| `str.match(regexp)`         | 检索匹配项，非全局模式下行为类似 `exec`，全局模式下返回所有匹配组成的数组。 |
-| `str.search(regexp)`        | 检索匹配项，返回第一个匹配的**索引**，未找到则返回 `-1`。                   |
-| `str.replace(regexp, repl)` | 替换匹配的子字符串。                                                        |
-| `str.split(regexp)`         | 使用正则表达式作为分隔符来分割字符串。                                      |
+| 标志 | 名称                     | 说明                                                   | 支持版本 |
+| :--- | :----------------------- | :----------------------------------------------------- | :------- |
+| `g`  | Global（全局）           | 查找所有匹配项，而不是找到第一个就停止。               | 所有     |
+| `i`  | Case-Insensitive（忽略） | 忽略大小写匹配。                                       | 所有     |
+| `m`  | Multiline（多行）        | 使 `^` 和 `$` 匹配每一行的开头和结尾。                 | 所有     |
+| `s`  | Dot All（单行）          | 允许 `.` 匹配包括换行符在内的所有字符。                | ES2018   |
+| `u`  | Unicode（Unicode 模式）  | 启用完整的 Unicode 匹配，支持 `\u{...}` 与 `\p{...}`。 | ES2015   |
+| `y`  | Sticky（粘性）           | 只从 `lastIndex` 处开始匹配，不向前搜索。              | ES2015   |
+| `d`  | hasIndices（索引）       | 匹配结果中附带 `indices` 数组，记录每个捕获组的位置。  | ES2022   |
 
-## 10.[正则表达式速查表](https://tool.oschina.net/uploads/apidocs/jquery/regexp.html)
+### 9.1 `u` 标志与 Unicode 属性转义
 
-正则表达式是一套强大的语法规则，用于在文本中查找、匹配和操作符合特定模式的字符串。
+`u` 标志让正则按 Unicode 码点（code point）而非 UTF-16 编码单元处理字符串，正确处理 emoji 等代理对；同时启用 `\p{...}` 属性转义。
 
-![Logo](/img/regexpFirst.png)
+```js
+// 没有 u：按 16 位编码单元计数，emoji 被拆成两个单元
+'😀'.match(/^.$/) // null（因为 😀 占两个编码单元）
+'😀'.match(/^.$/u) // ["😀"]
 
-![Logo](/img/regexpSecond.png)
+// Unicode 属性转义（必须配合 u）
+'😀'.match(/\p{Emoji}/u) // ["😀"]
+'你好'.match(/\p{Script=Han}/u) // ["你"]
+'abc'.match(/\p{Letter}+/u) // ["abc"]
+```
 
-### **10.1 基础元字符**
+### 9.2 `y` 标志（粘性匹配）
 
-这些是构成正则表达式的最基本单元。
+`y` 要求匹配必须从 `lastIndex` 位置开始，不会跳过不匹配的字符向后搜索。
 
-| 元字符 | 名称               | 描述                                                                                           |
-| :----- | :----------------- | :--------------------------------------------------------------------------------------------- |
-| `.`    | 点 (Dot)           | 匹配**除换行符（`\n`）外**的任意单个字符。                                                     |
-| `\ `   | 反斜杠 (Backslash) | **转义**下一个字符，使其被视为普通字符（例如 `\.` 匹配点号）或特殊字符（例如 `\n` 匹配换行）。 |
+```js
+const re = /foo/y
+re.lastIndex = 3
+re.exec('xfoofoo') // ["foo"]（从索引 3 开始匹配）
 
-### **10.2 字符集 (Character Sets)**
+re.lastIndex = 4
+re.exec('xfoofoo') // null（索引 4 是 'o'，不是 'foo'，且不向前搜索）
+```
 
-| 语法     | 名称         | 描述                                                               |
-| :------- | :----------- | :----------------------------------------------------------------- |
-| `[abc]`  | 字符集合     | 匹配 `a`、`b`、`c` 中的任意一个字符。                              |
-| `[^abc]` | 否定字符集合 | 匹配**除了** `a`、`b`、`c` 之外的任意一个字符。                    |
-| `[a-z]`  | 范围 (Range) | 匹配从 `a` 到 `z` 的任意一个小写字母。可以组合，如 `[a-zA-Z0-9]`。 |
+### 9.3 `d` 标志（匹配索引）
 
-### **10.3 预定义字符集**
+```js
+const re = /(?<a>a)(?<b>b)/d
+const m = re.exec('ab')
+m.indices // [[0, 2], [0, 1], [1, 2]]  整体与各分组的位置
+m.indices.groups // { a: [0, 1], b: [1, 2] }
+```
 
-为了方便使用，预定义了一些常用的字符集。
+## 10. 常见陷阱
 
-| 元字符 | 等价于           | 描述                                                 |
-| :----- | :--------------- | :--------------------------------------------------- |
-| `\d`   | `[0-9]`          | 匹配任意一个**数字**。                               |
-| `\D`   | `[^0-9]`         | 匹配任意一个**非数字**字符。                         |
-| `\w`   | `[a-zA-Z0-9_]`   | 匹配任意一个**单词字符**（字母、数字、下划线）。     |
-| `\W`   | `[^a-zA-Z0-9_]`  | 匹配任意一个**非单词字符**。                         |
-| `\s`   | `[ \t\n\r\f\v]`  | 匹配任意一个**空白字符**（空格、制表符、换行符等）。 |
-| `\S`   | `[^ \t\n\r\f\v]` | 匹配任意一个**非空白字符**。                         |
+### 10.1 `exec` 与 `lastIndex` 状态
 
-### **10.4 定位符 / 锚点 (Anchors)**
+带 `g` 或 `y` 标志的正则是「有状态」的：`exec` 每次调用会更新 `lastIndex`，多次调用返回不同的匹配，直到返回 `null` 后重置为 0。
 
-它们不匹配任何字符，只匹配字符串中的特定**位置**。
+```js
+const re = /a/g
+const text = 'a a'
 
-| 元字符 | 名称       | 描述                                                                 |
-| :----- | :--------- | :------------------------------------------------------------------- |
-| `^`    | 开头锚点   | 匹配字符串的**开头**。（在多行模式 `m` 下，也匹配每一行的行首）。    |
-| `$`    | 结尾锚点   | 匹配字符串的**结尾**。（在多行模式 `m` 下，也匹配每一行的行尾）。    |
-| `\b`   | 单词边界   | 匹配一个单词的边界（即单词字符 `\w` 和非单词字符 `\W` 之间的位置）。 |
-| `\B`   | 非单词边界 | 匹配**非**单词边界的位置。                                           |
+re.exec(text) // ["a"], lastIndex 变为 1
+re.exec(text) // ["a"], lastIndex 变为 3
+re.exec(text) // null,  lastIndex 重置为 0
+```
 
-### **10.5 量词 (Quantifiers)**
+因此**不要在循环外复用同一个带 `g` 标志的正则去 `test` 不同字符串**，容易因为 `lastIndex` 残留而得到错误结果：
 
-用于指定一个模式需要重复出现的次数。
+```js
+const re = /a/g
+re.test('a') // true, lastIndex = 1
+re.test('a') // false！因为从索引 1 开始找不到 'a'
+```
 
-| 量词    | 模式              | 描述                                             |
-| :------ | :---------------- | :----------------------------------------------- |
-| `*`     | **贪婪 (Greedy)** | 匹配前面的元素**零次或多次**（尽可能多地匹配）。 |
-| `*?`    | **懒惰 (Lazy)**   | 匹配前面的元素**零次或多次**（尽可能少地匹配）。 |
-| `+`     | **贪婪 (Greedy)** | 匹配前面的元素**一次或多次**（尽可能多地匹配）。 |
-| `+?`    | **懒惰 (Lazy)**   | 匹配前面的元素**一次或多次**（尽可能少地匹配）。 |
-| `?`     | **贪婪 (Greedy)** | 匹配前面的元素**零次或一次**。                   |
-| `??`    | **懒惰 (Lazy)**   | 匹配前面的元素**零次或一次**。                   |
-| `{n}`   | -                 | 匹配前面的元素**恰好 n 次**。                    |
-| `{n,}`  | -                 | 匹配前面的元素**至少 n 次**。                    |
-| `{n,m}` | -                 | 匹配前面的元素**至少 n 次，至多 m 次**。         |
+需要时手动 `re.lastIndex = 0` 重置，或改用 `String.prototype.match` / `search`。
 
-**示例 (贪婪 vs. 懒惰):**
-对于字符串 `<p>one</p><p>two</p>`
+### 10.2 `replace` 的回调函数
 
-- `<p>.*</p>` (贪婪) 会匹配整个字符串 `"<p>one</p><p>two</p>"`。
-- `<p>.*?</p>` (懒惰) 会匹配两次，分别是 `"<p>one</p>"` 和 `"<p>two</p>"`。
+`replace` 的第二个参数除了字符串，还可以是回调函数，参数依次为：完整匹配、各捕获组、匹配位置、原字符串。
 
-### **10.6 分组与引用**
+```js
+const text = '313-555-1234'
+const result = text.replace(
+  /(\d{3})-(\d{3})-(\d{4})/,
+  (match, p1, p2, p3, offset, str) => {
+    return `${p1}.${p2}.${p3}`
+  },
+)
+// 结果: "313.555.1234"
+```
 
-| 语法       | 名称                             | 描述                                                             |
-| :--------- | :------------------------------- | :--------------------------------------------------------------- | --------------------------------------------------------- |
-| `( )`      | 捕获分组 (Capturing Group)       | 将括号内的表达式作为一个整体，并**捕获**其匹配内容以便后续引用。 |
-| `\1`, `\2` | 反向引用 (Backreference)         | 匹配与第 `n` 个捕获组**完全相同**的文本。                        |
-| `(?: )`    | 非捕获分组 (Non-capturing Group) | 作为一个整体，但**不**捕获内容，不创建反向引用，效率更高。       |
-| `\|`       | 或 (Alternation)                 | 匹配 `                                                           | `左边或右边的表达式。例如`cat\|dog` 匹配 "cat" 或 "dog"。 |
+### 10.3 回溯与 ReDoS
 
-### **10.7 环视 / 零宽断言 (Lookarounds)**
+正则引擎用「回溯」来尝试不同的匹配路径。当存在多个贪婪量词嵌套时（如 `(a+)+$`、`(a|aa)+$`），对特定输入会触发「灾难性回溯」，导致 CPU 长时间占用甚至卡死。
 
-环视只匹配一个**位置**，它断言该位置前面或后面的内容符合某种模式，但这些内容**不会**成为最终匹配结果的一部分。
+```js
+// 危险示例：不要在生产环境对不可信输入执行这类正则
+const bad = /(a+)+$/
+bad.test('aaaaaaaaaaaaaaaaaaaaaaaaaaaa!') // 回溯次数随长度指数增长
+```
 
-| 语法       | 名称                           | 描述                                   |
-| :--------- | :----------------------------- | :------------------------------------- |
-| `(?=...)`  | 正向前瞻 (Positive Lookahead)  | 断言当前位置的**后面**能匹配 `...`。   |
-| `(?!...)`  | 负向前瞻 (Negative Lookahead)  | 断言当前位置的**后面不能**匹配 `...`。 |
-| `(?<=...)` | 正向后顾 (Positive Lookbehind) | 断言当前位置的**前面**能匹配 `...`。   |
-| `(?<!...)` | 负向后顾 (Negative Lookbehind) | 断言当前位置的**前面不能**匹配 `...`。 |
-
-### **10.8 模式修饰符 / 标志 (Flags)**
-
-这些标志写在整个正则表达式之外（例如 `/regex/gmi`），用来改变其全局行为。
-
-| 标志 | 名称                            | 描述                                         |
-| :--- | :------------------------------ | :------------------------------------------- |
-| `g`  | Global (全局)                   | 查找所有匹配项，而不是在找到第一个后就停止。 |
-| `i`  | Case-Insensitive (不区分大小写) | 进行忽略大小写的匹配。                       |
-| `m`  | Multiline (多行)                | 使 `^` 和 `$` 能够匹配每一行的开头和结尾。   |
-| `s`  | Dot All (单行)                  | 允许 `.` 匹配包括换行符在内的所有字符。      |
-
-### **10.9 实用示例**
-
-| 任务                    | 正则表达式                                                                                              | 解释                                                          |
-| :---------------------- | :------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------ | ----- | ----------------------- | -------- | ----- | ------------ | ------------------------------------------------ |
-| **验证邮箱**            | `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`                                                      | 检查基本的邮箱格式。                                          |
-| **匹配手机号(中国)**    | `^1[3-9]\d{9}$`                                                                                         | 匹配以1开头，第二位是3到9，总共11位的手机号。                 |
-| **匹配 URL**            | `https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)` | 匹配 `http` 或 `https` 协议的网址。                           |
-| **匹配 IP 地址 (IPv4)** | `\b((25[0-5]                                                                                            | 2[0-4]\d                                                      | 1\d\d | [1-9]?\d)\.){3}(25[0-5] | 2[0-4]\d | 1\d\d | [1-9]?\d)\b` | 匹配 0.0.0.0 到 255.255.255.255 之间的 IP 地址。 |
-| **移除 HTML 标签**      | `<.*?>`                                                                                                 | **(懒惰模式)** 查找并移除 HTML/XML 标签。                     |
-| **查找重复的单词**      | `\b(\w+)\s+\1\b`                                                                                        | 使用反向引用 `\1` 查找连续重复的单词。                        |
-| **整数千位分隔符**      | `(?<=\d)(?=(\d{3})+(?!\d))`                                                                             | **(使用环视)** 在需要加逗号的位置进行匹配（常用于替换操作）。 |
+**规避方法**：避免量词嵌套（`(a+)+`）、用字符类替代多分支重叠（`a|aa` → `a{1,2}`）、对长输入设置超时或长度上限。

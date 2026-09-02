@@ -551,7 +551,8 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                     text: '正则表达式',
                     collapsed: true, // 初始状态为“展开”
                     items: [
-                        {text: 'Regexp命令', link: '/regexp/regexp'},
+                        {text: '核心概念', link: '/regexp/regexp'},
+                        {text: '语法速查表', link: '/regexp/cheatsheet'},
                     ]
                 },
                 {

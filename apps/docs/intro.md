@@ -124,6 +124,7 @@ outline: [2, 3]
 - [类型挑战](/typescript/typeChallenges)：类型体操与复杂类型推导。
 - [tsconfig、声明文件与模块](/typescript/tsconfigDeclarationModule)：工程配置、声明文件和模块解析。
 - [正则表达式](/regexp/regexp)：字符、分组、断言、量词、回溯与实战匹配。
+- [正则表达式速查表](/regexp/cheatsheet)：语法、标志、JS 方法与常用模式速查。
 
 ## 5. 浏览器、网络与缓存
 
