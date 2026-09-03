@@ -341,6 +341,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             collapsed: true, // 初始状态为“展开”
                             items: [
                                 {text: '语义化标签', link: '/html/advanced/semanticHtml'},
+                                {text: 'Web 可访问性', link: '/html/advanced/accessibility'},
                                 {text: '多媒体元素', link: '/html/advanced/multimediaElements'},
                                 {text: '增强表单', link: '/html/advanced/enhancedForms'},
                                 {text: 'Canvas和Svg', link: '/html/advanced/canvasAndsvg'},
@@ -514,6 +515,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                 },
                                 {text: '严格模式', link: '/js/advanced/misc/strict'},
                                 {text: 'ArrayBuffer', link: '/js/advanced/misc/arrayBuffer'},
+                                {text: '错误处理', link: '/js/advanced/misc/errorHandling'},
                                 // {text: 'Decorator(装饰器)', link: '/js/advanced/misc/decorator'},
                                 // {text: '设计模式', link: '/js/advanced/misc/designPattern'},
                             ]
@@ -613,7 +615,23 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             collapsed: true, // 初始状态为“展开”
                             items: [
                                 {text: '浏览器渲染机制', link: '/networkAndBrowsers/browser/renderingProcess'},
-                                {text: 'Performance API 性能观测', link: '/networkAndBrowsers/browser/performanceApi'},
+                                {
+                                    text: 'Observer API 观察器',
+                                    collapsed: true,
+                                    items: [
+                                        {text: '总览', link: '/networkAndBrowsers/browser/observerApi/'},
+                                        {text: 'MutationObserver', link: '/networkAndBrowsers/browser/observerApi/mutationObserver'},
+                                        {text: 'IntersectionObserver', link: '/networkAndBrowsers/browser/observerApi/intersectionObserver'},
+                                        {text: 'ResizeObserver', link: '/networkAndBrowsers/browser/observerApi/resizeObserver'},
+                                        {text: 'PerformanceObserver', link: '/networkAndBrowsers/browser/observerApi/performanceApi'},
+                                        {text: 'ReportingObserver', link: '/networkAndBrowsers/browser/observerApi/reportingObserver'},
+                                    ]
+                                },
+                                {text: 'Web Streams', link: '/networkAndBrowsers/browser/webStreams'},
+                                {
+                                    text: '常用浏览器 API',
+                                    link: '/networkAndBrowsers/browser/browserApis'
+                                },
                                 {text: 'Web Components', link: '/networkAndBrowsers/browser/webComponents'},
                             ]
                         },
@@ -635,6 +653,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                         {text: 'ClickJacking 与 SameSite Cookie', link: '/webSecurity/clickJackingSameSite'},
                         {text: 'JWT / Cookie / Session', link: '/webSecurity/authStorageTradeoff'},
                         {text: 'OAuth2 / OIDC', link: '/webSecurity/oauthOidc'},
+                        {text: 'WebAuthn / Passkey', link: '/webSecurity/webauthnPasskey'},
                         {text: '敏感信息与供应链安全', link: '/webSecurity/sensitiveInfoSupplyChain'},
                         {text: '企业级鉴权与安全方案', link: '/webSecurity/enterpriseAuthSecurity'},
                     ]
@@ -900,6 +919,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                         {text: '组件的导入和导出', link: '/frameworks/react/basic/importAndExport'},
                                         {text: '组件通信', link: '/frameworks/react/basic/componentCommunication'},
                                         {text: '表单', link: '/frameworks/react/basic/form'},
+                                        {text: '错误边界', link: '/frameworks/react/basic/errorBoundary'},
                                         {text: '性能优化', link: '/frameworks/react/basic/performanceOptimization'},
                                         {text: '高阶组件', link: '/frameworks/react/basic/hoc'},
                                         {text: 'CSS样式工程化', link: '/frameworks/react/basic/style'},
@@ -992,6 +1012,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                                 {text: 'Context 机制', link: '/frameworks/react/advanced/core-design/contextPropagation'},
                                                 {text: '渲染器架构', link: '/frameworks/react/advanced/core-design/rendererArchitecture'},
                                                 {text: '并发特性 (Suspense & Hydration)', link: '/frameworks/react/advanced/core-design/suspenseOffscreenHydration'},
+                                                {text: 'React Server Components', link: '/frameworks/react/advanced/core-design/serverComponents'},
                                                 {text: 'React 编译器', link: '/frameworks/react/advanced/core-design/compiler'},
                                             ]
                                         },
@@ -1100,7 +1121,6 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             collapsed: true, // 初始状态为“展开”
                             items: [
                                 {text: '代码规范', link: '/frontEngineering/quality/linters'},
-                                {text: '错误处理', link: '/frontEngineering/quality/errorHandling'},
                                 {text: '自动化测试', link: '/frontEngineering/quality/testing'},
                                 {text: '异常与性能监控', link: '/frontEngineering/quality/performanceMonitoring'},
                             ]
@@ -1127,6 +1147,10 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                             link: '/frontEngineering/architecture/monorepoTasksVersioning'
                                         },
                                     ]
+                                },
+                                {
+                                    text: '前端架构中的状态分类',
+                                    link: '/frontEngineering/architecture/stateClassification'
                                 },
                                 {
                                     text: '微前端',

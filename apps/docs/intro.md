@@ -102,6 +102,7 @@ outline: [2, 3]
 - [原型](/js/advanced/class-inheritance/prototype)：原型对象与原型链。
 - [Class 基础](/js/advanced/class-inheritance/classBasic)：类语法与实例关系。
 - [Class 继承](/js/advanced/class-inheritance/classExtends)：extends、super 与继承链。
+- [错误处理](/js/advanced/misc/errorHandling)：异常捕获、降级和上报。
 
 ### 3.3 手写实现
 
@@ -145,7 +146,7 @@ outline: [2, 3]
 
 - [进程与线程](/networkAndBrowsers/process-model/processAndThread)：浏览器进程模型和线程职责。
 - [浏览器渲染流程](/networkAndBrowsers/browser/renderingProcess)：解析、样式、布局、绘制与合成。
-- [Performance API](/networkAndBrowsers/browser/performanceApi)：性能数据采集和指标分析。
+- [Performance API](/networkAndBrowsers/browser/observerApi/performanceApi)：性能数据采集和指标分析。
 - [Web Components](/networkAndBrowsers/browser/webComponents)：自定义元素、Shadow DOM 与组件封装。
 
 ### 5.3 缓存与请求治理
@@ -245,7 +246,6 @@ outline: [2, 3]
 - [npm 发布与 Changesets](/frontEngineering/package-management/npmPublishChangesets)：包发布、版本和变更日志。
 - [代码质量工具](/frontEngineering/quality/linters)：Lint、格式化和规范约束。
 - [测试](/frontEngineering/quality/testing)：单元测试、组件测试和测试策略。
-- [错误处理](/frontEngineering/quality/errorHandling)：异常捕获、降级和上报。
 - [工程化性能监控](/frontEngineering/quality/performanceMonitoring)：监控方案和指标采集。
 - [Vite](/frontEngineering/build-tools/bundlers/vite)、[Webpack](/frontEngineering/build-tools/bundlers/webpack)、[Rspack](/frontEngineering/build-tools/bundlers/rspack)、[Rollup](/frontEngineering/build-tools/library-bundling/rollup)、[Tsup](/frontEngineering/build-tools/library-bundling/tsup)：构建工具与库打包。
 - [Bundle 优化](/frontEngineering/build-tools/bundleOptimization)：产物分析与优化。
@@ -277,7 +277,7 @@ outline: [2, 3]
 
 - Web 基础：先阅读 [HTML 基本结构](/html/basic/htmlBasicStructure)、[盒模型](/css/basic/boxModel)、[执行上下文与调用栈](/js/basic/executionContextAndStack)、[闭包](/js/basic/closure)、[this](/js/basic/this)。
 - JS 进阶：继续阅读 [原型](/js/advanced/class-inheritance/prototype)、[Promise](/js/advanced/async/promise)、[Event Loop](/js/advanced/async/eventLoop)、[Promise 手写](/js/hand-writing/promiseHandleWriting)。
-- 浏览器与网络：阅读 [浏览器渲染流程](/networkAndBrowsers/browser/renderingProcess)、[HTTP](/networkAndBrowsers/http/http)、[浏览器缓存](/networkAndBrowsers/caching/browserCache)、[Performance API](/networkAndBrowsers/browser/performanceApi)。
+- 浏览器与网络：阅读 [浏览器渲染流程](/networkAndBrowsers/browser/renderingProcess)、[HTTP](/networkAndBrowsers/http/http)、[浏览器缓存](/networkAndBrowsers/caching/browserCache)、[Performance API](/networkAndBrowsers/browser/observerApi/performanceApi)。
 - 框架应用：选择 [Vue 介绍](/frameworks/vue/basic/intro) 或 [React 介绍](/frameworks/react/basic/intro) 进入框架基础，再补齐路由、状态管理和组件通信。
 - Vue 源码：从 [Vue 源码目录](/frameworks/vue/advanced/source-code/vueCatalog) 进入，按响应式、渲染器、调度器、编译器顺序阅读。
 - 工程化与性能：阅读 [工程化导览](/frontEngineering/intro)、[Vite](/frontEngineering/build-tools/bundlers/vite)、[Monorepo](/frontEngineering/architecture/monorepo)、[Core Web Vitals](/performanceOptimization/coreWebVitals)、[Bundle 分析](/performanceOptimization/bundleAnalysis)。
