@@ -2,6 +2,8 @@
 
 前端缓存并非单一的技术节点，而是一套贯穿**网络层、内存层、持久层与架构层**的多维状态治理体系。其核心挑战永远是计算机科学的两大难题之一：**缓存失效（Cache Invalidation）**。现代前端工程不仅追求“**加载快**”，更追求“**弱网可用**”、“**多端状态同步**”以及“**UI 响应的无缝衔接**”。
 
+> 相关：[浏览器缓存机制](/networkAndBrowsers/caching/browserCache) 详解强缓存与协商缓存；[Cookie 与浏览器存储](/networkAndBrowsers/browser/cookieAndStorage) 覆盖 Web Storage 与 IndexedDB。本文聚焦分层缓存的整体策略。
+
 ## 1. 缓存分层架构矩阵
 
 | 层级                              | 存储位置         | 生命周期                  | 容量限制          | 适用载荷                                  | 核心优势与致命风险                                                                            |

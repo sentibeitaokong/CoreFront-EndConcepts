@@ -21,12 +21,13 @@ outline: [2, 3]
 ### 2.1 HTML 与 Web API
 
 - [HTML 基本结构](/html/basic/htmlBasicStructure)：文档结构、基础标签与页面骨架。
+- [文档元数据 head](/html/basic/documentHead)：字符编码、viewport、SEO 与社交分享元信息。
 - [常用标签](/html/basic/commonTags)：语义标签、表格、表单、媒体等常用元素。
 - [DOM 属性](/html/basic/domAttributes)：DOM 属性、节点属性与常见操作。
+- [DOM 操作进阶](/html/basic/domManipulation)：现代节点操作、DocumentFragment 与性能优化。
 - [DOM 事件](/html/basic/domEvents)：事件模型、事件流、事件委托与事件对象。
 - [Ajax](/html/basic/ajax)：XHR、Fetch 与异步请求基础。
 - [async/defer 脚本](/html/basic/asyncScript)：脚本加载顺序与渲染阻塞。
-- [HTML5 新特性](/html/advanced/html5NewFeatures)：语义化标签和现代浏览器 API。
 - [语义化 HTML](/html/advanced/semanticHtml)：结构语义、可访问性和 SEO 基础。
 - [Web Storage](/html/advanced/webStorage)：localStorage、sessionStorage 与存储边界。
 - [History API](/html/advanced/history)：前端路由依赖的浏览器历史记录能力。
@@ -40,20 +41,25 @@ outline: [2, 3]
 
 - [选择器](/css/basic/selectors)：选择器类型、权重和匹配规则。
 - [继承](/css/basic/inheritance)：继承属性、默认值和层叠规则。
+- [层叠与特异性](/css/basic/cascadeAndSpecificity)：权重计算、层叠顺序与 !important。
 - [盒模型](/css/basic/boxModel)：标准盒模型、怪异盒模型与尺寸计算。
 - [文档流](/css/basic/documentFlow)：普通流、脱离文档流与布局影响。
 - [定位](/css/basic/position)：static、relative、absolute、fixed、sticky。
+- [溢出处理](/css/basic/overflow)：overflow 取值、单行/多行省略与滚动容器。
 - [浮动](/css/basic/float)：浮动布局、清除浮动和历史布局方案。
 - [Flex 布局](/css/advanced/layout/flexibleBox)：弹性容器、主轴交叉轴与响应式布局。
 - [Grid 布局](/css/advanced/layout/grid)：二维网格、轨道、区域和自动布局。
+- [居中方案](/css/advanced/layout/centering)：水平、垂直、水平垂直居中的完整方法。
 - [表格布局](/css/advanced/layout/tableLayout)：表格渲染模型与列宽控制。
 - [多列布局](/css/advanced/layout/multiColumn)：文本分栏与阅读型排版。
 - [媒体查询](/css/advanced/responsive/mediaQueries)：断点、设备适配和响应式规则。
 - [响应式单位](/css/advanced/responsive/units)：px、em、rem、vw、vh 等单位选择。
+- [移动端适配](/css/advanced/responsive/mobileAdaptation)：viewport、DPR、rem/vw 与 1px 边框。
 - [容器查询](/css/advanced/project/containerQueries)：基于容器尺寸的组件级响应式。
 - [CSS 变量](/css/advanced/project/variables)：自定义属性与主题能力。
 - [级联层](/css/advanced/project/cascadeLayer)：样式优先级治理。
 - [颜色](/css/advanced/visual-decoration/colors)、[渐变](/css/advanced/visual-decoration/gradients)、[阴影](/css/advanced/visual-decoration/boxShadow)、[文本效果](/css/advanced/visual-decoration/textEffects)：视觉表现基础。
+- [字体与图标](/css/advanced/visual-decoration/fonts)：@font-face、font-display 与图标方案。
 - [Transform](/css/advanced/animation-transform/transform)、[Transition](/css/advanced/animation-transform/transitions)、[Animation](/css/advanced/animation-transform/animations)：变换与动画。
 
 ### 2.3 JavaScript 基础
@@ -63,7 +69,6 @@ outline: [2, 3]
 - [包装类型](/js/basic/primitiveWrapperTypes)：原始值与包装对象。
 - [变量声明](/js/basic/variablesDeclare)：var、let、const 与作用域差异。
 - [解构赋值](/js/basic/variablesDestructuring)：数组、对象解构与默认值。
-- [相等判断](/js/basic/equal)：`==`、`===`、`Object.is` 与隐式转换。
 - [内存空间](/js/basic/memorySpace)：栈、堆与引用关系。
 - [执行上下文与调用栈](/js/basic/executionContextAndStack)：执行上下文、变量对象和栈模型。
 - [词法作用域](/js/basic/lexicalScope)：作用域链和标识符解析。
@@ -83,6 +88,7 @@ outline: [2, 3]
 - [字符串](/js/advanced/data-types/string)：字符串常用能力。
 - [数字](/js/advanced/data-types/number)：数值类型与精度问题。
 - [Set 与 Map](/js/advanced/data-types/setAndmap)：集合、映射与去重。
+- [Date 与 Intl](/js/advanced/data-types/dateAndIntl)：时间处理、时区与国际化格式化。
 - [正则对象](/js/advanced/data-types/regExp)：RegExp 对象与匹配。
 - [运算符](/js/advanced/data-types/operator)：常见运算符与表达式规则。
 - [Proxy](/js/advanced/metaprogramming/proxy)：代理拦截与对象操作定制。
@@ -103,6 +109,10 @@ outline: [2, 3]
 - [Class 基础](/js/advanced/class-inheritance/classBasic)：类语法与实例关系。
 - [Class 继承](/js/advanced/class-inheritance/classExtends)：extends、super 与继承链。
 - [错误处理](/js/advanced/misc/errorHandling)：异常捕获、降级和上报。
+- [URL 与 FormData](/js/advanced/misc/urlAndFormData)：解析地址、查询串与表单数据。
+- [Blob/File/FileReader](/js/advanced/misc/blobFileFileReader)：二进制数据、文件读取与分片上传。
+- [垃圾回收与内存泄漏](/js/advanced/misc/gcMemoryLeak)：V8 GC 机制与泄漏排查。
+- [requestAnimationFrame](/js/advanced/misc/requestAnimationFrame)：动画帧调度与空闲任务。
 
 ### 3.3 手写实现
 
@@ -110,7 +120,6 @@ outline: [2, 3]
 - [数组方法手写](/js/hand-writing/arrayHandleWriting)：常用数组 API 的实现思路。
 - [对象方法手写](/js/hand-writing/objectHandleWriting)：对象相关方法与工具函数。
 - [函数方法手写](/js/hand-writing/functionHandleWriting)：call、apply、bind 等函数能力。
-- [继承手写](/js/hand-writing/inherit)：原型继承、组合继承和寄生组合继承。
 - [高阶函数](/js/hand-writing/highLevelFunction)：柯里化、防抖、节流等函数增强。
 - [全局方法](/js/hand-writing/globalMethods)：常见全局 API 实现。
 - [Axios 手写](/js/hand-writing/axiosHandleWriting)：请求库核心流程模拟。
@@ -145,9 +154,10 @@ outline: [2, 3]
 ### 5.2 浏览器运行态
 
 - [进程与线程](/networkAndBrowsers/process-model/processAndThread)：浏览器进程模型和线程职责。
-- [浏览器渲染流程](/networkAndBrowsers/browser/renderingProcess)：解析、样式、布局、绘制与合成。
+- [从输入 URL 到页面渲染](/networkAndBrowsers/browser/renderingProcess)：网络阶段、渲染流程、回流重绘与性能优化。
 - [Performance API](/networkAndBrowsers/browser/observerApi/performanceApi)：性能数据采集和指标分析。
 - [Web Components](/networkAndBrowsers/browser/webComponents)：自定义元素、Shadow DOM 与组件封装。
+- [Cookie 与浏览器存储](/networkAndBrowsers/browser/cookieAndStorage)：Cookie、Web Storage、IndexedDB 对比。
 
 ### 5.3 缓存与请求治理
 
@@ -155,6 +165,7 @@ outline: [2, 3]
 - [前端缓存策略](/networkAndBrowsers/caching/frontendCacheStrategy)：静态资源、接口数据和本地缓存设计。
 - [Service Worker 与 PWA](/networkAndBrowsers/caching/serviceWorkerPwa)：离线缓存和请求代理。
 - [API 风格](/networkAndBrowsers/api/apiStyles)：REST、GraphQL、RPC 等接口风格。
+- [Fetch API](/networkAndBrowsers/api/fetch)：Promise 化请求、取消与流式读取。
 - [请求治理](/networkAndBrowsers/api/requestGovernance)：超时、重试、取消、并发和幂等处理。
 
 ## 6. Web 安全
@@ -178,8 +189,8 @@ outline: [2, 3]
 - [CSS 性能](/performanceOptimization/cssPerformance)：选择器、布局、重绘重排与合成层。
 - [JS 执行优化](/performanceOptimization/jsExecution)：长任务、主线程阻塞和任务拆分。
 - [虚拟列表](/performanceOptimization/virtualList)：大列表渲染与窗口化。
-- [Bundle 分析](/performanceOptimization/bundleAnalysis)：依赖体积、代码拆分和 Tree Shaking。
-- [性能监控](/performanceOptimization/performanceMonitoring)：指标采集、上报和性能闭环。
+- [Bundle 优化](/frontEngineering/build-tools/bundleOptimization)：Tree Shaking、代码分割与依赖体积治理。
+- [性能监控](/frontEngineering/quality/performanceMonitoring)：指标采集、上报、预算与治理闭环。
 
 ## 8. Vue、React 与组件库
 
@@ -243,8 +254,10 @@ outline: [2, 3]
 - [CSS 工程化](/frontEngineering/module-component/cssProject)：样式模块化与工程组织。
 - [包管理器](/frontEngineering/package-management/packageManagers)：npm、pnpm、yarn 等包管理方案。
 - [package.json](/frontEngineering/package-management/packageJson)：包配置字段和依赖管理。
+- [环境变量](/frontEngineering/package-management/environmentVariables)：多环境配置与安全红线。
 - [npm 发布与 Changesets](/frontEngineering/package-management/npmPublishChangesets)：包发布、版本和变更日志。
 - [代码质量工具](/frontEngineering/quality/linters)：Lint、格式化和规范约束。
+- [Git Hooks 工具链](/frontEngineering/quality/gitHooks)：husky、lint-staged 与 commitlint。
 - [测试](/frontEngineering/quality/testing)：单元测试、组件测试和测试策略。
 - [工程化性能监控](/frontEngineering/quality/performanceMonitoring)：监控方案和指标采集。
 - [Vite](/frontEngineering/build-tools/bundlers/vite)、[Webpack](/frontEngineering/build-tools/bundlers/webpack)、[Rspack](/frontEngineering/build-tools/bundlers/rspack)、[Rollup](/frontEngineering/build-tools/library-bundling/rollup)、[Tsup](/frontEngineering/build-tools/library-bundling/tsup)：构建工具与库打包。
@@ -275,12 +288,14 @@ outline: [2, 3]
 
 ## 11. 推荐学习路径
 
+> 完整可视化路线见 [学习路线图](/roadmap)，按九个阶段从基础概念递进到源码、算法与浏览器底层。
+
 - Web 基础：先阅读 [HTML 基本结构](/html/basic/htmlBasicStructure)、[盒模型](/css/basic/boxModel)、[执行上下文与调用栈](/js/basic/executionContextAndStack)、[闭包](/js/basic/closure)、[this](/js/basic/this)。
 - JS 进阶：继续阅读 [原型](/js/advanced/class-inheritance/prototype)、[Promise](/js/advanced/async/promise)、[Event Loop](/js/advanced/async/eventLoop)、[Promise 手写](/js/hand-writing/promiseHandleWriting)。
 - 浏览器与网络：阅读 [浏览器渲染流程](/networkAndBrowsers/browser/renderingProcess)、[HTTP](/networkAndBrowsers/http/http)、[浏览器缓存](/networkAndBrowsers/caching/browserCache)、[Performance API](/networkAndBrowsers/browser/observerApi/performanceApi)。
 - 框架应用：选择 [Vue 介绍](/frameworks/vue/basic/intro) 或 [React 介绍](/frameworks/react/basic/intro) 进入框架基础，再补齐路由、状态管理和组件通信。
 - Vue 源码：从 [Vue 源码目录](/frameworks/vue/advanced/source-code/vueCatalog) 进入，按响应式、渲染器、调度器、编译器顺序阅读。
-- 工程化与性能：阅读 [工程化导览](/frontEngineering/intro)、[Vite](/frontEngineering/build-tools/bundlers/vite)、[Monorepo](/frontEngineering/architecture/monorepo)、[Core Web Vitals](/performanceOptimization/coreWebVitals)、[Bundle 分析](/performanceOptimization/bundleAnalysis)。
+- 工程化与性能：阅读 [工程化导览](/frontEngineering/intro)、[Vite](/frontEngineering/build-tools/bundlers/vite)、[Monorepo](/frontEngineering/architecture/monorepo)、[Core Web Vitals](/performanceOptimization/coreWebVitals)、[Bundle 优化](/frontEngineering/build-tools/bundleOptimization)。
 - 抽象能力：阅读 [设计模式总结](/designPatterns/summary/patternSummarize)、[复杂度分析](/dataStructuresAndAlgorithms/algorithms/algorithmComplexity)、[树](/dataStructuresAndAlgorithms/data-structures/tree)、[动态规划](/dataStructuresAndAlgorithms/algorithms/dynamicProgramming)。
 
 ## 12. 实践入口

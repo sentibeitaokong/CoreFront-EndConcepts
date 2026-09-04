@@ -4,6 +4,8 @@
 
 **战术纪律**：当前页面立刻要用的资源，使用 `preload` 抢占；未来极大概率要用的资源，使用 `prefetch` 捡漏；第三方跨域的关键域名，使用 `preconnect` 铺路。精准克制，绝不滥用。
 
+> 相关：[浏览器缓存机制](/networkAndBrowsers/caching/browserCache) 与 [前端缓存策略](/networkAndBrowsers/caching/frontendCacheStrategy) 从缓存视角补充资源加载的复用策略。
+
 ## 1. 浏览器资源调度链路
 
 现代浏览器极其聪明，但它再聪明也需要时间去解析和推断。理解浏览器的内部调度链路，是你介入优先级控制的前提：

@@ -1,5 +1,7 @@
 # 浏览器缓存机制
 
+> 相关：[前端缓存策略](/networkAndBrowsers/caching/frontendCacheStrategy) 从分层架构视角看待缓存；[资源加载优化](/performanceOptimization/resourceLoading) 结合预加载与缓存命中。本文聚焦 HTTP 强缓存与协商缓存。
+
 ## 1. 什么是浏览器缓存？为什么要缓存？
 
 **浏览器缓存（Browser Caching）** 是指浏览器在本地磁盘或内存中保存用户最近请求过的网络资源（如 HTML、CSS、JavaScript 文件、图片等），当用户再次访问该资源时，浏览器可以直接从本地读取，而无需再次向服务器发起网络请求。

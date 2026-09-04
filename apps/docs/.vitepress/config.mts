@@ -318,6 +318,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                     collapsed: true, // 初始状态为“展开”
                     items: [
                         {text: '前端知识体系介绍', link: '/intro'},
+                        {text: '学习路线图', link: '/roadmap'},
                     ]
                 },
                 {
@@ -329,8 +330,10 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             collapsed: true, // 初始状态为“展开”
                             items: [
                                 {text: '基础结构', link: '/html/basic/htmlBasicStructure'},
+                                {text: '文档元数据 head', link: '/html/basic/documentHead'},
                                 {text: '常用标签', link: '/html/basic/commonTags'},
                                 {text: 'Dom元素', link: '/html/basic/domAttributes'},
+                                {text: 'Dom操作进阶', link: '/html/basic/domManipulation'},
                                 {text: 'Dom事件流', link: '/html/basic/domEvents'},
                                 {text: '异步脚本加载', link: '/html/basic/asyncScript'},
                                 {text: 'ajax请求', link: '/html/basic/ajax'},
@@ -367,9 +370,11 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             items: [
                                 {text: '选择器', link: '/css/basic/selectors'},
                                 {text: '继承', link: '/css/basic/inheritance'},
+                                {text: '层叠与特异性', link: '/css/basic/cascadeAndSpecificity'},
                                 {text: '盒模型', link: '/css/basic/boxModel'},
                                 {text: '文档流', link: '/css/basic/documentFlow'},
                                 {text: '定位', link: '/css/basic/position'},
+                                {text: '溢出处理', link: '/css/basic/overflow'},
                                 {text: '浮动', link: '/css/basic/float'},
                             ]
                         },
@@ -389,6 +394,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                             link: '/css/advanced/visual-decoration/backgroundEnhancement'
                                         },
                                         {text: '文字效果', link: '/css/advanced/visual-decoration/textEffects'},
+                                        {text: '字体与图标', link: '/css/advanced/visual-decoration/fonts'},
                                         {text: '颜色', link: '/css/advanced/visual-decoration/colors'},
                                     ]
                                 },
@@ -400,6 +406,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                         {text: 'Table表格布局', link: '/css/advanced/layout/tableLayout'},
                                         {text: 'Flex弹性布局', link: '/css/advanced/layout/flexibleBox'},
                                         {text: 'Grid栅格布局', link: '/css/advanced/layout/grid'},
+                                        {text: '居中方案', link: '/css/advanced/layout/centering'},
                                     ]
                                 },
                                 {
@@ -417,6 +424,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                     items: [
                                         {text: '媒体查询', link: '/css/advanced/responsive/mediaQueries'},
                                         {text: '单位', link: '/css/advanced/responsive/units'},
+                                        {text: '移动端适配', link: '/css/advanced/responsive/mobileAdaptation'},
                                     ]
                                 },
                                 {
@@ -473,6 +481,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                         {text: '对象的扩展', link: '/js/advanced/data-types/object'},
                                         {text: '运算符的扩展', link: '/js/advanced/data-types/operator'},
                                         {text: 'Set和Map数据结构', link: '/js/advanced/data-types/setAndmap'},
+                                        {text: 'Date与Intl', link: '/js/advanced/data-types/dateAndIntl'},
                                     ]
                                 },
                                 {
@@ -515,7 +524,11 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                 },
                                 {text: '严格模式', link: '/js/advanced/misc/strict'},
                                 {text: 'ArrayBuffer', link: '/js/advanced/misc/arrayBuffer'},
+                                {text: 'Blob/File/FileReader', link: '/js/advanced/misc/blobFileFileReader'},
                                 {text: '错误处理', link: '/js/advanced/misc/errorHandling'},
+                                {text: 'URL与FormData', link: '/js/advanced/misc/urlAndFormData'},
+                                {text: '垃圾回收与内存泄漏', link: '/js/advanced/misc/gcMemoryLeak'},
+                                {text: 'requestAnimationFrame', link: '/js/advanced/misc/requestAnimationFrame'},
                                 // {text: 'Decorator(装饰器)', link: '/js/advanced/misc/decorator'},
                                 // {text: '设计模式', link: '/js/advanced/misc/designPattern'},
                             ]
@@ -540,13 +553,25 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                     text: 'Typescript',
                     collapsed: true, // 初始状态为“展开”
                     items: [
-                        {text: '类型基础', link: '/typescript/basicTypes'},
-                        {text: '泛型', link: '/typescript/generics'},
-                        {text: '类型收窄', link: '/typescript/narrowing'},
-                        {text: '高级类型', link: '/typescript/advancedTypes'},
-                        {text: '工具类型', link: '/typescript/utilityTypes'},
-                        {text: '类型体操', link: '/typescript/typeChallenges'},
-                        {text: 'TS 工程配置', link: '/typescript/tsconfigDeclarationModule'},
+                        {
+                            text: '基础',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '类型基础', link: '/typescript/basicTypes'},
+                                {text: '泛型', link: '/typescript/generics'},
+                                {text: '类型收窄', link: '/typescript/narrowing'},
+                            ]
+                        },
+                        {
+                            text: '进阶',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '高级类型', link: '/typescript/advancedTypes'},
+                                {text: '工具类型', link: '/typescript/utilityTypes'},
+                                {text: '类型体操', link: '/typescript/typeChallenges'},
+                                {text: 'TS 工程配置', link: '/typescript/tsconfigDeclarationModule'},
+                            ]
+                        },
                     ]
                 },
                 {
@@ -555,6 +580,28 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                     items: [
                         {text: '核心概念', link: '/regexp/regexp'},
                         {text: '语法速查表', link: '/regexp/cheatsheet'},
+                    ]
+                },
+                {
+                    text: 'Git',
+                    collapsed: true, // 初始状态为“展开”
+                    items: [
+                        {
+                            text: '基础',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '核心概念', link: '/git/git'},
+                                {text: '命令速查', link: '/git/commands'},
+                            ]
+                        },
+                        {
+                            text: '进阶',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '应用场景', link: '/git/scenarios'},
+                                {text: '分支工作流', link: '/git/branchWorkflow'},
+                            ]
+                        },
                     ]
                 },
                 {
@@ -598,6 +645,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             collapsed: true, // 初始状态为“展开”
                             items: [
                                 {text: 'API设计风格', link: '/networkAndBrowsers/api/apiStyles'},
+                                {text: 'Fetch API', link: '/networkAndBrowsers/api/fetch'},
                                 {text: '请求治理', link: '/networkAndBrowsers/api/requestGovernance'},
                             ]
                         },
@@ -614,7 +662,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             text: '浏览器运行机制',
                             collapsed: true, // 初始状态为“展开”
                             items: [
-                                {text: '浏览器渲染机制', link: '/networkAndBrowsers/browser/renderingProcess'},
+                                {text: '从输入 URL 到页面渲染', link: '/networkAndBrowsers/browser/renderingProcess'},
                                 {
                                     text: 'Observer API 观察器',
                                     collapsed: true,
@@ -628,6 +676,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                     ]
                                 },
                                 {text: 'Web Streams', link: '/networkAndBrowsers/browser/webStreams'},
+                                {text: 'Cookie与浏览器存储', link: '/networkAndBrowsers/browser/cookieAndStorage'},
                                 {
                                     text: '常用浏览器 API',
                                     link: '/networkAndBrowsers/browser/browserApis'
@@ -1072,6 +1121,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             items: [
                                 {text: '包管理器', link: '/frontEngineering/package-management/packageManagers'},
                                 {text: 'package.json', link: '/frontEngineering/package-management/packageJson'},
+                                {text: '环境变量', link: '/frontEngineering/package-management/environmentVariables'},
                                 {
                                     text: 'npm 发布',
                                     link: '/frontEngineering/package-management/npmPublishChangesets'
@@ -1093,10 +1143,6 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                         {text: 'Gulp', link: '/frontEngineering/build-tools/bundlers/gulp'},
                                         {text: 'Parcel', link: '/frontEngineering/build-tools/bundlers/parcel'},
                                     ]
-                                },
-                                {
-                                    text: '产物构建优化',
-                                    link: '/frontEngineering/build-tools/bundleOptimization'
                                 },
                                 {
                                     text: '编译与打包引擎',
@@ -1121,6 +1167,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             collapsed: true, // 初始状态为“展开”
                             items: [
                                 {text: '代码规范', link: '/frontEngineering/quality/linters'},
+                                {text: 'Git Hooks 工具链', link: '/frontEngineering/quality/gitHooks'},
                                 {text: '自动化测试', link: '/frontEngineering/quality/testing'},
                                 {text: '异常与性能监控', link: '/frontEngineering/quality/performanceMonitoring'},
                             ]
@@ -1176,54 +1223,99 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                     text: '性能优化',
                     collapsed: true, // 初始状态为“展开”
                     items: [
-                        {text: 'Core Web Vitals', link: '/performanceOptimization/coreWebVitals'},
-                        {text: '首屏优化', link: '/performanceOptimization/firstScreen'},
-                        {text: '资源加载优化', link: '/performanceOptimization/resourceLoading'},
-                        {text: '图片优化', link: '/performanceOptimization/imageOptimization'},
-                        {text: 'JS 优化', link: '/performanceOptimization/jsExecution'},
-                        {text: 'CSS 优化', link: '/performanceOptimization/cssPerformance'},
-                        {text: '虚拟列表', link: '/performanceOptimization/virtualList'},
-                        {text: 'Bundle 优化', link: '/performanceOptimization/bundleAnalysis'},
-                        {text: '性能监控', link: '/performanceOptimization/performanceMonitoring'},
-                    ]
-                },
-                {
-                    text: 'Git',
-                    collapsed: true, // 初始状态为“展开”
-                    items: [
-                        {text: '核心概念', link: '/git/git'},
-                        {text: '命令速查', link: '/git/commands'},
-                        {text: '应用场景', link: '/git/scenarios'},
+                        {
+                            text: '指标与监控',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: 'Core Web Vitals', link: '/performanceOptimization/coreWebVitals'},
+                                {text: '性能监控', link: '/frontEngineering/quality/performanceMonitoring'},
+                            ]
+                        },
+                        {
+                            text: '加载优化',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '首屏优化', link: '/performanceOptimization/firstScreen'},
+                                {text: '资源加载优化', link: '/performanceOptimization/resourceLoading'},
+                                {text: '图片优化', link: '/performanceOptimization/imageOptimization'},
+                            ]
+                        },
+                        {
+                            text: '运行时优化',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: 'JS 优化', link: '/performanceOptimization/jsExecution'},
+                                {text: 'CSS 优化', link: '/performanceOptimization/cssPerformance'},
+                                {text: '虚拟列表', link: '/performanceOptimization/virtualList'},
+                            ]
+                        },
+                        {
+                            text: '构建优化',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: 'Bundle 优化', link: '/frontEngineering/build-tools/bundleOptimization'},
+                            ]
+                        },
                     ]
                 },
                 {
                     text: '设计模式与架构模式',
                     collapsed: true, // 初始状态为“展开”
                     items: [
-                        {text: '单例模式', link: '/designPatterns/creational/singletonPattern'},
-                        {text: '工厂模式', link: '/designPatterns/creational/factoryPattern'},
-                        {text: '构造器模式', link: '/designPatterns/creational/constructorPattern'},
-                        {text: '原型模式', link: '/designPatterns/creational/prototypePattern'},
-                        {text: '策略模式', link: '/designPatterns/behavioral/strategyPattern'},
-                        {text: '状态模式', link: '/designPatterns/behavioral/statePattern'},
-                        {text: '模块模式', link: '/designPatterns/behavioral/modulePattern'},
-                        {text: '代理模式', link: '/designPatterns/structural/proxyPattern'},
-                        {text: '装饰器模式', link: '/designPatterns/structural/decoratorPattern'},
-                        {text: '适配器模式', link: '/designPatterns/structural/adapterPattern'},
-                        {text: '迭代器模式', link: '/designPatterns/behavioral/iteratorPattern'},
-                        {text: '发布订阅模式', link: '/designPatterns/behavioral/pubSubPattern'},
-                        {text: '观察者模式', link: '/designPatterns/behavioral/observerPattern'},
-                        {text: '中介者模式', link: '/designPatterns/behavioral/mediatorPattern'},
-                        {text: '外观模式', link: '/designPatterns/structural/facadePattern'},
-                        {text: '命令模式', link: '/designPatterns/behavioral/commandPattern'},
-                        {text: '组合模式', link: '/designPatterns/structural/compositePattern'},
-                        {text: '享元模式', link: '/designPatterns/structural/flyweightPattern'},
-                        {text: '模板方法模式', link: '/designPatterns/behavioral/templateMethodPattern'},
-                        {text: '职责链模式', link: '/designPatterns/behavioral/chainofResponsibilityPattern'},
-                        {text: 'MVC模式', link: '/designPatterns/architecture/MVC'},
-                        {text: 'MVVM模式', link: '/designPatterns/architecture/MVVM'},
-                        {text: '核心原则', link: '/designPatterns/summary/patternPrinciple'},
-                        {text: '总结', link: '/designPatterns/summary/patternSummarize'},
+                        {
+                            text: '总结与原则',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '设计模式总结', link: '/designPatterns/summary/patternSummarize'},
+                                {text: '核心原则', link: '/designPatterns/summary/patternPrinciple'},
+                            ]
+                        },
+                        {
+                            text: '创建型模式',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '构造器模式', link: '/designPatterns/creational/constructorPattern'},
+                                {text: '工厂模式', link: '/designPatterns/creational/factoryPattern'},
+                                {text: '单例模式', link: '/designPatterns/creational/singletonPattern'},
+                                {text: '原型模式', link: '/designPatterns/creational/prototypePattern'},
+                            ]
+                        },
+                        {
+                            text: '结构型模式',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '适配器模式', link: '/designPatterns/structural/adapterPattern'},
+                                {text: '装饰器模式', link: '/designPatterns/structural/decoratorPattern'},
+                                {text: '代理模式', link: '/designPatterns/structural/proxyPattern'},
+                                {text: '外观模式', link: '/designPatterns/structural/facadePattern'},
+                                {text: '组合模式', link: '/designPatterns/structural/compositePattern'},
+                                {text: '享元模式', link: '/designPatterns/structural/flyweightPattern'},
+                            ]
+                        },
+                        {
+                            text: '行为型模式',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: '观察者模式', link: '/designPatterns/behavioral/observerPattern'},
+                                {text: '发布订阅模式', link: '/designPatterns/behavioral/pubSubPattern'},
+                                {text: '策略模式', link: '/designPatterns/behavioral/strategyPattern'},
+                                {text: '状态模式', link: '/designPatterns/behavioral/statePattern'},
+                                {text: '命令模式', link: '/designPatterns/behavioral/commandPattern'},
+                                {text: '迭代器模式', link: '/designPatterns/behavioral/iteratorPattern'},
+                                {text: '中介者模式', link: '/designPatterns/behavioral/mediatorPattern'},
+                                {text: '模板方法模式', link: '/designPatterns/behavioral/templateMethodPattern'},
+                                {text: '职责链模式', link: '/designPatterns/behavioral/chainofResponsibilityPattern'},
+                                {text: '模块模式', link: '/designPatterns/behavioral/modulePattern'},
+                            ]
+                        },
+                        {
+                            text: '架构模式',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {text: 'MVC模式', link: '/designPatterns/architecture/MVC'},
+                                {text: 'MVVM模式', link: '/designPatterns/architecture/MVVM'},
+                            ]
+                        },
                     ]
                 },
                 {

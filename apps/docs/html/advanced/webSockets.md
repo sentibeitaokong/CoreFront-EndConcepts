@@ -3,6 +3,8 @@
 传统的 HTTP 协议是“请求-响应”模式，客户端不问，服务器就不答。
 **WebSocket** 的出现打破了这一限制。它建立了一条**全双工 (Full-duplex)** 的持久连接，服务器可以主动向客户端推送数据。这使得实时聊天、股票行情、在线游戏成为可能。
 
+> 相关：[WebSocket vs SSE vs WebRTC](/networkAndBrowsers/realtime/realtimeCommunication) 从协议选型角度对比三种实时方案；本文聚焦 WebSocket 的 API 级用法。
+
 ## 1. 核心 API 速查
 
 WebSocket 的 API 设计非常简洁，核心只有一个 `WebSocket` 对象。
