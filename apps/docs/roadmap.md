@@ -84,7 +84,7 @@ flowchart TD
 让代码可维护、可交付、可规模化。
 
 - **模块与包**：[模块化](/frontEngineering/module-component/modules) → [包管理器](/frontEngineering/package-management/packageManagers) → [package.json](/frontEngineering/package-management/packageJson)。
-- **构建**：[Vite](/frontEngineering/build-tools/bundlers/vite) → [Webpack](/frontEngineering/build-tools/bundlers/webpack) → [Bundle 优化](/frontEngineering/build-tools/bundleOptimization)。
+- **构建**：[Vite](/frontEngineering/build-tools/bundlers/vite) → [Webpack](/frontEngineering/build-tools/bundlers/webpack)。
 - **质量**：[代码规范](/frontEngineering/quality/linters) → [Git Hooks](/frontEngineering/quality/gitHooks) → [测试](/frontEngineering/quality/testing)。
 - **部署与架构**：[CI/CD](/frontEngineering/ci-cd/ciCd) → [多环境](/frontEngineering/ci-cd/deploymentEnvironments) → [Monorepo](/frontEngineering/architecture/monorepo) → [微前端](/frontEngineering/architecture/microFrontend)。
 

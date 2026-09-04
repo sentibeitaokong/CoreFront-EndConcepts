@@ -189,7 +189,6 @@ outline: [2, 3]
 - [CSS 性能](/performanceOptimization/cssPerformance)：选择器、布局、重绘重排与合成层。
 - [JS 执行优化](/performanceOptimization/jsExecution)：长任务、主线程阻塞和任务拆分。
 - [虚拟列表](/performanceOptimization/virtualList)：大列表渲染与窗口化。
-- [Bundle 优化](/frontEngineering/build-tools/bundleOptimization)：Tree Shaking、代码分割与依赖体积治理。
 - [性能监控](/frontEngineering/quality/performanceMonitoring)：指标采集、上报、预算与治理闭环。
 
 ## 8. Vue、React 与组件库
@@ -261,7 +260,6 @@ outline: [2, 3]
 - [测试](/frontEngineering/quality/testing)：单元测试、组件测试和测试策略。
 - [工程化性能监控](/frontEngineering/quality/performanceMonitoring)：监控方案和指标采集。
 - [Vite](/frontEngineering/build-tools/bundlers/vite)、[Webpack](/frontEngineering/build-tools/bundlers/webpack)、[Rspack](/frontEngineering/build-tools/bundlers/rspack)、[Rollup](/frontEngineering/build-tools/library-bundling/rollup)、[Tsup](/frontEngineering/build-tools/library-bundling/tsup)：构建工具与库打包。
-- [Bundle 优化](/frontEngineering/build-tools/bundleOptimization)：产物分析与优化。
 - [Source Map](/frontEngineering/build-tools/sourceMap)：源码映射和线上问题定位。
 - [CI/CD](/frontEngineering/ci-cd/ciCd)、[部署环境](/frontEngineering/ci-cd/deploymentEnvironments)：自动化交付与环境治理。
 
@@ -295,7 +293,7 @@ outline: [2, 3]
 - 浏览器与网络：阅读 [浏览器渲染流程](/networkAndBrowsers/browser/renderingProcess)、[HTTP](/networkAndBrowsers/http/http)、[浏览器缓存](/networkAndBrowsers/caching/browserCache)、[Performance API](/networkAndBrowsers/browser/observerApi/performanceApi)。
 - 框架应用：选择 [Vue 介绍](/frameworks/vue/basic/intro) 或 [React 介绍](/frameworks/react/basic/intro) 进入框架基础，再补齐路由、状态管理和组件通信。
 - Vue 源码：从 [Vue 源码目录](/frameworks/vue/advanced/source-code/vueCatalog) 进入，按响应式、渲染器、调度器、编译器顺序阅读。
-- 工程化与性能：阅读 [工程化导览](/frontEngineering/intro)、[Vite](/frontEngineering/build-tools/bundlers/vite)、[Monorepo](/frontEngineering/architecture/monorepo)、[Core Web Vitals](/performanceOptimization/coreWebVitals)、[Bundle 优化](/frontEngineering/build-tools/bundleOptimization)。
+- 工程化与性能：阅读 [工程化导览](/frontEngineering/intro)、[Vite](/frontEngineering/build-tools/bundlers/vite)、[Monorepo](/frontEngineering/architecture/monorepo)、[Core Web Vitals](/performanceOptimization/coreWebVitals)。
 - 抽象能力：阅读 [设计模式总结](/designPatterns/summary/patternSummarize)、[复杂度分析](/dataStructuresAndAlgorithms/algorithms/algorithmComplexity)、[树](/dataStructuresAndAlgorithms/data-structures/tree)、[动态规划](/dataStructuresAndAlgorithms/algorithms/dynamicProgramming)。
 
 ## 12. 实践入口

@@ -1228,7 +1228,6 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             collapsed: true, // 初始状态为“展开”
                             items: [
                                 {text: 'Core Web Vitals', link: '/performanceOptimization/coreWebVitals'},
-                                {text: '性能监控', link: '/frontEngineering/quality/performanceMonitoring'},
                             ]
                         },
                         {
@@ -1247,13 +1246,6 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                 {text: 'JS 优化', link: '/performanceOptimization/jsExecution'},
                                 {text: 'CSS 优化', link: '/performanceOptimization/cssPerformance'},
                                 {text: '虚拟列表', link: '/performanceOptimization/virtualList'},
-                            ]
-                        },
-                        {
-                            text: '构建优化',
-                            collapsed: true, // 初始状态为“展开”
-                            items: [
-                                {text: 'Bundle 优化', link: '/frontEngineering/build-tools/bundleOptimization'},
                             ]
                         },
                     ]
