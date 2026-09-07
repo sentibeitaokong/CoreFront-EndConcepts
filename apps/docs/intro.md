@@ -23,8 +23,7 @@ outline: [2, 3]
 - [HTML 基本结构](/html/basic/htmlBasicStructure)：文档结构、基础标签与页面骨架。
 - [文档元数据 head](/html/basic/documentHead)：字符编码、viewport、SEO 与社交分享元信息。
 - [常用标签](/html/basic/commonTags)：语义标签、表格、表单、媒体等常用元素。
-- [DOM 属性](/html/basic/domAttributes)：DOM 属性、节点属性与常见操作。
-- [DOM 操作进阶](/html/basic/domManipulation)：现代节点操作、DocumentFragment 与性能优化。
+- [DOM 操作](/html/basic/dom)：节点选择、属性操作、现代节点操作、DocumentFragment 与性能优化。
 - [DOM 事件](/html/basic/domEvents)：事件模型、事件流、事件委托与事件对象。
 - [Ajax](/html/basic/ajax)：XHR、Fetch 与异步请求基础。
 - [async/defer 脚本](/html/basic/asyncScript)：脚本加载顺序与渲染阻塞。

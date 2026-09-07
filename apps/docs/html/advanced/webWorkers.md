@@ -124,7 +124,7 @@ Worker 通信有两种数据传输方式，性能差异巨大。
 
 ### 3.2 转移所有权 (Transferable Objects) —— 高性能
 
-对于二进制数据（`ArrayBuffer`, `MessagePort`, `ImageBitmap`），可以使用“零拷贝”转移。
+对于二进制数据（`ArrayBuffer`, `MessagePort`, `ImageBitmap`），可以使用“**零拷贝**”转移。
 
 - **特点**：数据的所有权瞬间转移给 Worker。
 - **后果**：**主线程里的这个变量会瞬间变成空（不可用）**。
@@ -226,11 +226,11 @@ const worker = new Worker(new URL('./worker.js', import.meta.url), {
 
 Worker 是独立的线程，不在常规的 Console 里。
 
-1.  打开 Chrome DevTools。
-2.  点击 **Sources** (源代码) 面板。
-3.  在左侧列表中，你会看到一个 **Threads** (线程) 区域，或者在 `top` 下方看到你的 worker 文件。
-4.  你可以像调试普通 JS 一样在里面打断点。
-5.  _提示_：Worker 内部的 `console.log` 会输出到主线程的控制台。
+- 打开 Chrome DevTools。
+- 点击 **Sources** (源代码) 面板。
+- 在左侧列表中，你会看到一个 **Threads** (线程) 区域，或者在 `top` 下方看到你的 worker 文件。
+- 你可以像调试普通 JS 一样在里面打断点。
+- _提示_：Worker 内部的 `console.log` 会输出到主线程的控制台。
 
 ### 5.5 Worker 越多越好吗？
 

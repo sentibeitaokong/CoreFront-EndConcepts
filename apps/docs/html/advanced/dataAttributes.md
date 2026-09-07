@@ -1,20 +1,19 @@
 # HTML 自定义数据属性 `data-*`
 
-HTML5 引入了自定义数据属性 `data-*`，它允许开发者在标准的 HTML 元素上存储额外的信息，而无需借助其他非标准属性或在 DOM 上附加额外属性。 这种机制为在 HTML 和 JavaScript 之间交换私有数据提供了便利，从而能够创建更具吸引力的用户体验，而无需进行 Ajax 调用或服务器端数据库查询。
+HTML5 引入的自定义数据属性 `data-*`，允许开发者在标准 HTML 元素上**存储额外的私有数据**，无需借助非标准属性或在 DOM 上挂额外字段。它为「HTML 与 JavaScript 之间传递数据」提供了标准化的通道，常用于组件配置、事件委托、状态标记等场景。
 
-## 1. `data-*` 属性是什么？
+## 1. 语法规则
 
-`data-*` 属性是一类特殊的属性，它们被设计用来存储页面或应用程序的私有自定义数据。 用户代理（浏览器）会完全忽略这些属性，这意味着它们不会对页面的渲染产生任何影响。
+### 1.1 命名规则
 
-### 1.1 语法
+`data-*` 属性名需满足以下规则：
 
-`data-*` 属性的语法非常简单：
-
-- **前缀:** 属性名必须以 `data-` 开头。
-- **名称:** `data-` 后面的部分可以由一个或多个小写字母、数字、连字符、点、冒号或下划线组成。不过，为了与 `dataset` API 更好地协作，建议使用连字符分隔的名称（kebab-case）。
-- **值:** 属性值可以是任何字符串。
-
-**示例：**
+| 规则       | 说明                                                                                |
+| :--------- | :---------------------------------------------------------------------------------- |
+| **前缀**   | 必须以 `data-` 开头。                                                               |
+| **字符集** | `data-` 后可由小写字母、数字、连字符 `-`、点 `.`、冒号 `:`、下划线 `_` 组成。       |
+| **小写**   | **不能包含大写字母**（HTML 属性名不区分大小写，`data-Foo` 会被解析为 `data-foo`）。 |
+| **推荐**   | 建议用连字符分隔（kebab-case），如 `data-user-id`，与 `dataset` API 配合最好。      |
 
 ```html
 <article
@@ -27,58 +26,74 @@ HTML5 引入了自定义数据属性 `data-*`，它允许开发者在标准的 H
 </article>
 ```
 
-### 1.2 JavaScript API
+### 1.2 值的类型
 
-在 JavaScript 中，有两种主要的方法可以访问 `data-*` 属性：
+**`data-*` 的值只能是字符串**。所有非字符串都会被隐式转成字符串。取用时需自行 `Number()` 或 `JSON.parse()` 还原类型。
 
-1.  **`getAttribute()` 和 `setAttribute()`:**
-    这是通用的属性访问方法，可以用来读取和设置任何 HTML 属性，包括 `data-*` 属性。
-
-    ```js
-    const article = document.getElementById('electric-cars')
-
-    // 获取 data-columns 的值
-    const columns = article.getAttribute('data-columns') // "3"
-
-    // 设置 data-columns 的值
-    article.setAttribute('data-columns', '5')
-    ```
-
-2.  **`dataset` 属性:**
-    `dataset` 属性是 `HTMLElement` 接口的一部分，它提供了一个更简洁的方式来访问 `data-*` 属性。`dataset` 返回一个 `DOMStringMap` 对象，其中包含了元素上所有 `data-*` 属性的键值对。
-
-    - `data-` 后面的属性名会从连字符命名法（kebab-case）转换成驼峰式命名法（camelCase）。例如，`data-index-number` 在 `dataset` 中会变成 `indexNumber`。
-
-    ```js
-    const article = document.getElementById('electric-cars')
-
-    // 获取 data-index-number 的值
-    const index = article.dataset.indexNumber // "12314"
-
-    // 设置 data-parent 的值
-    article.dataset.parent = 'automobiles'
-
-    // 动态添加一个新的 data-new-attribute
-    article.dataset.newAttribute = 'some-value'
-    ```
-
-### 1.3 jQuery API
-
-如果您正在使用 jQuery，可以使用 `.data()` 方法来访问 `data-*` 属性。从 jQuery 1.4.3 版本开始，`data-*` 属性会在第一次调用 `.data()` 方法时被读取并缓存。
-
-```js
-// 获取 data-columns 的值
-const columns = $('#electric-cars').data('columns') // 3 (jQuery 会尝试将字符串转换为数字)
-
-// 设置 data-columns 的值 (注意：这不会改变 HTML 属性)
-$('#electric-cars').data('columns', 5)
+```html
+<div data-count="5" data-active="false"></div>
 ```
 
-**重要提示:** 使用 jQuery 的 `.data()` 方法修改数据时，并不会更新 HTML 元素上的 `data-*` 属性。要更新 HTML 属性，您需要使用 `.attr()` 方法。
+```js
+const el = document.querySelector('div')
+el.dataset.count // "5"（字符串，不是数字！）
+el.dataset.active // "false"（字符串，不是布尔值！）
+```
 
-**CSS 选择器**
+## 2. JavaScript 访问方式
 
-您可以使用属性选择器来根据 `data-*` 属性的值为元素设置样式。
+共有三种方式访问 `data-*`，各有优劣。
+
+### 2.1 `getAttribute()` / `setAttribute()`（通用方式）
+
+可以读写**任何** HTML 属性，包括 `data-*`，但需要写完整的 `data-` 前缀。
+
+```js
+const article = document.getElementById('electric-cars')
+
+// 读取
+const columns = article.getAttribute('data-columns') // "3"
+
+// 写入
+article.setAttribute('data-columns', '5')
+
+// 删除
+article.removeAttribute('data-columns')
+```
+
+### 2.2 `dataset` API（推荐）
+
+`dataset` 是 `HTMLElement` 上的只读属性，返回一个 **`DOMStringMap`** 对象，包含元素上所有 `data-*` 属性的键值对。
+
+**核心规则：kebab-case → camelCase**。`data-` 后面的连字符命名会转成驼峰命名：
+
+```js
+const article = document.getElementById('electric-cars')
+
+// 读取（注意驼峰）
+article.dataset.indexNumber // "12314"（对应 data-index-number）
+
+// 写入
+article.dataset.parent = 'automobiles'
+
+// 动态新增（会立即反映到 DOM 属性上）
+article.dataset.newAttribute = 'some-value' // 生成 data-new-attribute="some-value"
+
+// 删除
+delete article.dataset.parent // 移除 data-parent 属性
+```
+
+### 2.3 三种访问方式对比
+
+| 方式             | 语法                        | 类型转换                  | 是否同步到 DOM 属性     |
+| :--------------- | :-------------------------- | :------------------------ | :---------------------- |
+| `getAttribute()` | `el.getAttribute('data-x')` | 无（字符串）              | ✅ 读写即属性           |
+| `el.dataset.x`   | `el.dataset.x`              | 无（字符串）              | ✅ 读写即属性           |
+| jQuery `.data()` | `$el.data('x')`             | **自动转换**（`"3"`→`3`） | ❌ 写入不更新 HTML 属性 |
+
+## 3. CSS 中的使用
+
+### 3.1 属性选择器
 
 ```css
 article[data-columns='3'] {
@@ -90,16 +105,94 @@ article[data-parent='cars'] {
 }
 ```
 
-## 2. 常见问题与最佳实践
+### 3.2 `attr()` 函数（配合伪元素）
 
-在使用 `data-*` 属性时，需要注意以下几点：
+```css
+/* 把 data-label 的值直接作为内容显示 */
+.tooltip::after {
+  content: attr(data-label);
+}
+```
 
-| 问题/实践                    | 描述                                                                                                                                                                          |
-| :--------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🚫 **不要存储敏感信息**      | `data-*` 属性的值在 HTML 源代码中是可见的。因此，切勿在其中存储任何敏感信息，如密码、API 密钥或个人数据。                                                                     |
-| ⚡ **性能考量**              | 过度使用 `data-*` 属性或在其中存储大量数据会增加 HTML 文件的大小，从而可能影响页面加载时间。建议保持 `data-*` 属性值的简洁，对于大型数据集，应考虑使用外部文件。              |
-| ♿ **可访问性**              | 辅助技术（如屏幕阅读器）可能无法访问 `data-*` 属性中的内容。因此，不应将需要被用户看到或访问的内容存储在 `data-*` 属性中。                                                    |
-| 📛 **命名约定**              | `data-*` 属性的名称不应包含任何大写字母。 遵循连字符分隔的命名方式（kebab-case）有助于与 `dataset` API 更好地集成。                                                           |
-| 🤷 **为何使用 `data-` 前缀** | 使用 `data-` 前缀可以确保您的自定义属性不会与未来 HTML 标准中可能引入的新属性发生冲突。                                                                                       |
-| 🧼 **分离关注点**            | 虽然可以在 CSS 中使用 `data-*` 属性来控制样式，但过度使用可能会导致 HTML、CSS 和 JavaScript 之间的界限变得模糊。通常，`data-*` 属性更适合在 HTML 和 JavaScript 之间传递数据。 |
-| 🔍 **搜索引擎索引**          | 搜索引擎的爬虫可能不会索引 `data-*` 属性的值。                                                                                                                                |
+## 4. 实战场景
+
+### 4.1 事件委托 + `data-id`（最常见）
+
+列表渲染时把 ID 存在 `data-*` 里，配合**事件委托**只需绑定一个监听器：
+
+```html
+<ul class="list">
+  <li><button data-id="1" class="del">删除</button></li>
+  <li><button data-id="2" class="del">删除</button></li>
+  <li><button data-id="3" class="del">删除</button></li>
+</ul>
+```
+
+```js
+document.querySelector('.list').addEventListener('click', e => {
+  const btn = e.target.closest('[data-id]') // 找到带 data-id 的元素
+  if (!btn) return
+  const id = btn.dataset.id // 拿到 id
+  console.log('删除 id =', id)
+})
+```
+
+### 4.2 组件状态标记（配合 CSS）
+
+用 `data-state` 承载组件状态，样式与逻辑解耦：
+
+```html
+<button class="menu" data-state="closed">菜单</button>
+```
+
+```js
+const menu = document.querySelector('.menu')
+menu.addEventListener('click', () => {
+  const isOpen = menu.dataset.state === 'open'
+  menu.dataset.state = isOpen ? 'closed' : 'open'
+})
+```
+
+```css
+.menu[data-state='open'] {
+  background: #eee;
+}
+```
+
+### 4.3 前端框架中的使用
+
+- **Vue**：直接用 `:data-*` 绑定。
+  ```html
+  <div :data-id="item.id" :data-active="item.active"></div>
+  ```
+- **React**：`data-*` 直接作为 JSX 属性传递。
+  ```jsx
+  <div data-id={item.id} data-testid="list-item" />
+  ```
+
+## 5. 常见问题（FAQ）与避坑指南
+
+### 5.1 不要在 `data-*` 里存敏感信息
+
+`data-*` 的值**在 HTML 源码中明文可见**。切勿存密码、API Key、个人隐私等敏感数据——任何人都能「查看源代码」看到。
+
+### 5.2 `dataset` 取出的值都是字符串
+
+```js
+el.dataset.count // "5"，不是数字 5
+el.dataset.active // "false"，不是布尔 false
+```
+
+**解法**：`Number(el.dataset.count)`、`el.dataset.active === 'true'`，或用 `JSON.parse`。
+
+### 5.3 命名里不能有大写字母
+
+HTML 属性名**不区分大小写**，浏览器会把 `data-FooBar` 解析为 `data-foobar`，导致你在 `dataset.fooBar` 里取不到值。**务必全小写 + 连字符**。
+
+### 5.4 性能：避免在 `data-*` 里塞大数据
+
+每个 `data-*` 都会增大 HTML 体积，影响首屏加载。**大型数据集应放外部文件/接口**，`data-*` 只放轻量标识（ID、key、枚举状态）。
+
+### 5.5 为什么推荐用 `data-` 前缀而不是自定义属性？
+
+`data-` 前缀是 W3C **保留的扩展机制**：未来 HTML 标准新增的属性绝不会以 `data-` 开头，因此你的自定义属性**永远不会与未来标准冲突**。裸的自定义属性（如 `<div myattr="x">`）则可能撞名且不合法。

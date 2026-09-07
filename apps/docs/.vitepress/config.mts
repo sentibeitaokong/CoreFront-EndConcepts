@@ -318,7 +318,6 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                     collapsed: true, // 初始状态为“展开”
                     items: [
                         {text: '前端知识体系介绍', link: '/intro'},
-                        {text: '学习路线图', link: '/roadmap'},
                     ]
                 },
                 {
@@ -330,11 +329,10 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                             collapsed: true, // 初始状态为“展开”
                             items: [
                                 {text: '基础结构', link: '/html/basic/htmlBasicStructure'},
-                                {text: '文档元数据 head', link: '/html/basic/documentHead'},
+                                {text: '文档元数据', link: '/html/basic/documentHead'},
                                 {text: '常用标签', link: '/html/basic/commonTags'},
-                                {text: 'Dom元素', link: '/html/basic/domAttributes'},
-                                {text: 'Dom操作进阶', link: '/html/basic/domManipulation'},
-                                {text: 'Dom事件流', link: '/html/basic/domEvents'},
+                                {text: 'Dom操作', link: '/html/basic/dom'},
+                                {text: 'DOM事件', link: '/html/basic/domEvents'},
                                 {text: '异步脚本加载', link: '/html/basic/asyncScript'},
                                 {text: 'ajax请求', link: '/html/basic/ajax'},
                             ]

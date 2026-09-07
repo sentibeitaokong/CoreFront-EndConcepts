@@ -114,6 +114,7 @@ HTML5 最强大的标签之一。
 ### 5.1 为什么我的 `<video autoplay>` 不自动播放？
 
 **原因**: 现代浏览器（Chrome/Safari/Firefox）为了用户体验，**默认禁止**带声音的媒体自动播放。
+
 **解法**: 必须加上 `muted` 属性。
 
 ```html
@@ -139,8 +140,8 @@ _注: `playsinline` 是为了兼容 iOS Safari，防止视频自动全屏播放�
 
 **解法**:
 
-1.  `img { display: block; }` (推荐)
-2.  `img { vertical-align: bottom; }`
+- `img { display: block; }` (推荐)
+- `img { vertical-align: bottom; }`
 
 ### 5.4 怎么禁止用户下载我的图片/视频？
 
@@ -148,11 +149,11 @@ _注: `playsinline` 是为了兼容 iOS Safari，防止视频自动全屏播放�
 
 **防君子不防小人**:
 
-1.  **图片**: 禁用右键 `oncontextmenu="return false;"`。
-2.  **视频**: 使用 `controlsList="nodownload"` (Chrome 专属属性)。
-    ```html
-    <video controls controlsList="nodownload"></video>
-    ```
+- **图片**: 禁用右键 `oncontextmenu="return false;"`。
+- **视频**: 使用 `controlsList="nodownload"` (Chrome 专属属性)。
+  ```html
+  <video controls controlsList="nodownload"></video>
+  ```
 
 ### 5.5 为什么 GIF 图加载这么慢？
 

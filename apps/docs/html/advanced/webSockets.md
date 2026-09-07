@@ -1,6 +1,6 @@
 # HTML5 WebSocket API
 
-传统的 HTTP 协议是“请求-响应”模式，客户端不问，服务器就不答。
+传统的 HTTP 协议是“**请求-响应**”模式，客户端不问，服务器就不答。
 **WebSocket** 的出现打破了这一限制。它建立了一条**全双工 (Full-duplex)** 的持久连接，服务器可以主动向客户端推送数据。这使得实时聊天、股票行情、在线游戏成为可能。
 
 > 相关：[WebSocket vs SSE vs WebRTC](/networkAndBrowsers/realtime/realtimeCommunication) 从协议选型角度对比三种实时方案；本文聚焦 WebSocket 的 API 级用法。
@@ -159,7 +159,7 @@ function connect() {
 ### 4.1 可以在 HTTP 页面连接 `wss://` 吗？可以在 HTTPS 页面连接 `ws://` 吗？
 
 - **HTTP 页面** -> 连接 `ws://` (可行) 或 `wss://` (可行)。
-- **HTTPS 页面** -> **必须连接 `wss://`**。连接 `ws://` 会被浏览器作为“混合内容 (Mixed Content)”拦截并报错。
+- **HTTPS 页面** -> **必须连接 `wss://`**。连接 `ws://` 会被浏览器作为“**混合内容 (Mixed Content)**”拦截并报错。
 
 ### 4.2 怎么在建立连接时添加自定义 Headers（如 Token）？
 
@@ -167,9 +167,9 @@ function connect() {
 这是 WebSocket API 设计的一大痛点。你不能像 Ajax 那样设置 `Authorization` 头。
 **替代方案**：
 
-1.  **URL 参数** (最常用): `ws://api.com?token=xyz`
-2.  **子协议数组**: `new WebSocket(url, ["access_token", "xyz"])` (需要服务端配合解析)。
-3.  **握手后发送**: 连接成功后，第一条消息发送 Token 进行认证。
+- **URL 参数** (最常用): `ws://api.com?token=xyz`
+- **子协议数组**: `new WebSocket(url, ["access_token", "xyz"])` (需要服务端配合解析)。
+- **握手后发送**: 连接成功后，第一条消息发送 Token 进行认证。
 
 ### 4.3 为什么连接过一会就自动断开了？
 
@@ -197,8 +197,6 @@ WebSocket 没有浏览器的同源策略限制（你可以随便连别人的 Web
 ### 4.6 `bufferedAmount` 有什么用？
 
 **场景**: 当你上传大文件时，如果不加限制地 `while` 循环调用 `ws.send()`，浏览器的内存会被撑爆，因为数据发不出去全堆在缓冲区。
-
-**用法**:
 
 ```js
 if (ws.bufferedAmount === 0) {

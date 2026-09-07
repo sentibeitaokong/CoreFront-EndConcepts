@@ -331,8 +331,8 @@ setTimeout(() => {
 
 **解法**:
 
-1.  **正解**: 联系后端开发，在服务端响应头中添加 `Access-Control-Allow-Origin: *` (或你的域名)。
-2.  **开发期**: 使用 Webpack/Vite 的 Proxy 代理，或者 Nginx 反向代理。**前端代码里设置 `mode: 'no-cors'` 是没用的**（那只能发请求，拿不到响应）。
+- **正解**: 联系后端开发，在服务端响应头中添加 `Access-Control-Allow-Origin: *` (或你的域名)。
+- **开发期**: 使用 Webpack/Vite 的 Proxy 代理，或者 Nginx 反向代理。**前端代码里设置 `mode: 'no-cors'` 是没用的**（那只能发请求，拿不到响应）。
 
 ### 4.2 为什么 `fetch` 没有自动带上 Cookie？
 
@@ -350,8 +350,8 @@ fetch(url, { credentials: 'include' })
 
 **检查**:
 
-1.  如果发送 JSON，必须设置 header: `'Content-Type': 'application/json'`。
-2.  **且** `body` 必须用 `JSON.stringify()` 包裹，不能直接传 JS 对象。
+- 如果发送 JSON，必须设置 header: `'Content-Type': 'application/json'`。
+- **且** `body` 必须用 `JSON.stringify()` 包裹，不能直接传 JS 对象。
 
 ### 4.4 为什么 `fetch` 遇到 404 或 500 不走 `catch`？
 

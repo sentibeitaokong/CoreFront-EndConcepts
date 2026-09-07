@@ -1,4 +1,4 @@
-# `<head>`：文档元数据与 SEO
+# 文档元数据与 SEO
 
 `<head>` 是 HTML 文档的「**司令部**」——它不直接渲染可见内容，却承载着字符编码、视口设置、SEO 元数据、外链资源、图标等影响整个页面的关键信息。浏览器、搜索引擎、社交平台都会优先读取这里。
 
@@ -18,7 +18,7 @@
 </head>
 ```
 
-## 2. `<title>`：页面标题
+## 2. 页面标题
 
 - 是 SEO 权重**最高**的标签，直接显示在搜索结果和浏览器标签页。
 - 建议格式：`核心关键词 - 品牌名`，长度控制在 **50~60 字符**内，避免被搜索引擎截断。
@@ -27,7 +27,7 @@
 <title>CSS 层叠与特异性 - CoreFront-EndConcepts</title>
 ```
 
-## 3. `<meta>` 元数据
+## 3. 元数据
 
 ### 3.1 字符编码（必须放在最前面）
 
@@ -42,8 +42,6 @@
 ```html
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 ```
-
-详见 [移动端适配](/css/advanced/responsive/mobileAdaptation#2-viewport)。
 
 ### 3.3 SEO 相关
 
@@ -129,7 +127,7 @@
 </script>
 ```
 
-## 4. `<link>` 外链资源
+## 4. 外链资源
 
 | 用途               | 写法                                                            | 说明                         |
 | ------------------ | --------------------------------------------------------------- | ---------------------------- |
@@ -170,7 +168,7 @@
 | `defer` | 异步并行 | HTML 解析完成后    | ❌ 否        |
 | `async` | 异步并行 | 下载完成后立即执行 | 执行时阻塞   |
 
-## 6. 常见问题 (FAQ)
+## 6. 常见问题 (FAQ) 与 避坑指南
 
 ### 6.1 `<title>` 和 `<meta description>` 有什么区别？
 
@@ -187,10 +185,3 @@
 ### 6.4 `preconnect` 和 `dns-prefetch` 有什么区别？
 
 `dns-prefetch` 只做 **DNS 解析**；`preconnect` 更进一步，同时完成 **DNS + TCP + TLS** 连接建立。前者成本低、适合「可能访问」的域名，后者成本高、适合「确定要访问」的关键域名。
-
-## 7. 总结
-
-- `<head>` 承载：编码、viewport、title、SEO meta、社交分享、外链资源。
-- 必写三件套：`charset`、`viewport`、`title`。
-- SEO 核心：`title` + `description` + `canonical`；社交核心：Open Graph。
-- 性能相关：`preload` / `preconnect` / `dns-prefetch` / `prefetch` 各司其职。
