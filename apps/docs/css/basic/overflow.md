@@ -41,7 +41,7 @@
 }
 ```
 
-### 2.1 关键坑点：不能「一个 visible 一个非 visible」
+**关键坑点：不能「一个 visible 一个非 visible」**
 
 当 `overflow-x` 和 `overflow-y` 之一不是 `visible` 时，另一个也不能是 `visible`——浏览器会把它**自动提升为 `auto`**。
 
@@ -65,22 +65,6 @@
   text-overflow: ellipsis; /* 溢出部分显示 ... */
 }
 ```
-
-### 3.1 `text-overflow` 的取值
-
-| 取值       | 说明                                  | 兼容性     |
-| ---------- | ------------------------------------- | ---------- |
-| `clip`     | 默认值，直接裁剪，无省略号。          | 全部       |
-| `ellipsis` | 溢出处显示 `...`。                    | 全部       |
-| `"字符串"` | 自定义省略字符（如 `"..."`、`"~"`）。 | 仅 Firefox |
-
-### 3.2 为什么三个属性缺一不可？
-
-- `white-space: nowrap`：让文字**不换行**，否则内容会换行而非「溢出」。
-- `overflow: hidden`：让溢出的部分**被裁剪**，为省略号腾出位置。
-- `text-overflow: ellipsis`：在裁剪处**画省略号**。
-
-三者是「防止换行 → 裁掉溢出 → 标记裁断点」的递进关系。
 
 ## 4. 多行文本省略 (`-webkit-line-clamp`)
 
@@ -115,8 +99,8 @@
 
 `overflow` 为非 `visible` 时（`hidden`/`auto`/`scroll`/`clip`），会顺带触发两件「隐藏效果」：
 
-1. **创建 BFC（块级格式化上下文）**：`overflow: hidden` 是经典的「清除浮动/包裹浮动子元素」手段，可解决父容器高度塌陷。详见 [文档流](/css/basic/documentFlow#bfc)。
-2. **成为滚动容器**：`overflow: auto/scroll` 的元素会成为其子元素的滚动边界，`position: sticky` 也会以它为参照物。
+- **创建 BFC（块级格式化上下文）**：`overflow: hidden` 是经典的「清除浮动/包裹浮动子元素」手段，可解决父容器高度塌陷。详见 [文档流](/css/basic/documentFlow#bfc)。
+- **成为滚动容器**：`overflow: auto/scroll` 的元素会成为其子元素的滚动边界，`position: sticky` 也会以它为参照物。
 
 ### 5.1 为什么 `overflow: hidden` 能清除浮动？
 
@@ -182,10 +166,3 @@
 
 - `hidden`：隐藏溢出，但仍**可被 JS 程序化滚动**，且**不裁剪「溢出到 padding 区」的内容**。
 - `clip`：彻底禁止任何滚动（含 JS），并按 `overflow-clip-margin` 严格裁剪边界。
-
-## 8. 总结
-
-- 溢出处理三件套：`overflow`（滚动/裁剪）、`text-overflow`（省略号）、`-webkit-line-clamp`（多行省略）。
-- 滚动容器优先用 `auto`，冻结滚动用 `clip`，解决高度塌陷用 `hidden`。
-- 记住两个「副作用」：非 `visible` 会触发 BFC，也会成为滚动容器并影响 `sticky`。
-- 单行省略三件套缺一不可：`nowrap + hidden + ellipsis`。
