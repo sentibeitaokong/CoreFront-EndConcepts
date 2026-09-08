@@ -34,8 +34,8 @@
 
 用于实现响应式布局。
 
-- **`min-width`**: “大于等于”。适用于 **移动优先 (Mobile First)** 策略。
-- **`max-width`**: “小于等于”。适用于 **桌面优先 (Desktop First)** 策略。
+- **`min-width`**: “**大于等于**”。适用于 **移动优先 (Mobile First)** 策略。
+- **`max-width`**: “**小于等于**”。适用于 **桌面优先 (Desktop First)** 策略。
 
 ```css
 /* 屏幕宽度 >= 768px 时生效 */
@@ -61,11 +61,40 @@
     }
   }
   ```
-- **`prefers-reduced-motion`**: 检测用户是否开启了“减弱动态效果”（无障碍设计）。
+- **`prefers-reduced-motion`**: 检测用户是否开启了“**减弱动态效果**”（无障碍设计）。
+
+  ```css
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+  ```
+
+### 2.4 其他实用媒体特性
+
+除了视口尺寸，这些特性在交互与高清屏适配中非常常用：
+
+| 特性               | 检测内容             | 典型用法                                             |
+| :----------------- | :------------------- | :--------------------------------------------------- |
+| **`hover`**        | 设备是否支持悬停     | `(hover: hover)` 真鼠标；`(hover: none)` 触屏        |
+| **`pointer`**      | 主输入设备的精度     | `(pointer: coarse)` 触屏手指；`(pointer: fine)` 鼠标 |
+| **`resolution`**   | 屏幕分辨率（高清屏） | `(min-resolution: 2dppx)` 视网膜屏                   |
+| **`aspect-ratio`** | 视口宽高比           | `(min-aspect-ratio: 16/9)` 宽屏                      |
+
+```css
+/* 只在真鼠标设备上显示悬停效果 */
+@media (hover: hover) and (pointer: fine) {
+  .card:hover {
+    transform: translateY(-4px);
+  }
+}
+```
 
 ## 3. 断点策略 (Breakpoints)
 
-在实际开发中，我们通常设定几个标准的“断点”来适配不同设备。
+在实际开发中，我们通常设定几个标准的“**断点**”来适配不同设备。
 
 ### 3.1 移动优先 (Mobile First) —— **强烈推荐**
 
@@ -103,11 +132,32 @@
 
 先写大屏幕样式，用 `max-width` 往小屏幕覆盖。
 
+```css
+/* 1. 默认样式 (桌面端) */
+.container {
+  width: 960px;
+}
+
+/* 2. 平板 (<= 992px) */
+@media (max-width: 992px) {
+  .container {
+    width: 720px;
+  }
+}
+
+/* 3. 手机 (<= 576px) */
+@media (max-width: 576px) {
+  .container {
+    width: 100%;
+  }
+}
+```
+
 - _缺点：CSS 代码通常会比移动优先更冗余，且覆盖逻辑较复杂。_
 
 ## 4. 现代语法：范围查询 (Range Context)
 
-**CSS Media Queries Level 4** 引入了更直观的数学符号（`<`, `>`, `=`)，目前主流现代浏览器（Chrome 104+, Safari 16.4+, Firefox 63+）已支持。
+**CSS Media Queries Level 4** 引入了更直观的数学符号（`<`, `>`, `=`)。
 
 **旧写法**:
 
@@ -123,7 +173,7 @@
 @media (width >= 768px) { ... }
 ```
 
-## 5. 常见问题 (FAQ) 与 避坑指南
+## 5. 常见问题 (FAQ) 与 故障排除
 
 ### 5.1 为什么我的媒体查询在手机上完全无效？
 
@@ -131,7 +181,7 @@
 
 **原因**: 99.9% 是因为忘记加 **Viewport Meta 标签**。如果没有这行代码，手机浏览器会默认模拟 980px 的桌面宽度。
 
-**解法**: 在 HTML `<head>` 中必须加上：
+**解决**: 在 HTML `<head>` 中必须加上：
 
 ```html
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -150,11 +200,11 @@
 ### 5.3 断点处的“1px 冲突”怎么处理？
 
 **现象**: `max-width: 768px` 和 `min-width: 768px` 在刚好 768px 的设备上会同时生效，导致冲突。
-**解法**:
+**解决**:
 
-1.  **错开 1px**: 使用 `max-width: 767px` 和 `min-width: 768px`。
-2.  **小数精度**: `max-width: 767.98px` (Bootstrap 的做法)。
-3.  **使用新语法**: `@media (width < 768px)` (小于，不包含等于)。
+- **错开 1px**: 使用 `max-width: 767px` 和 `min-width: 768px`。
+- **小数精度**: `max-width: 767.98px` (Bootstrap 的做法)。
+- **使用新语法**: `@media (width < 768px)` (小于，不包含等于)。
 
 ### 5.4 如何针对“高清屏/视网膜屏”写样式？
 
@@ -179,4 +229,17 @@
   media="screen and (max-width: 600px)"
 />
 <link rel="stylesheet" href="print.css" media="print" />
+```
+
+### 5.6 如何在移动端检测触屏设备（区分鼠标 / 触屏）？
+
+使用 `hover` 和 `pointer` 媒体特性，比 JS 判断 UA 更可靠。
+
+```css
+/* 触屏设备（无悬停、粗指针） */
+@media (hover: none) and (pointer: coarse) {
+  .tooltip {
+    display: none; /* 触屏没有 hover，隐藏悬停提示 */
+  }
+}
 ```

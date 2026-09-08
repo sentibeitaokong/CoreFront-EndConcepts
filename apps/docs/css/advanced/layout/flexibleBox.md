@@ -50,6 +50,15 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 
 ## 3. 容器的属性
 
+| 属性                  | 作用                                | 默认值       | 可选值                                                                                   |
+| :-------------------- | :---------------------------------- | :----------- | :--------------------------------------------------------------------------------------- |
+| **`flex-direction`**  | 决定**主轴方向**（项目排列方向）    | `row`        | `row` \| `row-reverse` \| `column` \| `column-reverse`                                   |
+| **`flex-wrap`**       | 一条轴线排不下时是否**换行**        | `nowrap`     | `nowrap` \| `wrap` \| `wrap-reverse`                                                     |
+| **`flex-flow`**       | `flex-direction` + `flex-wrap` 简写 | `row nowrap` | `<flex-direction> \|\| <flex-wrap>`                                                      |
+| **`justify-content`** | 项目在**主轴**上的对齐方式          | `flex-start` | `flex-start` \| `flex-end` \| `center` \| `space-between` \| `space-around`              |
+| **`align-items`**     | 项目在**交叉轴**上的对齐方式        | `stretch`    | `flex-start` \| `flex-end` \| `center` \| `baseline` \| `stretch`                        |
+| **`align-content`**   | **多根轴线**的对齐方式（多行时）    | `stretch`    | `flex-start` \| `flex-end` \| `center` \| `space-between` \| `space-around` \| `stretch` |
+
 ### 3.1 flex-direction 属性
 
 `flex-direction`属性决定主轴的方向（即项目的排列方向）。
@@ -138,18 +147,16 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 
 ![Logo](/img/alignContent.png)
 
-### 3.7 容器属性速查表
-
-| 属性                  | 作用                                | 默认值       | 可选值                                                                                   |
-| :-------------------- | :---------------------------------- | :----------- | :--------------------------------------------------------------------------------------- |
-| **`flex-direction`**  | 决定**主轴方向**（项目排列方向）    | `row`        | `row` \| `row-reverse` \| `column` \| `column-reverse`                                   |
-| **`flex-wrap`**       | 一条轴线排不下时是否**换行**        | `nowrap`     | `nowrap` \| `wrap` \| `wrap-reverse`                                                     |
-| **`flex-flow`**       | `flex-direction` + `flex-wrap` 简写 | `row nowrap` | `<flex-direction> \|\| <flex-wrap>`                                                      |
-| **`justify-content`** | 项目在**主轴**上的对齐方式          | `flex-start` | `flex-start` \| `flex-end` \| `center` \| `space-between` \| `space-around`              |
-| **`align-items`**     | 项目在**交叉轴**上的对齐方式        | `stretch`    | `flex-start` \| `flex-end` \| `center` \| `baseline` \| `stretch`                        |
-| **`align-content`**   | **多根轴线**的对齐方式（多行时）    | `stretch`    | `flex-start` \| `flex-end` \| `center` \| `space-between` \| `space-around` \| `stretch` |
-
 ## 4. 项目的属性
+
+| 属性              | 作用                             | 默认值     | 可选值                                                                      |
+| :---------------- | :------------------------------- | :--------- | :-------------------------------------------------------------------------- |
+| **`order`**       | 项目排列顺序（数值越小越靠前）   | `0`        | `<integer>`                                                                 |
+| **`flex-grow`**   | 放大比例（有剩余空间时）         | `0`        | `<number>`                                                                  |
+| **`flex-shrink`** | 缩小比例（空间不足时）           | `1`        | `<number>`                                                                  |
+| **`flex-basis`**  | 分配多余空间前的主轴尺寸         | `auto`     | `<length>` \| `auto`                                                        |
+| **`flex`**        | `grow` + `shrink` + `basis` 简写 | `0 1 auto` | `none` \| `<flex-grow> <flex-shrink>? \|\| <flex-basis>`                    |
+| **`align-self`**  | 单个项目覆盖 `align-items`       | `auto`     | `auto` \| `flex-start` \| `flex-end` \| `center` \| `baseline` \| `stretch` |
 
 ### 4.1 order 属性
 
@@ -237,17 +244,6 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 ```
 
 ![Logo](/img/alignSelf.png)
-
-### 4.7 项目属性速查表
-
-| 属性              | 作用                             | 默认值     | 可选值                                                                      |
-| :---------------- | :------------------------------- | :--------- | :-------------------------------------------------------------------------- |
-| **`order`**       | 项目排列顺序（数值越小越靠前）   | `0`        | `<integer>`                                                                 |
-| **`flex-grow`**   | 放大比例（有剩余空间时）         | `0`        | `<number>`                                                                  |
-| **`flex-shrink`** | 缩小比例（空间不足时）           | `1`        | `<number>`                                                                  |
-| **`flex-basis`**  | 分配多余空间前的主轴尺寸         | `auto`     | `<length>` \| `auto`                                                        |
-| **`flex`**        | `grow` + `shrink` + `basis` 简写 | `0 1 auto` | `none` \| `<flex-grow> <flex-shrink>? \|\| <flex-basis>`                    |
-| **`align-self`**  | 单个项目覆盖 `align-items`       | `auto`     | `auto` \| `flex-start` \| `flex-end` \| `center` \| `baseline` \| `stretch` |
 
 ## 5. 常见问题 (FAQ) 与 故障排除
 

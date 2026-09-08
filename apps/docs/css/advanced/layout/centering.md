@@ -223,7 +223,7 @@
 | 单行文本                         | **line-height**                          |
 | 需要兼容 IE8                     | **table-cell**                           |
 
-## 6. 常见问题 (FAQ)
+## 6. 常见问题 (FAQ)与 故障排除
 
 ### 6.1 `transform: translate(-50%, -50%)` 为什么能精确居中？
 
@@ -242,17 +242,3 @@
 - `align-items`：控制**单行**内子项在交叉轴上的对齐。
 - `align-content`：控制**多行**（flex 换行、grid 多轨）时，行与行之间在交叉轴的分布。
 - 只有一行时 `align-content` 往往看不出效果，多行时才体现。
-
-### 6.5 `place-items` 和 `place-content` 是什么？
-
-`place-*` 是 `align-*` 与 `justify-*` 的简写：
-
-- `place-items: center` = `align-items: center; justify-items: center;`
-- `place-content: center` = `align-content: center; justify-content: center;`
-
-## 7. 总结
-
-- 常规布局用 **Flex/Grid**，覆盖型弹窗用 **绝对定位 + Transform**。
-- 记住两个「百分比」铁律：`top/left` 相对包含块，`translate` 相对自身。
-- `margin: auto` 垂直居中只对 flex/grid/绝对定位生效。
-- 选方案看三点：是否已知尺寸、是否要脱离文档流、兼容性要求。
