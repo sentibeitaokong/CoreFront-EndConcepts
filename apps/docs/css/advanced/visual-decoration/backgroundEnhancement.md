@@ -1,6 +1,6 @@
 # CSS 背景增强 (Background Enhancement)
 
-CSS 的 `background` 属性远不止“铺一张图”那么简单。通过组合使用 `size`、`position`、`origin` 和 `clip` 等属性，我们可以实现响应式背景、多重背景叠加、甚至用 CSS 代替 PS 进行图像合成。
+CSS 的 `background` 属性远不止“**铺一张图**”那么简单。通过组合使用 `size`、`position`、`origin` 和 `clip` 等属性，我们可以实现响应式背景、多重背景叠加、甚至用 CSS 代替 PS 进行图像合成。
 
 ## 1. 核心增强属性
 
@@ -78,7 +78,7 @@ CSS 允许在一个元素上设置多层背景。越前面的层级越高（类�
 ```css
 background:
   url(icon.png) center / 50px no-repeat,
-  /* 这一层的所有属性写在一起 */ url(photo.jpg) center / cover no-repeat;
+  url(photo.jpg) center / cover no-repeat; /* 这一层的所有属性写在一起 */
 ```
 
 ## 3. 常见问题 (FAQ) 与 避坑指南
@@ -96,13 +96,13 @@ background:
 }
 ```
 
-**⚠️ 移动端大坑**：iOS Safari 对 `background-attachment: fixed` 的支持非常差（可能会失效，或导致严重的滚动卡顿）。
+**移动端大坑**：iOS Safari 对 `background-attachment: fixed` 的支持非常差（可能会失效，或导致严重的滚动卡顿）。
 
 **现代推荐方案**：使用 `position: fixed` 的伪元素或 `transform: translateZ` 硬件加速来实现视差。
 
 ### 3.2 为什么我的背景图片在手机上模糊了？
 
-**原因**：这是“Retina 屏幕（高分屏）”的问题。如果你的图片只有 100px 宽，但在 2x 屏上显示为 100px（实际物理像素是 200px），就会被拉伸模糊。
+**原因**：这是“**Retina 屏幕（高分屏）**”的问题。如果你的图片只有 100px 宽，但在 2x 屏上显示为 100px（实际物理像素是 200px），就会被拉伸模糊。
 
 **解法**：准备一张 **2倍大** 的图片（如 200px），然后通过 CSS 把它压缩回去。
 

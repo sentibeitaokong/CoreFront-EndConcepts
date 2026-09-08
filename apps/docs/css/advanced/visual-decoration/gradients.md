@@ -33,7 +33,7 @@ background: linear-gradient(45deg, orange, yellow);
 
 ![Logo](/img/gradientSecond.png)
 
-### 1.3 颜色节点 (Color Stops)
+### 1.3 颜色节点
 
 你可以指定颜色开始的位置（百分比或像素）。如果不指定，颜色会均匀分布。
 
@@ -116,8 +116,8 @@ background: repeating-linear-gradient(
   45deg,
   yellow,
   yellow 10px,
-  /* 黄色带宽度 10px */ black 10px,
-  black 20px /* 黑色带宽度 10px (20-10) */
+  black 10px,
+  /* 黄色带宽度 10px */ black 20px /* 黑色带宽度 10px (20-10) */
 );
 ```
 
@@ -135,17 +135,15 @@ background-color: green; /* 这句覆盖了上一句 */
 ```
 
 **原因**：`background` 是简写属性。后写的属性会覆盖先写的。而且渐变属于 `background-image`。
+
 **正确写法**：
 
-1.  只用简写属性，把 color 写在最后（作为回退）：
-    `background: linear-gradient(red, blue), green;` (注意语法不支持直接这样混写，通常是分开)。
-2.  **推荐**：分开写，且注意顺序。
-    ```css
-    background-color: green; /* 兜底颜色 (如果浏览器不支持渐变) */
-    background-image: linear-gradient(red, blue);
-    ```
+```css
+background-color: green; /* 兜底颜色 (如果浏览器不支持渐变) */
+background-image: linear-gradient(red, blue);
+```
 
-### 5.2 渐变色出现明显的“波纹”或“色带” (Color Banding)？
+### 5.2 渐变色出现明显的“波纹”或“色带”？
 
 **现象**：在大屏幕上，颜色过渡不平滑，有一条条的横纹。
 
@@ -153,9 +151,9 @@ background-color: green; /* 这句覆盖了上一句 */
 
 **解法**：
 
-1.  **缩短过渡距离**。
-2.  **添加噪点**：给背景叠加一张透明的噪点图片，打破规则的条纹感。
-3.  **不规则角度**：使用 `linear-gradient(133deg, ...)` 而不是标准的 90 度，有助于视觉欺骗。
+- **缩短过渡距离**。
+- **添加噪点**：给背景叠加一张透明的噪点图片，打破规则的条纹感。
+- **不规则角度**：使用 `linear-gradient(133deg, ...)` 而不是标准的 90 度，有助于视觉欺骗。
 
 ### 5.3 如何做“文字渐变色”？
 
@@ -178,15 +176,9 @@ background-color: green; /* 这句覆盖了上一句 */
 ### 5.4 渐变边框怎么做？
 
 `border-color` 不支持渐变。
-**解法 A：使用 `border-image`** (不支持圆角 `border-radius`)。
 
-```css
-border: 5px solid;
-border-image: linear-gradient(red, blue) 1;
-```
-
-**解法 B：双层盒子模拟 (支持圆角 - 推荐)**
-父容器是渐变背景，子容器是白色背景，中间留出的 `padding` 就是“边框”。
+**双层盒子模拟 (支持圆角 - 推荐)**
+父容器是渐变背景，子容器是白色背景，中间留出的 `padding` 就是“**边框**”。
 
 ```css
 .gradient-border-box {
@@ -208,11 +200,3 @@ border-image: linear-gradient(red, blue) 1;
 
 **解法**：显式指定透明的颜色。
 `linear-gradient(white, rgba(255,255,255, 0))`。
-
-## 6. 总结
-
-- 渐变是 **Image**，不是 Color。
-- **线性渐变** (`linear`) 最常用，注意 `to direction` 和 `deg` 的区别。
-- **硬切变** (两个颜色位置相同) 可以用来画条纹。
-- **文字渐变**需配合 `-webkit-background-clip: text`。
-- **透明过渡**要小心 `transparent` 陷阱，最好用 `rgba`。

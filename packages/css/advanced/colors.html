@@ -27,15 +27,15 @@
         /* ❌ 错误：文字也会变成半透明灰色，看不清 */
         .box {
           background: black;
-          opacity: 0.5;
+          opacity: 0.1;
           color: white;
         }
 
         /* ✅ 正确：背景半透明，文字不透明 */
-        .box {
-          background: rgba(0, 0, 0, 0.5);
-          color: white;
-        }
+        //.box {
+        //  background: rgba(0, 0, 0, 0.5);
+        //  color: white;
+        //}
 
         /* 5.2 如何建立一套科学的颜色系统（主题切换）？ */
         :root {

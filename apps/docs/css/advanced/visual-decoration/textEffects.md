@@ -17,14 +17,13 @@ CSS 不仅能控制字体的大小和颜色，还能通过阴影、描边、渐�
 
 ## 2. 视觉装饰 API
 
-让文字“变好看”的核心属性。
+让文字“**变好看**”的核心属性。
 
 ### 2.1 文本修饰 (`text-decoration`)
 
 不仅仅是下划线，现在支持改变线型和颜色。
 
 - **简写**: `text-decoration: line style color thickness;`
-- **示例**:
   ```css
   /* 红色波浪删除线 */
   text-decoration: line-through wavy red 2px;
@@ -37,28 +36,29 @@ CSS 不仅能控制字体的大小和颜色，还能通过阴影、描边、渐�
 
 控制大小写。
 
-- `uppercase`: 全部大写。
-- `lowercase`: 全部小写。
-- `capitalize`: 首字母大写。
+```css
+text-transform：uppercase /*全部大写*/
+```
+
+- **常用值**: `uppercase` (全部大写), `lowercase` (全部小写), `capitalize` (首字母大写)。
 
 ### 2.3 文字阴影 (`text-shadow`)
 
 不需要滤镜，直接生成投影。
 
 - **语法**: `x偏移 y偏移 模糊半径 颜色`
-- **实战**:
 
-  ```css
-  /* 发光效果 */
-  text-shadow:
-    0 0 10px #00e6e6,
-    0 0 20px #00e6e6;
+```css
+/* 发光效果 */
+text-shadow:
+  0 0 10px #00e6e6,
+  0 0 20px #00e6e6;
 
-  /* 3D 浮雕效果 */
-  text-shadow:
-    1px 1px 0 #ddd,
-    2px 2px 0 #bbb;
-  ```
+/* 3D 浮雕效果 */
+text-shadow:
+  1px 1px 0 #ddd,
+  2px 2px 0 #bbb;
+```
 
 ![Logo](/img/textShadowSecond.png)
 
@@ -158,8 +158,6 @@ CSS 没有直接的 `text-gradient` 属性，需要结合背景裁剪来实现�
 
 **现象**: 有一行很长的链接 `https://very-long-url...`，导致容器出现横向滚动条。
 
-**解法**:
-
 ```css
 .link {
   overflow-wrap: break-word; /* 允许在长单词内部换行 */
@@ -170,8 +168,6 @@ CSS 没有直接的 `text-gradient` 属性，需要结合背景裁剪来实现�
 ### 5.4 苹果/Mac 上的字体看起来比 Windows 细？
 
 **原因**: 渲染引擎不同。macOS 的字体渲染偏细。
-
-**微调技巧**:
 
 ```css
 body {

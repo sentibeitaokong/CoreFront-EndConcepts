@@ -73,13 +73,6 @@ body {
 | `fallback` | 极短的隐藏期（约 100ms）后先用回退字体，若之后加载完成再替换。       | 折中                 |
 | `optional` | 极短隐藏期后决定：能用回退就用回退，**放弃本次字体下载**。           | 性能敏感、非关键字体 |
 
-### 3.1 FOUT 与 FOIT
-
-- **FOUT**（Flash of Unstyled Text）：先用回退字体，加载后再替换（`swap`）。
-- **FOIT**（Flash of Invisible Text）：加载期间文字不可见（`block`）。
-
-**推荐**：正文使用 `swap` 保证可读性，图标字体使用 `block` 避免「图标先显示为方框再替换」。
-
 ## 4. 字体性能与优化
 
 - **优先 `woff2`**：比 `woff` 体积通常小 30% 以上。
@@ -229,10 +222,3 @@ font-family:
 ### 8.4 字体图标为什么小字号下发虚？
 
 字体渲染依赖「像素对齐 + hinting」，小字号（如 12px 以下）图标边缘容易模糊。此时优先用 **SVG**，或改用 `-webkit-font-smoothing: antialiased` 微调。
-
-## 9. 总结
-
-- `@font-face` 引入字体，`src` 按优先级排列多格式回退，多字重需分别声明。
-- `font-display` 控制加载期表现：正文用 `swap`，图标用 `block`。
-- 性能三件套：**woff2 + 子集化 + preload**；进阶用 `unicode-range`、可变字体。
-- 图标优先 **SVG**，字体图标理解机制即可。

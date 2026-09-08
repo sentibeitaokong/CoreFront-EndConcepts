@@ -1,10 +1,10 @@
 # Flex 布局教程
 
-Flexbox（弹性盒子布局）的核心在于“弹性”二字：它可以让容器内的子元素自动调整宽度、高度和顺序，以最好地填充可用空间。
+Flexbox（弹性盒子布局）的核心在于“**弹性**”二字：它可以让容器内的子元素自动调整宽度、高度和顺序，以最好地填充可用空间。
 
 ## 1. Flex 布局是什么？
 
-Flex 是 **Flexible Box** 的缩写，意为"弹性布局"，用来为盒状模型提供最大的灵活性。
+Flex 是 **Flexible Box** 的缩写，意为"**弹性布局**"，用来为盒状模型提供最大的灵活性。
 
 任何一个容器都可以指定为 Flex 布局。
 
@@ -35,7 +35,7 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 
 ## 2. 基本概念
 
-采用 Flex 布局的元素，称为 **Flex 容器（flex container）**，简称"容器"。它的所有子元素自动成为容器成员，称为 **Flex 项目（flex item）**，简称"项目"。
+采用 Flex 布局的元素，称为 **Flex 容器（flex container）**，简称"**容器**"。它的所有子元素自动成为容器成员，称为 **Flex 项目（flex item）**，简称"**项目**"。
 
 ![Logo](/img/flexBase.png)
 
@@ -49,15 +49,6 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 - **尺寸**：单个项目占据的主轴空间叫做 `main size`，占据的交叉轴空间叫做 `cross size`。
 
 ## 3. 容器的属性
-
-以下 6 个属性设置在**容器**上：
-
-- `flex-direction`
-- `flex-wrap`
-- `flex-flow`
-- `justify-content`
-- `align-items`
-- `align-content`
 
 ### 3.1 flex-direction 属性
 
@@ -78,7 +69,7 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 
 ### 3.2 flex-wrap 属性
 
-默认情况下，项目都排在一条线（又称"轴线"）上。`flex-wrap`属性定义，如果一条轴线排不下，如何换行。
+默认情况下，项目都排在一条线（又称"**轴线**"）上。`flex-wrap`属性定义，如果一条轴线排不下，如何换行。
 
 ```css
 .box {
@@ -122,14 +113,6 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 
 ![Logo](/img/justifyContent.png)
 
-假设主轴为从左到右：
-
-- `flex-start`（默认值）：左对齐。
-- `flex-end`：右对齐。
-- `center`：居中。
-- `space-between`：两端对齐，项目之间的间隔都相等。
-- `space-around`：每个项目两侧的间隔相等。所以，项目之间的间隔比项目与边框的间隔大一倍。
-
 ### 3.5 align-items 属性
 
 `align-items`属性定义项目在**交叉轴**上如何对齐。
@@ -141,14 +124,6 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 ```
 
 ![Logo](/img/alignItems.png)
-
-假设交叉轴从上到下：
-
-- `flex-start`：交叉轴的起点对齐。
-- `flex-end`：交叉轴的终点对齐。
-- `center`：交叉轴的中点对齐。
-- `baseline`: 项目的第一行文字的基线对齐。
-- `stretch`（默认值）：如果项目未设置高度或设为 auto，将占满整个容器的高度。
 
 ### 3.6 align-content 属性
 
@@ -163,23 +138,18 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 
 ![Logo](/img/alignContent.png)
 
-- `flex-start`：与交叉轴的起点对齐。
-- `flex-end`：与交叉轴的终点对齐。
-- `center`：与交叉轴的中点对齐。
-- `space-between`：与交叉轴两端对齐，轴线之间的间隔平均分布。
-- `space-around`：每根轴线两侧的间隔都相等。所以，轴线之间的间隔比轴线与边框的间隔大一倍。
-- `stretch`（默认值）：轴线占满整个交叉轴。
+### 3.7 容器属性速查表
+
+| 属性                  | 作用                                | 默认值       | 可选值                                                                                   |
+| :-------------------- | :---------------------------------- | :----------- | :--------------------------------------------------------------------------------------- |
+| **`flex-direction`**  | 决定**主轴方向**（项目排列方向）    | `row`        | `row` \| `row-reverse` \| `column` \| `column-reverse`                                   |
+| **`flex-wrap`**       | 一条轴线排不下时是否**换行**        | `nowrap`     | `nowrap` \| `wrap` \| `wrap-reverse`                                                     |
+| **`flex-flow`**       | `flex-direction` + `flex-wrap` 简写 | `row nowrap` | `<flex-direction> \|\| <flex-wrap>`                                                      |
+| **`justify-content`** | 项目在**主轴**上的对齐方式          | `flex-start` | `flex-start` \| `flex-end` \| `center` \| `space-between` \| `space-around`              |
+| **`align-items`**     | 项目在**交叉轴**上的对齐方式        | `stretch`    | `flex-start` \| `flex-end` \| `center` \| `baseline` \| `stretch`                        |
+| **`align-content`**   | **多根轴线**的对齐方式（多行时）    | `stretch`    | `flex-start` \| `flex-end` \| `center` \| `space-between` \| `space-around` \| `stretch` |
 
 ## 4. 项目的属性
-
-以下 6 个属性设置在**项目**（子元素）上：
-
-- `order`
-- `flex-grow`
-- `flex-shrink`
-- `flex-basis`
-- `flex`
-- `align-self`
 
 ### 4.1 order 属性
 
@@ -268,4 +238,59 @@ Webkit 内核的浏览器，必须加上`-webkit`前缀。
 
 ![Logo](/img/alignSelf.png)
 
-该属性可能取 6 个值，除了 auto，其他都与 align-items 属性完全一致。
+### 4.7 项目属性速查表
+
+| 属性              | 作用                             | 默认值     | 可选值                                                                      |
+| :---------------- | :------------------------------- | :--------- | :-------------------------------------------------------------------------- |
+| **`order`**       | 项目排列顺序（数值越小越靠前）   | `0`        | `<integer>`                                                                 |
+| **`flex-grow`**   | 放大比例（有剩余空间时）         | `0`        | `<number>`                                                                  |
+| **`flex-shrink`** | 缩小比例（空间不足时）           | `1`        | `<number>`                                                                  |
+| **`flex-basis`**  | 分配多余空间前的主轴尺寸         | `auto`     | `<length>` \| `auto`                                                        |
+| **`flex`**        | `grow` + `shrink` + `basis` 简写 | `0 1 auto` | `none` \| `<flex-grow> <flex-shrink>? \|\| <flex-basis>`                    |
+| **`align-self`**  | 单个项目覆盖 `align-items`       | `auto`     | `auto` \| `flex-start` \| `flex-end` \| `center` \| `baseline` \| `stretch` |
+
+## 5. 常见问题 (FAQ) 与 故障排除
+
+### 5.1 `justify-content` 和 `align-items` 有什么区别？
+
+**一句话**：`justify-content` 管**主轴**，`align-items` 管**交叉轴**。
+
+- 默认（`flex-direction: row`）下，主轴是水平方向：`justify-content` 控制左右分布，`align-items` 控制上下对齐。
+- 一旦改成 `flex-direction: column`，主轴变成垂直方向，两者的作用方向**互换**。
+
+### 5.2 为什么 `flex-grow` 设置了却不见元素变大？
+
+**原因**：`flex-grow` 只分配**剩余空间**。如果父容器没有多余空间（内容已撑满，或项目 `flex-basis` / 宽度已占满），自然没有可分配的空间。
+
+**排查**：
+
+- 确认父容器宽度大于所有项目 `flex-basis` 之和。
+- 确认项目没有被 `width` 或 `flex-basis` 写死。
+
+### 5.3 为什么设置了 `align-content` 却看不到任何效果？
+
+**原因**：`align-content` 只对**多根轴线**（即发生了换行）起作用。只有一根轴线时，该属性完全无效。
+
+**解决**：确认同时设置了 `flex-wrap: wrap`，并且项目确实换成了多行。
+
+### 5.4 图片 / 长文本把 Flex 布局撑爆了怎么办？
+
+**现象**：图片或超长英文单词溢出容器，出现横向滚动条。
+
+**原因**：Flex 项目的默认 `min-width` 是 `auto`，内容再宽也不会缩小到内容宽度以下。
+
+```css
+.item {
+  min-width: 0; /* 关键：允许项目缩小到内容宽度以下 */
+}
+/* 或对图片 */
+img {
+  max-width: 100%;
+}
+```
+
+### 5.5 为什么子元素 `float`、`clear`、`vertical-align` 失效了？
+
+**原因**：容器设为 `display: flex` 后，子元素都变成了 Flex 项目，这些传统排版属性对 Flex 项目**不再生效**。
+
+**解决**：改用 Flex 自己的对齐属性（`justify-content`、`align-items`、`align-self`、`order` 等）。
