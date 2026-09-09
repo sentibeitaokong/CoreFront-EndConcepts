@@ -285,8 +285,6 @@ outline: [2, 3]
 
 ## 11. 推荐学习路径
 
-> 完整可视化路线见 [学习路线图](/roadmap)，按九个阶段从基础概念递进到源码、算法与浏览器底层。
-
 - Web 基础：先阅读 [HTML 基本结构](/html/basic/htmlBasicStructure)、[盒模型](/css/basic/boxModel)、[执行上下文与调用栈](/js/basic/executionContextAndStack)、[闭包](/js/basic/closure)、[this](/js/basic/this)。
 - JS 进阶：继续阅读 [原型](/js/advanced/class-inheritance/prototype)、[Promise](/js/advanced/async/promise)、[Event Loop](/js/advanced/async/eventLoop)、[Promise 手写](/js/hand-writing/promiseHandleWriting)。
 - 浏览器与网络：阅读 [浏览器渲染流程](/networkAndBrowsers/browser/renderingProcess)、[HTTP](/networkAndBrowsers/http/http)、[浏览器缓存](/networkAndBrowsers/caching/browserCache)、[Performance API](/networkAndBrowsers/browser/observerApi/performanceApi)。
