@@ -453,7 +453,6 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                 {text: '作用域', link: '/js/basic/lexicalScope'},
                                 {text: '内存空间', link: '/js/basic/memorySpace'},
                                 {text: '基本引用类型', link: '/js/basic/basicPrimitiveType'},
-                                {text: '原始值包装类型', link: '/js/basic/primitiveWrapperTypes'},
                                 {text: '集合引用类型', link: '/js/basic/collectionPrimitiveTypes'},
                                 {text: '函数基础', link: '/js/basic/basicFunction'},
                                 {text: '闭包', link: '/js/basic/closure'},

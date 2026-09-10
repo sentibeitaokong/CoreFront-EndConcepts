@@ -63,9 +63,8 @@ outline: [2, 3]
 
 ### 2.3 JavaScript 基础
 
-- [基础数据类型](/js/basic/basicPrimitiveType)：原始类型与基础认知。
+- [基本引用类型](/js/basic/basicPrimitiveType)：Date、RegExp、原始值包装类型与单体内置对象。
 - [八种数据类型](/js/basic/eightTypes)：JS 类型体系总览。
-- [包装类型](/js/basic/primitiveWrapperTypes)：原始值与包装对象。
 - [变量声明](/js/basic/variablesDeclare)：var、let、const 与作用域差异。
 - [解构赋值](/js/basic/variablesDestructuring)：数组、对象解构与默认值。
 - [内存空间](/js/basic/memorySpace)：栈、堆与引用关系。

@@ -1,16 +1,23 @@
-# **`JSON.parse()`** 和 **`JSON.stringify()`**
+---
+outline: [2, 3]
+---
 
-- **`JSON.stringify()` (序列化)**: 将 JavaScript **值** (通常是对象或数组) 转换为 **JSON 字符串**。
+# JSON 序列化 (JSON Serialization)
+
+- **`JSON.stringify()` (序列化)**: 将 JavaScript **值**（通常是对象或数组）转换为 **JSON 字符串**。
 - **`JSON.parse()` (反序列化/解析)**: 将 **JSON 字符串** 转换为 JavaScript **值**。
 
-## **1. [`JSON.stringify()`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify)**
+> [!TIP] 相关阅读
+> `JSON.parse(JSON.stringify(obj))` 是常见的深拷贝手段，其缺陷见 [深浅拷贝](/js/basic/copy)；`Date` 等对象的 `toJSON()` 序列化规则见 [基本引用类型](/js/basic/basicPrimitiveType)。
+
+## 1. [`JSON.stringify()`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/JSON/stringify)
 
 `JSON.stringify()` 方法将一个 JavaScript 对象或值转换为 JSON 字符串。
 
 **基础语法**:
 `JSON.stringify(value[, replacer[, space]])`
 
-### **1.1 `value` (必需)**
+### 1.1 `value` (必需)
 
 要转换的 JavaScript 值。
 
@@ -56,7 +63,7 @@ const data = {
 console.log(JSON.stringify(data)) // '{"d":[null,null]}' (a, b, c 都消失了)
 ```
 
-### **1.2 `replacer` (可选)**
+### 1.2 `replacer` (可选)
 
 一个**函数**或一个**数组**，用于在序列化过程中转换或过滤值。
 
@@ -96,7 +103,7 @@ console.log(JSON.stringify(product, replacerFunc))
   // '{"name":"Alice","age":30}'
   ```
 
-### **1.3 `space` (可选)**
+### 1.3 `space` (可选)
 
 用于控制最终字符串的**缩进和间距**，使其更具可读性。
 
@@ -122,14 +129,14 @@ console.log(JSON.stringify(product, replacerFunc))
   */
   ```
 
-## **2. [`JSON.parse()`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse)**
+## 2. [`JSON.parse()`](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse)
 
 `JSON.parse()` 方法将一个 JSON 字符串解析为 JavaScript 对象或值。
 
 **基础语法**:
 `JSON.parse(text[, reviver])`
 
-### **2.1 `text` (必需)**
+### 2.1 `text` (必需)
 
 一个**有效的 JSON 字符串**。如果字符串格式不符合 JSON 规范，会抛出 `SyntaxError`。
 
@@ -149,7 +156,7 @@ console.log(userObject.courses[0]) // "Math"
 - **属性名必须是双引号**: `'{ "name": "Bob" }'` 是有效的，`"{ 'name': 'Bob' }"` 或 `"{ name: 'Bob' }"` 都会报错。
 - **末尾逗号**: JSON 不支持在数组或对象的最后一个元素后有逗号。`'[1, 2, ]'` 会报错。
 
-### **2.2 `reviver` (可选)**
+### 2.2 `reviver` (可选)
 
 一个**函数 `(key, value) => newValue`**，它会在解析后、返回结果前，对每个键值对进行转换。
 
@@ -180,7 +187,7 @@ const eventObject = JSON.parse(jsonString, reviverFunc)
 console.log(eventObject.time instanceof Date) // true
 ```
 
-## **3. 常见问题与技巧 (FAQ)**
+## 3. 常见问题与技巧 (FAQ)
 
 ### 3.1 如何用 `JSON.stringify` 实现深拷贝？
 

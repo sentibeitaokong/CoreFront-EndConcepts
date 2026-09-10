@@ -339,7 +339,7 @@ function foo() {
 foo() // foo1
 ```
 
-## 5. 常见问题 (FAQ)
+## 5. 常见问题 (FAQ)与 避坑指南
 
 ### 5.1 栈溢出 (Stack Overflow) 是什么？
 
