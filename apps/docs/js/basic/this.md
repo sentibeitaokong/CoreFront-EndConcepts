@@ -7,7 +7,8 @@ outline: [2, 3]
 `this` 不是编写时绑定，而是运行时绑定。它依赖于函数调用的上下文条件。`this` 绑定与函数声明的位置没有任何关系，而与函数被调用的方式紧密相连。
 
 > [!TIP] 相关阅读
-> `this` 的“**动态性**”与 [作用域](/js/basic/lexicalScope) 的“**静态性**”恰好相反：变量查找是词法的（看**定义位置**），`this` 是动态的（看**调用方式**）。箭头函数的“**词法 `this`**”见第 5 节。
+> `this` 的“**动态性**”与 [作用域](/js/basic/lexicalScope) 的“**静态性**”恰好相反：变量查找是词法的（看**定义位置**），
+> `this` 是动态的（看**调用方式**）。箭头函数的“**词法 `this`**”见第 5 节。
 
 ## 1. 调用位置
 
@@ -40,7 +41,8 @@ outline: [2, 3]
   ```
 
 - **使用开发者工具**：
-  在代码中设置断点或插入 `debugger;` 语句。当代码执行到该位置暂停时，开发者工具会展示当前的**调用栈 (Call Stack)**。调用栈列表中的**第二个元素**，就是当前函数真正的调用位置。
+  在代码中设置断点或插入 `debugger;` 语句。当代码执行到该位置暂停时，开发者工具会展示当前的**调用栈 (Call Stack)**。调用栈列表中的
+  **第二个元素**，就是当前函数真正的调用位置。
 
 ## 2. 绑定规则
 
@@ -54,7 +56,8 @@ outline: [2, 3]
 ### 2.1 默认绑定
 
 - **独立函数调用**，可以把默认绑定看作是无法应用其他规则时的默认规则，this指向**全局对象**。
-- **严格模式**下，不能将全局对象用于默认绑定，this会绑定到undefined。只有函数**运行**在非严格模式下，默认绑定才能绑定到全局对象。在严格模式下**调用**函数则不影响默认绑定。
+- **严格模式**下，不能将全局对象用于默认绑定，this会绑定到undefined。只有函数**运行**在非严格模式下，默认绑定才能绑定到全局对象。在严格模式下
+  **调用**函数则不影响默认绑定。
 
 #### 2.1.1 **函数体在严格模式下**
 
@@ -173,93 +176,90 @@ var obj = {
 foo.call(obj) // 2 (调用 foo 时，强制将 this 绑定到 obj)
 ```
 
-**解决方案：解决 `this` 丢失问题**
+#### 2.3.1 **硬绑定 (Hard Binding)**
 
-- **1. 硬绑定 (Hard Binding)**
-  创建一个包裹函数，在内部使用 `call` 或 `apply` 强制将 `this` 绑定到指定的对象。
+创建一个包裹函数，在内部使用 `call` 或 `apply` 强制将 `this` 绑定到指定的对象。
 
-  ```js
-  function foo() {
-    console.log(this.a)
+```js
+function foo() {
+  console.log(this.a)
+}
+
+var obj = { a: 2 }
+
+var bar = function () {
+  foo.call(obj)
+}
+
+bar() // 2
+setTimeout(bar, 100) // 2
+
+// 硬绑定的 bar 不可能再修改它的 this
+bar.call(window) // 2
+```
+
+**通用辅助函数：**
+
+```js
+function foo(something) {
+  console.log(this.a, something)
+  return this.a + something
+}
+
+function bind(fn, obj) {
+  return function () {
+    return fn.apply(obj, arguments)
   }
-  var obj = { a: 2 }
+}
 
-  var bar = function () {
-    foo.call(obj)
-  }
+var obj = {
+  a: 2,
+}
+var bar = bind(foo, obj)
+bar(3) //2 3
+```
 
-  bar() // 2
-  setTimeout(bar, 100) // 2
+**ES5 内置 `Function.prototype.bind`：**
+`bind()` 会返回一个硬绑定的新函数。
 
-  // 硬绑定的 bar 不可能再修改它的 this
-  bar.call(window) // 2
-  ```
+```js
+function foo(something) {
+  console.log(this.a, something)
+  return this.a + something
+}
 
-  **通用辅助函数：**
+var obj = {
+  a: 2,
+}
 
-  ```js
-  function foo(something) {
-    console.log(this.a, something)
-    return this.a + something
-  }
-  function bind(fn, obj) {
-    return function () {
-      return fn.apply(obj, arguments)
-    }
-  }
-  var obj = {
-    a: 2,
-  }
-  var bar = bind(foo, obj)
-  bar(3)
-  ```
+var bar = foo.bind(obj)
 
-  **ES5 内置 `Function.prototype.bind`：**
-  `bind()` 会返回一个硬绑定的新函数。
+var b = bar(3) // 2 3
+console.log(b) // 5
+```
 
-  ```js
-  function foo(something) {
-    console.log(this.a, something)
-    return this.a + something
-  }
+#### 2.3.2 **API 调用的“上下文”参数**
 
-  var obj = {
-    a: 2,
-  }
+许多 JavaScript 内置函数（如数组方法）提供了一个可选的“**上下文**”(context) 参数，其作用与 `bind()` 相同，确保回调函数使用指定的
+`this`。
 
-  var bar = foo.bind(obj)
+```js
+function foo(el) {
+  console.log(el, this.id)
+}
+var obj = { id: 'awesome' }
+var myArray = [1, 2, 3]
 
-  var b = bar(3) // 2 3
-  console.log(b) // 5
-  ```
-
-- **2. API 调用的“上下文”参数**
-  许多 JavaScript 内置函数（如数组方法）提供了一个可选的“上下文”(context) 参数，其作用与 `bind()` 相同，确保回调函数使用指定的 `this`。
-
-  ```js
-  function foo(el) {
-    console.log(el, this.id)
-  }
-  var obj = { id: 'awesome' }
-  var myArray = [1, 2, 3]
-
-  myArray.forEach(foo, obj)
-  // 输出:
-  // 1 awesome
-  // 2 awesome
-  // 3 awesome
-  ```
+myArray.forEach(foo, obj) //forEach(callbackFn, thisArg)
+// 输出:
+// 1 awesome
+// 2 awesome
+// 3 awesome
+```
 
 ### 2.4 `new` 绑定
 
-在 JavaScript 中，并不存在所谓的“构造函数”，只有对于函数的“**构造调用**”。任何普通函数都可以通过 `new` 操作符来调用。
-
-当使用 `new` 调用函数时，会自动执行以下操作：
-
-1.  **创建**一个全新的空对象。
-2.  这个新对象会被执行 `[[Prototype]]` **连接**（即新对象的 `__proto__` 指向构造函数的 `prototype`）。
-3.  这个新对象会**绑定**到函数调用的 `this`。
-4.  如果函数没有返回其他**对象**，那么 `new` 表达式中的函数调用会**自动返回**这个新对象。
+在 JavaScript 中，并不存在所谓的“**构造函数**”，只有对于函数的“**构造调用**”。任何普通函数都可以通过 `new` 操作符来调用。
 
 ```js
 function foo(a) {
@@ -413,7 +413,8 @@ baz.val // p1p2
 
 ### 4.1 被忽略的 `this`
 
-如果把 `null` 或者 `undefined` 作为 `this` 的绑定对象传入 `call`、`apply` 或者 `bind`，这些值在调用时会被忽略，实际应用的是**默认绑定**规则。
+如果把 `null` 或者 `undefined` 作为 `this` 的绑定对象传入 `call`、`apply` 或者 `bind`，这些值在调用时会被忽略，实际应用的是
+**默认绑定**规则。
 
 ```js
 function foo(a, b) {
@@ -429,7 +430,8 @@ bar(3) // a:2，b:3
 ```
 
 **更安全的 `this`**：
-为了避免 `this` 意外地绑定到全局对象，可以传入一个**空对象**作为占位符。创建一个“更空”的对象的方法是 `Object.create(null)`，它没有 `Object.prototype` 委托。
+为了避免 `this` 意外地绑定到全局对象，可以传入一个**空对象**作为占位符。创建一个“更空”的对象的方法是 `Object.create(null)`
+，它没有 `Object.prototype` 委托。
 
 ```js
 function foo(a, b) {
@@ -554,7 +556,8 @@ foo.call(obj) // 2
 > 参考：[轻松理解 JS 中 this 的绑定规则](https://juejin.cn/post/6844904083707396109)
 
 - 函数是通过 **`new`** 被调用的吗（**`new 绑定`**）？如果是，this 就是新构建的对象。
-- 函数是通过 **`call`** 或 **`apply`** 被调用（**`显式绑定`**），甚至是隐藏在 **`bind`** 硬绑定 之中吗？如果是，this 就是那个被明确指定的对象。
+- 函数是通过 **`call`** 或 **`apply`** 被调用（**`显式绑定`**），甚至是隐藏在 **`bind`** 硬绑定 之中吗？如果是，this
+  就是那个被明确指定的对象。
 - 函数是通过环境对象（也称为拥有者或容器对象）被调用的吗（**`隐式绑定`**）？如果是，this 就是那个环境对象。
 - 否则，使用默认的 this（**`默认绑定`**）。如果在 strict mode 下，就是 undefined，否则是 global 对象。
 
@@ -601,10 +604,10 @@ const obj = {
 
 ### 7.4 `new` 操作符做了什么？
 
-1. 创建空对象；
-2. 该对象原型（`__proto__`）指向构造函数的 `prototype`；
-3. 该对象绑定为函数调用的 `this`；
-4. 若函数没有返回其他对象，则自动返回该新对象。
+- **创建**一个全新的空对象。
+- 这个新对象会被执行 `[[Prototype]]` **连接**（即新对象的 `__proto__` 指向构造函数的 `prototype`）。
+- 这个新对象会**绑定**到函数调用的 `this`。
+- 如果函数没有返回其他**对象**，那么 `new` 表达式中的函数调用会**自动返回**这个新对象。
 
 ### 7.5 `this` 绑定的优先级顺序？
 

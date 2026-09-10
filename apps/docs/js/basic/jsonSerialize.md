@@ -21,8 +21,6 @@ outline: [2, 3]
 
 要转换的 JavaScript 值。
 
-**基础用法**:
-
 ```js
 const user = {
   id: 1,
@@ -42,16 +40,15 @@ console.log(jsonString)
 
 **序列化规则与陷阱**:
 
-1.  **`undefined`, `Function`, `Symbol`**:
-    - 如果它们是**对象属性值**，这些键值对会**被忽略**（直接消失）。
-    - 如果它们在**数组中**，会被转换为 `null`。
-    - 如果它们是**顶层值**，`JSON.stringify()` 会返回 `undefined`。
-2.  **`NaN`, `Infinity`, `-Infinity`**: 无论在对象还是数组中，都会被转换为 `null`。
-3.  **`Date` 对象**: 会被转换为其 `toISOString()` 格式的**字符串**。
-4.  **`RegExp`, `Error` 对象**: 会被转换为空对象 `{}`。
-5.  **循环引用**: 如果对象存在循环引用，会抛出 `TypeError: Converting circular structure to JSON`。
-6.  **`BigInt`**: 会抛出 `TypeError: Do not know how to serialize a BigInt`。
-7.  **只序列化可枚举自身属性**: 原型链上的属性会被忽略。
+| 类型 / 情况                         | 序列化表现                                                                |
+| :---------------------------------- | :------------------------------------------------------------------------ |
+| `undefined` / `Function` / `Symbol` | 对象属性值 → **忽略**（消失）；数组中 → `null`；顶层值 → 返回 `undefined` |
+| `NaN` / `Infinity` / `-Infinity`    | 无论对象还是数组，都转换为 `null`                                         |
+| `Date` 对象                         | 转换为 `toISOString()` 格式的**字符串**                                   |
+| `RegExp` / `Error` 对象             | 转换为空对象 `{}`                                                         |
+| 循环引用                            | 抛出 `TypeError: Converting circular structure to JSON`                   |
+| `BigInt`                            | 抛出 `TypeError: Do not know how to serialize a BigInt`                   |
+| 原型链属性                          | 只序列化**可枚举自身属性**，原型链上的属性被忽略                          |
 
 ```js
 const data = {
@@ -140,8 +137,6 @@ console.log(JSON.stringify(product, replacerFunc))
 
 一个**有效的 JSON 字符串**。如果字符串格式不符合 JSON 规范，会抛出 `SyntaxError`。
 
-**基础用法**:
-
 ```js
 const jsonString =
   '{"id":1,"name":"Alice","isAdmin":true,"courses":["Math","Science"]}'
@@ -166,11 +161,9 @@ console.log(userObject.courses[0]) // "Math"
   - 返回 `undefined`，该键值对会被从其父对象中删除。
   - 不返回值 (或返回原始 `value`)，则保持不变。
 
-**最经典的应用：将日期字符串转换回 `Date` 对象**
-
 ```js
 const jsonString = '{"name":"Meeting","time":"2023-10-27T10:00:00.000Z"}'
-
+//将日期字符串转换回 Date 对象
 const reviverFunc = (key, value) => {
   // 正则表达式匹配 ISO 8601 日期格式
   if (
