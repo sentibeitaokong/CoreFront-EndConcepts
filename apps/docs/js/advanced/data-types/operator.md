@@ -4,304 +4,108 @@
 
 ## 1. 指数运算符
 
-ES2016 新增了一个指数运算符（`**`）。
+ES2016 新增指数运算符（`**`），是**右结合**（从最右边开始计算）：
 
 ```js
-2 ** 2 // 4
 2 ** 3 // 8
+2 ** (3 ** 2) // 512
 ```
 
-这个运算符的一个特点是右结合，而不是常见的左结合。多个指数运算符连用时，是从最右边开始计算的。
-
-```js
-// 相当于 2 ** (3 ** 2)
-2 ** (3 ** 2)
-// 512
-```
-
-上面代码中，首先计算的是第二个指数运算符，而不是第一个。
-
-指数运算符可以与等号结合，形成一个新的赋值运算符（`**=`）。
+可与等号结合形成 `**=`：
 
 ```js
 let a = 1.5
-a **= 2
-// 等同于 a = a * a;
-
-let b = 4
-b **= 3
-// 等同于 b = b * b * b;
+a **= 2 // 等同于 a = a * a
 ```
 
 ## 2. 链判断运算符
 
-编程实务中，如果读取对象内部的某个属性，往往需要判断一下，属性的上层对象是否存在。比如，读取`message.body.user.firstName`这个属性，安全的写法是写成下面这样。
+读取深层属性时需逐层判断上层对象是否存在。ES2020 引入链判断运算符（optional chaining）`?.`：左侧为 `null`/`undefined` 时短路并返回 `undefined`，否则继续运算。
 
 ```js
-// 错误的写法
-const firstName = message.body.user.firstName || 'default'
-
-// 正确的写法
+// 旧的写法
 const firstName =
   (message &&
     message.body &&
     message.body.user &&
     message.body.user.firstName) ||
   'default'
-```
 
-上面例子中，`firstName`属性在对象的第四层，所以需要判断四次，每一层是否有值。
-
-三元运算符`?:`也常用于判断对象是否存在。
-
-```js
-const fooInput = myForm.querySelector('input[name=foo]')
-const fooValue = fooInput ? fooInput.value : undefined
-```
-
-上面例子中，必须先判断`fooInput`是否存在，才能读取`fooInput.value`。
-
-这样的层层判断非常麻烦，因此 [ES2020](https://github.com/tc39/proposal-optional-chaining) 引入了“链判断运算符”（optional chaining operator）`?.`，简化上面的写法。
-
-```js
+// 链判断写法
 const firstName = message?.body?.user?.firstName || 'default'
 const fooValue = myForm.querySelector('input[name=foo]')?.value
 ```
 
-上面代码使用了`?.`运算符，直接在链式调用的时候判断，左侧的对象是否为`null`或`undefined`。如果是的，就不再往下运算，而是返回`undefined`。
-
-下面是判断对象方法是否存在，如果存在就立即执行的例子。
+判断方法是否存在并立即执行：
 
 ```js
 iterator.return?.()
-```
-
-上面代码中，`iterator.return`如果有定义，就会调用该方法，否则`iterator.return`直接返回`undefined`，不再执行`?.`后面的部分。
-
-对于那些可能没有实现的方法，这个运算符尤其有用。
-
-```js
 if (myForm.checkValidity?.() === false) {
   // 表单校验失败
-  return
 }
 ```
 
-上面代码中，老式浏览器的表单对象可能没有`checkValidity()`这个方法，这时`?.`运算符就会返回`undefined`，判断语句就变成了`undefined === false`，所以就会跳过下面的代码。
+[width(30,70)]
 
-链判断运算符`?.`有三种写法。
+| 写法               | 等价形式                                |
+| :----------------- | :-------------------------------------- |
+| `a?.b`             | `a == null ? undefined : a.b`           |
+| `a?.[x]`           | `a == null ? undefined : a[x]`          |
+| `a?.b()` / `a?.()` | `a == null ? undefined : a.b()` / `a()` |
 
-- `obj?.prop` // 对象属性是否存在
-- `obj?.[expr]` // 同上
-- `func?.(...args)` // 函数或对象方法是否存在
+注意：`a?.b()` 若 `a.b` 有值但不是函数，会报错；`a?.()` 同理。
 
-下面是`obj?.[expr]`用法的一个例子。
+[width(16,33,51)]
 
-```bash
-let hex = "#C0FFEE".match(/#([A-Z]+)/i)?.[1];
-```
-
-上面例子中，字符串的`match()`方法，如果没有发现匹配会返回`null`，如果发现匹配会返回一个数组，`?.`运算符起到了判断作用。
-
-下面是`?.`运算符常见形式，以及不使用该运算符时的等价形式。
-
-```js
-a?.b
-// 等同于
-a == null ? undefined : a.b
-
-a?.[x]
-// 等同于
-a == null ? undefined : a[x]
-
-a?.b()
-// 等同于
-a == null ? undefined : a.b()
-
-a?.()
-// 等同于
-a == null ? undefined : a()
-```
-
-上面代码中，特别注意后两种形式，如果`a?.b()`和`a?.()`。如果`a?.b()`里面的`a.b`有值，但不是函数，不可调用，那么`a?.b()`是会报错的。`a?.()`也是如此，如果`a`不是`null`或`undefined`，但也不是函数，那么`a?.()`会报错。
-
-使用这个运算符，有几个注意点。
-
-（1）短路机制
-
-本质上，`?.`运算符相当于一种短路机制，只要不满足条件，就不再往下执行。
-
-```js
-a?.[++x]
-// 等同于
-a == null ? undefined : a[++x]
-```
-
-上面代码中，如果`a`是`undefined`或`null`，那么`x`不会进行递增运算。也就是说，链判断运算符一旦为真，右侧的表达式就不再求值。
-
-（2）括号的影响
-
-如果属性链有圆括号，链判断运算符对圆括号外部没有影响，只对圆括号内部有影响。
-
-```js
-;(a?.b).c(
-  // 等价于
-  a == null ? undefined : a.b,
-).c
-```
-
-上面代码中，`?.`对圆括号外部没有影响，不管`a`对象是否存在，圆括号后面的`.c`总是会执行。
-
-一般来说，使用`?.`运算符的场合，不应该使用圆括号。
-
-（3）报错场合
-
-以下写法是禁止的，会报错。
-
-```js
-// 构造函数
-new a?.()
-new a?.b()
-
-// 链判断运算符的右侧有模板字符串
-a?.`{b}`
-a?.b`{c}`
-
-// 链判断运算符的左侧是 super
-super?.()
-super?.foo
-
-// 链运算符用于赋值运算符左侧
-a?.b = c
-```
-
-（4）右侧不得为十进制数值
-
-为了保证兼容以前的代码，允许`foo?.3:0`被解析成`foo ? .3 : 0`，因此规定如果`?.`后面紧跟一个十进制数字，那么`?.`不再被看成是一个完整的运算符，而会按照三元运算符进行处理，也就是说，那个小数点会归属于后面的十进制数字，形成一个小数。
+| 注意点                   | 示例                                                 | 说明                                                                               |
+| :----------------------- | :--------------------------------------------------- | :--------------------------------------------------------------------------------- |
+| **短路机制**             | `a?.[++x]` 中的 `x` 不递增                           | 左侧为 `null`/`undefined` 时，右侧整体不再求值                                     |
+| **括号的影响**           | `(a?.b).c` 中的 `.c` 总会执行                        | `?.` 只对圆括号内部生效，圆括号外的部分照常运算                                    |
+| **报错场合**             | `new a?.()`、`` a?.`{b}` ``、`super?.()`、`a?.b = c` | 这些写法禁止：用作构造函数、右侧紧跟模板字符串、左侧是 `super`、位于赋值运算符左侧 |
+| **右侧不得为十进制数值** | `foo?.3:0` 会被解析为 `foo ? .3 : 0`                 | 为兼容旧代码，`?.` 右侧不能直接跟数字                                              |
 
 ## 3. Null 判断运算符
 
-读取对象属性的时候，如果某个属性的值是`null`或`undefined`，有时候需要为它们指定默认值。常见做法是通过`||`运算符指定默认值。
+`||` 指定默认值时，`''`、`false`、`0` 也会触发默认值。ES2020 引入 `??`：只有左侧为 `null` 或 `undefined` 时才返回右侧的值。
 
 ```js
-const headerText = response.settings.headerText || 'Hello, world!'
-const animationDuration = response.settings.animationDuration || 300
-const showSplashScreen = response.settings.showSplashScreen || true
-```
-
-上面的三行代码都通过`||`运算符指定默认值，但是这样写是错的。开发者的原意是，只要属性的值为`null`或`undefined`，默认值就会生效，但是属性的值如果为空字符串或`false`或`0`，默认值也会生效。
-
-为了避免这种情况，[ES2020](https://github.com/tc39/proposal-nullish-coalescing) 引入了一个新的 Null 判断运算符`??`。它的行为类似`||`，但是只有运算符左侧的值为`null`或`undefined`时，才会返回右侧的值。
-
-```js
-const headerText = response.settings.headerText ?? 'Hello, world!'
 const animationDuration = response.settings.animationDuration ?? 300
-const showSplashScreen = response.settings.showSplashScreen ?? true
 ```
 
-上面代码中，默认值只有在左侧属性值为`null`或`undefined`时，才会生效。
-
-这个运算符的一个目的，就是跟链判断运算符`?.`配合使用，为`null`或`undefined`的值设置默认值。
+与 `?.` 配合，为深层属性设置默认值：
 
 ```js
 const animationDuration = response.settings?.animationDuration ?? 300
 ```
 
-上面代码中，如果`response.settings`是`null`或`undefined`，或者`response.settings.animationDuration`是`null`或`undefined`，就会返回默认值300。也就是说，这一行代码包括了两级属性的判断。
+也适合判断函数参数是否赋值:`props.enabled ?? true`等同于解构默认值 `{ enabled: enable = true }`。
 
-这个运算符很适合判断函数参数是否赋值。
-
-```js
-function Component(props) {
-  const enable = props.enabled ?? true
-  // …
-}
-```
-
-上面代码判断`props`参数的`enabled`属性是否赋值，基本等同于下面的写法。
+**优先级**：`??` 与 `&&`/`||` 混用必须加括号表明优先级，否则报错：
 
 ```js
-function Component(props) {
-  const { enabled: enable = true } = props
-  // …
-}
-```
-
-`??`本质上是逻辑运算，它与其他两个逻辑运算符`&&`和`||`有一个优先级问题，它们之间的优先级到底孰高孰低。优先级的不同，往往会导致逻辑运算的结果不同。
-
-现在的规则是，如果多个逻辑运算符一起使用，必须用括号表明优先级，否则会报错。
-
-```js
-// 报错
-lhs && middle ?? rhs
-lhs ?? middle && rhs
-lhs || middle ?? rhs
-lhs ?? middle || rhs
-```
-
-上面四个表达式都会报错，必须加入表明优先级的括号。
-
-```js
-;(lhs && middle) ?? rhs
-lhs && (middle ?? rhs)
-
-;(lhs ?? middle) && rhs
-lhs ?? (middle && rhs)
-
-;(lhs || middle) ?? rhs
-lhs || (middle ?? rhs)
-
-;(lhs ?? middle) || rhs
-lhs ?? (middle || rhs)
+lhs && middle ?? rhs // 报错
+;(lhs && middle) ?? rhs // 正确
+lhs ?? (middle && rhs) // 正确
 ```
 
 ## 4. 逻辑赋值运算符
 
-ES2021 引入了三个新的[逻辑赋值运算符](https://github.com/tc39/proposal-logical-assignment)（logical assignment operators），将逻辑运算符与赋值运算符进行结合。
+ES2021 引入三个逻辑赋值运算符，将逻辑运算与赋值结合：
 
 ```js
-// 或赋值运算符
-x ||= y
-// 等同于
-x || (x = y)
-
-// 与赋值运算符
-x &&= y
-// 等同于
-x && (x = y)
-
-// Null 赋值运算符
-x ??= y
-// 等同于
-x ?? (x = y)
+x ||= y // 等同于 x || (x = y)
+x &&= y // 等同于 x && (x = y)
+x ??= y // 等同于 x ?? (x = y)
 ```
 
-这三个运算符`||=`、`&&=`、`??=`相当于先进行逻辑运算，然后根据运算结果，再视情况进行赋值运算。
-
-它们的一个用途是，为变量或属性设置默认值。
+用途：为变量或属性设置默认值。
 
 ```js
 // 老的写法
 user.id = user.id || 1
-
 // 新的写法
 user.id ||= 1
-```
 
-上面示例中，`user.id`属性如果不存在，则设为`1`，新的写法比老的写法更紧凑一些。
-
-下面是另一个例子。
-
-```js
-function example(opts) {
-  opts.foo = opts.foo ?? 'bar'
-  opts.baz ?? (opts.baz = 'qux')
-}
-```
-
-上面示例中，参数对象`opts`如果不存在属性`foo`和属性`baz`，则为这两个属性设置默认值。有了“Null 赋值运算符”以后，就可以统一写成下面这样。
-
-```js
 function example(opts) {
   opts.foo ??= 'bar'
   opts.baz ??= 'qux'
@@ -310,42 +114,48 @@ function example(opts) {
 
 ## 5. `#!`命令
 
-Unix 的命令行脚本都支持`#!`命令，又称为 Shebang 或 Hashbang。这个命令放在脚本的第一行，用来指定脚本的执行器。
-
-比如 Bash 脚本的第一行。
-
-```bash
-#!/bin/sh
-```
-
-Python 脚本的第一行。
-
-```python
-#!/usr/bin/env python
-```
-
-[ES2023](https://github.com/tc39/proposal-hashbang) 为 JavaScript 脚本引入了`#!`命令，写在脚本文件或者模块文件的第一行。
+Unix 命令行脚本用 `#!`（Shebang/Hashbang）指定执行器。ES2023 为 JavaScript 引入 `#!` 命令，写在脚本/模块文件第一行：
 
 ```js
-// 写在脚本文件第一行
 #!/usr/bin/env node
-'use strict';
-console.log(1);
-
-// 写在模块文件第一行
-#!/usr/bin/env node
-export {};
-console.log(1);
+'use strict'
+console.log(1)
 ```
 
-有了这一行以后，Unix 命令行就可以直接执行脚本。
+这样 Unix 命令行可直接执行 `./hello.js`（而非 `node hello.js`）。JS 引擎会把 `#!` 当作注释忽略。
 
-```bash
-# 以前执行脚本的方式
-$ node hello.js
+## 6. 常见问题与面试题
 
-# hashbang 的方式
-$ ./hello.js
-```
+### 6.1 `?.` 和 `&&` 有什么区别？
 
-对于 JavaScript 引擎来说，会把`#!`理解成注释，忽略掉这一行。
+`?.` 是"**短路取值**"，只判断左侧是否为 `null`/`undefined`；`&&` 是逻辑与，会把 `''`、`0`、`false`、`NaN` 也当作"**假值**"短路。`?.` 更精准，专门用于可选链访问。
+
+### 6.2 `??` 和 `||` 有什么区别？
+
+[width(15,85)]
+
+| 运算符 | 触发右侧的条件                                                  |
+| :----- | :-------------------------------------------------------------- |
+| `??`   | 仅左侧为 `null` 或 `undefined`                                  |
+| `\|\|` | 左侧为任意**假值**（`''`/`0`/`false`/`NaN`/`null`/`undefined`） |
+
+需要保留 `0`、`''`、`false` 作为有效值时，应使用 `??`。
+
+### 6.3 `?.` 在哪些情况下会报错？
+
+- `new a?.()`、`new a?.b()`（不能用于构造函数）。
+- `a?.`{b}``、`a?.b`{c}``（右侧紧跟模板字符串）。
+- `super?.()`、`super?.foo`（左侧是 `super`）。
+- `a?.b = c`（用于赋值运算符左侧）。
+
+### 6.4 为什么 `??` 不能和 `&&`、`||` 混用？
+
+因为三者优先级关系不明确，混用会导致逻辑结果不确定，因此规范要求**必须用括号表明优先级**，否则直接报 `SyntaxError`。
+
+### 6.5 `**` 运算符的结合方向是什么？
+
+`**` 是**右结合**，多个连用时从最右边算起：`2 ** 3 ** 2` 等价于 `2 ** (3 ** 2)`（即 512），而非 `(2 ** 3) ** 2`。
+
+### 6.6 逻辑赋值运算符 `||=`、`&&=`、`??=` 与逻辑运算符有什么区别？
+
+逻辑赋值运算符在逻辑运算结果满足条件时才**执行赋值**，且有**短路**特性（不满足则不赋值）；逻辑运算符只是返回运算结果，不赋值。它们常用于为变量/属性简洁地设置默认值。

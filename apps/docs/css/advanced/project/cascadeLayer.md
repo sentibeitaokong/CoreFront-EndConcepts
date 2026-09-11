@@ -219,6 +219,8 @@ Cascade Layer 的关键点是：**层级顺序优先于层内选择器优先级*
 @layer reset, base, tokens, components, utilities, overrides;
 ```
 
+[width(33,67)]
+
 | 层名         | 用途                           |
 | :----------- | :----------------------------- |
 | `reset`      | normalize、reset、清除默认样式 |

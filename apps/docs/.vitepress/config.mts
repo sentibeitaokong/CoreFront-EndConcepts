@@ -4,6 +4,7 @@ import lightbox from "vitepress-plugin-lightbox";
 import {withMermaid} from 'vitepress-mermaid-viewer'
 import footnote from 'markdown-it-footnote'
 import taskLists from 'markdown-it-task-lists'
+import {ab_mdit, jsdom_init} from 'markdown-it-any-block/node'
 import {fileURLToPath, URL} from 'node:url'
 import {loadEnv} from 'vite'
 import {sentryVitePlugin} from "@sentry/vite-plugin"
@@ -19,7 +20,11 @@ const isTruthyFlag = (value: string | undefined) => {
 }
 
 // https://vitepress.dev/reference/site-config
-const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
+const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
+    // AnyBlock 需要在任何 markdown 渲染之前建好 jsdom 环境（内部分支里有 await import('jsdom')，
+    // 上游 demo 那种不 await 的写法存在竞态）
+    await jsdom_init()
+
     const env = loadEnv(mode, process.cwd(), '')
     // 兼容本地读取 env 文件和 CI/CD 读取系统变量
     const sentryToken = env.SENTRY_AUTH_TOKEN || process.env.SENTRY_AUTH_TOKEN
@@ -176,6 +181,7 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                 md.use(lightbox, {});      //图片放大
                 md.use(taskLists, {enabled: true})  //任务列表
                 md.use(footnote)        //论文索引
+                md.use(ab_mdit)         //AnyBlock：表格列宽 [width(30,70)]、列表转表格等
             },
         },
         themeConfig: {
@@ -457,7 +463,6 @@ const config: UserConfigFn<DefaultTheme.Config> = ({mode}) => {
                                 {text: '函数基础', link: '/js/basic/basicFunction'},
                                 {text: '闭包', link: '/js/basic/closure'},
                                 {text: 'This全面解析', link: '/js/basic/this'},
-                                // {text: '相等性判断', link: '/js/basic/equal'},
                                 {text: '深浅拷贝原理', link: '/js/basic/copy'},
                                 {text: 'JSON序列化', link: '/js/basic/jsonSerialize'},
                             ]

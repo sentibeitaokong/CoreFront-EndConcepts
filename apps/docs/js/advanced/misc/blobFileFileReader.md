@@ -129,6 +129,8 @@ dropZone.addEventListener('drop', e => {
 
 `FileReader` 是异步读取 `Blob`/`File` 的接口，有四种读取方式：
 
+[width(37,35,28)]
+
 | 方法                       | 结果类型                  | 典型用途             |
 | -------------------------- | ------------------------- | -------------------- |
 | `readAsText(blob)`         | 字符串（文本）            | 读取 txt/csv/json    |

@@ -20,6 +20,7 @@
     "xb-element": "workspace:*"
   },
   "devDependencies": {
+    "markdown-it-any-block": "3.5.0",
     "vite-plugin-image-optimizer": "^2.0.3"
   }
 }

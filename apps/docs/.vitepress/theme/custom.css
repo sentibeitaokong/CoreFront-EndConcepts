@@ -144,6 +144,21 @@ div[class*='language-'] pre {
   scrollbar-color: #8b5cf6 #0d1117;
 }
 
+/* 表格统一撑满正文宽度：VitePress 默认 table{display:block} 会让表格按内容收缩，
+   内容少的表格只有页面一半宽。改成 display:table + width:100% 后所有表格都对齐正文宽度
+   （AnyBlock 的 [width(...)] 表格本来就是这个效果） */
+.vp-doc table {
+  display: table;
+  width: 100%;
+}
+
+/* 表格宽度被锁死后，单元格里的长代码串没有断行机会会溢出到相邻列甚至表格外，
+   这里放开断行，只在放不下时才断（overflow-wrap:anywhere，会继承给里面的 code） */
+.vp-doc table th,
+.vp-doc table td {
+  overflow-wrap: anywhere;
+}
+
 body {
   color: var(--vp-c-text-1);
 }

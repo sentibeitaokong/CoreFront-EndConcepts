@@ -13,6 +13,9 @@ import { ElementPlusContainer } from '@vitepress-demo-preview/component'
 import '@vitepress-demo-preview/component/dist/style.css'
 import XElement from 'xb-element'
 import './custom.css'
+// AnyBlock 的样式：包的 exports 只声明了 "." 和 "./node"，没有 "./styles.css" 子路径，
+// 裸导入会 ERR_PACKAGE_PATH_NOT_EXPORTED，所以走相对路径（上游 VuePress 文档也是这个写法）
+import '../../node_modules/markdown-it-any-block/styles.css'
 
 export default {
   extends: DefaultTheme,
