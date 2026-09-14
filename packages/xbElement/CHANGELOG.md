@@ -1,5 +1,11 @@
 # xb-element
 
+## 1.0.24
+
+### Patch Changes
+
+- 组件库测试
+
 ## 1.0.23
 
 ### Patch Changes

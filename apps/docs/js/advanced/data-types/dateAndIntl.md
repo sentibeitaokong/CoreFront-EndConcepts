@@ -105,7 +105,7 @@ d.setTime(1704067200000) // 直接设时间戳
 | `toDateString()` / `toTimeString()`             | 本地     | `Mon Jan 01 2024` / `08:00:00 GMT+0800 (中国标准时间)` |
 | `toLocaleString()`                              | 本地     | `2024/1/1 08:00:00`（可传 `Intl` 选项）                |
 | `toLocaleDateString()` / `toLocaleTimeString()` | 本地     | `2024/1/1` / `08:00:00`                                |
-| `toISOString()`                                 | **UTC**  | `2024-01-01T00:00:00.000Z`（固定格式，适合存储）       |
+| `toISOString()`                                 | UTC      | `2024-01-01T00:00:00.000Z`（固定格式，适合存储）       |
 | `toJSON()`                                      | UTC      | 与 `toISOString()` 相同，供 `JSON.stringify()` 调用    |
 | `toUTCString()`                                 | UTC      | `Mon, 01 Jan 2024 00:00:00 GMT`（HTTP 头格式）         |
 | `valueOf()` / `getTime()`                       | —        | 时间戳数字，不转字符串                                 |
