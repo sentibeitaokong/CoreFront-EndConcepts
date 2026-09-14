@@ -37,8 +37,9 @@ const USAGE = `用法: node .claude/skills/table-width/scripts/fix-widths.mjs <�
 
   --dry            只报告，不改文件
   --check          只校验；需要改动时退出码 5（隐含 --dry）
-  --auto           给 git 钩子用：只补缺失/参数个数不符的 [width]，**不重排已有的**；
-                   出错时告警放行而不是拦提交。等于隐含 --insert --quiet
+  --auto           给 git 钩子用：重算这次新增或改动过的表格（**含你手改过宽度值的**），
+                   本次没动过的表一律不碰；出错时告警放行而不是拦提交。
+                   隐含 --insert --quiet
   --insert         对没有 [width(...)] 的表格补一条
   --heading <前缀>  只处理最近标题以此开头的表格
   --table <n>      在过滤结果里只处理第 n 张（1 起）
@@ -103,15 +104,21 @@ function fail(msg, code = EXIT.error) {
 // ── 定位目标 ──────────────────────────────────────────────────────────────────
 
 /**
- * 表格内容的归一化指纹。只比对表格自身的行，不含 [width(...)] 那一行，
- * 所以「补了宽度」不会让指纹变化。空白和管道两侧的空格一律抹掉——
- * prettier 会重排管道对齐，那不该被当成「这张表被改过」。
+ * 表格的归一化指纹，**含 [width(...)] 那一行**。
+ *
+ * 必须含它：只手动调了宽度值、表格内容没动的情况很常见，不含就会判定成
+ * 「这张表没改过」而跳过——那正是「提交时宽度不会被重排」的原因。
+ * 反过来，含它会不会导致每次提交都重算？不会：自动写入的值是幂等的，
+ * 写完提交后 HEAD 里就是这个值，下次指纹相同，直接跳过。
+ *
+ * 空白和管道两侧的空格一律抹掉——prettier 会重排管道对齐，那不该算「被改过」。
  */
 function tableKey(lines, t) {
-  return lines
+  const body = lines
     .slice(t.startLine - 1, t.endLine)
     .map(l => l.replace(/\s*\|\s*/g, '|').trim())
-    .join('\n')
+  if (t.directive) body.push(lines[t.directive.lineNo - 1].replace(/\s+/g, ''))
+  return body.join('\n')
 }
 
 const items = []
@@ -149,16 +156,28 @@ for (const p of positional) {
     return false
   })
 
-  const needsFix = t => !t.directive || t.directive.values.length !== t.cols
+  /**
+   * 这张表要不要重算。
+   *
+   * `isNew` —— 新增或改动过的（指纹含 [width] 行，所以只改宽度值也算）；
+   * `malformed` —— 有 [width] 但参数个数跟列数对不上。这种是坏的，即使不是
+   *   这次改的也要修，否则 docs-check 会把它当错误拦下提交。
+   *
+   * ⚠ `malformed` 必须要求 `t.directive` 存在。写成「没有指令也算坏」的话，
+   * 仓库里 574 张裸表会在你改一次错别字时被全部回填——这正是它曾经的样子。
+   */
+  const malformed = t => t.directive && t.directive.values.length !== t.cols
+  const wants = (t, i) => isNew[i] || malformed(t)
   items.push({
     file,
     rel,
     text,
     tables,
     isNew,
+    wants,
     // 静态判断「这个文件值不值得起浏览器」。纯散文的提交走不到这里，
     // 所以挂到钩子上对日常提交是零开销（实测 52ms 退出）。
-    needWork: tables.some((t, i) => needsFix(t) && isNew[i]),
+    needWork: tables.some((t, i) => wants(t, i)),
   })
 }
 
@@ -269,13 +288,13 @@ async function processFile(page, item, {serverPort, pageErrors}) {
     )
   }
 
-  // --auto 只碰这次真正新增/改动过、而且缺宽度的表。
-  // 既不动已有的人工调好的值，也不顺手给全文件的历史表格补宽度——
-  // 钩子里静默产生这两种改动都是很坏的体验。要全量重排就手动跑一次。
+  // --auto 重算这次新增或改动过的表（**包括你手改过 [width] 值的**），
+  // 但绝不碰这次没动过的表——否则在老文件里改一个错别字就会给全文件的历史
+  // 表格补宽度。要整份重排就手动跑一次。
   const autos = new Set()
   if (AUTO) {
     mdTables.forEach((t, i) => {
-      if (item.isNew[i] && (!t.directive || t.directive.values.length !== t.cols)) autos.add(i)
+      if (item.wants(t, i)) autos.add(i)
     })
   }
 
@@ -316,6 +335,7 @@ async function processFile(page, item, {serverPort, pageErrors}) {
       dom,
       md,
       lineNo,
+      tableIndex: i,
       from: directive?.values ?? null,
       to: dom.bestW,
       insert: !directive,
@@ -385,13 +405,16 @@ function verifyWrite(before, after, changes) {
       if (!touched.has(i) && a[i] !== b[i]) return `第 ${i + 1} 行意外被改动`
     }
   }
+  // 用**表格序号**定位，不用行号：同一次提交里如果既有插入又有改动，
+  // 插入会让它后面所有行的行号整体偏移，按行号回查就会误判成写入失败。
+  // 改的只是 [width(...)] 独立行，表格的数量和顺序不变，所以序号是稳的。
   const reparsed = scanTables(after)
   for (const c of changes) {
-    if (c.insert) continue
-    const t = reparsed.find(t => t.directive && t.directive.lineNo === c.lineNo)
-    if (!t) return `第 ${c.lineNo} 行的 [width(...)] 重新解析不出来`
+    const t = reparsed[c.tableIndex]
+    if (!t) return `第 ${c.tableIndex + 1} 张表重新解析不出来`
+    if (!t.directive) return `第 ${c.tableIndex + 1} 张表的 [width(...)] 没写进去`
     if (t.directive.values.join(',') !== c.to.join(',')) {
-      return `第 ${c.lineNo} 行写进去的是 ${t.directive.values.join(',')}，期望 ${c.to.join(',')}`
+      return `第 ${c.tableIndex + 1} 张表写进去的是 ${t.directive.values.join(',')}，期望 ${c.to.join(',')}`
     }
   }
   return null
