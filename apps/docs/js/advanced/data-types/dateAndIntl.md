@@ -382,6 +382,8 @@ new Intl.DateTimeFormat('zh-CN').formatRange(
 | `trailingZeroDisplay`             | `'auto'`/`'stripIfInteger'`                               | 整数时是否去掉 `.00`                                                            |
 | `numberingSystem`/`localeMatcher` | 同 `DateTimeFormat`                                       |                                                                                 |
 
+[width(39,61)]
+
 | 方法                             | 说明                                                      |
 | :------------------------------- | :-------------------------------------------------------- |
 | `format(number)`                 | 数字 → 字符串（按最大小数位**四舍五入**，默认保留 3 位）  |
