@@ -382,7 +382,7 @@ new Intl.DateTimeFormat('zh-CN').formatRange(
 | `trailingZeroDisplay`             | `'auto'`/`'stripIfInteger'`                               | 整数时是否去掉 `.00`                                                            |
 | `numberingSystem`/`localeMatcher` | 同 `DateTimeFormat`                                       |                                                                                 |
 
-[width(39,61)]
+[width(60,40)]
 
 | 方法                             | 说明                                                      |
 | :------------------------------- | :-------------------------------------------------------- |
