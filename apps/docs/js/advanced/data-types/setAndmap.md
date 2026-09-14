@@ -54,8 +54,6 @@ dedupe([1, 1, 2, 3]) // [1, 2, 3]
 
 ### 1.2 [Set 实例的属性和方法](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Set)
 
-**属性**：
-
 [width(47,53)]
 
 | 属性 / 方法                   | 说明                                |
@@ -93,14 +91,16 @@ if (properties.has(someName)) {
 
 ### 1.3 遍历操作
 
-四个遍历方法：
+[width(32,13,55)]
 
-- `Set.prototype.keys()`：返回键名的遍历器
-- `Set.prototype.values()`：返回键值的遍历器
-- `Set.prototype.entries()`：返回键值对的遍历器
-- `Set.prototype.forEach()`：用回调函数遍历每个成员
+| 方法                                  | 返回值      | 说明                                                           |
+| :------------------------------------ | :---------- | :------------------------------------------------------------- |
+| `Set.prototype.keys()`                | 遍历器      | 遍历键名（键名即键值，与 `values()` 行为完全一致）             |
+| `Set.prototype.values()`              | 遍历器      | 遍历键值，也是 Set 的默认遍历器                                |
+| `Set.prototype.entries()`             | 遍历器      | 遍历键值对，每次输出 `[value, value]`                          |
+| `Set.prototype.forEach(fn, thisArg?)` | `undefined` | 用回调函数遍历每个成员，回调参数依次为**键值、键名、集合本身** |
 
-Set 没有键名（键名即键值），所以 `keys()` 和 `values()` 行为完全一致；`entries()` 每次输出 `[value, value]`。**遍历顺序就是插入顺序**。
+**遍历顺序就是插入顺序**。
 
 Set 默认遍历器就是 `values`：
 
@@ -110,7 +110,7 @@ Set.prototype[Symbol.iterator] === Set.prototype.values // true
 
 因此可直接用 `for...of` 遍历 Set。
 
-`forEach` 的回调参数与数组一致，依次为**键值、键名、集合本身**（键值=键名）：
+`forEach` 的回调参数与数组一致（键值 = 键名）：
 
 ```js
 let set = new Set([1, 4, 9])
@@ -168,8 +168,8 @@ frontEnd.symmetricDifference(backEnd) // {"HTML", "CSS", "Python", "Java"}
 
 WeakSet 结构与 Set 类似，但有两个区别：
 
-1. **成员只能是对象和 Symbol 值**，不能是其他类型。
-2. **弱引用**：垃圾回收机制不考虑 WeakSet 对对象的引用，其他引用消失后对象会被回收，WeakSet 里的引用自动消失。
+- **成员只能是对象和 Symbol 值**，不能是其他类型。
+- **弱引用**：垃圾回收机制不考虑 WeakSet 对对象的引用，其他引用消失后对象会被回收，WeakSet 里的引用自动消失。
 
 ```js
 const ws = new WeakSet()
@@ -197,8 +197,6 @@ const ws = new WeakSet(a) // WeakSet {[1,2], [3,4]}
 const b = [3, 4]
 new WeakSet(b) // TypeError（成员不是对象）
 ```
-
-三个方法：
 
 [width(48,52)]
 
@@ -228,7 +226,7 @@ class Foo {
 
 ### 3.1 含义和基本用法
 
-Object 本质是键值对集合，但键只能是字符串（其他类型会被转为字符串）。Map 的键可以是**任意类型**（包括对象），提供"值—值"的对应：
+Object 本质是键值对集合，但键只能是字符串（其他类型会被转为字符串）。Map 的键可以是**任意类型**（包括对象），提供"**值—值**"的对应：
 
 ```js
 const m = new Map()
@@ -283,10 +281,14 @@ map.delete(3) // true
 
 ### 3.3 遍历方法
 
-- `Map.prototype.keys()`：返回键名的遍历器
-- `Map.prototype.values()`：返回键值的遍历器
-- `Map.prototype.entries()`：返回所有成员的遍历器
-- `Map.prototype.forEach()`：遍历所有成员
+[width(32,17,51)]
+
+| 方法                                  | 返回值      | 说明                                                                          |
+| :------------------------------------ | :---------- | :---------------------------------------------------------------------------- |
+| `Map.prototype.keys()`                | 遍历器      | 遍历键名                                                                      |
+| `Map.prototype.values()`              | 遍历器      | 遍历键值                                                                      |
+| `Map.prototype.entries()`             | 遍历器      | 遍历所有成员（键值对），也是 Map 的默认遍历器                                 |
+| `Map.prototype.forEach(fn, thisArg?)` | `undefined` | 遍历所有成员，回调参数依次为**键值、键名、Map 本身**，第二个参数可绑定 `this` |
 
 **遍历顺序就是插入顺序**，默认遍历器是 `entries`：
 
@@ -313,8 +315,6 @@ const map1 = new Map([...map0].filter(([k, v]) => k < 3))
 const map2 = new Map([...map0].map(([k, v]) => [k * 2, '_' + v]))
 ```
 
-`forEach` 回调参数依次为**键值、键名、map 本身**，第二个参数可绑定 `this`。
-
 ### 3.4 与其他数据结构的互相转换
 
 [width(19,81)]
@@ -334,8 +334,8 @@ const map2 = new Map([...map0].map(([k, v]) => [k * 2, '_' + v]))
 
 WeakMap 与 Map 的区别有两点：
 
-1. **键名只能是对象（`null` 除外）和 Symbol 值**，不接受其他类型。
-2. **键名是弱引用**（不计入垃圾回收机制）。
+- **键名只能是对象（`null` 除外）和 Symbol 值**，不接受其他类型。
+- **键名是弱引用**（不计入垃圾回收机制）。
 
 ```js
 const map = new WeakMap()
@@ -499,6 +499,6 @@ WeakMap 与 Map 的区别：键名只能是对象/Symbol；键名是**弱引用*
 
 ### 6.7 WeakMap 有哪些典型用途？
 
-1. 在 **DOM 节点**上附加数据（节点移除时数据自动消失，防内存泄漏）。
-2. 部署**私有属性**（配合 class）。
-3. 缓存（结合 WeakRef），条目可被 GC 自动回收。
+- 在 **DOM 节点**上附加数据（节点移除时数据自动消失，防内存泄漏）。
+- 部署**私有属性**（配合 class）。
+- 缓存（结合 WeakRef），条目可被 GC 自动回收。
