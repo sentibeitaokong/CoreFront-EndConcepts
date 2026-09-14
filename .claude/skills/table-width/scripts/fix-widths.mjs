@@ -19,7 +19,6 @@ import {
   repoRel,
   resolveToFile,
   fileToUrl,
-  headVersion,
 } from '../../_shared/repo.mjs'
 import {scanTables, formatWidthDirective} from '../../_shared/markdown.mjs'
 import {solveTablesInPage} from './lib/page.mjs'
@@ -37,9 +36,9 @@ const USAGE = `用法: node .claude/skills/table-width/scripts/fix-widths.mjs <�
 
   --dry            只报告，不改文件
   --check          只校验；需要改动时退出码 5（隐含 --dry）
-  --auto           给 git 钩子用：重算这次新增或改动过的表格（**含你手改过宽度值的**），
-                   本次没动过的表一律不碰；出错时告警放行而不是拦提交。
-                   隐含 --insert --quiet
+  --auto           给 git 钩子用：把这次要提交的文件里**每一张**表都校验一遍——
+                   没填 [width] 的补上，填了但不是最优的改成最优。出错时告警
+                   放行而不是拦提交。隐含 --insert --quiet
   --insert         对没有 [width(...)] 的表格补一条
   --heading <前缀>  只处理最近标题以此开头的表格
   --table <n>      在过滤结果里只处理第 n 张（1 起）
@@ -102,82 +101,27 @@ function fail(msg, code = EXIT.error) {
 }
 
 // ── 定位目标 ──────────────────────────────────────────────────────────────────
-
-/**
- * 表格的归一化指纹，**含 [width(...)] 那一行**。
- *
- * 必须含它：只手动调了宽度值、表格内容没动的情况很常见，不含就会判定成
- * 「这张表没改过」而跳过——那正是「提交时宽度不会被重排」的原因。
- * 反过来，含它会不会导致每次提交都重算？不会：自动写入的值是幂等的，
- * 写完提交后 HEAD 里就是这个值，下次指纹相同，直接跳过。
- *
- * 空白和管道两侧的空格一律抹掉——prettier 会重排管道对齐，那不该算「被改过」。
- */
-function tableKey(lines, t) {
-  const body = lines
-    .slice(t.startLine - 1, t.endLine)
-    .map(l => l.replace(/\s*\|\s*/g, '|').trim())
-  if (t.directive) body.push(lines[t.directive.lineNo - 1].replace(/\s+/g, ''))
-  return body.join('\n')
-}
-
+//
+// --auto 是**全量校验**：这次要提交的文件里，每一张表都过一遍——没填 [width] 的补上，
+// 填了但不是最优的改成最优。不是「只处理我这次改过的表」。
+//
+// 之所以敢全量，是量出来的而不是猜的：拿仓库里 [width] 最密集的 10 个文件跑一遍，
+// 116 处人工调好的宽度里只有 1 处会被改动（dom.md 的 20,80 -> 12,88，确实矮 24px）。
+// 「全量扫描会翻案手工成果」这个顾虑实测是 1/116，其余全部命中「未变」。
 const items = []
 for (const p of positional) {
   const file = resolveToFile(p, {port: PORT_OPT})
   if (!fs.existsSync(file)) fail(`文件不存在: ${file}`, EXIT.mapping)
   if (!file.startsWith(docsRoot())) fail(`只处理 apps/docs 下的文档: ${repoRel(file)}`, EXIT.mapping)
-  const rel = repoRel(file)
   const text = fs.readFileSync(file, 'utf8')
-  const lines = text.split('\n')
   const tables = scanTables(text)
-  const keys = tables.map(t => tableKey(lines, t))
-
-  // 跟 HEAD 比：哪些表是这次新写或改过的。
-  //
-  // ⚠ 这一条是必须的。仓库里有 863 张表，只有 289 张带 [width]——如果只看
-  // 「这个文件里有表缺宽度」，那在老文件里改一个错别字就会触发给该文件**所有**
-  // 历史表格补宽度，一个「docs: 修错别字」的提交里凭空多出几十行宽度改动。
-  // 规则是你定的「新增 **或改动过** 的表」，所以只认指纹对不上的。
-  const head = headVersion(rel)
-  let headKeys = null
-  if (head !== null) {
-    const hl = head.split('\n')
-    headKeys = new Map()
-    for (const t of scanTables(head)) {
-      const k = tableKey(hl, t)
-      headKeys.set(k, (headKeys.get(k) || 0) + 1)
-    }
-  }
-  const isNew = keys.map(k => {
-    if (!headKeys) return true // 文件在 HEAD 不存在 → 整份都是新的
-    const n = headKeys.get(k) || 0
-    if (n === 0) return true
-    headKeys.set(k, n - 1) // 同名表格按出现次数配对，多出来的那张算新的
-    return false
-  })
-
-  /**
-   * 这张表要不要重算。
-   *
-   * `isNew` —— 新增或改动过的（指纹含 [width] 行，所以只改宽度值也算）；
-   * `malformed` —— 有 [width] 但参数个数跟列数对不上。这种是坏的，即使不是
-   *   这次改的也要修，否则 docs-check 会把它当错误拦下提交。
-   *
-   * ⚠ `malformed` 必须要求 `t.directive` 存在。写成「没有指令也算坏」的话，
-   * 仓库里 574 张裸表会在你改一次错别字时被全部回填——这正是它曾经的样子。
-   */
-  const malformed = t => t.directive && t.directive.values.length !== t.cols
-  const wants = (t, i) => isNew[i] || malformed(t)
   items.push({
     file,
-    rel,
+    rel: repoRel(file),
     text,
     tables,
-    isNew,
-    wants,
-    // 静态判断「这个文件值不值得起浏览器」。纯散文的提交走不到这里，
-    // 所以挂到钩子上对日常提交是零开销（实测 52ms 退出）。
-    needWork: tables.some((t, i) => wants(t, i)),
+    // 唯一的静态门：整个文件一张表都没有就直接跳过，连浏览器都不起。
+    needWork: tables.length > 0,
   })
 }
 
@@ -288,16 +232,6 @@ async function processFile(page, item, {serverPort, pageErrors}) {
     )
   }
 
-  // --auto 重算这次新增或改动过的表（**包括你手改过 [width] 值的**），
-  // 但绝不碰这次没动过的表——否则在老文件里改一个错别字就会给全文件的历史
-  // 表格补宽度。要整份重排就手动跑一次。
-  const autos = new Set()
-  if (AUTO) {
-    mdTables.forEach((t, i) => {
-      if (item.wants(t, i)) autos.add(i)
-    })
-  }
-
   // ── 决定每张表的新宽度 ──────────────────────────────────────────────────────
   const planned = []
   for (let i = 0; i < domResults.length; i++) {
@@ -308,7 +242,6 @@ async function processFile(page, item, {serverPort, pageErrors}) {
 
     if (dom.status === 'filtered') continue
     if (dom.status === 'trivial') continue
-    if (AUTO && !autos.has(i)) continue
     if (dom.status === 'span') {
       planned.push({kind: 'skip', dom, lineNo, reason: '表格有合并单元格（colspan/rowspan），不支持'})
       continue
