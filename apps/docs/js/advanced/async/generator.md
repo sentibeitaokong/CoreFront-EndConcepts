@@ -1,16 +1,14 @@
 # Generator 函数的语法
 
-## 1. Generator函数介绍
+## 1. Generator 函数介绍
 
 ### 1.1 基本概念
 
-Generator 函数是 ES6 提供的一种异步编程解决方案，语法行为与传统函数完全不同。本章详细介绍 Generator 函数的语法和 API，它的异步编程应用请看《Generator 函数的异步应用》一章。
+Generator 函数是 ES6 提供的一种异步编程解决方案，语法行为与传统函数完全不同。本章介绍它的语法和 API，异步编程应用见同目录的《Generator 函数的异步应用》。
 
-Generator 函数有多种理解角度。语法上，首先可以把它理解成，Generator 函数是一个状态机，封装了多个内部状态。
+语法上，Generator 函数可以理解成一个状态机，封装了多个内部状态；执行它会返回一个遍历器对象，所以它同时也是一个遍历器对象生成函数，返回的遍历器可以依次遍历内部的每一个状态。
 
-执行 Generator 函数会返回一个遍历器对象，也就是说，Generator 函数除了状态机，还是一个遍历器对象生成函数。返回的遍历器对象，可以依次遍历 Generator 函数内部的每一个状态。
-
-形式上，Generator 函数是一个普通函数，但是有两个特征。一是，`function`关键字与函数名之间有一个星号；二是，函数体内部使用`yield`表达式，定义不同的内部状态（`yield`在英语里的意思就是“产出”）。
+形式上它仍是普通函数，只是有两个特征：一是`function`关键字与函数名之间有一个星号；二是函数体内部使用`yield`表达式定义不同的内部状态（`yield`在英语里的意思就是“**产出**”）。
 
 ```js
 function* helloWorldGenerator() {
@@ -22,11 +20,11 @@ function* helloWorldGenerator() {
 var hw = helloWorldGenerator()
 ```
 
-上面代码定义了一个 Generator 函数`helloWorldGenerator`，它内部有两个`yield`表达式（`hello`和`world`），即该函数有三个状态：hello，world 和 return 语句（结束执行）。
+上面的`helloWorldGenerator`内部有两个`yield`表达式（`hello`和`world`），即该函数有三个状态：hello、world 和 return 语句（结束执行）。
 
-然后，Generator 函数的调用方法与普通函数一样，也是在函数名后面加上一对圆括号。不同的是，调用 Generator 函数后，该函数并不执行，返回的也不是函数运行结果，而是一个指向内部状态的指针对象，也就是上一章介绍的遍历器对象（Iterator Object）。
+调用 Generator 函数的写法与普通函数一样；不同的是调用后函数体并不执行，返回的也不是运行结果，而是一个指向内部状态的指针对象，即遍历器对象（Iterator Object）。
 
-下一步，必须调用遍历器对象的`next`方法，使得指针移向下一个状态。也就是说，每次调用`next`方法，内部指针就从函数头部或上一次停下来的地方开始执行，直到遇到下一个`yield`表达式（或`return`语句）为止。换言之，Generator 函数是分段执行的，`yield`表达式是暂停执行的标记，而`next`方法可以恢复执行。
+必须调用遍历器对象的`next`方法，指针才会移向下一个状态：每次调用都从函数头部或上一次停下的地方开始执行，直到遇到下一个`yield`表达式（或`return`语句）为止。换言之，Generator 函数是分段执行的，`yield`表达式是暂停标记，`next`方法负责恢复执行。
 
 ```js
 hw.next()
@@ -42,19 +40,11 @@ hw.next()
 // { value: undefined, done: true }
 ```
 
-上面代码一共调用了四次`next`方法。
+上面代码一共调用了四次`next`方法。第一次调用开始执行函数，直到第一个`yield`表达式为止，`value`为`hello`、`done`为`false`；第二次执行到下一个`yield`，`value`为`world`；第三次一直执行到`return`语句（没有则执行到函数结束），`value`是`return`后面表达式的值（没有`return`则为`undefined`），`done`为`true`；第四次返回`{ value: undefined, done: true }`，以后再调用`next`都是这个值。
 
-第一次调用，Generator 函数开始执行，直到遇到第一个`yield`表达式为止。`next`方法返回一个对象，它的`value`属性就是当前`yield`表达式的值`hello`，`done`属性的值`false`，表示遍历还没有结束。
+总结一下：每次调用`next`都会返回一个带`value`和`done`的对象，`value`是`yield`后面表达式的值，`done`表示遍历是否结束。
 
-第二次调用，Generator 函数从上次`yield`表达式停下的地方，一直执行到下一个`yield`表达式。`next`方法返回的对象的`value`属性就是当前`yield`表达式的值`world`，`done`属性的值`false`，表示遍历还没有结束。
-
-第三次调用，Generator 函数从上次`yield`表达式停下的地方，一直执行到`return`语句（如果没有`return`语句，就执行到函数结束）。`next`方法返回的对象的`value`属性，就是紧跟在`return`语句后面的表达式的值（如果没有`return`语句，则`value`属性的值为`undefined`），`done`属性的值`true`，表示遍历已经结束。
-
-第四次调用，此时 Generator 函数已经运行完毕，`next`方法返回对象的`value`属性为`undefined`，`done`属性为`true`。以后再调用`next`方法，返回的都是这个值。
-
-总结一下，调用 Generator 函数，返回一个遍历器对象，代表 Generator 函数的内部指针。以后，每次调用遍历器对象的`next`方法，就会返回一个有着`value`和`done`两个属性的对象。`value`属性表示当前的内部状态的值，是`yield`表达式后面那个表达式的值；`done`属性是一个布尔值，表示是否遍历结束。
-
-ES6 没有规定，`function`关键字与函数名之间的星号，写在哪个位置。这导致下面的写法都能通过。
+ES6 没有规定星号写在`function`与函数名之间的哪个位置，下面的写法都能通过。
 
 ```js
 function * foo(x, y) { ··· }
@@ -63,23 +53,21 @@ function* foo(x, y) { ··· }
 function*foo(x, y) { ··· }
 ```
 
-由于 Generator 函数仍然是普通函数，所以一般的写法是上面的第三种，即星号紧跟在`function`关键字后面。本书也采用这种写法。
+通常采用第三种写法（星号紧跟在`function`后面），本文也是如此。
 
 ### 1.2 yield 表达式
 
-由于 Generator 函数返回的遍历器对象，只有调用`next`方法才会遍历下一个内部状态，所以其实提供了一种可以暂停执行的函数。`yield`表达式就是暂停标志。
+只有调用`next`方法才会遍历下一个内部状态，因此 Generator 函数是一种可以暂停执行的函数，`yield`表达式就是暂停标志。
 
 遍历器对象的`next`方法的运行逻辑如下。
 
 （1）遇到`yield`表达式，就暂停执行后面的操作，并将紧跟在`yield`后面的那个表达式的值，作为返回的对象的`value`属性值。
 
-（2）下一次调用`next`方法时，再继续往下执行，直到遇到下一个`yield`表达式。
+（2）下一次调用`next`方法时继续往下执行，直到遇到下一个`yield`表达式。
 
-（3）如果没有再遇到新的`yield`表达式，就一直运行到函数结束，直到`return`语句为止，并将`return`语句后面的表达式的值，作为返回的对象的`value`属性值。
+（3）如果没有再遇到新的`yield`表达式，就一直运行到`return`语句为止（没有`return`语句则运行到函数结束），并将`return`语句后面表达式的值作为返回对象的`value`属性值；没有`return`语句时该值为`undefined`。
 
-（4）如果该函数没有`return`语句，则返回的对象的`value`属性值为`undefined`。
-
-需要注意的是，`yield`表达式后面的表达式，只有当调用`next`方法、内部指针指向该语句时才会执行，因此等于为 JavaScript 提供了手动的“惰性求值”（Lazy Evaluation）的语法功能。
+注意，`yield`后面的表达式只有`next`方法把指针指向该语句时才会执行，等于为 JavaScript 提供了手动的“**惰性求值**”（Lazy Evaluation）功能。
 
 ```js
 function* gen() {
@@ -87,9 +75,7 @@ function* gen() {
 }
 ```
 
-上面代码中，`yield`后面的表达式`123 + 456`，不会立即求值，只会在`next`方法将指针移到这一句时，才会求值。
-
-`yield`表达式与`return`语句既有相似之处，也有区别。相似之处在于，都能返回紧跟在语句后面的那个表达式的值。区别在于每次遇到`yield`，函数暂停执行，下一次再从该位置继续向后执行，而`return`语句不具备位置记忆的功能。一个函数里面，只能执行一次（或者说一个）`return`语句，但是可以执行多次（或者说多个）`yield`表达式。正常函数只能返回一个值，因为只能执行一次`return`；Generator 函数可以返回一系列的值，因为可以有任意多个`yield`。从另一个角度看，也可以说 Generator 生成了一系列的值，这也就是它的名称的来历（英语中，generator 这个词是“**生成器**”的意思）。
+`yield`与`return`都能返回紧跟其后的表达式的值；区别是遇到`yield`函数就暂停，下次再从该位置继续执行，而`return`没有位置记忆：一个函数只能执行一次`return`，却可以执行多次`yield`，所以普通函数只能返回一个值，Generator 函数可以返回一系列的值。这也是它名称的来历（英语中 generator 是“**生成器**”）。
 
 Generator 函数可以不用`yield`表达式，这时就变成了一个单纯的暂缓执行函数。
 
@@ -105,9 +91,9 @@ setTimeout(function () {
 }, 2000)
 ```
 
-上面代码中，函数`f`如果是普通函数，在为变量`generator`赋值时就会执行。但是，函数`f`是一个 Generator 函数，就变成只有调用`next`方法时，函数`f`才会执行。
+`f`如果是普通函数，在为变量`generator`赋值时就会执行；但它是 Generator 函数，只有调用`next`时才会执行。
 
-另外需要注意，`yield`表达式只能用在 Generator 函数里面，用在其他地方都会报错。
+另外，`yield`表达式只能用在 Generator 函数里面，用在其他地方都会报错。
 
 ```js
 (function (){
@@ -115,10 +101,6 @@ setTimeout(function () {
 })()
 // SyntaxError: Unexpected number
 ```
-
-上面代码在一个普通函数中使用`yield`表达式，结果产生一个句法错误。
-
-下面是另外一个例子。
 
 ```js
 var arr = [1, [[2, 3], 4], [5, 6]];
@@ -138,7 +120,7 @@ for (var f of flat(arr)){
 }
 ```
 
-上面代码也会产生句法错误，因为`forEach`方法的参数是一个普通函数，但是在里面使用了`yield`表达式（这个函数里面还使用了`yield*`表达式，详细介绍见后文）。一种修改方法是改用`for`循环。
+上面代码同样报错，因为`forEach`的参数是普通函数，里面却用了`yield`。改用`for`循环即可。
 
 ```js
 var arr = [1, [[2, 3], 4], [5, 6]]
@@ -161,7 +143,7 @@ for (var f of flat(arr)) {
 // 1, 2, 3, 4, 5, 6
 ```
 
-另外，`yield`表达式如果用在另一个表达式之中，必须放在圆括号里面。
+另外，`yield`表达式用在另一个表达式之中时必须加圆括号。
 
 ```js
 function* demo() {
@@ -184,9 +166,7 @@ function* demo() {
 
 ### 1.3 与 Iterator 接口的关系
 
-上一章说过，任意一个对象的`Symbol.iterator`方法，等于该对象的遍历器生成函数，调用该函数会返回该对象的一个遍历器对象。
-
-由于 Generator 函数就是遍历器生成函数，因此可以把 Generator 赋值给对象的`Symbol.iterator`属性，从而使得该对象具有 Iterator 接口。
+任意一个对象的`Symbol.iterator`方法等于该对象的遍历器生成函数，调用它会返回该对象的一个遍历器对象。Generator 函数就是遍历器生成函数，因此可以把它赋值给对象的`Symbol.iterator`属性，使该对象具有 Iterator 接口。
 
 ```js
 var myIterable = {}
@@ -195,13 +175,10 @@ myIterable[Symbol.iterator] = function* () {
   yield 2
   yield 3
 }
-
 ;[...myIterable] // [1, 2, 3]
 ```
 
-上面代码中，Generator 函数赋值给`Symbol.iterator`属性，从而使得`myIterable`对象具有了 Iterator 接口，可以被`...`运算符遍历了。
-
-Generator 函数执行后，返回一个遍历器对象。该对象本身也具有`Symbol.iterator`属性，执行后返回自身。
+Generator 函数执行后返回的遍历器对象，本身也具有`Symbol.iterator`属性，执行后返回自身。
 
 ```js
 function* gen() {
@@ -213,8 +190,6 @@ var g = gen()
 g[Symbol.iterator]() === g
 // true
 ```
-
-上面代码中，`gen`是一个 Generator 函数，调用它会生成一个遍历器对象`g`。它的`Symbol.iterator`属性，也是一个遍历器对象生成函数，执行后返回它自己。
 
 ### 1.4 next 方法的参数
 
@@ -237,9 +212,9 @@ g.next() // { value: 1, done: false }
 g.next(true) // { value: 0, done: false }
 ```
 
-上面代码先定义了一个可以无限运行的 Generator 函数`f`，如果`next`方法没有参数，每次运行到`yield`表达式，变量`reset`的值总是`undefined`。当`next`方法带一个参数`true`时，变量`reset`就被重置为这个参数（即`true`），因此`i`会等于`-1`，下一轮循环就会从`-1`开始递增。
+上面定义了一个可以无限运行的 Generator 函数`f`：`next`不带参数时`reset`总是`undefined`；带参数`true`时`reset`被置为`true`，于是`i`等于`-1`，下一轮循环从`-1`开始递增。
 
-这个功能有很重要的语法意义。Generator 函数从暂停状态到恢复运行，它的上下文状态（context）是不变的。通过`next`方法的参数，就有办法在 Generator 函数开始运行之后，继续向函数体内部注入值。也就是说，可以在 Generator 函数运行的不同阶段，从外部向内部注入不同的值，从而调整函数行为。
+这个功能有很重要的语法意义：Generator 函数恢复运行时上下文（context）不变，因此可以用`next`方法的参数在函数开始运行之后继续向函数体内部注入值，在不同阶段从外部调整函数行为。
 
 再看一个例子。
 
@@ -261,13 +236,13 @@ b.next(12) // { value:8, done:false }
 b.next(13) // { value:42, done:true }
 ```
 
-上面代码中，第二次运行`next`方法的时候不带参数，导致 y 的值等于`2 * undefined`（即`NaN`），除以 3 以后还是`NaN`，因此返回对象的`value`属性也等于`NaN`。第三次运行`next`方法的时候不带参数，所以`z`等于`undefined`，返回对象的`value`属性等于`5 + NaN + undefined`，即`NaN`。
+第二次调用`next`不带参数时，`y`等于`2 * undefined`（即`NaN`），第三次同样不带参数，`z`等于`undefined`，返回对象的`value`就是`NaN`。
 
-如果向`next`方法提供参数，返回结果就完全不一样了。上面代码第一次调用`b`的`next`方法时，返回`x+1`的值`6`；第二次调用`next`方法，将上一次`yield`表达式的值设为`12`，因此`y`等于`24`，返回`y / 3`的值`8`；第三次调用`next`方法，将上一次`yield`表达式的值设为`13`，因此`z`等于`13`，这时`x`等于`5`，`y`等于`24`，所以`return`语句的值等于`42`。
+提供参数后结果完全不同：第二次把上一个`yield`表达式的值设为`12`，`y`等于`24`，返回`8`；第三次把它的值设为`13`，`z`等于`13`，所以`return`语句的值`5 + 24 + 13`等于`42`。
 
-注意，由于`next`方法的参数表示上一个`yield`表达式的返回值，所以在第一次使用`next`方法时，传递参数是无效的。V8 引擎直接忽略第一次使用`next`方法时的参数，只有从第二次使用`next`方法开始，参数才是有效的。从语义上讲，第一个`next`方法用来启动遍历器对象，所以不用带有参数。
+由于`next`方法的参数表示上一个`yield`表达式的返回值，第一次调用`next`时传参是无效的（V8 引擎直接忽略），只有从第二次开始才有效。语义上，第一个`next`用来启动遍历器对象，所以不用带参数。
 
-再看一个通过`next`方法的参数，向 Generator 函数内部输入值的例子。
+再看一个用`next`方法的参数向函数内部输入值的例子。
 
 ```js
 function* dataConsumer() {
@@ -286,9 +261,7 @@ genObj.next('b')
 // 2. b
 ```
 
-上面代码是一个很直观的例子，每次通过`next`方法向 Generator 函数输入值，然后打印出来。
-
-如果想要第一次调用`next`方法时，就能够输入值，可以在 Generator 函数外面再包一层。
+如果想在第一次调用`next`时就能输入值，可以在 Generator 函数外面再包一层。
 
 ```js
 function wrapper(generatorFunction) {
@@ -308,11 +281,9 @@ wrapped().next('hello!')
 // First input: hello!
 ```
 
-上面代码中，Generator 函数如果不用`wrapper`先包一层，是无法第一次调用`next`方法，就输入参数的。
-
 ### 1.5 for...of 循环
 
-`for...of`循环可以自动遍历 Generator 函数运行时生成的`Iterator`对象，且此时不再需要调用`next`方法。
+`for...of`循环可以自动遍历 Generator 函数返回的`Iterator`对象，不再需要调用`next`方法。
 
 ```js
 function* foo() {
@@ -330,7 +301,7 @@ for (let v of foo()) {
 // 1 2 3 4 5
 ```
 
-上面代码使用`for...of`循环，依次显示 5 个`yield`表达式的值。这里需要注意，一旦`next`方法的返回对象的`done`属性为`true`，`for...of`循环就会中止，且不包含该返回对象，所以上面代码的`return`语句返回的`6`，不包括在`for...of`循环之中。
+一旦`next`方法返回对象的`done`为`true`，`for...of`循环就会中止，且不包含该返回对象，所以`return`返回的`6`不在循环之中。
 
 下面是一个利用 Generator 函数和`for...of`循环，实现斐波那契数列的例子。
 
@@ -349,9 +320,7 @@ for (let n of fibonacci()) {
 }
 ```
 
-从上面代码可见，使用`for...of`语句时不需要使用`next`方法。
-
-利用`for...of`循环，可以写出遍历任意对象（object）的方法。原生的 JavaScript 对象没有遍历接口，无法使用`for...of`循环，通过 Generator 函数为它加上这个接口，就可以用了。
+JavaScript 对象原生没有遍历接口，无法使用`for...of`循环；利用 Generator 函数为它加上这个接口，就可以遍历任意对象了。
 
 ```js
 function* objectEntries(obj) {
@@ -371,7 +340,7 @@ for (let [key, value] of objectEntries(jane)) {
 // last: Doe
 ```
 
-上面代码中，对象`jane`原生不具备 Iterator 接口，无法用`for...of`遍历。这时，我们通过 Generator 函数`objectEntries`为它加上遍历器接口，就可以用`for...of`遍历了。加上遍历器接口的另一种写法是，将 Generator 函数加到对象的`Symbol.iterator`属性上面。
+`jane`本身不具备 Iterator 接口，用`objectEntries`加上之后就能用`for...of`遍历。另一种写法是把 Generator 函数加到对象的`Symbol.iterator`属性上面。
 
 ```js
 function* objectEntries() {
@@ -393,7 +362,7 @@ for (let [key, value] of jane) {
 // last: Doe
 ```
 
-除了`for...of`循环以外，扩展运算符（`...`）、解构赋值和`Array.from`方法内部调用的，都是遍历器接口。这意味着，它们都可以将 Generator 函数返回的 Iterator 对象，作为参数。
+除了`for...of`循环以外，扩展运算符（`...`）、解构赋值和`Array.from`方法内部调用的也都是遍历器接口，因此它们都可以把 Generator 函数返回的 Iterator 对象作为参数。
 
 ```js
 function* numbers() {
@@ -422,7 +391,7 @@ for (let n of numbers()) {
 // 2
 ```
 
-## 2.提前终止Generator函数
+## 2. 提前终止 Generator 函数
 
 ### 2.1 Generator.prototype.throw()
 
@@ -450,7 +419,7 @@ try {
 // 外部捕获 b
 ```
 
-上面代码中，遍历器对象`i`连续抛出两个错误。第一个错误被 Generator 函数体内的`catch`语句捕获。`i`第二次抛出错误，由于 Generator 函数内部的`catch`语句已经执行过了，不会再捕捉到这个错误了，所以这个错误就被抛出了 Generator 函数体，被函数体外的`catch`语句捕获。
+遍历器对象`i`连续抛出两个错误：第一个被函数体内的`catch`捕获；第二次抛出时内部的`catch`已经执行过，不会再捕获它，于是错误被抛到函数体外，由外面的`catch`捕获。
 
 `throw`方法可以接受一个参数，该参数会被`catch`语句接收，建议抛出`Error`对象的实例。
 
@@ -469,7 +438,7 @@ i.throw(new Error('出错了！'))
 // Error: 出错了！(…)
 ```
 
-注意，不要混淆遍历器对象的`throw`方法和全局的`throw`命令。上面代码的错误，是用遍历器对象的`throw`方法抛出的，而不是用`throw`命令抛出的。后者只能被函数体外的`catch`语句捕获。
+注意不要混淆遍历器对象的`throw`方法和全局的`throw`命令：上面的错误是用前者抛出的，而`throw`命令只能被函数体外的`catch`捕获。
 
 ```js
 var g = function* () {
@@ -495,7 +464,7 @@ try {
 // 外部捕获 [Error: a]
 ```
 
-上面代码之所以只捕获了`a`，是因为函数体外的`catch`语句块，捕获了抛出的`a`错误以后，就不会再继续`try`代码块里面剩余的语句了。
+之所以只捕获了`a`，是因为函数体外的`catch`捕获`a`以后，就不再执行`try`代码块里剩余的语句了。
 
 如果 Generator 函数内部没有部署`try...catch`代码块，那么`throw`方法抛出的错误，将被外部`try...catch`代码块捕获。
 
@@ -519,8 +488,6 @@ try {
 // 外部捕获 a
 ```
 
-上面代码中，Generator 函数`g`内部没有部署`try...catch`代码块，所以抛出的错误直接被外部`catch`代码块捕获。
-
 如果 Generator 函数内部和外部，都没有部署`try...catch`代码块，那么程序将报错，直接中断执行。
 
 ```js
@@ -535,8 +502,6 @@ g.throw()
 // hello
 // Uncaught undefined
 ```
-
-上面代码中，`g.throw`抛出错误以后，没有任何`try...catch`代码块可以捕获这个错误，导致程序报错，中断执行。
 
 `throw`方法抛出的错误要被内部捕获，前提是必须至少执行过一次`next`方法。
 
@@ -554,7 +519,7 @@ g.throw(1)
 // Uncaught 1
 ```
 
-上面代码中，`g.throw(1)`执行时，`next`方法一次都没有执行过。这时，抛出的错误不会被内部捕获，而是直接在外部抛出，导致程序出错。这种行为其实很好理解，因为第一次执行`next`方法，等同于启动执行 Generator 函数的内部代码，否则 Generator 函数还没有开始执行，这时`throw`方法抛错只可能抛出在函数外部。
+`g.throw(1)`执行时`next`方法一次都没有执行过，错误不会被内部捕获，而是直接在外部抛出：第一次执行`next`等同于启动 Generator 函数的内部代码，函数还没开始执行，错误只可能抛在外部。
 
 `throw`方法被内部捕获以后，会附带执行到下一条`yield`表达式，这种情况下等同于执行一次`next`方法。
 
@@ -575,7 +540,7 @@ g.next() // { value:3, done:false }
 g.next() // { value:undefined, done:true }
 ```
 
-上面代码中，`g.throw`方法被内部捕获以后，等同于执行了一次`next`方法，所以返回`{ value:2, done:false }`。另外，也可以看到，只要 Generator 函数内部部署了`try...catch`代码块，那么遍历器的`throw`方法抛出的错误，不影响下一次遍历。
+`g.throw`被内部捕获以后等同于执行了一次`next`方法，所以返回`{ value:2, done:false }`；只要内部部署了`try...catch`代码块，`throw`方法抛出的错误就不影响下一次遍历。
 
 另外，`throw`命令与`g.throw`方法是无关的，两者互不影响。
 
@@ -597,11 +562,9 @@ try {
 // world
 ```
 
-上面代码中，`throw`命令抛出的错误不会影响到遍历器的状态，所以两次执行`next`方法，都进行了正确的操作。
+这种函数体内捕获错误的机制大大方便了错误处理：多个`yield`表达式只用一个`try...catch`代码块就够；而用回调函数的写法，想捕获多个错误就得为每个函数写一个错误处理语句。
 
-这种函数体内捕获错误的机制，大大方便了对错误的处理。多个`yield`表达式，可以只用一个`try...catch`代码块来捕获错误。如果使用回调函数的写法，想要捕获多个错误，就不得不为每个函数内部写一个错误处理语句，现在只在 Generator 函数内部写一次`catch`语句就可以了。
-
-Generator 函数体外抛出的错误，可以在函数体内捕获；反过来，Generator 函数体内抛出的错误，也可以被函数体外的`catch`捕获。
+Generator 函数体外抛出的错误，可以在函数体内捕获；反过来，函数体内抛出的错误，也可以被函数体外的`catch`捕获。
 
 ```js
 function* foo() {
@@ -621,9 +584,9 @@ try {
 }
 ```
 
-上面代码中，第二个`next`方法向函数体内传入一个参数 42，数值是没有`toUpperCase`方法的，所以会抛出一个 TypeError 错误，被函数体外的`catch`捕获。
+第二个`next`向函数体内传入 42，数值没有`toUpperCase`方法，于是抛出 TypeError 错误，被函数体外的`catch`捕获。
 
-一旦 Generator 执行过程中抛出错误，且没有被内部捕获，就不会再执行下去了。如果此后还调用`next`方法，将返回一个`value`属性等于`undefined`、`done`属性等于`true`的对象，即 JavaScript 引擎认为这个 Generator 已经运行结束了。
+一旦 Generator 执行过程中抛出错误且没有被内部捕获，就不会再执行下去了：此后调用`next`方法返回的是`value`为`undefined`、`done`为`true`的对象，即引擎认为它已经运行结束。
 
 ```js
 function* g() {
@@ -667,7 +630,7 @@ log(g())
 // caller done
 ```
 
-上面代码一共三次运行`next`方法，第二次运行的时候会抛出错误，然后第三次运行的时候，Generator 函数就已经结束了，不再执行下去了。
+第二次运行会抛出错误，第三次运行时 Generator 函数已经结束，不再执行下去。
 
 ### 2.2 Generator.prototype.return()
 
@@ -687,7 +650,7 @@ g.return('foo') // { value: "foo", done: true }
 g.next() // { value: undefined, done: true }
 ```
 
-上面代码中，遍历器对象`g`调用`return()`方法后，返回值的`value`属性就是`return()`方法的参数`foo`。并且，Generator 函数的遍历就终止了，返回值的`done`属性为`true`，以后再调用`next()`方法，`done`属性总是返回`true`。
+调用`return()`后，返回值的`value`就是它的参数`foo`，遍历同时终止、`done`为`true`，以后再调用`next()`的`done`总是`true`。
 
 如果`return()`方法调用时，不提供参数，则返回值的`value`属性为`undefined`。
 
@@ -726,7 +689,7 @@ g.next() // { value: 5, done: false }
 g.next() // { value: 7, done: true }
 ```
 
-上面代码中，调用`return()`方法后，就开始执行`finally`代码块，不执行`try`里面剩下的代码了，然后等到`finally`代码块执行完，再返回`return()`方法指定的返回值。
+调用`return()`后立刻进入`finally`代码块，`try`里面剩下的代码不再执行；等`finally`代码块执行完，才返回`return()`指定的返回值。
 
 ### 2.3 next()、throw()、return() 的共同点
 
@@ -748,7 +711,7 @@ gen.next(1) // Object {value: 1, done: true}
 // 替换成 let result = 1;
 ```
 
-上面代码中，第二个`next(1)`方法就相当于将`yield`表达式替换成一个值`1`。如果`next`方法没有参数，就相当于替换成`undefined`。
+第二个`next(1)`方法相当于把`yield`表达式替换成一个值`1`；`next`方法没有参数时相当于替换成`undefined`。
 
 `throw()`是将`yield`表达式替换成一个`throw`语句。
 
@@ -766,11 +729,11 @@ gen.return(2) // Object {value: 2, done: true}
 // 替换成 let result = return 2;
 ```
 
-## 3. Generator函数的高级特性
+## 3. Generator 函数的高级特性
 
 ### 3.1 yield\* 表达式
 
-如果在 Generator 函数内部，调用另一个 Generator 函数。需要在前者的函数体内部，自己手动完成遍历。
+如果在 Generator 函数内部调用另一个 Generator 函数，就需要在前者的函数体内部自己手动完成遍历。
 
 ```js
 function* foo() {
@@ -796,7 +759,7 @@ for (let v of bar()) {
 // y
 ```
 
-上面代码中，`foo`和`bar`都是 Generator 函数，在`bar`里面调用`foo`，就需要手动遍历`foo`。如果有多个 Generator 函数嵌套，写起来就非常麻烦。
+在`bar`里调用`foo`就得手动遍历它；嵌套多个 Generator 函数时非常麻烦。
 
 ES6 提供了`yield*`表达式，作为解决办法，用来在一个 Generator 函数里面执行另一个 Generator 函数。
 
@@ -863,9 +826,9 @@ gen.next().value // "hello!"
 gen.next().value // "close"
 ```
 
-上面例子中，`outer2`使用了`yield*`，`outer1`没使用。结果就是，`outer1`返回一个遍历器对象，`outer2`返回该遍历器对象的内部值。
+`outer2`使用了`yield*`，`outer1`没使用，结果就是`outer1`返回一个遍历器对象，`outer2`返回该遍历器对象的内部值。
 
-从语法角度看，如果`yield`表达式后面跟的是一个遍历器对象，需要在`yield`表达式后面加上星号，表明它返回的是一个遍历器对象。这被称为`yield*`表达式。
+如果`yield`表达式后面跟的是一个遍历器对象，就需要在`yield`后面加上星号，表示把遍历委托给它，这就是`yield*`表达式。
 
 ```js
 let delegatedIterator = (function* () {
@@ -888,7 +851,7 @@ for (let value of delegatingIterator) {
 // "Ok, bye."
 ```
 
-上面代码中，`delegatingIterator`是代理者，`delegatedIterator`是被代理者。由于`yield* delegatedIterator`语句得到的值，是一个遍历器，所以要用星号表示。运行结果就是使用一个遍历器，遍历了多个 Generator 函数，有递归的效果。
+`delegatingIterator`是代理者，`delegatedIterator`是被代理者；因为后者是遍历器对象，`yield`后面要用星号表示委托。效果就是一个遍历器遍历了多个 Generator 函数，有递归的效果。
 
 `yield*`后面的 Generator 函数（没有`return`语句时），等同于在 Generator 函数内部，部署一个`for...of`循环。
 
@@ -910,7 +873,7 @@ function* concat(iter1, iter2) {
 }
 ```
 
-上面代码说明，`yield*`后面的 Generator 函数（没有`return`语句时），不过是`for...of`的一种简写形式，完全可以用后者替代前者。反之，在有`return`语句时，则需要用`var value = yield* iterator`的形式获取`return`语句的值。
+可见没有`return`语句时，`yield*`后面的 Generator 函数不过是`for...of`的一种简写，完全可以用后者替代；有`return`语句时，则需要用`var value = yield* iterator`获取它的值。
 
 如果`yield*`后面跟着一个数组，由于数组原生支持遍历器，因此就会遍历数组成员。
 
@@ -922,7 +885,7 @@ function* gen() {
 gen().next() // { value:"a", done:false }
 ```
 
-上面代码中，`yield`命令后面如果不加星号，返回的是整个数组，加了星号就表示返回的是数组的遍历器对象。
+`yield`后面不加星号返回的是整个数组，加了星号则把数组当作遍历器逐个产出成员。
 
 实际上，任何数据结构只要有 Iterator 接口，就可以被`yield*`遍历。
 
@@ -936,7 +899,7 @@ read.next().value // "hello"
 read.next().value // "h"
 ```
 
-上面代码中，`yield`表达式返回整个字符串，`yield*`语句返回单个字符。因为字符串具有 Iterator 接口，所以被`yield*`遍历。
+字符串具有 Iterator 接口，所以`yield*`返回的是单个字符。
 
 如果被代理的 Generator 函数有`return`语句，那么就可以向代理它的 Generator 函数返回数据。
 
@@ -969,7 +932,7 @@ it.next()
 // {value: undefined, done: true}
 ```
 
-上面代码在第四次调用`next`方法的时候，屏幕上会有输出，这是因为函数`foo`的`return`语句，向函数`bar`提供了返回值。
+第四次调用`next`时屏幕上会有输出，因为`foo`的`return`语句向`bar`提供了返回值。
 
 再看一个例子。
 
@@ -989,7 +952,7 @@ function* logReturned(genObj) {
 // 值为 [ 'a', 'b' ]
 ```
 
-上面代码中，存在两次遍历。第一次是扩展运算符遍历函数`logReturned`返回的遍历器对象，第二次是`yield*`语句遍历函数`genFuncWithReturn`返回的遍历器对象。这两次遍历的效果是叠加的，最终表现为扩展运算符遍历函数`genFuncWithReturn`返回的遍历器对象。所以，最后的数据表达式得到的值等于`[ 'a', 'b' ]`。但是，函数`genFuncWithReturn`的`return`语句的返回值`The result`，会返回给函数`logReturned`内部的`result`变量，因此会有终端输出。
+上面存在两次遍历的叠加：扩展运算符遍历`logReturned`返回的遍历器，`yield*`又遍历`genFuncWithReturn`返回的遍历器，最终表现为扩展运算符遍历后者的结果，所以值是`[ 'a', 'b' ]`；后者的`return`值`The result`赋给了`logReturned`内部的`result`变量，因此有终端输出。
 
 `yield*`命令可以很方便地取出嵌套数组的所有成员。
 
@@ -1016,13 +979,13 @@ for (let x of iterTree(tree)) {
 // e
 ```
 
-由于扩展运算符`...`默认调用 Iterator 接口，所以上面这个函数也可以用于嵌套数组的平铺。
+扩展运算符默认调用 Iterator 接口，所以这个函数也可以用于平铺嵌套数组。
 
 ```js
 ;[...iterTree(tree)] // ["a", "b", "c", "d", "e"]
 ```
 
-下面是一个稍微复杂的例子，使用`yield*`语句遍历完全二叉树。
+下面是一个稍微复杂的例子，用`yield*`语句遍历完全二叉树。
 
 ```js
 // 下面是二叉树的构造函数，
@@ -1074,9 +1037,9 @@ let obj = {
 };
 ```
 
-上面代码中，`myGeneratorMethod`属性前面有一个星号，表示这个属性是一个 Generator 函数。
+`myGeneratorMethod`属性前面的星号表示这个属性是一个 Generator 函数。
 
-它的完整形式如下，与上面的写法是等价的。
+它的完整形式如下，与上面的写法等价。
 
 ```js
 let obj = {
@@ -1103,7 +1066,7 @@ obj instanceof g // true
 obj.hello() // 'hi!'
 ```
 
-上面代码表明，Generator 函数`g`返回的遍历器`obj`，是`g`的实例，而且继承了`g.prototype`。但是，如果把`g`当作普通的构造函数，并不会生效，因为`g`返回的总是遍历器对象，而不是`this`对象。
+可见`g`返回的遍历器`obj`是`g`的实例，继承了`g.prototype`；但把`g`当作普通构造函数并不生效，因为它返回的总是遍历器对象，而不是`this`对象。
 
 ```js
 function* g() {
@@ -1114,8 +1077,6 @@ let obj = g()
 obj.next()
 obj.a // undefined
 ```
-
-上面代码中，Generator 函数`g`在`this`对象上面添加了一个属性`a`，但是`obj`对象拿不到这个属性。
 
 Generator 函数也不能跟`new`命令一起用，会报错。
 
@@ -1129,11 +1090,9 @@ new F()
 // TypeError: F is not a constructor
 ```
 
-上面代码中，`new`命令跟构造函数`F`一起使用，结果报错，因为`F`不是构造函数。
-
 那么，有没有办法让 Generator 函数返回一个正常的对象实例，既可以用`next`方法，又可以获得正常的`this`？
 
-下面是一个变通方法。首先，生成一个空对象，使用`call`方法绑定 Generator 函数内部的`this`。这样，构造函数调用以后，这个空对象就是 Generator 函数的实例对象了。
+一个变通方法是：先生成一个空对象，使用`call`方法绑定 Generator 函数内部的`this`，这样构造函数调用以后，这个空对象就是 Generator 函数的实例对象了。
 
 ```js
 function* F() {
@@ -1153,9 +1112,9 @@ obj.b // 2
 obj.c // 3
 ```
 
-上面代码中，首先是`F`内部的`this`对象绑定`obj`对象，然后调用它，返回一个 Iterator 对象。这个对象执行三次`next`方法（因为`F`内部有两个`yield`表达式），完成 F 内部所有代码的运行。这时，所有内部属性都绑定在`obj`对象上了，因此`obj`对象也就成了`F`的实例。
+上面代码先把`F`内部的`this`绑定到`obj`再调用，返回一个 Iterator 对象；执行三次`next`方法（因为有两个`yield`表达式）后函数运行完毕，内部属性都绑定在`obj`上，`obj`也就成了`F`的实例。
 
-上面代码中，执行的是遍历器对象`f`，但是生成的对象实例是`obj`，有没有办法将这两个对象统一呢？
+上面代码中执行的是遍历器对象`f`，但生成的对象实例是`obj`，有没有办法将这两个对象统一呢？
 
 一个办法就是将`obj`换成`F.prototype`。
 
@@ -1200,13 +1159,13 @@ f.b // 2
 f.c // 3
 ```
 
-## 4. Generator函数核心应用场景
+## 4. Generator 函数核心应用场景
 
-Generator 可以暂停函数执行，返回任意表达式的值。这种特点使得 Generator 有多种应用场景。
+Generator 可以暂停函数执行，返回任意表达式的值，这一特点使它有多种应用场景。
 
 ### 4.1 异步操作的同步化表达
 
-Generator 函数的暂停执行的效果，意味着可以把异步操作写在`yield`表达式里面，等到调用`next`方法时再往后执行。这实际上等同于不需要写回调函数了，因为异步操作的后续操作可以放在`yield`表达式下面，反正要等到调用`next`方法时再执行。所以，Generator 函数的一个重要实际意义就是用来处理异步操作，改写回调函数。
+Generator 函数能暂停执行，意味着可以把异步操作写在`yield`表达式里，等调用`next`方法时再往后执行——异步操作的后续代码就放在`yield`下面，反正要等`next`才执行，等于不需要写回调函数了。所以它的一个重要实际意义，就是处理异步操作、改写回调函数。
 
 ```js
 function* loadUI() {
@@ -1222,7 +1181,7 @@ loader.next()
 loader.next()
 ```
 
-上面代码中，第一次调用`loadUI`函数时，该函数不会执行，仅返回一个遍历器。下一次对该遍历器调用`next`方法，则会显示`Loading`界面（`showLoadingScreen`），并且异步加载数据（`loadUIDataAsynchronously`）。等到数据加载完成，再一次使用`next`方法，则会隐藏`Loading`界面。可以看到，这种写法的好处是所有`Loading`界面的逻辑，都被封装在一个函数，按部就班非常清晰。
+第一次调用`loadUI`时函数体不会执行，仅返回一个遍历器；对它调用`next`方法会显示`Loading`界面并异步加载数据，加载完再调用一次`next`则隐藏该界面。所有`Loading`逻辑都封装在一个函数里，按部就班，非常清晰。
 
 Ajax 是典型的异步操作，通过 Generator 函数部署 Ajax 操作，可以用同步的方式表达。
 
@@ -1243,9 +1202,9 @@ var it = main()
 it.next()
 ```
 
-上面代码的`main`函数，就是通过 Ajax 操作获取数据。可以看到，除了多了一个`yield`，它几乎与同步操作的写法完全一样。注意，`makeAjaxCall`函数中的`next`方法，必须加上`response`参数，因为`yield`表达式，本身是没有值的，总是等于`undefined`。
+`main`函数通过 Ajax 获取数据，除了多一个`yield`，几乎与同步写法完全一样。注意`makeAjaxCall`中的`next`方法必须加上`response`参数，因为`yield`表达式本身没有值，总是等于`undefined`。
 
-下面是另一个例子，通过 Generator 函数逐行读取文本文件。
+另一个例子是通过 Generator 函数逐行读取文本文件。
 
 ```js
 function* numbers() {
@@ -1259,8 +1218,6 @@ function* numbers() {
   }
 }
 ```
-
-上面代码打开文本文件，使用`yield`表达式可以手动逐行读取文件。
 
 ### 4.2 控制流管理
 
@@ -1293,10 +1250,9 @@ Promise.resolve(step1)
       // Handle any error from step1 through step4
     },
   )
-  .done()
 ```
 
-上面代码已经把回调函数，改成了直线执行的形式，但是加入了大量 Promise 的语法。Generator 函数可以进一步改善代码运行流程。
+这样已经把回调改成了直线执行的形式，但引入了大量 Promise 语法，Generator 函数可以进一步改善运行流程。
 
 ```js
 function* longRunningTask(value1) {
@@ -1312,7 +1268,7 @@ function* longRunningTask(value1) {
 }
 ```
 
-然后，使用一个函数，按次序自动执行所有步骤。
+然后，用一个函数按次序自动执行所有步骤。
 
 ```js
 scheduler(longRunningTask(initialValue))
@@ -1327,9 +1283,9 @@ function scheduler(task) {
 }
 ```
 
-注意，上面这种做法，只适合同步操作，即所有的`task`都必须是同步的，不能有异步操作。因为这里的代码一得到返回值，就继续往下执行，没有判断异步操作何时完成。如果要控制异步的操作流程，详见后面的《异步操作》一章。
+注意，这种做法只适合同步操作：代码一得到返回值就继续往下执行，不判断异步操作何时完成；如果步骤里有异步操作，执行器还必须等到它完成以后再继续。
 
-下面，利用`for...of`循环会自动依次执行`yield`命令的特性，提供一种更一般的控制流管理的方法。
+下面利用`for...of`循环会自动依次执行`yield`命令的特性，提供一种更一般的控制流管理方法。
 
 ```js
 let steps = [step1Func, step2Func, step3Func]
@@ -1342,9 +1298,9 @@ function* iterateSteps(steps) {
 }
 ```
 
-上面代码中，数组`steps`封装了一个任务的多个步骤，Generator 函数`iterateSteps`则是依次为这些步骤加上`yield`命令。
+数组`steps`封装了一个任务的多个步骤，`iterateSteps`依次为它们加上`yield`命令。
 
-将任务分解成步骤之后，还可以将项目分解成多个依次执行的任务。
+将任务分解成步骤之后，还可以反过来把项目分解成多个依次执行的任务。
 
 ```js
 let jobs = [job1, job2, job3]
@@ -1357,9 +1313,9 @@ function* iterateJobs(jobs) {
 }
 ```
 
-上面代码中，数组`jobs`封装了一个项目的多个任务，Generator 函数`iterateJobs`则是依次为这些任务加上`yield*`命令。
+数组`jobs`封装了一个项目的多个任务，`iterateJobs`依次为它们加上`yield*`命令。
 
-最后，就可以用`for...of`循环一次性依次执行所有任务的所有步骤。
+最后，就可以用`for...of`循环一次性执行所有任务的所有步骤。
 
 ```js
 for (var step of iterateJobs(jobs)) {
@@ -1367,7 +1323,7 @@ for (var step of iterateJobs(jobs)) {
 }
 ```
 
-再次提醒，上面的做法只能用于所有步骤都是同步操作的情况，不能有异步操作的步骤。如果想要依次执行异步的步骤，必须使用后面的《异步操作》一章介绍的方法。
+再次提醒，上面的做法只适用于所有步骤都是同步操作的情况；要依次执行异步步骤，执行器必须能够等待异步操作完成（详见同目录的《Generator 函数的异步应用》）。
 
 `for...of`的本质是一个`while`循环，所以上面的代码实质上执行的是下面的逻辑。
 
@@ -1405,8 +1361,6 @@ for (let [key, value] of iterEntries(myObj)) {
 // bar 7
 ```
 
-上述代码中，`myObj`是一个普通对象，通过`iterEntries`函数，就有了 Iterator 接口。也就是说，可以在任意对象上部署`next`方法。
-
 下面是一个对数组部署 Iterator 接口的例子，尽管数组原生具有这个接口。
 
 ```js
@@ -1427,7 +1381,7 @@ gen.next().done // true
 
 ### 4.4 作为数据结构
 
-Generator 可以看作是数据结构，更确切地说，可以看作是一个数组结构，因为 Generator 函数可以返回一系列的值，这意味着它可以对任意表达式，提供类似数组的接口。
+Generator 可以看作一种数据结构，更确切地说是一个数组结构：它能返回一系列的值，相当于对任意表达式提供类似数组的接口。
 
 ```js
 function* doStuff() {
@@ -1437,7 +1391,7 @@ function* doStuff() {
 }
 ```
 
-上面代码就是依次返回三个函数，但是由于使用了 Generator 函数，导致可以像处理数组那样，处理这三个返回的函数。
+上面依次返回三个函数，由于用了 Generator 函数，可以像处理数组那样处理它们。
 
 ```js
 for (task of doStuff()) {
@@ -1445,7 +1399,7 @@ for (task of doStuff()) {
 }
 ```
 
-实际上，如果用 ES5 表达，完全可以用数组模拟 Generator 的这种用法。
+如果用 ES5 表达，完全可以用数组模拟 Generator 的这种用法。
 
 ```js
 function doStuff() {
@@ -1457,11 +1411,11 @@ function doStuff() {
 }
 ```
 
-上面的函数，可以用一模一样的`for...of`循环处理！两相一比较，就不难看出 Generator 使得数据或者操作，具备了类似数组的接口。
+上面的函数可以用一模一样的`for...of`循环处理！两相比较就看出，Generator 使得数据或者操作具备了类似数组的接口。
 
 ### 4.5 Generator 与状态机
 
-Generator 是实现状态机的最佳结构。比如，下面的`clock`函数就是一个状态机。
+Generator 是实现状态机的最佳结构。比如下面的`clock`函数就是一个状态机。
 
 ```js
 var ticking = true
@@ -1472,7 +1426,7 @@ var clock = function () {
 }
 ```
 
-上面代码的`clock`函数一共有两种状态（`Tick`和`Tock`），每运行一次，就改变一次状态。这个函数如果用 Generator 实现，就是下面这样。
+`clock`一共有两种状态（`Tick`和`Tock`），每运行一次就改变一次状态；用 Generator 实现就是下面这样。
 
 ```js
 var clock = function* () {
@@ -1485,45 +1439,64 @@ var clock = function* () {
 }
 ```
 
-上面的 Generator 实现与 ES5 实现对比，可以看到少了用来保存状态的外部变量`ticking`，这样就更简洁，更安全（状态不会被非法篡改）、更符合函数式编程的思想，在写法上也更优雅。Generator 之所以可以不用外部变量保存状态，是因为它本身就包含了一个状态信息，即目前是否处于暂停态。
+与 ES5 实现相比，Generator 实现少了用来保存状态的外部变量`ticking`，因此更简洁、更安全（状态不会被非法篡改）、更符合函数式编程的思想：它本身就包含“当前是否处于暂停态”这一状态信息。
 
-### 4.6 Generator 与协程
+## **5. 常见问题 (FAQ)**
 
-协程（coroutine）是一种程序运行的方式，可以理解成“协作的线程”或“协作的函数”。协程既可以用单线程实现，也可以用多线程实现。前者是一种特殊的子例程，后者是一种特殊的线程。
+### 5.1 Generator 函数是同步的还是异步的？
 
-**（1）协程与子例程的差异**
+- **同步的**。Generator 函数并不会自己“**在后台跑**”：每次调用`next()`都是同步执行，一直执行到下一个`yield`才返回。
+- 它提供的只是**暂停/恢复**的能力。异步效果来自“`yield` 一个 Promise + 执行器在该 Promise 完成后调用`next()`”这套组合（见《Generator 函数的异步应用》），而不是 Generator 函数本身。
 
-传统的“子例程”（subroutine）采用堆栈式“后进先出”的执行方式，只有当调用的子函数完全执行完毕，才会结束执行父函数。协程与其不同，多个线程（单线程情况下，即多个函数）可以并行执行，但是只有一个线程（或函数）处于正在运行的状态，其他线程（或函数）都处于暂停态（suspended），线程（或函数）之间可以交换执行权。也就是说，一个线程（或函数）执行到一半，可以暂停执行，将执行权交给另一个线程（或函数），等到稍后收回执行权的时候，再恢复执行。这种可以并行执行、交换执行权的线程（或函数），就称为协程。
+### 5.2 一个遍历器对象能重复遍历吗？
 
-从实现上看，在内存中，子例程只使用一个栈（stack），而协程是同时存在多个栈，但只有一个栈是在运行状态，也就是说，协程是以多占用内存为代价，实现多任务的并行。
-
-**（2）协程与普通线程的差异**
-
-不难看出，协程适合用于多任务运行的环境。在这个意义上，它与普通的线程很相似，都有自己的执行上下文、可以分享全局变量。它们的不同之处在于，同一时间可以有多个线程处于运行状态，但是运行的协程只能有一个，其他协程都处于暂停状态。此外，普通的线程是抢先式的，到底哪个线程优先得到资源，必须由运行环境决定，但是协程是合作式的，执行权由协程自己分配。
-
-由于 JavaScript 是单线程语言，只能保持一个调用栈。引入协程以后，每个任务可以保持自己的调用栈。这样做的最大好处，就是抛出错误的时候，可以找到原始的调用栈。不至于像异步操作的回调函数那样，一旦出错，原始的调用栈早就结束。
-
-Generator 函数是 ES6 对协程的实现，但属于不完全实现。Generator 函数被称为“半协程”（semi-coroutine），意思是只有 Generator 函数的调用者，才能将程序的执行权还给 Generator 函数。如果是完全执行的协程，任何函数都可以让暂停的协程继续执行。
-
-如果将 Generator 函数当作协程，完全可以将多个需要互相协作的任务写成 Generator 函数，它们之间使用`yield`表达式交换控制权。
-
-### 4.7 Generator 与上下文
-
-JavaScript 代码运行时，会产生一个全局的上下文环境（context，又称运行环境），包含了当前所有的变量和对象。然后，执行函数（或块级代码）的时候，又会在当前上下文环境的上层，产生一个函数运行的上下文，变成当前（active）的上下文，由此形成一个上下文环境的堆栈（context stack）。
-
-这个堆栈是“后进先出”的数据结构，最后产生的上下文环境首先执行完成，退出堆栈，然后再执行完成它下层的上下文，直至所有代码执行完成，堆栈清空。
-
-Generator 函数不是这样，它执行产生的上下文环境，一旦遇到`yield`命令，就会暂时退出堆栈，但是并不消失，里面的所有变量和对象会冻结在当前状态。等到对它执行`next`命令时，这个上下文环境又会重新加入调用栈，冻结的变量和对象恢复执行。
+- **不能**。遍历器是一次性的，`done`为`true`之后再遍历只会得到空结果；想重新遍历，必须重新调用 Generator 函数生成新的遍历器。
 
 ```js
 function* gen() {
   yield 1
-  return 2
+  yield 2
 }
 
-let g = gen()
-
-console.log(g.next().value, g.next().value)
+const it = gen()
+;[...it] // [1, 2]
+;[...it] // [] —— 同一个遍历器已经用完
+;[...gen()] // [1, 2] —— 重新调用函数才有新遍历器
 ```
 
-上面代码中，第一次执行`g.next()`时，Generator 函数`gen`的上下文会加入堆栈，即开始运行`gen`内部的代码。等遇到`yield 1`时，`gen`上下文退出堆栈，内部状态冻结。第二次执行`g.next()`时，`gen`上下文重新加入堆栈，变成当前的上下文，重新恢复执行。
+### 5.3 暂停中的 Generator 会一直占着内存吗？怎么清理？
+
+- **会**。暂停时它的整个执行上下文（局部变量等）都保留在堆上，直到函数执行结束。大量长期挂起的 Generator 会占用可观的内存。
+- 不再需要时主动调用`return()`结束它：`finally`代码块会被执行，可以在这里释放资源（关闭文件、清除定时器等）。
+
+```js
+function* withRes() {
+  try {
+    yield 1
+    yield 2
+  } finally {
+    console.log('释放资源') // return() 也会触发
+  }
+}
+
+const g = withRes()
+g.next() // { value: 1, done: false }
+g.return(99) // 先打印“释放资源”，再返回 { value: 99, done: true }
+```
+
+### 5.4 `yield`、`yield*`、`await` 有什么区别？
+
+- `yield`：产出一个值并暂停，只能用在 Generator 函数内部。
+- `yield*`：把一个可遍历对象（另一个 Generator、数组、字符串等）的成员逐个委托出去。
+- `await`：等待一个 Promise 落定，只能用在`async`函数或模块顶层。
+- 三者都会让函数暂停，区别在于恢复方式：`yield`/`yield*`由外部调用`next()`恢复，`await`由引擎在 Promise 落定后自动恢复。
+
+### 5.5 有了 `async/await`，还需要 Generator 吗？
+
+- 处理异步流程基本不需要了。`async/await`就是 Generator + 自动执行器的语法糖（详见《Generator 函数的异步应用》）。
+- 但 Generator 还有`async/await`不具备的能力：向函数体内注入值或错误、精确控制每次`next()`的时机、实现惰性求值与无限序列、为对象部署 Iterator 接口等。
+
+### 5.6 `throw()`抛出错误后，遍历还能继续吗？
+
+- 看错误是否被内部捕获。内部`try...catch`捕获之后，`throw()`相当于一次`next()`，遍历继续进行。
+- 如果内部没有捕获（或者`next()`一次都没调用过），错误会抛到函数外，遍历器随即进入结束状态，此后`next()`永远返回`{ value: undefined, done: true }`。

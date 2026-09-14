@@ -1,28 +1,26 @@
 # Promise 对象
 
-Promise 是异步编程的一种解决方案，比传统的解决方案——回调函数和事件——更合理和更强大。
+Promise 是异步编程的一种解决方案，比传统的回调函数和事件方案更合理、更强大。
 
-## **1.Promise 的含义**
+## **1. Promise 的含义**
 
-`Promise` 是 JavaScript 中用于处理异步操作的对象。它代表一个尚未完成但最终会完成（或失败）的操作及其结果值。主要目的是为了解决**传统回调函数**（`Callbacks`）带来的**回调地狱** (`Callback Hell`) 问题，让异步代码的书写方式更接近同步代码，更具可读性和可维护性。
+`Promise` 是 JavaScript 中用于处理异步操作的对象，代表一个尚未完成、但最终会完成（或失败）的操作及其结果值。它主要为解决**传统回调函数**（`Callbacks`）嵌套带来的**回调地狱**（`Callback Hell`）问题，让异步代码的写法更接近同步代码，更具可读性和可维护性。
 
 `Promise`对象有以下两个特点。
 
-- （1）**对象的状态不受外界影响。**`Promise`对象代表一个异步操作，有三种状态：`pending`（进行中）、`fulfilled`（已成功）和`rejected`（已失败）。只有异步操作的结果，可以决定当前是哪一种状态，任何其他操作都无法改变这个状态。这也是`Promise`这个名字的由来，它的英语意思就是“承诺”，表示其他手段无法改变。
+- （1）**对象的状态不受外界影响。**`Promise`对象代表一个异步操作，有三种状态：`pending`（进行中）、`fulfilled`（已成功）和`rejected`（已失败）。只有异步操作的结果能决定当前是哪一种状态，任何其他操作都无法改变。这也是`Promise`这个名字的由来，它的英语意思就是“**承诺**”。
 
-- （2）**一旦状态改变，就不会再变，任何时候都可以得到这个结果。**`Promise`对象的状态改变，只有两种可能：从`pending`变为`fulfilled`和从`pending`变为`rejected`。只要这两种情况发生，状态就凝固了，不会再变了，会一直保持这个结果，这时就称为 resolved（已定型）。如果改变已经发生了，你再对`Promise`对象添加回调函数，也会立即得到这个结果。这与事件（Event）完全不同，事件的特点是，如果你错过了它，再去监听，是得不到结果的。
+- （2）**一旦状态改变，就不会再变，任何时候都可以得到这个结果。** 状态改变只有两种可能：从`pending`变为`fulfilled`，或从`pending`变为`rejected`。只要发生，状态就凝固不变，会一直保持这个结果，这时称为 resolved（已定型）。此时再对`Promise`对象添加回调函数，也会立即得到这个结果。这与事件（Event）完全不同：事件一旦错过，再去监听是得不到结果的。
 
 `Promise`也有一些缺点。
 
-- 首先，**无法取消`Promise`**，一旦新建它就会立即执行，无法中途取消。
-- 其次，如果不设置回调函数，`Promise`内部抛出的错误，不会反应到外部。
-- 第三，当处于`pending`状态时，无法得知目前进展到哪一个阶段（刚刚开始还是即将完成）。
+- 首先，**无法取消`Promise`**，一旦新建就会立即执行，无法中途取消。
+- 其次，不设置回调函数的话，`Promise`内部抛出的错误不会反应到外部。
+- 第三，处于`pending`状态时无法得知进展到哪一阶段（刚刚开始还是即将完成）。
 
 ## 2. 基本用法
 
-ES6 规定，`Promise`对象是一个构造函数，用来生成`Promise`实例。
-
-下面代码创造了一个`Promise`实例。
+ES6 规定，`Promise`对象是一个构造函数，用来生成`Promise`实例。下面代码创造了一个`Promise`实例。
 
 ```js
 const promise = new Promise(function(resolve, reject) {
@@ -36,9 +34,9 @@ const promise = new Promise(function(resolve, reject) {
 });
 ```
 
-`Promise`构造函数接受一个函数作为参数，该函数的两个参数分别是`resolve`和`reject`。它们是两个函数，由 JavaScript 引擎提供，不用自己部署。
+`Promise`构造函数接受一个函数作为参数，该函数的两个参数分别是`resolve`和`reject`。这两个函数由 JavaScript 引擎提供，不用自己部署。
 
-`resolve`函数的作用是，将`Promise`对象的状态从“未完成”变为“成功”（即从 pending 变为 resolved），在异步操作成功时调用，并将异步操作的结果，作为参数传递出去；`reject`函数的作用是，将`Promise`对象的状态从“未完成”变为“失败”（即从 pending 变为 rejected），在异步操作失败时调用，并将异步操作报出的错误，作为参数传递出去。
+`resolve`函数将`Promise`对象的状态从“未完成”**变为**“**成功**”（即从 pending 变为 resolved），在异步操作成功时调用，并把结果作为参数传递出去；`reject`函数将状态从“**未完成**”变为“**失败**”（即从 pending 变为 rejected），在异步操作失败时调用，并把报出的错误作为参数传递出去。
 
 `Promise`实例生成以后，可以用`then`方法分别指定`resolved`状态和`rejected`状态的回调函数。
 
@@ -53,7 +51,7 @@ promise.then(
 )
 ```
 
-`then`方法可以接受两个回调函数作为参数。第一个回调函数是`Promise`对象的状态变为`resolved`时调用，第二个回调函数是`Promise`对象的状态变为`rejected`时调用。这两个函数都是可选的，不一定要提供。它们都接受`Promise`对象传出的值作为参数。
+`then`方法可以接受两个回调函数作为参数：第一个在`Promise`对象状态变为`resolved`时调用，第二个在状态变为`rejected`时调用。两者都是可选的，都接受`Promise`对象传出的值作为参数。
 
 下面是一个`Promise`对象的简单例子。
 
@@ -69,7 +67,7 @@ timeout(100).then(value => {
 })
 ```
 
-上面代码中，`timeout`方法返回一个`Promise`实例，表示一段时间以后才会发生的结果。过了指定的时间（`ms`参数）以后，`Promise`实例的状态变为`resolved`，就会触发`then`方法绑定的回调函数。
+上面代码中，`timeout`方法返回一个`Promise`实例，表示一段时间以后才会发生的结果。过了指定的时间（`ms`参数），实例状态变为`resolved`，就触发`then`方法绑定的回调函数。
 
 Promise 新建后就会立即执行。
 
@@ -90,7 +88,7 @@ console.log('Hi!')
 // resolved
 ```
 
-上面代码中，Promise 新建后立即执行，所以首先输出的是`Promise`。然后，`then`方法指定的回调函数，将在当前脚本所有同步任务执行完才会执行，所以`resolved`最后输出。
+上面代码中，Promise 新建后立即执行，所以先输出`Promise`；`then`方法指定的回调函数要等当前脚本所有同步任务执行完才执行，所以`resolved`最后输出。
 
 下面是异步加载图片的例子。
 
@@ -112,7 +110,7 @@ function loadImageAsync(url) {
 }
 ```
 
-上面代码中，使用`Promise`包装了一个图片加载的异步操作。如果加载成功，就调用`resolve`方法，否则就调用`reject`方法。
+上面代码用`Promise`包装了一个图片加载的异步操作：加载成功调用`resolve`，否则调用`reject`。
 
 下面是一个用`Promise`对象实现的 Ajax 操作的例子。
 
@@ -150,9 +148,9 @@ getJSON('/posts.json').then(
 )
 ```
 
-上面代码中，`getJSON`是对 XMLHttpRequest 对象的封装，用于发出一个针对 JSON 数据的 HTTP 请求，并且返回一个`Promise`对象。需要注意的是，在`getJSON`内部，`resolve`函数和`reject`函数调用时，都带有参数。
+上面代码中，`getJSON`封装了 XMLHttpRequest 对象，用于发出针对 JSON 数据的 HTTP 请求，并返回一个`Promise`对象。注意，在`getJSON`内部，`resolve`和`reject`调用时都带有参数。
 
-如果调用`resolve`函数和`reject`函数时带有参数，那么它们的参数会被传递给回调函数。`reject`函数的参数通常是`Error`对象的实例，表示抛出的错误；`resolve`函数的参数除了正常的值以外，还可能是另一个 Promise 实例，比如像下面这样。
+`resolve`和`reject`调用时带的参数会被传递给回调函数。`reject`的参数通常是`Error`对象的实例，表示抛出的错误；`resolve`的参数除了正常的值，还可能是另一个 Promise 实例，比如像下面这样。
 
 ```js
 const p1 = new Promise(function (resolve, reject) {
@@ -165,9 +163,9 @@ const p2 = new Promise(function (resolve, reject) {
 })
 ```
 
-上面代码中，`p1`和`p2`都是 Promise 的实例，但是`p2`的`resolve`方法将`p1`作为参数，即一个异步操作的结果是返回另一个异步操作。
+上面代码中，`p1`和`p2`都是 Promise 实例，但`p2`的`resolve`方法把`p1`作为参数，即一个异步操作的结果是另一个异步操作。
 
-注意，这时`p1`的状态就会传递给`p2`，也就是说，`p1`的状态决定了`p2`的状态。如果`p1`的状态是`pending`，那么`p2`的回调函数就会等待`p1`的状态改变；如果`p1`的状态已经是`resolved`或者`rejected`，那么`p2`的回调函数将会立刻执行。
+注意，这时`p1`的状态会传递给`p2`，即`p1`的状态决定`p2`的状态。如果`p1`是`pending`，`p2`的回调函数就等待`p1`的状态改变；如果`p1`已经是`resolved`或者`rejected`，`p2`的回调函数将立刻执行。
 
 ```js
 const p1 = new Promise(function (resolve, reject) {
@@ -182,7 +180,7 @@ p2.then(result => console.log(result)).catch(error => console.log(error))
 // Error: fail
 ```
 
-上面代码中，`p1`是一个 Promise，3 秒之后变为`rejected`。`p2`的状态在 1 秒之后改变，`resolve`方法返回的是`p1`。由于`p2`返回的是另一个 Promise，导致`p2`自己的状态无效了，由`p1`的状态决定`p2`的状态。所以，后面的`then`语句都变成针对后者（`p1`）。又过了 2 秒，`p1`变为`rejected`，导致触发`catch`方法指定的回调函数。
+上面代码中，`p1`是一个 Promise，3 秒之后变为`rejected`；`p2`的状态在 1 秒之后改变，`resolve`方法返回的是`p1`。由于`p2`返回的是另一个 Promise，`p2`自己的状态失效，改由`p1`的状态决定，所以后面的`then`语句都变成针对`p1`。又过了 2 秒，`p1`变为`rejected`，触发`catch`方法指定的回调函数。
 
 注意，调用`resolve`或`reject`并不会终结 Promise 的参数函数的执行。
 
@@ -197,9 +195,9 @@ new Promise((resolve, reject) => {
 // 1
 ```
 
-上面代码中，调用`resolve(1)`以后，后面的`console.log(2)`还是会执行，并且会首先打印出来。这是因为立即 resolved 的 Promise 是在本轮事件循环的末尾执行，总是晚于本轮循环的同步任务。
+上面代码中，调用`resolve(1)`以后，后面的`console.log(2)`还是会执行，并且会首先打印出来。这是因为立即 resolved 的 Promise 在本轮事件循环的末尾执行，总是晚于本轮循环的同步任务。
 
-一般来说，调用`resolve`或`reject`以后，Promise 的使命就完成了，后继操作应该放到`then`方法里面，而不应该直接写在`resolve`或`reject`的后面。所以，最好在它们前面加上`return`语句，这样就不会有意外。
+一般来说，调用`resolve`或`reject`以后，Promise 的使命就完成了，后继操作应该放到`then`方法里面，而不应该直接写在`resolve`或`reject`后面。所以，最好在它们前面加上`return`语句，这样就不会有意外。
 
 ```js
 new Promise((resolve, reject) => {
@@ -211,9 +209,9 @@ new Promise((resolve, reject) => {
 
 ### Promise.prototype.then()
 
-Promise 实例具有`then`方法，也就是说，`then`方法是定义在原型对象`Promise.prototype`上的。它的作用是为 Promise 实例添加状态改变时的回调函数。前面说过，`then`方法的第一个参数是`resolved`状态的回调函数，第二个参数是`rejected`状态的回调函数，它们都是可选的。
+`then`方法定义在原型对象`Promise.prototype`上，作用是为 Promise 实例添加状态改变时的回调函数。前面说过，它的第一个参数是`resolved`状态的回调函数，第二个参数是`rejected`状态的回调函数，两者都是可选的。
 
-`then`方法返回的是一个新的`Promise`实例（注意，不是原来那个`Promise`实例）。因此可以采用链式写法，即`then`方法后面再调用另一个`then`方法。
+`then`方法返回的是一个新的`Promise`实例（注意，不是原来那个）。因此可以采用链式写法，即在`then`方法后面再调用另一个`then`方法。
 
 ```js
 getJSON('/posts.json')
@@ -225,9 +223,9 @@ getJSON('/posts.json')
   })
 ```
 
-上面的代码使用`then`方法，依次指定了两个回调函数。第一个回调函数完成以后，会将返回结果作为参数，传入第二个回调函数。
+上面的代码使用`then`方法，依次指定了两个回调函数。第一个回调函数完成以后，会把返回结果作为参数传入第二个回调函数。
 
-采用链式的`then`，可以指定一组按照次序调用的回调函数。这时，前一个回调函数，有可能返回的还是一个`Promise`对象（即有异步操作），这时后一个回调函数，就会等待该`Promise`对象的状态发生变化，才会被调用。
+链式的`then`可以指定一组按照次序调用的回调函数。如果前一个回调函数返回的还是`Promise`对象（即有异步操作），后一个回调函数就会等待该对象状态变化之后才被调用。
 
 ```js
 getJSON('/post/1.json')
@@ -244,7 +242,7 @@ getJSON('/post/1.json')
   )
 ```
 
-上面代码中，第一个`then`方法指定的回调函数，返回的是另一个`Promise`对象。这时，第二个`then`方法指定的回调函数，就会等待这个新的`Promise`对象状态发生变化。如果变为`resolved`，就调用第一个回调函数，如果状态变为`rejected`，就调用第二个回调函数。
+上面代码中，第一个`then`方法指定的回调函数返回的是另一个`Promise`对象，第二个`then`方法指定的回调函数就会等待这个新对象状态发生变化：如果变为`resolved`，就调用第一个回调函数；如果变为`rejected`，就调用第二个回调函数。
 
 如果采用箭头函数，上面的代码可以写得更简洁。
 
@@ -272,11 +270,11 @@ getJSON('/posts.json')
   })
 ```
 
-上面代码中，`getJSON()`方法返回一个 Promise 对象，如果该对象状态变为`resolved`，则会调用`then()`方法指定的回调函数；如果异步操作抛出错误，状态就会变为`rejected`，就会调用`catch()`方法指定的回调函数，处理这个错误。另外，`then()`方法指定的回调函数，如果运行中抛出错误，也会被`catch()`方法捕获。
+上面代码中，`getJSON()`方法返回一个 Promise 对象：状态变为`resolved`时调用`then()`方法指定的回调函数；异步操作抛出错误时状态变为`rejected`，就调用`catch()`方法指定的回调函数来处理这个错误。另外，`then()`方法指定的回调函数如果在运行中抛出错误，也会被`catch()`方法捕获。
 
 ```js
 p.then(val => console.log('fulfilled:', val)).catch(err =>
-  console.log('rejected', err),
+  console.log('rejected:', err),
 )
 
 // 等同于
@@ -297,7 +295,7 @@ promise.catch(function (error) {
 // Error: test
 ```
 
-上面代码中，`promise`抛出一个错误，就被`catch()`方法指定的回调函数捕获。注意，上面的写法与下面两种写法是等价的。
+上面代码中，`promise`抛出的错误被`catch()`方法指定的回调函数捕获。注意，上面的写法与下面两种写法等价。
 
 ```js
 // 写法一
@@ -340,9 +338,9 @@ promise
 // ok
 ```
 
-上面代码中，Promise 在`resolve`语句后面，再抛出错误，不会被捕获，等于没有抛出。因为 Promise 的状态一旦改变，就永久保持该状态，不会再变了。
+上面代码中，Promise 在`resolve`语句之后再抛出错误，不会被捕获，等于没有抛出。因为 Promise 的状态一旦改变就永久保持，不会再变。
 
-Promise 对象的错误具有“冒泡”性质，会一直向后传递，直到被捕获为止。也就是说，错误总是会被下一个`catch`语句捕获。
+Promise 对象的错误具有“**冒泡**”性质，会一直向后传递，直到被捕获为止——错误总是会被下一个`catch`语句捕获。
 
 ```js
 getJSON('/post/1.json')
@@ -383,7 +381,7 @@ promise
   })
 ```
 
-上面代码中，第二种写法要好于第一种写法，理由是第二种写法可以捕获前面`then`方法执行中的错误，也更接近同步的写法（`try/catch`）。因此，建议总是使用`catch()`方法，而不使用`then()`方法的第二个参数。
+上面代码中，第二种写法要好于第一种：它可以捕获前面`then`方法执行中的错误，也更接近同步的写法（`try/catch`）。因此建议总是使用`catch()`方法，而不使用`then()`方法的第二个参数。
 
 跟传统的`try/catch`代码块不同的是，如果没有使用`catch()`方法指定错误处理的回调函数，Promise 对象抛出的错误不会传递到外层代码，即不会有任何反应。
 
@@ -406,9 +404,9 @@ setTimeout(() => {
 // 123
 ```
 
-上面代码中，`someAsyncThing()`函数产生的 Promise 对象，内部有语法错误。浏览器运行到这一行，会打印出错误提示`ReferenceError: x is not defined`，但是不会退出进程、终止脚本执行，2 秒之后还是会输出`123`。这就是说，Promise 内部的错误不会影响到 Promise 外部的代码，通俗的说法就是“Promise 会吃掉错误”。
+上面代码中，`someAsyncThing()`函数产生的 Promise 对象内部有运行时错误（`x`未声明，抛出`ReferenceError`）。浏览器运行到这一行会打印出错误提示`ReferenceError: x is not defined`，但是不会退出进程、终止脚本执行，2 秒之后还是会输出`123`。这就是说，Promise 内部的错误不会影响到 Promise 外部的代码，通俗的说法就是“**Promise 会吃掉错误**”。
 
-这个脚本放在服务器执行，退出码就是`0`（即表示执行成功）。不过，Node.js 有一个`unhandledRejection`事件，专门监听未捕获的`reject`错误，上面的脚本会触发这个事件的监听函数，可以在监听函数里面抛出错误。
+这个脚本放在早期版本的 Node 上执行，退出码就是`0`（即表示执行成功）。不过 Node.js 有一个`unhandledRejection`事件，专门监听未捕获的`reject`错误，上面的脚本会触发这个事件的监听函数，可以在监听函数里面抛出错误。
 
 ```js
 process.on('unhandledRejection', function (err, p) {
@@ -418,7 +416,7 @@ process.on('unhandledRejection', function (err, p) {
 
 上面代码中，`unhandledRejection`事件的监听函数有两个参数，第一个是错误对象，第二个是报错的 Promise 实例，它可以用来了解发生错误的环境信息。
 
-注意，Node 有计划在未来废除`unhandledRejection`事件。如果 Promise 内部有未捕获的错误，会直接终止进程，并且进程的退出码不为 0。
+注意，从 Node 15 起，未处理的 Promise rejection 默认会直接终止进程，进程的退出码不为 0（早期版本只打印警告，退出码仍为 0）。`unhandledRejection`事件依然存在，只是上面的默认行为变了。
 
 再看下面的例子。
 
@@ -436,7 +434,7 @@ promise.then(function (value) {
 // Uncaught Error: test
 ```
 
-上面代码中，Promise 指定在下一轮“事件循环”再抛出错误。到了那个时候，Promise 的运行已经结束了，所以这个错误是在 Promise 函数体外抛出的，会冒泡到最外层，成了未捕获的错误。
+上面代码中，Promise 指定在下一轮“**事件循环**”再抛出错误。到了那个时候，Promise 的运行已经结束了，所以这个错误是在 Promise 函数体外抛出的，会冒泡到最外层，成了未捕获的错误。
 
 一般总是建议，Promise 对象后面要跟`catch()`方法，这样可以处理 Promise 内部发生的错误。`catch()`方法返回的还是一个 Promise 对象，因此后面还可以接着调用`then()`方法。
 
@@ -531,7 +529,7 @@ promise
 .finally(() => {···});
 ```
 
-上面代码中，不管`promise`最后的状态，在执行完`then`或`catch`指定的回调函数以后，都会执行`finally`方法指定的回调函数。
+上面代码中，不管`promise`最后的状态如何，在执行完`then`或`catch`指定的回调函数以后，都会执行`finally`方法指定的回调函数。
 
 下面是一个例子，服务器使用 Promise 处理请求，然后使用`finally`方法关掉服务器。
 
@@ -544,7 +542,7 @@ server
   .finally(server.stop)
 ```
 
-`finally`方法的回调函数不接受任何参数，这意味着没有办法知道，前面的 Promise 状态到底是`fulfilled`还是`rejected`。这表明，`finally`方法里面的操作，应该是与状态无关的，不依赖于 Promise 的执行结果。
+`finally`方法的回调函数不接受任何参数，这意味着没有办法知道，前面的 Promise 状态到底是`fulfilled`还是`rejected`。因此`finally`里面的操作应该与状态无关，不依赖 Promise 的执行结果。
 
 `finally`本质上是`then`方法的特例。
 
@@ -566,7 +564,7 @@ promise.then(
 )
 ```
 
-上面代码中，如果不使用`finally`方法，同样的语句需要为成功和失败两种情况各写一次。有了`finally`方法，则只需要写一次。
+上面代码中，如果不使用`finally`方法，同样的语句需要为成功和失败两种情况各写一次；有了`finally`方法，则只需要写一次。
 
 它的实现也很简单。
 
@@ -615,7 +613,7 @@ Promise.reject(3).finally(() => {})
 const p = Promise.all([p1, p2, p3])
 ```
 
-上面代码中，`Promise.all()`方法接受一个数组作为参数，`p1`、`p2`、`p3`都是 Promise 实例，如果不是，就会先调用下面讲到的`Promise.resolve`方法，将参数转为 Promise 实例，再进一步处理。另外，`Promise.all()`方法的参数可以不是数组，但必须具有 Iterator 接口，且返回的每个成员都是 Promise 实例。
+上面代码中，`Promise.all()`方法接受一个数组作为参数，`p1`、`p2`、`p3`都是 Promise 实例；如果不是，就会先调用下面讲到的`Promise.resolve`方法，将参数转为 Promise 实例再进一步处理。另外，`Promise.all()`方法的参数可以不是数组，但必须具有 Iterator 接口，且返回的每个成员都是 Promise 实例。
 
 `p`的状态由`p1`、`p2`、`p3`决定，分成两种情况。
 
@@ -679,7 +677,7 @@ Promise.all([p1, p2])
 // ["hello", Error: 报错了]
 ```
 
-上面代码中，`p1`会`resolved`，`p2`首先会`rejected`，但是`p2`有自己的`catch`方法，该方法返回的是一个新的 Promise 实例，`p2`指向的实际上是这个实例。该实例执行完`catch`方法后，也会变成`resolved`，导致`Promise.all()`方法参数里面的两个实例都会`resolved`，因此会调用`then`方法指定的回调函数，而不会调用`catch`方法指定的回调函数。
+上面代码中，`p1`会`resolved`，`p2`首先会`rejected`，但是`p2`有自己的`catch`方法，该方法返回的是一个新的 Promise 实例，`p2`指向的实际上是这个实例。该实例执行完`catch`方法后也会变成`resolved`，导致`Promise.all()`方法参数里面的两个实例都会`resolved`，因此会调用`then`方法指定的回调函数，而不会调用`catch`方法指定的回调函数。
 
 如果`p2`没有自己的`catch`方法，就会调用`Promise.all()`的`catch`方法。
 
@@ -727,9 +725,7 @@ p.then(console.log).catch(console.error)
 
 ### Promise.allSettled()
 
-有时候，我们希望等到一组异步操作都结束了，不管每一个操作是成功还是失败，再进行下一步操作。但是，现有的 Promise 方法很难实现这个要求。
-
-`Promise.all()`方法只适合所有异步操作都成功的情况，如果有一个操作失败，就无法满足要求。
+有时候，我们希望等到一组异步操作都结束了，不管每一个操作是成功还是失败，再进行下一步操作，但是现有的 Promise 方法很难实现这个要求：`Promise.all()`方法只适合所有异步操作都成功的情况，只要有一个操作失败，就无法满足要求。
 
 ```js
 const urls = [url_1, url_2, url_3]
@@ -745,7 +741,7 @@ try {
 
 上面示例中，`Promise.all()`可以确定所有请求都成功了，但是只要有一个请求失败，它就会报错，而不管另外的请求是否结束。
 
-为了解决这个问题，[ES2020](https://github.com/tc39/proposal-promise-allSettled) 引入了`Promise.allSettled()`方法，用来确定一组异步操作是否都结束了（不管成功或失败）。所以，它的名字叫做”Settled“，包含了”fulfilled“和”rejected“两种情况。
+为了解决这个问题，[ES2020](https://github.com/tc39/proposal-promise-allSettled) 引入了`Promise.allSettled()`方法，用来确定一组异步操作是否都结束了（不管成功或失败）。它的名字来源于“**Settled**”，包含了“**fulfilled**”和“**rejected**”两种情况。
 
 `Promise.allSettled()`方法接受一个数组作为参数，数组的每个成员都是一个 Promise 对象，并返回一个新的 Promise 对象。只有等到参数数组的所有 Promise 对象都发生状态变更（不管是`fulfilled`还是`rejected`），返回的 Promise 对象才会发生状态变更。
 
@@ -758,7 +754,7 @@ removeLoadingIndicator()
 
 上面示例中，数组`promises`包含了三个请求，只有等到这三个请求都结束了（不管请求成功还是失败），`removeLoadingIndicator()`才会执行。
 
-该方法返回的新的 Promise 实例，一旦发生状态变更，状态总是`fulfilled`，不会变成`rejected`。状态变成`fulfilled`后，它的回调函数会接收到一个数组作为参数，该数组的每个成员对应前面数组的每个 Promise 对象。
+该方法返回的新的 Promise 实例，一旦发生状态变更，状态总是`fulfilled`，不会变成`rejected`。状态变成`fulfilled`后，它的回调函数会接收到一个数组作为参数，该数组的每个成员对应前面数组里的每个 Promise 对象。
 
 ```js
 const resolved = Promise.resolve(42)
@@ -775,7 +771,7 @@ allSettledPromise.then(function (results) {
 // ]
 ```
 
-上面代码中，`Promise.allSettled()`的返回值`allSettledPromise`，状态只可能变成`fulfilled`。它的回调函数接收到的参数是数组`results`。该数组的每个成员都是一个对象，对应传入`Promise.allSettled()`的数组里面的两个 Promise 对象。
+上面代码中，`Promise.allSettled()`的返回值`allSettledPromise`，状态只可能变成`fulfilled`。它的回调函数接收到的参数是数组`results`，该数组的每个成员都是一个对象，对应传入`Promise.allSettled()`的数组里面的两个 Promise 对象。
 
 `results`的每个成员是一个对象，对象的格式是固定的，对应异步操作的结果。
 
@@ -787,7 +783,7 @@ allSettledPromise.then(function (results) {
 {status: 'rejected', reason: reason}
 ```
 
-成员对象的`status`属性的值只可能是字符串`fulfilled`或字符串`rejected`，用来区分异步操作是成功还是失败。如果是成功（`fulfilled`），对象会有`value`属性，如果是失败（`rejected`），会有`reason`属性，对应两种状态时前面异步操作的返回值。
+成员对象的`status`属性的值只可能是字符串`fulfilled`或字符串`rejected`，用来区分异步操作是成功还是失败。如果是成功（`fulfilled`），对象会有`value`属性；如果是失败（`rejected`），会有`reason`属性，对应两种状态时前面异步操作的返回值。
 
 下面是返回值的用法例子。
 
@@ -826,7 +822,7 @@ Promise.any([
 
 `Promise.any()`跟`Promise.race()`方法很像，只有一点不同，就是`Promise.any()`不会因为某个 Promise 变成`rejected`状态而结束，必须等到所有参数 Promise 变成`rejected`状态才会结束。
 
-下面是`Promise()`与`await`命令结合使用的例子。
+下面是`Promise.any()`与`await`命令结合使用的例子。
 
 ```js
 const promises = [
@@ -843,7 +839,7 @@ try {
 }
 ```
 
-上面代码中，`Promise.any()`方法的参数数组包含三个 Promise 操作。其中只要有一个变成`fulfilled`，`Promise.any()`返回的 Promise 对象就变成`fulfilled`。如果所有三个操作都变成`rejected`，那么`await`命令就会抛出错误。
+上面代码中，`Promise.any()`方法的参数数组包含三个 Promise 操作。只要其中有一个变成`fulfilled`，`Promise.any()`返回的 Promise 对象就变成`fulfilled`；如果所有三个操作都变成`rejected`，那么`await`命令就会抛出错误。
 
 `Promise.any()`抛出的错误是一个 AggregateError 实例，这个 AggregateError 实例对象的`errors`属性是一个数组，包含了所有成员的错误。
 
@@ -915,7 +911,7 @@ p1.then(function (value) {
 })
 ```
 
-上面代码中，`thenable`对象的`then()`方法执行后，对象`p1`的状态就变为`resolved`，从而立即执行最后那个`then()`方法指定的回调函数，输出42。
+上面代码中，`thenable`对象的`then()`方法执行后，对象`p1`的状态就变为`resolved`，从而立即执行最后那个`then()`方法指定的回调函数，输出 42。
 
 **（3）参数不是具有`then()`方法的对象，或根本就不是对象**
 
@@ -930,7 +926,7 @@ p.then(function (s) {
 // Hello
 ```
 
-上面代码生成一个新的 Promise 对象的实例`p`。由于字符串`Hello`不属于异步操作（判断方法是字符串对象不具有 then 方法），返回 Promise 实例的状态从一生成就是`resolved`，所以回调函数会立即执行。`Promise.resolve()`方法的参数，会同时传给回调函数。
+上面代码生成一个新的 Promise 对象的实例`p`。由于字符串`Hello`不属于异步操作（判断方法是字符串对象不具有`then`方法），返回的 Promise 实例的状态从一生成就是`resolved`，所以回调函数会立即执行。`Promise.resolve()`方法的参数，会同时传给回调函数。
 
 **（4）不带有任何参数**
 
@@ -948,7 +944,7 @@ p.then(function () {
 
 上面代码的变量`p`就是一个 Promise 对象。
 
-需要注意的是，立即`resolve()`的 Promise 对象，是在本轮“事件循环”（event loop）的结束时执行，而不是在下一轮“事件循环”的开始时。
+需要注意的是，立即`resolve()`的 Promise 对象，是在本轮“**事件循环**”（event loop）的结束时执行，而不是在下一轮“**事件循环**”的开始时。
 
 ```js
 setTimeout(function () {
@@ -966,7 +962,7 @@ console.log('one')
 // three
 ```
 
-上面代码中，`setTimeout(fn, 0)`在下一轮“事件循环”开始时执行，`Promise.resolve()`在本轮“事件循环”结束时执行，`console.log('one')`则是立即执行，因此最先输出。
+上面代码中，`setTimeout(fn, 0)`在下一轮“**事件循环**”开始时执行，`Promise.resolve()`在本轮“**事件循环**”结束时执行，`console.log('one')`则是立即执行，因此最先输出。
 
 ### Promise.reject()
 
@@ -998,7 +994,7 @@ Promise.reject('出错了').catch(e => {
 
 ### Promise.try()
 
-实际开发中，经常遇到一种情况：不知道或者不想区分，函数`f`是同步函数还是异步操作，但是想用 Promise 来处理它。因为这样就可以不管`f`是否包含异步操作，都用`then`方法指定下一步流程，用`catch`方法处理`f`抛出的错误。一般就会采用下面的写法。
+实际开发中，经常遇到一种情况：不知道或者不想区分函数`f`是同步函数还是异步操作，但是想用 Promise 来处理它。因为这样就可以不管`f`是否包含异步操作，都用`then`方法指定下一步流程，用`catch`方法处理`f`抛出的错误。一般就会采用下面的写法。
 
 ```js
 Promise.resolve().then(f)
@@ -1016,7 +1012,7 @@ console.log('next')
 
 上面代码中，函数`f`是同步的，但是用 Promise 包装了以后，就变成异步执行了。
 
-那么有没有一种方法，让同步函数同步执行，异步函数异步执行，并且让它们具有统一的 API 呢？回答是可以的，并且还有两种写法。第一种写法是用`async`函数来写。
+那么有没有一种方法，让同步函数同步执行、异步函数异步执行，并且让它们具有统一的 API 呢？回答是可以的，并且还有两种写法。第一种写法是用`async`函数来写。
 
 ```js
 const f = () => console.log('now')
@@ -1026,7 +1022,7 @@ console.log('next')
 // next
 ```
 
-上面代码中，第二行是一个立即执行的匿名函数，会立即执行里面的`async`函数，因此如果`f`是同步的，就会得到同步的结果；如果`f`是异步的，就可以用`then`指定下一步，就像下面的写法。
+上面代码中，第二行是一个立即执行的匿名函数，会立即执行里面的`async`函数：如果`f`是同步的，就会得到同步的结果；如果`f`是异步的，就可以用`then`指定下一步，就像下面的写法。
 
 ```js
 (async () => f())()
@@ -1107,7 +1103,7 @@ Promise.try(() => database.users.get({id: userId}))
 
 ## 3. 应用场景
 
-**加载图片**
+### 3.1 **加载图片**
 
 我们可以将图片的加载写成一个`Promise`，一旦加载完成，`Promise`的状态就发生变化。
 
@@ -1122,7 +1118,7 @@ const preloadImage = function (path) {
 }
 ```
 
-**Generator 函数与 Promise 的结合**
+### 3.2 **Generator 函数与 Promise 的结合**
 
 使用 Generator 函数管理流程，遇到异步操作的时候，通常返回一个`Promise`对象。
 
@@ -1166,7 +1162,7 @@ run(g)
 
 上面代码的 Generator 函数`g`之中，有一个异步操作`getFoo`，它返回的就是一个`Promise`对象。函数`run`用来处理这个`Promise`对象，并调用下一个`next`方法。
 
-## **4. `Promise`核心总结**
+## **4. `Promise` 核心总结**
 
 `Promise` 的强大之处在于其链式调用的能力，这通过以下三个核心方法实现。
 
@@ -1178,7 +1174,7 @@ run(g)
   - `onRejected`: (可选) 当 `Promise` 状态变为 `rejected` 时调用，接收失败的原因 `reason` 作为参数。
 - **返回值**: **永远返回一个新的 `Promise` 对象**。这是实现链式调用的关键！
   - 如果 `onFulfilled` 或 `onRejected` **返回一个值**，新的 `Promise` 会以这个值 `resolve`。
-  - 如果它们**返回一个新的 `Promise`**，那么 `.then()` 返回的 `Promise` 会“跟随”这个新的 `Promise` 的状态。
+  - 如果它们**返回一个新的 `Promise`**，那么 `.then()` 返回的 `Promise` 会“**跟随**”这个新的 `Promise` 的状态。
   - 如果它们**抛出一个错误**，新的 `Promise` 会以这个错误 `reject`。
 
 ### **4.2 `.catch(onRejected)`**
@@ -1221,7 +1217,7 @@ myPromise
   })
 ```
 
-### **4.4. `Promise` 静态方法**
+### **4.4 `Promise` 静态方法**
 
 这些方法直接通过 `Promise.` 调用，用于处理多个 `Promise`。
 
@@ -1229,53 +1225,54 @@ myPromise
 
 | 方法                                    | 描述                                                                                                                                                                | 返回值                                                                                                                                                                         |
 | :-------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Promise.resolve(value)`                | 返回一个以给定 `value` **立即 `resolve`** 的 `Promise` 对象。如果 `value` 本身是一个 `Promise`，则直接返回该 `Promise`。                                            | 一个 `fulfilled` 的 `Promise`                                                                                                                                                  |
+| `Promise.resolve(value)`                | 返回一个以给定 `value` **立即 `resolve`** 的 `Promise` 对象。如果 `value` 本身是一个 `Promise`，则直接返回该 `Promise`。                                            | 参数是 `Promise` 时原样返回该实例（状态随它）；否则返回一个 `fulfilled` 的 `Promise`                                                                                           |
 | `Promise.reject(reason)`                | 返回一个以给定 `reason` **立即 `reject`** 的 `Promise` 对象。                                                                                                       | 一个 `rejected` 的 `Promise`                                                                                                                                                   |
 | `Promise.all(iterable)`                 | **“与”逻辑**。接收一个 `Promise` 数组。当**所有** `Promise` 都 `fulfilled` 时，它才会 `fulfilled`。只要有**一个** `Promise` `rejected`，它就会立即 `rejected`。     | `fulfilled` 时，返回一个包含所有 `Promise` 结果的**数组**（顺序与输入一致）。<br>`rejected` 时，返回第一个 `rejected` 的 `Promise` 的原因。                                    |
 | `Promise.race(iterable)`                | **“赛跑”逻辑**。接收一个 `Promise` 数组。只要**第一个** `Promise` 改变状态（无论是 `fulfilled` 还是 `rejected`），它就会立即以相同的状态和值/原因改变。             | 第一个改变状态的 `Promise` 的结果或原因。                                                                                                                                      |
 | `Promise.allSettled(iterable)` (ES2020) | 接收一个 `Promise` 数组。**永远不会 `rejected`**。它会**等待所有** `Promise` 都“尘埃落定”（`fulfilled` 或 `rejected`）。                                            | 一个 `fulfilled` 的 `Promise`，其值为一个对象数组，每个对象描述了对应 `Promise` 的最终状态：<br>`{ status: 'fulfilled', value: ... }` 或 `{ status: 'rejected', reason: ... }` |
 | `Promise.any(iterable)` (ES2021)        | **“或”逻辑**。接收一个 `Promise` 数组。只要有**一个** `Promise` `fulfilled`，它就会立即 `fulfilled`。只有当**所有** `Promise` 都 `rejected` 时，它才会 `rejected`。 | `fulfilled` 时，返回第一个 `fulfilled` 的 `Promise` 的值。<br>`rejected` 时，返回一个包含所有 `reason` 的 `AggregateError`。                                                   |
 
-### **4.5. `Promise` 总结**
+### **4.5 `Promise` 总结**
 
 - **`Promise`**的状态**一经改变**就**不能再改变**。
 - **`.then`**和**`.catch`**都会返回一个**新的** **`Promise`**。
 - **`catch`**不管被连接到哪里，都能**捕获**上层的错误。
-- 在 **`Promise`**中，返回任意一个非**`promise`**的值都会被包裹成**`promise`**对象，例如return2会被包装为**`return Promise.resolve(2)`**.
-- **`Promise`** 的 **`.then`** 或者 **`.catch`** 可以被调用多次，当如果 **`Promise`** 内部的状态一经改变，并且有了一个值，那么后续每次调用 **`.then`** 或者 **`.catch`** 的时候都会直接掌到该值。
-- **`.then`** 或者 **`.catch`** 中return一个 **`error`** 对象并不会抛出错误，所以不会被 **后续的`.catch`** 捕获。
-- **`.then`**或**`.catch`**返回的值不能是**`promise`本身**，否则会造成**死循环**。
-- **`.then`**或者**`.catch`**的参数**期望是函数**，传入**非函数**则会发生**值穿透**。
-- **`.then`**方法是能接收**两个参数**的，第一个是处理成功的函数，第二个是处理失败的函数，再某些时候你可以认为 **`catch`** 是 **`.then`** 第二个参数的简便写法。
-- **`.finally`**方法也是返回一个**`Promise`**,他在 **`Promise`结束** 的时候，无论结果为 **`resolved`** 还是 **`rejected`**,都会执行里面的回调函数, 且它的回调函数是 **没有参数**的。
-- **`promise.all`** 可以并行执行多个异步操作，并在在一个回调中处理所有的返回数据。
-- 如果在 **`async`**函数中抛出了 **错误**，则**终止错误结果**，不会继续向下执行。
-- **`async`**函数中**`await`**的**`new Promise`**要是**没有返回值**的话则不执行后面的内容
-- 正常情况下，**`async`**中的**`await`**命令是一个**`Promise`**对象，返回该对象的结果。但如果不是**`Promise`**对象的话，就会直接**返回对应的值**，相当 **`Promise.resolve()`**
-- **`new Promise`** 它的 **`resovle`** 的值和 **`async1().then()`** 里的值是没有关系的，**`resovle('promise resolve')`** 容易误以为是 **`async1().then()`** 中的返回值。
+- 在 **`Promise`** 中，返回任意一个非 **`promise`** 的值都会被包裹成 **`promise`** 对象，例如 **`return 2`** 会被包装为 **`return Promise.resolve(2)`**。
+- **`Promise`** 的 **`.then`** 或者 **`.catch`** 可以被调用多次。但只要 **`Promise`** 内部的状态一经改变并有了一个值，那么后续每次调用 **`.then`** 或者 **`.catch`** 的时候都会直接**拿到**该值。
+- **`.then`** 或者 **`.catch`** 中 **`return`** 一个 **`error`** 对象并不会抛出错误，所以不会被**后续的 `.catch`** 捕获。
+- **`.then`** 或 **`.catch`** 返回的值不能是 **`promise`本身**，否则会造成**死循环**。
+- **`.then`** 或者 **`.catch`** 的参数**期望是函数**，传入**非函数**则会发生**值穿透**。
+- **`.then`** 方法是能接收**两个参数**的，第一个是处理成功的函数，第二个是处理失败的函数。**在某些时候**你可以认为 **`catch`** 是 **`.then`** 第二个参数的简便写法。
+- **`.finally`** 方法也是返回一个 **`Promise`**，它**在 `Promise` 结束**的时候，无论结果为 **`resolved`** 还是 **`rejected`**，都会执行里面的回调函数，且它的回调函数是**没有参数**的。
+- **`Promise.all`** 可以并行执行多个异步操作，并**在一个**回调中处理所有的返回数据。
+- 如果在 **`async`** 函数中抛出了**错误**，则会**终止执行**，不会继续向下执行。
+- **`async`** 函数中 **`await`** 的 **`Promise`** 如果**始终没有结果**（既不 `resolve` 也不 `reject`），后面的内容就不会执行。
+- 正常情况下，**`async`** 中的 **`await`** 命令后面是一个 **`Promise`** 对象，返回该对象的结果。但如果不是 **`Promise`** 对象的话，就会直接 **返回对应的值**，相当于 **`Promise.resolve()`**。
+
+[//]: # "- **`new Promise`** 中 **`resolve`** 的值和 **`async1().then()`** 里的值是没有关系的，**`resolve('promise resolve')`** 容易让人误以为是 **`async1().then()`** 中的返回值。"
 
 ## **5. 常见问题 (FAQ)**
 
 ### 5.1 `Promise` 解决了什么问题？
 
-- 主要解决了**回调地狱 (Callback Hell)**。它通过链式调用 `.then()`，将嵌套的回调结构扁平化，使代码逻辑更清晰、更易于维护。同时，它提供了统一的错误处理机制 (`.catch`)。
+- 主要解决了**回调地狱 (Callback Hell)**：通过链式调用 `.then()` 把嵌套的回调结构扁平化，使代码逻辑更清晰、更易于维护，同时提供了统一的错误处理机制 (`.catch`)。
 
 ### 5.2 `Promise` 是同步的还是异步的？
 
-- `Promise` 本身是**同步**的，`new Promise(...)` 的执行器函数会立即同步执行。但是，它所代表的**操作**通常是**异步**的。`.then`, `.catch`, `.finally` 的回调函数都属于**微任务 (Microtask)**，会在当前同步代码执行完毕后立即异步执行。
+- `Promise` 本身是**同步**的，`new Promise(...)` 的执行器函数会立即同步执行；但它所代表的**操作**通常是**异步**的。`.then`、`.catch`、`.finally` 的回调函数都属于**微任务 (Microtask)**，会在当前同步代码执行完毕后立即异步执行。
 
 ### 5.3 如何中断一个 `Promise`？
 
-- `Promise` 一旦创建，其状态改变就不可逆，**无法从外部直接中断**。但是可以通过一些模式来模拟中断：
-  1.  **AbortController (现代标准)**: `fetch` API 原生支持。你可以创建一个 `AbortController`，将其 `signal` 传递给 `fetch`，然后在需要时调用 `controller.abort()`。
-  2.  **“竞速”模式**: 将你的 `Promise` 和一个可以被 `reject` 的“取消 `Promise`”一起放入 `Promise.race()`。
+- `Promise` 一旦创建，状态改变就不可逆，**无法从外部直接中断**，但可以通过一些模式模拟中断：
+  - **AbortController (现代标准)**：`fetch` API 原生支持。创建一个 `AbortController`，把它的 `signal` 传给 `fetch`，需要时调用 `controller.abort()`。
+  - **“竞速”模式**：把自己的 `Promise` 和一个可以被 `reject` 的“**取消 `Promise`**”一起放入 `Promise.race()`。
 
 ### 5.4 `.then(null, onRejected)` 和 `.catch(onRejected)` 有什么区别？
 
-- `p.then(onFulfilled, onRejected)`: 只能捕获 `p` 本身的 `rejected` 状态。
-- `p.then(onFulfilled).catch(onRejected)`: **可以捕获 `p` 的 `rejected` 状态，也可以捕获 `onFulfilled` 回调中抛出的错误**。因此，将 `.catch` 放在链的末尾是更健壮、更推荐的做法。
+- `p.then(onFulfilled, onRejected)`：只能捕获 `p` 本身的 `rejected` 状态。
+- `p.then(onFulfilled).catch(onRejected)`：**既能捕获 `p` 的 `rejected` 状态，也能捕获 `onFulfilled` 回调中抛出的错误**。因此把 `.catch` 放在链的末尾更健壮、更推荐。
 
-### 5.5: 为什么 `async/await` 比 `.then` 链更好？
+### 5.5 为什么 `async/await` 比 `.then` 链更好？
 
 - **可读性**: 代码看起来更像同步逻辑，更容易理解。
 - **错误处理**: `try...catch` 结构可以同时捕获同步错误和异步错误，比 `.catch` 更统一。
