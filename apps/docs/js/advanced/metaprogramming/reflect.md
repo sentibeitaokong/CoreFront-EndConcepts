@@ -1,14 +1,14 @@
 # Reflect
 
-Reflect 是 ES6 引入的一个内置对象，它提供了一组与 JavaScript 内部方法（internal methods）一一对应的静态函数。这些内部方法是 JavaScript 引擎在执行各种对象操作时实际调用的底层逻辑，例如属性查找、赋值等。
+Reflect 是 ES6 引入的内置对象，提供了一组与 JavaScript 内部方法（internal methods）一一对应的静态函数。这些内部方法是引擎执行对象操作时实际调用的底层逻辑，例如属性查找、赋值。
 
 ## 1. Reflect概述
 
-`Reflect`对象与`Proxy`对象一样，也是 ES6 为了操作对象而提供的新 API。`Reflect`对象的设计目的有这样几个。
+`Reflect`对象与`Proxy`对象一样，是 ES6 为操作对象而提供的新 API，设计目的有以下几点。
 
-（1） 将`Object`对象的一些明显属于语言内部的方法（比如`Object.defineProperty`），放到`Reflect`对象上。现阶段，某些方法同时在`Object`和`Reflect`对象上部署，未来的新方法将只部署在`Reflect`对象上。也就是说，从`Reflect`对象上可以拿到语言内部的方法。
+（1）将`Object`对象上一些明显属于语言内部的方法（比如`Object.defineProperty`）放到`Reflect`对象上。现阶段某些方法在两者上并存，未来的新方法将只部署在`Reflect`对象上。
 
-（2） 修改某些`Object`方法的返回结果，让其变得更合理。比如，`Object.defineProperty(obj, name, desc)`在无法定义属性时，会抛出一个错误，而`Reflect.defineProperty(obj, name, desc)`则会返回`false`。
+（2）修改某些`Object`方法的返回结果，让其变得更合理。比如`Object.defineProperty(obj, name, desc)`在无法定义属性时会抛出错误，而`Reflect.defineProperty(obj, name, desc)`则返回`false`。
 
 ```js
 // 老写法
@@ -27,7 +27,7 @@ if (Reflect.defineProperty(target, property, attributes)) {
 }
 ```
 
-（3） 让`Object`操作都变成函数行为。某些`Object`操作是命令式，比如`name in obj`和`delete obj[name]`，而`Reflect.has(obj, name)`和`Reflect.deleteProperty(obj, name)`让它们变成了函数行为。
+（3）让`Object`操作都变成函数行为。`name in obj`和`delete obj[name]`这类命令式操作，改由`Reflect.has(obj, name)`和`Reflect.deleteProperty(obj, name)`以函数形式完成。
 
 ```js
 // 老写法
@@ -37,7 +37,7 @@ if (Reflect.defineProperty(target, property, attributes)) {
 Reflect.has(Object, 'assign') // true
 ```
 
-（4）`Reflect`对象的方法与`Proxy`对象的方法一一对应，只要是`Proxy`对象的方法，就能在`Reflect`对象上找到对应的方法。这就让`Proxy`对象可以方便地调用对应的`Reflect`方法，完成默认行为，作为修改行为的基础。也就是说，不管`Proxy`怎么修改默认行为，你总可以在`Reflect`上获取默认行为。
+（4）`Reflect`对象的方法与`Proxy`对象的方法一一对应，只要是`Proxy`对象的方法，就能在`Reflect`对象上找到对应的方法。这让`Proxy`对象可以方便地调用对应的`Reflect`方法完成默认行为，作为修改行为的基础——不管`Proxy`怎么修改默认行为，你总可以在`Reflect`上获取默认行为。
 
 ```js
 Proxy(target, {
@@ -51,7 +51,7 @@ Proxy(target, {
 })
 ```
 
-上面代码中，`Proxy`方法拦截`target`对象的属性赋值行为。它采用`Reflect.set`方法将值赋值给对象的属性，确保完成原有的行为，然后再部署额外的功能。
+上面代码中，`Proxy`拦截`target`对象的属性赋值行为，用`Reflect.set`把值赋给对象的属性，确保原有的行为得以完成，然后再部署额外的功能。
 
 下面是另一个例子。
 
@@ -72,7 +72,7 @@ var loggedObj = new Proxy(obj, {
 })
 ```
 
-上面代码中，每一个`Proxy`对象的拦截操作（`get`、`delete`、`has`），内部都调用对应的`Reflect`方法，保证原生行为能够正常执行。添加的工作，就是将每一个操作输出一行日志。
+上面代码中，每一个拦截操作（`get`、`deleteProperty`、`has`）内部都调用对应的`Reflect`方法，保证原生行为正常执行，附加的工作只是输出一行日志。
 
 有了`Reflect`对象以后，很多操作会更易读。
 
@@ -88,21 +88,23 @@ Reflect.apply(Math.floor, undefined, [1.75]) // 1
 
 `Reflect`对象一共有 13 个静态方法。
 
-- Reflect.apply(target, thisArg, args)
-- Reflect.construct(target, args)
-- Reflect.get(target, name, receiver)
-- Reflect.set(target, name, value, receiver)
-- Reflect.defineProperty(target, name, desc)
-- Reflect.deleteProperty(target, name)
-- Reflect.has(target, name)
-- Reflect.ownKeys(target)
-- Reflect.isExtensible(target)
-- Reflect.preventExtensions(target)
-- Reflect.getOwnPropertyDescriptor(target, name)
-- Reflect.getPrototypeOf(target)
-- Reflect.setPrototypeOf(target, prototype)
+[width(40,33,27)]
 
-上面这些方法的作用，大部分与`Object`对象的同名方法的作用都是相同的，而且它与`Proxy`对象的方法是一一对应的。下面是对它们的解释。
+| 静态方法                                         | 说明                                                        | 对应的写法                                                       |
+| :----------------------------------------------- | :---------------------------------------------------------- | :--------------------------------------------------------------- |
+| `Reflect.apply(target, thisArg, args)`           | 绑定`this`对象后执行给定函数。                              | `Function.prototype.apply.call(func, thisArg, args)`             |
+| `Reflect.construct(target, args)`                | 不使用`new`来调用构造函数。                                 | `new target(...args)`                                            |
+| `Reflect.get(target, name, receiver)`            | 查找并返回`target`对象的`name`属性，没有则返回`undefined`。 | `target[name]`                                                   |
+| `Reflect.set(target, name, value, receiver)`     | 设置`target`对象的`name`属性等于`value`。                   | `target[name] = value`                                           |
+| `Reflect.defineProperty(target, name, desc)`     | 为对象定义属性。                                            | `Object.defineProperty`                                          |
+| `Reflect.deleteProperty(target, name)`           | 删除对象的属性。                                            | `delete obj[name]`                                               |
+| `Reflect.has(target, name)`                      | 判断属性是否存在。                                          | `name in obj`                                                    |
+| `Reflect.ownKeys(target)`                        | 返回对象的所有属性。                                        | `Object.getOwnPropertyNames`与`Object.getOwnPropertySymbols`之和 |
+| `Reflect.isExtensible(target)`                   | 返回一个布尔值，表示当前对象是否可扩展。                    | `Object.isExtensible`                                            |
+| `Reflect.preventExtensions(target)`              | 让一个对象变为不可扩展，返回布尔值表示是否操作成功。        | `Object.preventExtensions`                                       |
+| `Reflect.getOwnPropertyDescriptor(target, name)` | 得到指定属性的描述对象。                                    | `Object.getOwnPropertyDescriptor`                                |
+| `Reflect.getPrototypeOf(target)`                 | 读取对象的`__proto__`属性。                                 | `Object.getPrototypeOf`                                          |
+| `Reflect.setPrototypeOf(target, proto)`          | 设置目标对象的原型，返回布尔值表示是否设置成功。            | `Object.setPrototypeOf`                                          |
 
 ### Reflect.get(target, name, receiver)
 
@@ -188,7 +190,7 @@ myObject.foo // 4
 myReceiverObject.foo // 1
 ```
 
-注意，如果 `Proxy`对象和 `Reflect`对象联合使用，前者拦截赋值操作，后者完成赋值的默认行为，而且传入了`receiver`，那么`Reflect.set`会触发`Proxy.defineProperty`拦截。
+注意，如果 `Proxy`对象和 `Reflect`对象联合使用，前者拦截赋值操作、后者完成默认行为，而且传入了`receiver`，那么`Reflect.set`会触发`Proxy.defineProperty`拦截。
 
 ```js
 let p = {
@@ -212,7 +214,7 @@ obj.a = 'A'
 // defineProperty
 ```
 
-上面代码中，`Proxy.set`拦截里面使用了`Reflect.set`，而且传入了`receiver`，导致触发`Proxy.defineProperty`拦截。这是因为`Proxy.set`的`receiver`参数总是指向当前的 `Proxy`实例（即上例的`obj`），而`Reflect.set`一旦传入`receiver`，就会将属性赋值到`receiver`上面（即`obj`），导致触发`defineProperty`拦截。如果`Reflect.set`没有传入`receiver`，那么就不会触发`defineProperty`拦截。
+上面代码中，`Proxy.set`拦截里使用了`Reflect.set`并传入了`receiver`，因此触发了`Proxy.defineProperty`拦截。这是因为`Proxy.set`的`receiver`参数总是指向当前的 `Proxy`实例（即上例的`obj`），而`Reflect.set`一旦传入`receiver`，就会把属性赋值到`receiver`（即`obj`）上面，从而触发`defineProperty`拦截；不传`receiver`就不会触发。
 
 ```js
 let p = {
@@ -366,7 +368,7 @@ Reflect.setPrototypeOf(null, {})
 
 `Reflect.apply`方法等同于`Function.prototype.apply.call(func, thisArg, args)`，用于绑定`this`对象后执行给定函数。
 
-一般来说，如果要绑定一个函数的`this`对象，可以这样写`fn.apply(obj, args)`，但是如果函数定义了自己的`apply`方法，就只能写成`Function.prototype.apply.call(fn, obj, args)`，采用`Reflect`对象可以简化这种操作。
+一般来说，绑定函数的`this`对象可以写成`fn.apply(obj, args)`；但如果函数定义了自己的`apply`方法，就只能写成`Function.prototype.apply.call(fn, obj, args)`，用`Reflect`对象可以简化这种操作。
 
 ```js
 const ages = [11, 33, 12, 54, 18, 96]
@@ -422,8 +424,6 @@ p.foo = 'bar'
 
 p.foo // "bar"
 ```
-
-上面代码中，`Proxy.defineProperty`对属性赋值设置了拦截，然后使用`Reflect.defineProperty`完成了赋值。
 
 ### Reflect.getOwnPropertyDescriptor(target, propertyKey)
 
@@ -539,9 +539,9 @@ person.name = '李四'
 // 李四, 20
 ```
 
-上面代码中，数据对象`person`是观察目标，函数`print`是观察者。一旦数据对象发生变化，`print`就会自动执行。
+上面代码中，数据对象`person`是观察目标，函数`print`是观察者。
 
-下面，使用 Proxy 写一个观察者模式的最简单实现，即实现`observable`和`observe`这两个函数。思路是`observable`函数返回一个原始对象的 Proxy 代理，拦截赋值操作，触发充当观察者的各个函数。
+下面用 Proxy 写一个观察者模式的最简单实现，即实现`observable`和`observe`这两个函数：`observable`返回原始对象的 Proxy 代理，拦截赋值操作并触发充当观察者的各个函数。
 
 ```js
 const queuedObservers = new Set()
@@ -555,8 +555,6 @@ function set(target, key, value, receiver) {
   return result
 }
 ```
-
-上面代码中，先定义了一个`Set`集合，所有观察者函数都放进这个集合。然后，`observable`函数返回原始对象的代理，拦截赋值操作。拦截函数`set`之中，会自动执行所有观察者。
 
 ## 4. 结论
 
@@ -574,9 +572,9 @@ function set(target, key, value, receiver) {
 **解答**:
 `Reflect` 旨在成为未来语言内部方法的统一存放地，并提供更优的开发者体验。
 
-- **更合理的返回值**：`Reflect.defineProperty` 在失败时返回 `false`，而 `Object.defineProperty` 会抛出 `TypeError`。前者允许使用简单的条件判断来处理失败情况，而后者则需要 `try...catch` 块。
+- **更合理的返回值**：`Reflect.defineProperty` 失败时返回 `false`，`Object.defineProperty` 则抛出 `TypeError`。前者用简单的条件判断就能处理失败，后者需要 `try...catch`。
 - **函数式替代操作符**：`Reflect.has` 和 `Reflect.deleteProperty` 将 `in` 和 `delete` 这两个命令式操作符变成了函数调用，使代码风格更统一。
-- **职责分离**：`Object` 的主要职责是作为所有对象的基类和构造函数，而 `Reflect` 则专注于提供一套与语言底层操作对应的 API，这种分离使 API 设计更加清晰。
+- **职责分离**：`Object` 的职责是充当所有对象的基类与构造函数，`Reflect` 专注于提供与语言底层操作对应的 API，分工更清晰。
 
 ### 5.2 在 `Proxy` 的 `handler` 中，为什么必须使用 `Reflect`？
 
@@ -586,25 +584,39 @@ function set(target, key, value, receiver) {
 **解答**:
 这是 `Reflect` 最核心的用途。在 `Proxy` 陷阱中，使用 `Reflect` 不是强制的，但却是 **最佳实践**，主要原因是为了正确处理 `this` 指向（即 `receiver`）。
 
-**示例**：
-
 ```javascript
-const parent = { name: 'parent' }
-const proxy = new Proxy(parent, {
+const parent = {
+  name: 'parent',
+  get greeting() {
+    return `hello, ${this.name}`
+  },
+}
+
+// ❌ 不用 Reflect：直接返回 target[key]，getter 里的 this 是 target（parent）
+const bad = new Proxy(parent, {
+  get(target, key) {
+    return target[key]
+  },
+})
+
+// ✅ 用 Reflect：把 receiver 传下去，getter 里的 this 是 receiver
+const good = new Proxy(parent, {
   get(target, key, receiver) {
-    // 错误写法：直接返回 target[key]
-    // return target[key]   // 此时 this 是 target（parent），不是 receiver
-    // 正确写法：
     return Reflect.get(target, key, receiver)
   },
 })
 
-const child = Object.create(proxy)
-child.name // 访问 child.name 会触发 proxy 的 get，receiver 是 child
+// 通过原型链访问时，receiver 是实际的调用方 child
+const child1 = Object.create(bad)
+child1.name = 'child'
+const child2 = Object.create(good)
+child2.name = 'child'
+
+console.log(child1.greeting) // 输出 'hello, parent'：this 落到了 parent 上
+console.log(child2.greeting) // 输出 'hello, child'：this 是 child
 ```
 
-如果 `get` 中直接返回 `target[key]`，那么内部使用的 `this` 是 `parent` 而不是 `child`，这可能导致访问器属性（`getter`）中无法访问到正确的 `this`（本应是 `child`）。
-使用 `Reflect.get` 并传递 `receiver`，可以确保 `getter` 中的 `this` 正确绑定到 `receiver`。
+如果 `get` 中直接返回 `target[key]`，内部使用的 `this` 是 `parent` 而不是 `child`，访问器属性（`getter`）中就取不到正确的 `this`。使用 `Reflect.get` 并传入 `receiver`，可以确保 `getter` 中的 `this` 正确绑定。
 
 ### 5.3 `Reflect.has` 的 `non-object` 错误是什么？
 

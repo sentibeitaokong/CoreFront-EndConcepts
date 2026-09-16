@@ -1,12 +1,12 @@
 # Symbol
 
-Symbol 是 ES6 引入的第七种原始数据类型。它的核心目的是创建独一无二的标识符，主要用于防止对象属性名冲突，以及通过“知名 Symbol (Well-Known Symbols)”来修改语言内部的默认行为（元编程）。
+Symbol 是 ES6 引入的第七种原始数据类型，核心目的是创建独一无二的标识符，主要用于防止对象属性名冲突，以及通过“**知名 Symbol (Well-Known Symbols)**”修改语言内部的默认行为（元编程）。
 
 ## 1. Symbol 基础
 
 ### 1.1 创建 Symbol
 
-Symbol 值通过`Symbol()`函数生成。这就是说，对象的属性名现在可以有两种类型，一种是原来就有的字符串，另一种就是新增的 Symbol 类型。凡是属性名属于 Symbol 类型，就都是独一无二的，可以保证不会与其他属性名产生冲突。
+Symbol 值通过`Symbol()`函数生成。对象的属性名因此可以有两种类型：原有的字符串，以及新增的 Symbol 类型。凡是属性名属于 Symbol 类型，就都是独一无二的，可以保证不会与其他属性名产生冲突。
 
 ```js
 let s = Symbol()
@@ -15,9 +15,7 @@ typeof s
 // "symbol"
 ```
 
-上面代码中，变量`s`就是一个独一无二的值。`typeof`运算符的结果，表明变量`s`是 Symbol 数据类型，而不是字符串之类的其他类型。
-
-注意，`Symbol()`函数前不能使用`new`命令，否则会报错。这是因为生成的 Symbol 是一个原始类型的值，不是对象，所以不能使用`new`命令来调用。另外，由于 Symbol 值不是对象，所以也不能添加属性。基本上，它是一种类似于字符串的数据类型。
+注意，`Symbol()`函数前不能使用`new`命令，否则会报错，因为生成的 Symbol 是一个原始类型的值，不是对象。也正因为它不是对象，所以也不能添加属性。基本上，它是一种类似于字符串的数据类型。
 
 `Symbol()`函数可以接受一个字符串作为参数，表示对 Symbol 实例的描述。这主要是为了在控制台显示，或者转为字符串时，比较容易区分。
 
@@ -32,7 +30,7 @@ s1.toString() // "Symbol(foo)"
 s2.toString() // "Symbol(bar)"
 ```
 
-上面代码中，`s1`和`s2`是两个 Symbol 值。如果不加参数，它们在控制台的输出都是`Symbol()`，不利于区分。有了参数以后，就等于为它们加上了描述，输出的时候就能够分清，到底是哪一个值。
+上面代码中，`s1`和`s2`是两个 Symbol 值。不加参数时它们在控制台的输出都是`Symbol()`，不利于区分；加上参数就等于为它们加了描述，输出时就能分清到底是哪一个。
 
 如果 Symbol 的参数是一个对象，就会调用该对象的`toString()`方法，将其转为字符串，然后才生成一个 Symbol 值。
 
@@ -62,7 +60,7 @@ let s2 = Symbol('foo')
 s1 === s2 // false
 ```
 
-上面代码中，`s1`和`s2`都是`Symbol()`函数的返回值，而且参数相同，但是它们是不相等的。事实上，如果调用100次`Symbol()`，会得到100个互不相等的值。
+上面代码中，`s1`和`s2`都是`Symbol()`函数的返回值，而且参数相同，但是它们不相等。事实上，调用 100 次`Symbol()`会得到 100 个互不相等的值。
 
 Symbol 值不能与其他类型的值进行运算，会报错。
 
@@ -108,8 +106,6 @@ sym + 2 // TypeError
 const sym = Symbol('foo')
 ```
 
-上面代码中，`sym`这个值的描述就是字符串`foo`。
-
 但是，读取这个描述需要将 Symbol 显式转为字符串，即下面的写法。
 
 ```js
@@ -119,7 +115,7 @@ String(sym) // "Symbol(foo)"
 sym.toString() // "Symbol(foo)"
 ```
 
-上面的用法不是很方便。[ES2019](https://github.com/tc39/proposal-Symbol-description) 提供了一个 Symbol 值的实例属性`description`，直接返回 Symbol 值的描述。
+上面的用法不太方便。[ES2019](https://github.com/tc39/proposal-Symbol-description) 提供了一个实例属性`description`，直接返回 Symbol 值的描述。
 
 ```js
 const sym = Symbol('foo')
@@ -164,7 +160,7 @@ a[mySymbol] // undefined
 a['mySymbol'] // "Hello!"
 ```
 
-上面代码中，因为点运算符后面总是字符串，所以不会读取`mySymbol`作为标识名所指代的那个值，导致`a`的属性名实际上是一个字符串，而不是一个 Symbol 值。
+上面代码中，点运算符后面总是字符串，所以不会读取`mySymbol`作为标识名所指代的那个值，导致`a`的属性名实际上是一个字符串，而不是一个 Symbol 值。
 
 同理，在对象的内部，使用 Symbol 值定义属性时，Symbol 值必须放在方括号之中。
 
@@ -244,8 +240,6 @@ objectSymbols
 // [Symbol(a), Symbol(b)]
 ```
 
-上面代码是`Object.getOwnPropertySymbols()`方法的示例，可以获取所有 Symbol 属性名。
-
 下面是另一个例子，`Object.getOwnPropertySymbols()`方法与`for...in`循环、`Object.getOwnPropertyNames`方法进行对比的例子。
 
 ```js
@@ -262,7 +256,7 @@ Object.getOwnPropertyNames(obj) // []
 Object.getOwnPropertySymbols(obj) // [Symbol(foo)]
 ```
 
-上面代码中，使用`for...in`循环和`Object.getOwnPropertyNames()`方法都得不到 Symbol 键名，需要使用`Object.getOwnPropertySymbols()`方法。
+上面代码中，`for...in`循环和`Object.getOwnPropertyNames()`方法都得不到 Symbol 键名，需要用`Object.getOwnPropertySymbols()`方法。
 
 另一个新的 API，`Reflect.ownKeys()`方法可以返回所有类型的键名，包括常规键名和 Symbol 键名。
 
@@ -308,7 +302,7 @@ Object.getOwnPropertyNames(x) // ['0']
 Object.getOwnPropertySymbols(x) // [Symbol(size)]
 ```
 
-上面代码中，对象`x`的`size`属性是一个 Symbol 值，所以`Object.keys(x)`、`Object.getOwnPropertyNames(x)`都无法获取它。这就造成了一种非私有的内部方法的效果。
+上面代码中，对象`x`的`size`属性是一个 Symbol 值，所以`Object.keys(x)`、`Object.getOwnPropertyNames(x)`都无法获取它，这就造成了一种非私有的内部方法的效果。
 
 ## 2. 全局 Symbol 注册表
 
@@ -323,9 +317,9 @@ let s2 = Symbol.for('foo')
 s1 === s2 // true
 ```
 
-上面代码中，`s1`和`s2`都是 Symbol 值，但是它们都是由同样参数的`Symbol.for`方法生成的，所以实际上是同一个值。
+上面代码中，`s1`和`s2`都是由同样参数的`Symbol.for`方法生成的，所以实际上是同一个值。
 
-`Symbol.for()`与`Symbol()`这两种写法，都会生成新的 Symbol。它们的区别是，前者会被登记在全局环境中供搜索，后者不会。`Symbol.for()`不会每次调用就返回一个新的 Symbol 类型的值，而是会先检查给定的`key`是否已经存在，如果不存在才会新建一个值。比如，如果你调用`Symbol.for("cat")`30 次，每次都会返回同一个 Symbol 值，但是调用`Symbol("cat")`30 次，会返回 30 个不同的 Symbol 值。
+`Symbol.for()`与`Symbol()`这两种写法都会生成新的 Symbol，区别是前者会被登记在全局环境中供搜索，后者不会。`Symbol.for()`不会每次调用都返回一个新的 Symbol 值，而是先检查给定的`key`是否已经存在，不存在才新建。比如调用`Symbol.for("cat")`30 次，每次都返回同一个 Symbol 值，而调用`Symbol("cat")`30 次会返回 30 个不同的值。
 
 ```js
 Symbol.for('bar') === Symbol.for('bar')
@@ -363,7 +357,7 @@ const y = Symbol.for('bar')
 console.log(x === y) // true
 ```
 
-上面代码中，`Symbol.for('bar')`是函数内部运行的，但是生成的 Symbol 值是登记在全局环境的。所以，第二次运行`Symbol.for('bar')`可以取到这个 Symbol 值。
+上面代码中，`Symbol.for('bar')`是函数内部运行的，但生成的 Symbol 值登记在全局环境的。所以，第二次运行`Symbol.for('bar')`可以取到这个 Symbol 值。
 
 `Symbol.for()`的这个全局登记特性，可以用在不同的 iframe 或 service worker 中取到同一个值。
 
@@ -375,8 +369,6 @@ document.body.appendChild(iframe)
 iframe.contentWindow.Symbol.for('foo') === Symbol.for('foo')
 // true
 ```
-
-上面代码中，iframe 窗口生成的 Symbol 值，可以在主页面得到。
 
 ## 3. Symbol应用
 
@@ -401,7 +393,7 @@ function getArea(shape, options) {
 getArea('Triangle', { width: 100, height: 100 }) // 魔术字符串
 ```
 
-上面代码中，字符串`Triangle`就是一个魔术字符串。它多次出现，与代码形成“强耦合”，不利于将来的修改和维护。
+上面代码中，字符串`Triangle`就是一个魔术字符串，它多次出现，与代码形成“**强耦合**”，不利于将来的修改和维护。
 
 常用的消除魔术字符串的方法，就是把它写成一个变量。
 
@@ -510,11 +502,11 @@ const FOO_KEY = Symbol('foo')
 // 后面代码相同 ……
 ```
 
-上面代码将导致其他脚本都无法引用`FOO_KEY`。但这样也有一个问题，就是如果多次执行这个脚本，每次得到的`FOO_KEY`都是不一样的。虽然 Node 会将脚本的执行结果缓存，一般情况下，不会多次执行同一个脚本，但是用户可以手动清除缓存，所以也不是绝对可靠。
+上面代码将导致其他脚本都无法引用`FOO_KEY`。但这样也有问题：多次执行这个脚本，每次得到的`FOO_KEY`都不一样。虽然 Node 会将脚本的执行结果缓存，一般不会多次执行同一个脚本，但用户可以手动清除缓存，所以也不是绝对可靠。
 
 ## 4. 内置的 Symbol 值(元编程的核心)
 
-ES6 暴露了11个内置的 Symbol 常量，允许开发者自定义对象在语言内部的行为（如迭代、转换、匹配等）。这是 Symbol 最强大的功能。E
+ES6 暴露了 11 个内置的 Symbol 常量，允许开发者自定义对象在语言内部的行为（如迭代、转换、匹配等），这是 Symbol 最强大的功能。
 
 ### Symbol.hasInstance
 
@@ -530,7 +522,7 @@ class MyClass {
 ;[1, 2, 3] instanceof new MyClass() // true
 ```
 
-上面代码中，`MyClass`是一个类，`new MyClass()`会返回一个实例。该实例的`Symbol.hasInstance`方法，会在进行`instanceof`运算时自动调用，判断左侧的运算子是否为`Array`的实例。
+上面代码中，`MyClass`是一个类，`new MyClass()`返回一个实例，该实例的`Symbol.hasInstance`方法会在进行`instanceof`运算时自动调用，判断左侧的运算子是否为`Array`的实例。
 
 下面是另一个例子。
 
@@ -567,7 +559,7 @@ arr2[Symbol.isConcatSpreadable] = false
 ;['a', 'b'].concat(arr2, 'e') // ['a', 'b', ['c','d'], 'e']
 ```
 
-上面代码说明，数组的默认行为是可以展开，`Symbol.isConcatSpreadable`默认等于`undefined`。该属性等于`true`时，也有展开的效果。
+上面代码说明，数组的默认行为是可以展开，`Symbol.isConcatSpreadable`默认为`undefined`；该属性等于`true`时，也有展开的效果。
 
 类似数组的对象正好相反，默认不展开。它的`Symbol.isConcatSpreadable`属性设为`true`，才可以展开。
 
@@ -606,9 +598,7 @@ a2[1] = 6
 // [1, 2, 3, 4, [5, 6]]
 ```
 
-上面代码中，类`A1`是可展开的，类`A2`是不可展开的，所以使用`concat`时有不一样的结果。
-
-注意，`Symbol.isConcatSpreadable`的位置差异，`A1`是定义在实例上，`A2`是定义在类本身，效果相同。
+注意，`A1`把`Symbol.isConcatSpreadable`定义在实例上，`A2`定义在类本身，两者效果相同。
 
 ### Symbol.species
 
@@ -625,7 +615,7 @@ b instanceof MyArray // true
 c instanceof MyArray // true
 ```
 
-上面代码中，子类`MyArray`继承了父类`Array`，`a`是`MyArray`的实例，`b`和`c`是`a`的衍生对象。你可能会认为，`b`和`c`都是调用数组方法生成的，所以应该是数组（`Array`的实例），但实际上它们也是`MyArray`的实例。
+上面代码中，子类`MyArray`继承了父类`Array`，`a`是`MyArray`的实例，`b`和`c`是`a`的衍生对象。你可能会认为`b`、`c`由数组方法生成，应该是`Array`的实例，但实际上它们也是`MyArray`的实例。
 
 `Symbol.species`属性就是为了解决这个问题而提供的。现在，我们可以为`MyArray`设置`Symbol.species`属性。
 
@@ -637,7 +627,7 @@ class MyArray extends Array {
 }
 ```
 
-上面代码中，由于定义了`Symbol.species`属性，创建衍生对象时就会使用这个属性返回的函数，作为构造函数。这个例子也说明，定义`Symbol.species`属性要采用`get`取值器。默认的`Symbol.species`属性等同于下面的写法。
+上面代码中，定义了`Symbol.species`属性后，创建衍生对象时会用该属性返回的函数作为构造函数，这也说明定义`Symbol.species`要采用`get`取值器。默认的`Symbol.species`属性等同于下面的写法。
 
 ```js
 static get [Symbol.species]() {
@@ -661,8 +651,6 @@ b instanceof MyArray // false
 b instanceof Array // true
 ```
 
-上面代码中，`a.map(x => x)`生成的衍生对象，就不是`MyArray`的实例，而直接就是`Array`的实例。
-
 再看一个例子。
 
 ```js
@@ -678,9 +666,9 @@ new T1(r => r()).then(v => v) instanceof T1 // true
 new T2(r => r()).then(v => v) instanceof T2 // false
 ```
 
-上面代码中，`T2`定义了`Symbol.species`属性，`T1`没有。结果就导致了创建衍生对象时（`then`方法），`T1`调用的是自身的构造方法，而`T2`调用的是`Promise`的构造方法。
+上面代码中，`T2`定义了`Symbol.species`属性而`T1`没有，导致创建衍生对象时（`then`方法）`T1`调用自身的构造方法，而`T2`调用`Promise`的构造方法。
 
-总之，`Symbol.species`的作用在于，实例对象在运行过程中，需要再次调用自身的构造函数时，会调用该属性指定的构造函数。它主要的用途是，有些类库是在基类的基础上修改的，那么子类使用继承的方法时，作者可能希望返回基类的实例，而不是子类的实例。
+总之，`Symbol.species`的作用在于：实例对象在运行过程中需要再次调用自身的构造函数时，会调用该属性指定的构造函数。它主要的用途是，有些类库在基类的基础上修改，子类使用继承的方法时，作者可能希望返回基类的实例，而不是子类的实例。
 
 ### Symbol.match
 
@@ -719,7 +707,7 @@ x[Symbol.replace] = (...s) => console.log(s)
 'Hello'.replace(x, 'World') // ["Hello", "World"]
 ```
 
-`Symbol.replace`方法会收到两个参数，第一个参数是`replace`方法正在作用的对象，上面例子是`Hello`，第二个参数是替换后的值，上面例子是`World`。
+`Symbol.replace`方法会收到两个参数：第一个是`replace`方法正在作用的对象（上例是`Hello`），第二个是替换后的值（上例是`World`）。
 
 ### Symbol.search
 
@@ -777,7 +765,7 @@ class MySplitter {
 // 'foobar'
 ```
 
-上面方法使用`Symbol.split`方法，重新定义了字符串对象的`split`方法的行为，
+上面代码使用`Symbol.split`方法重新定义了字符串对象`split`方法的行为。
 
 ### Symbol.iterator
 
@@ -851,7 +839,7 @@ String(obj) // 'str'
 
 ### Symbol.toStringTag
 
-对象的`Symbol.toStringTag`属性，用来设定一个字符串（设为其他类型的值无效，但不报错）。在目标对象上面调用`Object.prototype.toString()`方法时，如果`Symbol.toStringTag`属性存在，该属性设定的字符串会出现在`toString()`方法返回的字符串之中，表示对象的类型。也就是说，这个属性可以用来定制`[object Object]`或`[object Array]`中`object`后面的那个大写字符串。
+对象的`Symbol.toStringTag`属性用来设定一个字符串（设为其他类型的值无效，但不报错）。在目标对象上面调用`Object.prototype.toString()`方法时，如果该属性存在，它设定的字符串会出现在`toString()`方法返回的字符串之中，表示对象的类型。也就是说，这个属性可以定制`[object Object]`或`[object Array]`中`object`后面的那个大写字符串。
 
 ```js
 // 例一
@@ -870,23 +858,27 @@ Object.prototype.toString.call(x) // "[object xxx]"
 
 ES6 新增内置对象的`Symbol.toStringTag`属性值如下。
 
-- `JSON[Symbol.toStringTag]`：'JSON'
-- `Math[Symbol.toStringTag]`：'Math'
-- `Module[Symbol.toStringTag]`：'Module'
-- `ArrayBuffer.prototype[Symbol.toStringTag]`：'ArrayBuffer'
-- `DataView.prototype[Symbol.toStringTag]`：'DataView'
-- `Map.prototype[Symbol.toStringTag]`：'Map'
-- `Promise.prototype[Symbol.toStringTag]`：'Promise'
-- `Set.prototype[Symbol.toStringTag]`：'Set'
-- `%TypedArray%.prototype[Symbol.toStringTag]`：'Uint8Array'等
-- `WeakMap.prototype[Symbol.toStringTag]`：'WeakMap'
-- `WeakSet.prototype[Symbol.toStringTag]`：'WeakSet'
-- `%MapIteratorPrototype%[Symbol.toStringTag]`：'Map Iterator'
-- `%SetIteratorPrototype%[Symbol.toStringTag]`：'Set Iterator'
-- `%StringIteratorPrototype%[Symbol.toStringTag]`：'String Iterator'
-- `Symbol.prototype[Symbol.toStringTag]`：'Symbol'
-- `Generator.prototype[Symbol.toStringTag]`：'Generator'
-- `GeneratorFunction.prototype[Symbol.toStringTag]`：'GeneratorFunction'
+[width(36,64)]
+
+| 内置对象 / 原型               | `Symbol.toStringTag` 值 |
+| :---------------------------- | :---------------------- |
+| `JSON`                        | `'JSON'`                |
+| `Math`                        | `'Math'`                |
+| `Module`                      | `'Module'`              |
+| `ArrayBuffer.prototype`       | `'ArrayBuffer'`         |
+| `DataView.prototype`          | `'DataView'`            |
+| `Map.prototype`               | `'Map'`                 |
+| `Promise.prototype`           | `'Promise'`             |
+| `Set.prototype`               | `'Set'`                 |
+| `%TypedArray%.prototype`      | `'Uint8Array'`等        |
+| `WeakMap.prototype`           | `'WeakMap'`             |
+| `WeakSet.prototype`           | `'WeakSet'`             |
+| `%MapIteratorPrototype%`      | `'Map Iterator'`        |
+| `%SetIteratorPrototype%`      | `'Set Iterator'`        |
+| `%StringIteratorPrototype%`   | `'String Iterator'`     |
+| `Symbol.prototype`            | `'Symbol'`              |
+| `Generator.prototype`         | `'Generator'`           |
+| `GeneratorFunction.prototype` | `'GeneratorFunction'`   |
 
 ### Symbol.unscopables
 
@@ -947,6 +939,8 @@ with (MyClass.prototype) {
 
 ## **5. Symbol内置常量总结**
 
+下表汇总了 11 个 ES6 内置 Symbol 常量，另含 ES2018 新增的 `Symbol.asyncIterator`。
+
 #### **5.1 迭代与展开**
 
 [width(17,30,22,31)]
@@ -981,12 +975,13 @@ with (MyClass.prototype) {
 
 #### **5.4 其他行为控制**
 
-[width(15,18,29,38)]
+[width(16,24,22,38)]
 
-| Symbol                          | 描述                                     | 触发场景                                         | 示例用途                                                                                              |
-| :------------------------------ | :--------------------------------------- | :----------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
-| **`Symbol.species`**            | 指向一个构造函数，用于创建**派生对象**。 | 数组方法 `map`, `filter`, `slice` 等返回新实例时 | 控制数组或 Promise 的子类在链式调用时，返回父类实例而不是子类实例。                                   |
-| **`Symbol.isConcatSpreadable`** | 一个布尔值属性。                         | `[].concat(obj)`                                 | 控制数组或类数组对象在 `concat` 操作中是否被**展开**（扁平化）。默认数组为 `true`，类数组为 `false`。 |
+| Symbol                          | 描述                                                 | 触发场景                                         | 示例用途                                                                                              |
+| :------------------------------ | :--------------------------------------------------- | :----------------------------------------------- | :---------------------------------------------------------------------------------------------------- |
+| **`Symbol.species`**            | 指向一个构造函数，用于创建**派生对象**。             | 数组方法 `map`, `filter`, `slice` 等返回新实例时 | 控制数组或 Promise 的子类在链式调用时，返回父类实例而不是子类实例。                                   |
+| **`Symbol.isConcatSpreadable`** | 一个布尔值属性。                                     | `[].concat(obj)`                                 | 控制数组或类数组对象在 `concat` 操作中是否被**展开**（扁平化）。默认数组为 `true`，类数组为 `false`。 |
+| **`Symbol.unscopables`**        | 指向一个对象，该对象指定 `with` 环境中被排除的属性。 | `with` 语句                                      | 控制 `with` 环境的作用域，例如数组默认排除了 `copyWithin`、`entries` 等 7 个方法。                    |
 
 ## **6. 常见问题与最佳实践 (FAQ)**
 
