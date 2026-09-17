@@ -139,8 +139,9 @@ finally(callback){
     return this.then(value=>{
         return MyPromise.resolve(callback()).then(()=>value)
     },reason=>{
-        return MyPromise.reject(callback()).then(()=>{
-            throw new Error('Error')
+        //finally 失败时也要执行回调，并把原来的失败原因继续往下传
+        return MyPromise.resolve(callback()).then(()=>{
+            throw reason
         })
     })
 }
@@ -150,15 +151,18 @@ finally(callback){
 
 ```js
 static resolve(value){
-    if (value instanceof Promise) return value;
-    if (value === null) return null;
-    // 判断如果是promise
-    if (typeof value === 'object' || typeof value === 'function') {
+    // 已经是 MyPromise 就直接返回
+    if (value instanceof MyPromise) return value;
+    // 判断如果是promise（thenable）
+    if ((typeof value === 'object' && value !== null) || typeof value === 'function') {
         try {
             // 判断是否有then方法
             let then = value.then;
             if (typeof then === 'function') {
-                return new MyPromise(then.call(value)); // 执行value方法
+                // 执行 then 方法，把它的结果作为当前 promise 的结果
+                return new MyPromise( (resolve, reject) =>{
+                    then.call(value, resolve, reject);
+                });
             }
         } catch (e) {
             return new MyPromise( (resolve, reject) =>{
@@ -167,11 +171,6 @@ static resolve(value){
         }
     }
     return new MyPromise( (resolve, reject) =>{
-        // if(isPromise(value)){
-        //     value.then(resolve,reject)
-        // }else{
-        //     resolve(value);
-        // }
         resolve(value);
     });
 }
@@ -240,7 +239,10 @@ static any(values){
         }
         values.forEach((item,i)=>{
             if(isPromise(item)){
-                item.then((resolve,reject)=>{
+                //不能用 (resolve,reject) 当回调参数，那样会遮蔽外层的 resolve、reject
+                item.then(value=>{
+                    resolve(value)
+                },reason=>{
                     count++
                     if(count===values.length){
                         reject(new Error('All promises were rejected'))
@@ -249,14 +251,6 @@ static any(values){
             }else{
                 resolve(item);
             }
-            /*item.then(value=>{
-                resolve(value)
-            },reason=>{
-                count++
-                if(count===values.length){
-                    reject(new Error('All promises were rejected'))
-                }
-            })*/
         })
     })
 }
@@ -335,7 +329,7 @@ function resolvePromise(promise, x, resolve, reject) {
   }
   // 判断x的类型
   // promise 有n种实现 都符合了这个规范 兼容别人的promise
-  // 严谨 🇬应该判断 别人的promise 如果失败了就不能在调用成功 如果成功了不能在调用失败
+  // 严谨来说应该判断 别人的promise 如果失败了就不能再调用成功 如果成功了不能再调用失败
   let called = false
   // 怎么判断 x是不是一个promise 看他有没有then方法
   if ((typeof x === 'object' && x !== null) || typeof x === 'function') {
@@ -420,7 +414,7 @@ function resolvePromise(promise, x, resolve, reject) {
   }
   // 判断x的类型
   // promise 有n种实现 都符合了这个规范 兼容别人的promise
-  // 严谨 🇬应该判断 别人的promise 如果失败了就不能在调用成功 如果成功了不能在调用失败
+  // 严谨来说应该判断 别人的promise 如果失败了就不能再调用成功 如果成功了不能再调用失败
   let called = false
   // 怎么判断 x是不是一个promise 看他有没有then方法
   if ((typeof x === 'object' && x !== null) || typeof x === 'function') {
@@ -584,22 +578,29 @@ class MyPromise {
         return MyPromise.resolve(callback()).then(() => value)
       },
       reason => {
-        return MyPromise.reject(callback()).then(() => {
-          throw new Error('Error')
+        //finally 失败时也要执行回调，并把原来的失败原因继续往下传
+        return MyPromise.resolve(callback()).then(() => {
+          throw reason
         })
       },
     )
   }
   static resolve(value) {
-    if (value instanceof Promise) return value
-    if (value === null) return null
-    // 判断如果是promise
-    if (typeof value === 'object' || typeof value === 'function') {
+    // 已经是 MyPromise 就直接返回
+    if (value instanceof MyPromise) return value
+    // 判断如果是promise（thenable）
+    if (
+      (typeof value === 'object' && value !== null) ||
+      typeof value === 'function'
+    ) {
       try {
         // 判断是否有then方法
         let then = value.then
         if (typeof then === 'function') {
-          return new MyPromise(then.call(value)) // 执行value方法
+          // 执行 then 方法，把它的结果作为当前 promise 的结果
+          return new MyPromise((resolve, reject) => {
+            then.call(value, resolve, reject)
+          })
         }
       } catch (e) {
         return new MyPromise((resolve, reject) => {
@@ -608,11 +609,6 @@ class MyPromise {
       }
     }
     return new MyPromise((resolve, reject) => {
-      // if(isPromise(value)){
-      //     value.then(resolve,reject)
-      // }else{
-      //     resolve(value);
-      // }
       resolve(value)
     })
   }
@@ -670,23 +666,21 @@ class MyPromise {
       }
       values.forEach((item, i) => {
         if (isPromise(item)) {
-          item.then((resolve, reject) => {
-            count++
-            if (count === values.length) {
-              reject(new Error('All promises were rejected'))
-            }
-          })
+          //不能用 (resolve,reject) 当回调参数，那样会遮蔽外层的 resolve、reject
+          item.then(
+            value => {
+              resolve(value)
+            },
+            reason => {
+              count++
+              if (count === values.length) {
+                reject(new Error('All promises were rejected'))
+              }
+            },
+          )
         } else {
           resolve(item)
         }
-        /*item.then(value=>{
-                    resolve(value)
-                },reason=>{
-                    count++
-                    if(count===values.length){
-                        reject(new Error('All promises were rejected'))
-                    }
-                })*/
       })
     })
   }
@@ -845,18 +839,19 @@ rejected
     console.log('finally' + res) //finallyundefined
   })
 
-const resolved = MyPromise.resolve(1)
-const rejected = MyPromise.reject(-1)
-const rejected1 = MyPromise.reject(-2)
-const resolved1 = MyPromise.resolve(17)
+//静态方法的测试数据（变量名不能和上面的 resolved、rejected 重名，同一作用域里 const 不能重复声明）
+const resolved1 = MyPromise.resolve(1)
+const resolved2 = MyPromise.resolve(17)
+const rejected1 = MyPromise.reject(-1)
+const rejected2 = MyPromise.reject(-2)
 
-const p = Promise.race([rejected, resolved, resolved1]) //err1 -1
-const p = Promise.any([rejected, resolved, resolved1]) // result 1
-const p = Promise.all([rejected, resolved, resolved1, rejected1]) //err1 -1
+MyPromise.race([rejected1, resolved1, resolved2]) //err1 -1
+MyPromise.any([rejected1, resolved1, resolved2]) // result 1
+MyPromise.all([rejected1, resolved1, resolved2, rejected2]) //err1 -1
 //result [{ status: 'Fulfilled', value: 1 },
 // { status: 'Fulfilled', value: 17 },
 // { status: 'Rejected', value: -1 }]
-const p = MyPromise.allSettled([resolved, resolved1, rejected])
+const p = MyPromise.allSettled([resolved1, resolved2, rejected1])
 p.then(result => {
   console.log('result', result)
 }).catch(err => {

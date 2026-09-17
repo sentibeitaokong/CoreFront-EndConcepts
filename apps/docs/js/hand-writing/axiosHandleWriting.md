@@ -243,17 +243,20 @@ function CancelToken(executor) {
 
 **示例**
 
-```js
-;<div class="container">
+```html
+<div class="container">
   <h2 class="page-header">基本使用</h2>
-  <button class="btn btn-primary"> 发送GET请求 </button>
-  <button class="btn btn-warning"> 发送POST请求 </button>
-  <button class="btn btn-success"> 发送 PUT 请求 </button>
-  <button class="btn btn-danger"> 发送 DELETE 请求 </button>
-  <button class="btn btn-primary"> 发送请求 </button>
-  <button class="btn btn-warning"> 取消请求 </button>
+  <button class="btn btn-primary">发送GET请求</button>
+  <button class="btn btn-warning">发送POST请求</button>
+  <button class="btn btn-success">发送 PUT 请求</button>
+  <button class="btn btn-danger">发送 DELETE 请求</button>
+  <button class="btn btn-primary">发送请求</button>
+  <button class="btn btn-warning">取消请求</button>
 </div>
-//第一个
+```
+
+```js
+//btns[0] 是「发送 GET 请求」按钮，这里的 duanzi 是上面 baseURL 指向 /posts/2 的实例
 btns[0].onclick = function () {
   //发送 AJAX 请求
   duanzi({
@@ -314,7 +317,7 @@ btns[3].onclick = function () {
     console.log(response)
   })
 }
-//删除数据
+//取消请求
 let cancel = null
 btns[4].onclick = function () {
   console.log('11111')

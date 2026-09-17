@@ -335,7 +335,6 @@ Array.prototype.unshift = function () {
   if (this == null) {
     throw new TypeError('this is null or not defined')
   }
-  if (!this.length) return
   var O = Object(this)
   var len = O.length >>> 0
   var arglength = arguments.length >>> 0
@@ -344,7 +343,8 @@ Array.prototype.unshift = function () {
   for (let i = index; i >= 0; i--) {
     this[i + arglength] = this[i]
   }
-  for (let j = 0; j <= arglength; j++) {
+  //j 取到 arglength - 1 为止，多取一个会把一个 undefined 也塞进数组
+  for (let j = 0; j < arglength; j++) {
     this[j] = arguments[j]
   }
   return this.length
@@ -670,7 +670,8 @@ console.log(Array.prototype.copyWithin.call(arrayLike, 3, 1))
 
 ```js
 Array.prototype.entries = function () {
-  if (!typeof this === 'object') return
+  // typeof 返回的是字符串，写 !typeof this === 'object' 恒为 false，判断会失效
+  if (typeof this !== 'object') return
   var arr = this
   var len = this.length || arr.length
   var nextIndex = 0
@@ -1114,7 +1115,7 @@ array.find((value, index) => {
   // 即使删除了，元素 5 仍然被访问
   console.log(`访问索引 ${index}，值为 ${value}`)
 })
-// 删除值为 array[5] 的 5
+// 删除 array[5] 的值 5
 // 访问索引 0，值为 0
 // 访问索引 1，值为 1
 // 访问索引 2，值为 undefined
@@ -1230,10 +1231,8 @@ Array.prototype.flat = function (depth = 1) {
       if (Array.isArray(item) && depth > 0) {
         eachFlat(item, depth - 1)
       } else {
-        //跳过空槽
-        if (item) {
-          result.push(item)
-        }
+        //forEach 本身会跳过空槽，剩下的元素原样拼接（0、false 这类假值不能被丢掉）
+        result.push(item)
       }
     })
   })(newArr, depth)
@@ -1293,6 +1292,8 @@ Array.prototype.unique = function () {
   return [...new Set(this)]
 }
 const sort = (a, b) => a - b
+//待处理的多层嵌套数组
+const arr = [1, 2, [3, 4, [5, 6]], 7, [8, [9, [10, 11]]], 12, [13, 14]]
 console.log(arr.flat().unique().sort(sort)) // [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]
 ```
 
@@ -1304,7 +1305,7 @@ console.log(arr.flat().unique().sort(sort)) // [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 
   - `callbackFn` 为数组中每个元素执行的函数。并会丢弃它的返回值。该函数被调用时将传入以下参数:
     - `element` 数组中当前正在处理的元素。
     - `index` 正在处理的元素在数组中的索引。
-    - `array` 调用了 `findIndex()` 的数组本身。
+    - `array` 调用了 `forEach()` 的数组本身。
   - `thisArg`(**可选**) 执行 `callbackFn` 时用作 `this` 的值。
 - **返回值:** undefined。
 
@@ -1596,9 +1597,10 @@ Array.prototype.join = function (char) {
   if (!len) {
     return ''
   }
-  let result = this[0] ? this[0].toString() : ''
+  //只有 null、undefined（空槽读到的是 undefined）才按空字符串处理，0、false 要正常转成字符串
+  let result = this[0] == null ? '' : this[0].toString()
   for (let i = 1; i < len; i++) {
-    result += char + (O[i] ? O[i].toString() : '')
+    result += char + (O[i] == null ? '' : O[i].toString())
   }
   return result
 }
@@ -1693,7 +1695,7 @@ for (const entry of Array.prototype.keys.call(arrayLike)) {
 
 ### Array.prototype.lastIndexOf
 
-- **功能:** 返回数组中第一次出现给定元素的下标，如果不存在则返回 -1。
+- **功能:** 返回数组中最后一个出现给定元素的下标，如果不存在则返回 -1。
 - **用法:** lastIndexOf(`searchElement`) lastIndexOf(`searchElement`, `fromIndex`)
 - **参数:**
   - `searchElement` 数组中要查找的元素。
@@ -2123,19 +2125,20 @@ Array.prototype.reduceRight = function (fn) {
     //如果给了默认值则取默认值
     initialValue = arguments[1]
   } else {
-    //    如果没有默认值，则取第一个有值的索引
-    while (index > 0 && !(O[index] in O)) {
+    //    如果没有默认值，则从右往左找最后一个有值的索引
+    //    注意这里判断的是「索引」在不在 O 上，写成 O[index] in O 是在拿属性值当键去找
+    while (index >= 0 && !(index in O)) {
       --index
     }
-    if (index <= 0) {
+    if (index < 0) {
       throw new TypeError('reduce of empty array with no initial value')
     }
     initialValue = O[index--]
   }
   while (index >= 0) {
-    if (O[index] in O) {
+    if (index in O) {
       //    值存在才走进来
-      initialValue = fn.call(null, initialValue, O[index], index, O)
+      initialValue = fn.call(undefined, initialValue, O[index], index, O)
     }
     index--
   }
@@ -2401,13 +2404,21 @@ Array.prototype.slice = function (begin, end) {
   }
   const O = Object(this)
   const len = O.length >>> 0
-  if (!len) {
-    return
-  }
   var arr = []
   var index = 0
-  begin = typeof begin === 'number' ? (begin < 0 ? len + begin : begin) : 0
-  end = typeof end === 'number' ? (end > len ? len : end) : len
+  //负索引从末尾开始算，且不能越界（结果为 [] 或整个数组）
+  begin =
+    typeof begin === 'number'
+      ? begin < 0
+        ? Math.max(len + begin, 0)
+        : Math.min(begin, len)
+      : 0
+  end =
+    typeof end === 'number'
+      ? end < 0
+        ? Math.max(len + end, 0)
+        : Math.min(end, len)
+      : len
   while (begin < end) {
     arr[index] = this[begin]
     begin++
@@ -2675,6 +2686,17 @@ function quickSort(arr, low, high, cb) {
   return arr
 }
 Array.prototype.sort = function (cb) {
+  //不传比较函数时，默认把元素转成字符串再按 UTF-16 码元值升序比较
+  cb =
+    typeof cb === 'function'
+      ? cb
+      : (a, b) => {
+          const x = String(a)
+          const y = String(b)
+          if (x > y) return 1
+          if (x < y) return -1
+          return 0
+        }
   return quickSort(this, 0, this.length - 1, cb)
 }
 ```
@@ -2778,7 +2800,7 @@ console.log(Array.prototype.sort.call(arrayLike))
 ### Array.prototype.splice
 
 - **功能:** 就地移除或者替换已存在的元素和/或添加新的元素。
-- **用法:** splice(`start`) splice(`start`, `deleteCount`) splice(`start`, `deleteCount`, `item1`, `item2`, /_ …, _/ `itemN`)
+- **用法:** splice(`start`) splice(`start`, `deleteCount`) splice(`start`, `deleteCount`, `item1`, `item2`, `/* …, */` `itemN`)
 - **参数:**
   - `start` 从 0 开始计算的索引，表示要开始改变数组的位置，它会被转换成整数。
     - 负索引从数组末尾开始计算——如果 `-array.length <= start < 0`，使用 `start + array.length`。
@@ -2793,7 +2815,6 @@ console.log(Array.prototype.sort.call(arrayLike))
 
 ```js
 Array.prototype.splice = function (start, deleteCount) {
-  if (!this.length) return
   var arr = []
   /**
    * 如果超出了数组的长度，则从数组末尾开始添加内容；

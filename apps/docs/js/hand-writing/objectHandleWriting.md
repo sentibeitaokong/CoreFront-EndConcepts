@@ -66,22 +66,12 @@ Object.keys = function (obj) {
   // 2. 转换为对象
   obj = Object(obj)
 
-  // 3. 收集可枚举的自身属性
+  // 3. 收集可枚举的自身属性（Symbol 键不算，所以这里不处理 Symbol）
   var result = []
 
   for (var key in obj) {
     if (Object.prototype.hasOwnProperty.call(obj, key)) {
       result.push(key)
-    }
-  }
-
-  // 4. 处理符号属性（ES6+）
-  if (Object.getOwnPropertySymbols) {
-    var symbols = Object.getOwnPropertySymbols(obj)
-    for (var i = 0; i < symbols.length; i++) {
-      if (Object.prototype.propertyIsEnumerable.call(obj, symbols[i])) {
-        result.push(symbols[i])
-      }
     }
   }
 
@@ -143,28 +133,16 @@ Object.values = function (obj) {
   // 2. 转换为对象
   obj = Object(obj)
 
-  // 3. 收集值
+  // 3. 收集值（Symbol 键不算，所以这里不处理 Symbol）
   var keys = Object.keys(obj)
   var values = new Array(keys.length)
 
-  // 4. 处理符号属性的值（如果需要）
-  var symbolValues = []
-  if (Object.getOwnPropertySymbols) {
-    var symbols = Object.getOwnPropertySymbols(obj)
-    for (var i = 0; i < symbols.length; i++) {
-      if (Object.prototype.propertyIsEnumerable.call(obj, symbols[i])) {
-        symbolValues.push(obj[symbols[i]])
-      }
-    }
-  }
-
-  // 5. 获取所有值
+  // 4. 获取所有值
   for (var i = 0; i < keys.length; i++) {
     values[i] = obj[keys[i]]
   }
 
-  // 6. 合并结果（符号属性的值在最后）
-  return values.concat(symbolValues)
+  return values
 }
 ```
 
@@ -229,7 +207,7 @@ Object.entries = function (arg) {
   if (typeof arg === 'number') {
     return []
   }
-  throw '无法将参数转换为对象'
+  throw new TypeError('无法将参数转换为对象')
 }
 ```
 
@@ -313,7 +291,7 @@ Object.fromEntries = function (arg) {
     })
     return resArr
   }
-  throw '参数不可编辑'
+  throw new TypeError('参数不可迭代')
 }
 ```
 
@@ -675,7 +653,8 @@ Object.getPrototypeOf = function (obj) {
   obj = Object(obj)
 
   // 3. 使用 __proto__ 属性（非标准，但广泛支持）
-  if (typeof obj.__proto__ !== 'undefined') {
+  // 原型为 null 的对象（Object.create(null)）取不到 __proto__，这时应该返回 null
+  if ('__proto__' in obj) {
     return obj.__proto__
   }
 
@@ -684,8 +663,8 @@ Object.getPrototypeOf = function (obj) {
     return obj.constructor.prototype
   }
 
-  // 5. 默认返回 Object.prototype 或 null
-  return Object.prototype
+  // 5. 兜底返回 null
+  return null
 }
 ```
 
@@ -1061,7 +1040,7 @@ const obj2 = {
   },
 }
 
-deepFreeze(obj2)
+Object.deepFreeze(obj2)
 
 obj2.internal.a = 'anotherValue' // 非严格模式下会静默失败
 obj2.internal.a // null

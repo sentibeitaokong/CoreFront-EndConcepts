@@ -114,8 +114,8 @@ function throttle(fn, wait, options) {
   }
   //取消节流
   throttled.cancel = function () {
-    t = null
     clearTimeout(t)
+    t = null
     previous = 0
   }
   return throttled
@@ -169,7 +169,7 @@ function curry(fn, args) {
 
 //进阶版本
 function curry(fn, args, holes) {
-  length = fn.length
+  var length = fn.length
   args = args || []
   holes = holes || []
   return function () {
@@ -400,8 +400,9 @@ function doAdd() {
 **示例**
 
 ```js
-console.log(doAdd(5)) // 10
-console.log(doAdd(5, 3)) // 8
+//doAdd 内部已经 console.log，直接调用即可
+doAdd(5) // 10
+doAdd(5, 3) // 8
 ```
 
 ## 蹦床函数

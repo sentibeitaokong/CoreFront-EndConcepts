@@ -7,7 +7,7 @@
 ### Function.prototype.call
 
 - **功能:** 以给定的 this 值和逐个提供的参数调用该函数。
-- **用法:** call(`thisArg`, `arg1`, `arg2`, /_ …, _/ `argN`)
+- **用法:** call(`thisArg`, `arg1`, `arg2`, `/* …, */` `argN`)
 - **参数:**
   - `thisArg` 在调用 `func` 时要使用的 `this` 值。如果函数不在严格模式下，`null` 和 `undefined` 将被替换为全局对象，并且原始值将被转换为对象。
   - `arg1`, …, `argN`(**可选**) 函数的参数。
@@ -34,8 +34,9 @@ Function.prototype.call = function (context) {
   for (let i = 1, len = arguments.length; i < len; i++) {
     args.push(`arguments[${i}]`)
   }
-  var result = eval(`context.fn(${args})`)
-  delete context.fn
+  //用唯一的属性名调用，否则调用的可能是 context 上原本就有的同名属性
+  var result = eval(`context["${fn}"](${args})`)
+  delete context[fn]
   return result
 }
 //ES6
@@ -44,8 +45,8 @@ Function.prototype.call = function (context) {
     var fn = Symbol(); // added
     context[fn] = this; // changed
     let args = [...arguments].slice(1);
-    let result = context.fn(...args);
-    delete context.fn
+    let result = context[fn](...args);
+    delete context[fn]
     return result;
 }*/
 ```
@@ -102,15 +103,16 @@ Function.prototype.apply = function (context, arr) {
     throw new Error('CreateListFromArrayLike called on non-object')
   }
   if (!arr) {
-    result = context.fn()
+    result = context[fn]()
   } else {
     var args = []
     for (let i = 0, len = arr.length; i < len; i++) {
       args.push(`arr[${i}]`)
     }
-    result = eval(`context.fn(${args})`)
+    //同 call()，用唯一的属性名调用
+    result = eval(`context["${fn}"](${args})`)
   }
-  delete context.fn
+  delete context[fn]
   return result
 }
 //ES6
@@ -120,11 +122,11 @@ Function.prototype.apply = function (context, arr) {
     context[fn] = this; // changed
     let result;
     if (!arr) {
-        result = context.fn();
+        result = context[fn]();
     } else {
-        result = context.fn(...arr);
+        result = context[fn](...arr);
     }
-    delete context.fn
+    delete context[fn]
     return result;
 }*/
 ```
@@ -151,7 +153,7 @@ let min = Math.min.apply(null, numbers)
 ### Function.prototype.bind
 
 - **功能:** 创建一个新函数，当调用该新函数时，它会调用原始函数并将其 `this` 关键字设置为给定的值，同时，还可以传入一系列指定的参数，这些参数会插入到调用新函数时传入的参数的前面。
-- **用法:** bind(`thisArg`, `arg1`, `arg2`, /_ …, _/ `argN`)
+- **用法:** bind(`thisArg`, `arg1`, `arg2`, `/* …, */` `argN`)
 - **参数:**
   - `thisArg` 在调用 `func` 时要使用的 `this` 值。如果函数不在严格模式下，`null` 和 `undefined` 将被替换为全局对象，并且原始值将被转换为对象,如果使用 new 运算符构造绑定函数，则忽略该值。
   - `arg1, …, argN`(**可选**) 在调用 `func` 时，插入到传入绑定函数的参数前的参数。
@@ -192,8 +194,8 @@ Function.prototype.bind = function (context) {
 function log(...args) {
   console.log(this, ...args)
 }
-const boundLog = log.MyBind('this value', 1, 2)
-const boundLog2 = boundLog.MyBind('new this value', 3, 4)
+const boundLog = log.bind('this value', 1, 2)
+const boundLog2 = boundLog.bind('new this value', 3, 4)
 boundLog2(5, 6) // "this value", 1, 2, 3, 4, 5, 6
 //如果目标函数是可构造的，绑定函数也可以使用 new 运算符进行构造。这样做的效果就好像目标函数本身被构造一样。
 class Base {

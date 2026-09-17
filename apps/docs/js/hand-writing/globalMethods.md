@@ -4,7 +4,7 @@
 
 ```js
 function clone(target) {
-  if (typeof target !== 'object') {
+  if (target === null || typeof target !== 'object') {
     return target
   }
   let newTarget = target instanceof Array ? [] : {}
@@ -61,6 +61,13 @@ function New() {
 
 ```js
 function instaceOf(target, origin) {
+  //基本类型（含 null、undefined）不是任何构造函数创建的实例
+  if (
+    target === null ||
+    (typeof target !== 'object' && typeof target !== 'function')
+  ) {
+    return false
+  }
   //循环遍历直到找到指定原型返回true，否则返回false
   let proto = target.__proto__
   while (true) {
@@ -106,8 +113,8 @@ function shuffle(arr) {
 function forOf(obj, cb) {
   let iterable, result
   //没有遍历器函数直接抛出异常
-  if (typeof obj[Symbol.iterator] !== 'function') {
-    throw new TypeError(result + 'is not iterable')
+  if (typeof obj?.[Symbol.iterator] !== 'function') {
+    throw new TypeError(obj + ' is not iterable')
   }
   //取出遍历器函数循环遍历打印所有数据
   iterable = obj[Symbol.iterator]()
@@ -189,7 +196,7 @@ function intersection(setA, setB) {
 }
 ```
 
-## 补集
+## 对称差集
 
 ```js
 //AB的并集减去AB的交集
