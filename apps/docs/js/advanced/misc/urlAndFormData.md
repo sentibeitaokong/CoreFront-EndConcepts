@@ -4,14 +4,6 @@
 
 **一句话理解**：**`URL` 解析地址、`URLSearchParams` 操作查询串、`FormData` 组装表单与文件。**
 
-手写拼接有三个典型问题：
-
-- **漏编码**：中文、空格、`&`、`+` 直接拼进 URL，后端解析错位。
-- **漏分隔符**：第一个参数前用 `?`、之后用 `&`，写错就是 `...?&a=1`。
-- **漏转义**：值里带 `&` 或 `=`，一个参数会被拆成两个。
-
-这三个接口接管了“拼接 + 编码 + 解析”；规范出自 [URL 标准](https://url.spec.whatwg.org/) 与 XHR 标准。
-
 ## 1. `URL`：解析与构造地址
 
 `URL` 是构造函数，把地址字符串解析成结构化对象；传相对地址时必须给第二参数 `base`，否则抛 `TypeError`。
@@ -195,7 +187,7 @@ const parsed = safeParse('/a', 'https://example.com')
 parsed?.href // "https://example.com/a"
 ```
 
-`URL.canParse()` 只回答“能不能解析”，拿结果还得再 `new URL()`；`URL.parse()` 返回 `URL` 或 `null`（较新）。
+`URL.canParse()` 只回答“**能不能解析**”，拿结果还得再 `new URL()`；`URL.parse()` 返回 `URL` 或 `null`（较新）。
 
 ## 2. `URLSearchParams`：操作查询字符串
 
@@ -213,8 +205,6 @@ params.has('page') // true
 params.delete('page') // 删除
 params.toString() // "kw=react&tag=x"
 ```
-
-API 一览，重点看“缺失时的行为”：
 
 [width(27,42,31)]
 
@@ -248,7 +238,7 @@ new URLSearchParams(location.search) // 当前页面的查询串
 
 ### 2.2 数组与重复键
 
-查询串没有数组类型，只有“同名多值”，关键是分清 `get`/`set` 与 `getAll`/`append`：
+查询串没有数组类型，只有“**同名多值**”，关键是分清 `get`/`set` 与 `getAll`/`append`：
 
 ```javascript
 const params = new URLSearchParams('tag=a&tag=b')
@@ -263,8 +253,6 @@ params.toString() // "tag=c"
 params.append('tag', 'd') // 追加：保留已有的，再加一个
 params.toString() // "tag=c&tag=d"
 ```
-
-> 前后端对“重复键”的约定不统一：`tag=a&tag=b` 在 Express、Spring 里收成数组，有的只取最后一个；PHP / qs 风格要写 `tag[]=a&tag[]=b`。**跨端先约定用哪一种**。
 
 ### 2.3 遍历与迭代器
 
@@ -529,8 +517,6 @@ const form = document.querySelector('form')
 const fd = new FormData(form) // 自动收集表单内所有带 name 的字段
 ```
 
-它按 HTML 的“成功控件”规则收集：
-
 [width(46,54)]
 
 | 控件                                         | 是否被收集                                                    |
@@ -543,7 +529,7 @@ const fd = new FormData(form) // 自动收集表单内所有带 name 的字段
 | `<select multiple>`                          | 每个选中项一个同名条目                                        |
 | `<input type="submit">`                      | 默认不收集（可用 `new FormData(form, submitter)` 指定，较新） |
 
-“空文件”这条最坑：没选文件时后端收到的是 `size` 为 `0`、`name` 为空串的 `File`，得自己判断后跳过：
+“**空文件**”这条最坑：没选文件时后端收到的是 `size` 为 `0`、`name` 为空串的 `File`，得自己判断后跳过：
 
 ```javascript
 const form = document.querySelector('form')
@@ -614,7 +600,7 @@ const pairs = [...fd] // [["a","1"],["b","2"]]
 
 ### 4.5 一次上传多个文件
 
-“多文件”就靠同名重复键表示：
+“**多文件**”就靠同名重复键表示：
 
 ```javascript
 const input = document.querySelector('input[type=file][multiple]')
@@ -656,8 +642,6 @@ fd.append('avatar', fileInput.files[0]) // File：文件名自动带上
 fd.append('thumb', blob) // Blob 没有名字，默认文件名是 "blob"
 fd.append('report', blob, 'report.pdf') // 第三个参数手动指定文件名
 ```
-
-几个细节：
 
 - `Blob` 放进去会**自动包装成 `File`**，`value instanceof File` 为 `true`，`name` / `lastModified` 都在。
 - `Blob` 的 `type` 会成为该 part 的 `Content-Type`，构造时务必写对 `new Blob([...], { type: 'image/png' })`；不指定文件名时默认 `"blob"`，对象存储这类后端要补第三个参数。
@@ -738,12 +722,9 @@ for (const [key, value] of fd) {
 | 响应体解析               | 手动 `await res.json()`                     | 自动按 Content-Type 解析                                          |
 | 数组参数序列化           | 自己用 `URLSearchParams` 拼，得到 `a=1&a=2` | `params` 有默认 `paramsSerializer`，数组拼成 `a[]=1&a[]=2`        |
 
-- Node 端用 `form-data` 包时 boundary 不会自动进头，要手动 `headers: form.getHeaders()`；Node 18+ 的原生 `FormData` + `fetch` 与浏览器一致。
-- `FormData` **不是一次性流**，同一实例可重复 `fetch`（每次生成新 boundary），重试上传不必重建。
-
 ## 5. 实战场景与工程实践
 
-### 5.1 三者配合的典型场景
+### 5.1 典型场景
 
 ```javascript
 // 场景：带查询参数的 GET 请求
@@ -839,8 +820,6 @@ xhr.send(fd) // 同样不要手动设 Content-Type
 | `axios` 的 `params`       | 自动拼查询串，支持数组与进度回调                   | 只在 axios 请求里可用，格式受 `paramsSerializer` 影响 | 项目本来就用 axios                    |
 | Node 的 `querystring`     | —                                                  | **已废弃**，行为与 `URLSearchParams` 也不完全一致     | 只应出现在老代码里                    |
 
-> 数组格式最容易两端对不上：`URLSearchParams` 拼 `a=1&a=2`，axios / qs 默认拼 `a[]=1&a[]=2`，对接前先确认。
-
 ## 6. 总结
 
 - `URL` 解析构造地址，`URLSearchParams` 读写查询串，`FormData` 承载表单与文件；三者组合即可告别手写拼接。
@@ -863,7 +842,7 @@ xhr.send(fd) // 同样不要手动设 Content-Type
 
 ### 7.3 `URLSearchParams` 能处理数组吗？
 
-- 它没有数组约定，常见做法是“同名多值” `?tag=a&tag=b` + `getAll('tag')`；或与后端约定 JSON 字符串放进单个参数。
+- 它没有数组约定，常见做法是“**同名多值**” `?tag=a&tag=b` + `getAll('tag')`；或与后端约定 JSON 字符串放进单个参数。
 - 要 `tag[]=a&tag[]=b` 就把 key 写成 `tag[]`（`params.append('tag[]', 'a')`）。
 - axios 的 `params: { tag: ['a', 'b'] }` 默认拼 `tag[]=a&tag[]=b`，与 `URLSearchParams` 的 `tag=a&tag=b` **不一样**，对接前先确认。
 

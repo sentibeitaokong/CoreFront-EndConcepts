@@ -4,7 +4,7 @@
 
 **一句话理解**：**「rAF 把动画『焊』在 60fps 的刷新帧上，requestIdleCallback 把杂活塞进每帧的空闲缝隙。」**
 
-两者都不是「更快的定时器」，而是浏览器**渲染流水线**暴露的两个挂钩点：一个在「帧开始、布局之前」，一个在「帧收尾、还有余粮时」。挂错了再快的代码也会掉帧；挂对了，浏览器自动对齐刷新率、节流、切后台暂停。
+两者都不是「**更快的定时器**」，而是浏览器**渲染流水线**暴露的两个挂钩点：一个在「帧开始、布局之前」，一个在「帧收尾、还有余粮时」。挂错了再快的代码也会掉帧；挂对了，浏览器自动对齐刷新率、节流、切后台暂停。
 
 ## 1. 为什么动画要用 rAF 而不是 `setTimeout` / `setInterval`
 
@@ -29,20 +29,20 @@
 - 16ms 是「魔数」：只在 60Hz 屏勉强对齐，120Hz 上相当于隔帧更新，144Hz 上更错位。
 - 后台标签页里定时器仍被节流着跑（主流浏览器最少约 1s 一次），白白耗电；rAF 随页面隐藏暂停。
 
-rAF 只承诺**「在下一次重绘之前执行」**：不承诺频率，但时机恰好是「改样式最合适」的那一刻，频率由刷新率决定。
+rAF 只承诺 **「在下一次重绘之前执行」**：不承诺频率，但时机恰好是「改样式最合适」的那一刻，频率由刷新率决定。
 
 ## 2. 一帧的完整渲染流程
 
 先看浏览器一帧内做了什么：
 
-```
+```markdown
 每一帧（约 16.7ms @60fps）：
-  → 输入事件处理（input）
-  → requestAnimationFrame 回调
-  → 布局 (Layout / Reflow)
-  → 绘制 (Paint)
-  → 合成 (Composite)
-  → [空闲时间] → requestIdleCallback
+→ 输入事件处理（input）
+→ requestAnimationFrame 回调
+→ 布局 (Layout / Reflow)
+→ 绘制 (Paint)
+→ 合成 (Composite)
+→ [空闲时间] → requestIdleCallback
 ```
 
 rAF 回调在**布局之前**执行，「读样式 → 写样式」因此能**避免强制同步布局**（读写分离）。
@@ -258,7 +258,7 @@ function frame(now) {
 requestAnimationFrame(frame)
 ```
 
-`while` 配 delta 钳制还挡住了**「死亡螺旋」**：单帧耗时超过步长后补算会越补越多、越补越慢；钳住单帧最大补算量等于给循环设了下限。
+`while` 配 delta 钳制还挡住了 **「死亡螺旋」**：单帧耗时超过步长后补算会越补越多、越补越慢；钳住单帧最大补算量等于给循环设了下限。
 
 ### 3.7 缓动函数（easing）
 
@@ -266,14 +266,16 @@ requestAnimationFrame(frame)
 
 缓动函数满足 `f(0) = 0`、`f(1) = 1`，中间怎么弯都行：
 
-- `linear`：匀速，最机械；
-- `easeOutQuad`：`t * (2 - t)`，起步快、收尾慢，最常见的位移曲线；
-- `easeInQuad`：`t * t`，起步慢，适合「离场」；
-- `easeInOutQuad`：两头慢、中间快，适合位置切换；
-- `easeOutCubic`：`1 - (1 - t) ** 3`，收尾比 Quad 更顺滑；
-- `easeOutBack`：会冲过头一点再弹回来，用于强调。
+[width(21,34,45)]
 
-收进一个查找对象，动画代码里只换名字：
+| 名称            | 公式                                                  | 效果与适用场景                   |
+| --------------- | ----------------------------------------------------- | -------------------------------- |
+| `linear`        | `t`                                                   | 匀速，最机械                     |
+| `easeOutQuad`   | `t * (2 - t)`                                         | 起步快、收尾慢，最常见的位移曲线 |
+| `easeInQuad`    | `t * t`                                               | 起步慢，适合「离场」             |
+| `easeInOutQuad` | `t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t`          | 两头慢、中间快，适合位置切换     |
+| `easeOutCubic`  | `1 - (1 - t) ** 3`                                    | 收尾比 Quad 更顺滑               |
+| `easeOutBack`   | `1 + 2.70158 * (t - 1) ** 3 + 1.70158 * (t - 1) ** 2` | 冲过头一点再弹回来，用于强调     |
 
 ```js
 const easing = {
@@ -318,14 +320,12 @@ window.cancelAnimationFrame =
 
 ### 3.9 rAF 的常见误用
 
-- **用 id 判断「循环是否在跑」**：id 每次排队都会变，`if (rafId)` 第二轮就失效。要判断状态就自己维护 `running` 标志（见 §3.2 的 `createLoop`）。
+- **用 id 判断「循环是否在跑」**：id 每次排队都会变，`if (rafId)` 第二轮就失效。要判断状态就自己维护 `running` 标志。
 - **一帧里反复排队**：在回调里对同一个函数调用两次 `requestAnimationFrame`，回调数量每帧翻倍，几百帧后页面直接卡死。
 - **拿 rAF 当 `setInterval` 用**：用它轮询接口、做倒计时，页面切到后台循环就停摆，逻辑「少算一段时间」。非视觉的定时任务该用定时器。
 - **在回调里做重活**：排序大数组、解析大 JSON、同步读写 `localStorage` 都会变成掉帧的长任务。计算挪到 Web Worker 或 `requestIdleCallback`，rAF 里只留「把结果写进样式」，参见 [JS 执行与长任务](/performanceOptimization/jsExecution)。
 - **读写交替**：先 `getBoundingClientRect()` 再改样式、再读、再改——每次「写后读」都强制一次同步布局。正确姿势是「先集中读完，再集中写」。
 - **改了会触发重排的属性**：`left` / `top` / `width` / `height` 每帧都要重新布局，而 `transform` / `opacity` 只走合成。
-
-本节例子里 `left` 只为一目了然，`transform` 才是生产写法。
 
 ## 4. `requestIdleCallback`：利用空闲时间
 
@@ -475,18 +475,14 @@ requestAnimationFrame(frame)
 | `requestAnimationFrame`  | 下次重绘前   | 动画、视觉更新       |
 | `requestIdleCallback`    | 帧的空闲时间 | 非紧急、可延后的杂活 |
 
-三者放在一起，选型问题也就浮出来了：什么时候用谁、与 CSS 动画怎么分工、在滚动 / 拖拽 / 尺寸变化场景里怎么落地。
-
 ### 5.1 选型：问自己四个问题
 
-1. 这件事**必须**在下一次重绘前完成吗？（要改视觉）→ `requestAnimationFrame`
-2. 这件事**最好尽快**完成，但改了 DOM 也不需要立刻看到吗？→ 微任务（`Promise.then` / `queueMicrotask`）
-3. 这件事**可以慢慢做**、晚几百毫秒也无所谓吗？→ `requestIdleCallback`
-4. 这件事**要在未来的某个时间点**发生吗？→ `setTimeout` / `setInterval`
+- 这件事**必须**在下一次重绘前完成吗？（要改视觉）→ `requestAnimationFrame`
+- 这件事**最好尽快**完成，但改了 DOM 也不需要立刻看到吗？→ 微任务（`Promise.then` / `queueMicrotask`）
+- 这件事**可以慢慢做**、晚几百毫秒也无所谓吗？→ `requestIdleCallback`
+- 这件事**要在未来的某个时间点**发生吗？→ `setTimeout` / `setInterval`
 
-第 2 条要强调：微任务优先级高于所有宏任务（包括 rAF），但**不适合做视觉更新**——它跑在布局与绘制之前，样式尚未提交，频繁改动只会让你和浏览器白忙一场。
-
-### 5.2 与其他动画方案的对比
+### 5.2 动画方案对比
 
 rAF 只是「逐帧自己算、自己画」这一类的代表。
 
@@ -505,7 +501,7 @@ rAF 只是「逐帧自己算、自己画」这一类的代表。
 两点补充：
 
 - Web Animations API 和 rAF **并不对立**：`Animation.currentTime` 与 rAF 的 `timestamp` 同源（`document.timeline`），可以用 WAAPI 跑动画、rAF 读进度去驱动 Canvas。
-- 滚动驱动动画可用 `ScrollTimeline` / `ViewTimeline` 交给合成器（Chrome 115+），绕开主线程；不支持时退回 rAF + `scroll`（见 §5.3）。
+- 滚动驱动动画可用 `ScrollTimeline` / `ViewTimeline` 交给合成器（Chrome 115+），绕开主线程；不支持时退回 rAF + `scroll`。
 
 ### 5.3 实战：滚动、拖拽与 observer 里的 rAF 节流
 
@@ -536,6 +532,60 @@ window.addEventListener('scroll', onScroll, { passive: true })
 
 `pointermove` / `mousemove` 同理：坐标**先记下来**，「算 + 写」放进 rAF，一帧最多更新一次；拖拽手感几乎取决于此。
 
+```js
+const box = document.querySelector('#box')
+
+let startX = 0 // 按下那一刻的指针位置
+let startY = 0
+let originX = 0 // 按下那一刻的元素位置
+let originY = 0
+let x = 0 // 最新目标位置（还没写进 DOM）
+let y = 0
+let rafId = 0
+
+function flush() {
+  rafId = 0
+  // 只写 transform：不触发布局，交给合成器，一帧最多写一次
+  box.style.transform = `translate3d(${x}px, ${y}px, 0)`
+}
+
+function onPointerMove(e) {
+  // 只记数值，不读也不写 DOM —— 一帧里 pointermove 可能派发好几次
+  x = originX + e.clientX - startX
+  y = originY + e.clientY - startY
+
+  if (rafId === 0) rafId = requestAnimationFrame(flush) // 本帧没排过才排，多出来的直接丢
+}
+
+function onPointerDown(e) {
+  startX = e.clientX
+  startY = e.clientY
+  originX = x
+  originY = y
+  box.setPointerCapture(e.pointerId) // 指针移出元素甚至窗口，事件仍然派发给 box
+  box.addEventListener('pointermove', onPointerMove)
+}
+
+function onPointerUp(e) {
+  box.removeEventListener('pointermove', onPointerMove)
+  // pointercancel 时指针已经失效，直接释放会抛 NotFoundError
+  if (box.hasPointerCapture(e.pointerId)) box.releasePointerCapture(e.pointerId)
+  cancelAnimationFrame(rafId) // 丢掉排队中的那一帧
+  flush() // 立刻补上最后的位置，别停在上一帧
+}
+
+box.addEventListener('pointerdown', onPointerDown)
+box.addEventListener('pointerup', onPointerUp)
+box.addEventListener('pointercancel', onPointerUp) // 被系统手势打断也要收尾
+```
+
+```css
+#box {
+  touch-action: none; /* 触屏上必须有：否则拖动会被当成滚动，浏览器直接发 pointercancel */
+  user-select: none; /* 拖动时不要顺手选中文字 */
+}
+```
+
 **（3）ResizeObserver**
 
 [ResizeObserver](/networkAndBrowsers/browser/observerApi/resizeObserver) 的回调在**布局之后、绘制之前**执行，是「已经能读到新尺寸」的最佳时机；但在回调里立刻改样式会触发新一轮布局，浏览器直接报 `ResizeObserver loop completed with undelivered notifications`。稳妥做法：回调里只记录数值，改样式交给 rAF。
@@ -565,15 +615,37 @@ ro.observe(box)
 [IntersectionObserver](/networkAndBrowsers/browser/observerApi/intersectionObserver) 解决「看不见的动画还在烧 CPU」：元素离开视口时停掉 rAF 循环，回到视口再启动。配合 §3.2 的 `createLoop` 只要几行：
 
 ```js
-const io = new IntersectionObserver(entries => {
-  for (const entry of entries) {
-    if (entry.isIntersecting) loop.start()
-    else loop.stop()
-  }
+const canvas = document.querySelector('#canvas')
+
+// §3.2 的 createLoop：start 是幂等的，重复调用不会排出第二条循环
+const loop = createLoop(now => {
+  draw(now) // 逐帧绘制
 })
 
+const io = new IntersectionObserver(
+  entries => {
+    for (const entry of entries) {
+      // 回到视口：继续绘制；离开视口：立刻停帧
+      if (entry.isIntersecting) loop.start()
+      else loop.stop()
+    }
+  },
+  {
+    root: null, // 判定基准是视口
+    rootMargin: '0px', // 贴着视口边缘，真正看不见了才停
+    threshold: 0, // 交叉比例从 0 变正即触发
+  },
+)
+
 io.observe(canvas)
+
+// 组件卸载 / 页面销毁时一并清理，否则观察器会一直抓着 canvas
+// io.disconnect()
+// loop.stop()
 ```
+
+- **回调不是每帧都跑**：只在交叉状态**翻转**的那一次派发，离开视口后继续滚也不会再触发，所以它只适合当开关，不能拿来做逐帧判断。
+- **它管「该不该跑」，rAF 管「怎么跑」**：判断位置的成本被摊到状态变化的那几次，比用 `scroll` 事件每帧算一遍划算得多。
 
 ### 5.4 性能与调试清单
 
@@ -597,15 +669,13 @@ io.observe(canvas)
 | `element.animate()`（WAAPI）              | 现代浏览器全支持                          | IE 不支持                    |
 | `ResizeObserver` / `IntersectionObserver` | 现代浏览器全支持                          | IE 不支持，老项目需要垫片    |
 
-还有两个容易忽略的运行环境问题：
-
 - **SSR / Node.js 里没有 `requestAnimationFrame`**（见 §3.8），模块顶层调用会抛 `ReferenceError`，必须放进「只在浏览器执行」的生命周期或环境守卫。
 - **`requestIdleCallback` 只在浏览器主线程存在**，Web Worker 里没有；Worker 里分片要用 `setTimeout` 或 `MessageChannel`。
 
 ### 5.6 后台标签页、首帧与 `document.hidden`
 
 - **页面隐藏时 rAF 会停**：页面不可见（切标签页、最小化、被完全遮挡）时浏览器不再产出新渲染帧，回调随之暂停，切回前台自动恢复。这是它相对定时器最大的优势——省电不用你操心。
-- **但「恢复」有代价**：暂停期间真实时间照常流逝，恢复后第一帧时间戳会跳一大截。基于 `start` 的进度公式天然安全，基于 delta 累加的**必须钳制**（见 §3.6）。
+- **但「恢复」有代价**：暂停期间真实时间照常流逝，恢复后第一帧时间戳会跳一大截。基于 `start` 的进度公式天然安全，基于 delta 累加的**必须钳制**。
 - **`document.hidden` 与 `visibilitychange`**：rAF 会自动暂停，但你自己的状态不会——「按住方向键移动」的按键状态、用 `setInterval` 跑的计时器。要在这些时机主动暂停与校准：
 
 ```js
@@ -618,7 +688,7 @@ document.addEventListener('visibilitychange', () => {
 })
 ```
 
-- **首帧的时间戳不是 0**：可能是几百毫秒甚至几秒（首屏渲染优先），所以 §3.3 里用 `if (start === null) start = timestamp` 记起点，而不是假设第一帧是 t=0。
+- **首帧的时间戳不是 0**：可能是几百毫秒甚至几秒（首屏渲染优先），所以用 `if (start === null) start = timestamp` 记起点，而不是假设第一帧是 t=0。
 - **「等布局稳定」可以用 rAF**：`requestAnimationFrame(() => { ... })` 常用来「让浏览器先消化掉刚才的 DOM 改动」，回调触发时本帧样式已提交，读到的尺寸是新的。但读之前若还有未处理的样式改动，浏览器仍会插入一次同步布局，「集中读、再集中写」的纪律不能丢。
 - **确实要在后台继续跑的工作**（同步、心跳、音频）不要用 rAF 或短定时器硬顶——它们要么被暂停、要么被节流，应交给 Web Worker，或接受节流规则。
 

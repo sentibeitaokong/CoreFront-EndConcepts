@@ -1098,7 +1098,7 @@ function normalizeError(error) {
 - **视图层**：按 `code` 渲染兜底 UI；无法恢复的交给 ErrorBoundary 和全局监听。
 - **上报层**：序列化 `name` / `message` / `stack` / `cause` 与业务上下文，采样后上报，必要时配合 sourcemap。
 
-## **7. 小结**
+## **7. 总结**
 
 - 错误是对象：抛 `Error` 及其子类才有 `name` / `message` / `stack`；`cause` 保留错误链，`AggregateError` 合并多个错误。
 - **`finally` 总会执行**，它里面的 `return` / `throw` 会覆盖之前的结果，所以只写清理逻辑。
