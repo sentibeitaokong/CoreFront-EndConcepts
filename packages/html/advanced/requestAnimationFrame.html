@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>requestAnimationFrame 与 requestIdleCallback</title>
+    <style>
+        body {
+            max-width: 920px;
+            margin: 0 auto;
+            padding: 0 24px 72px;
+            font-family: system-ui, -apple-system, "PingFang SC", sans-serif;
+            line-height: 1.6;
+            color: #24292f;
+        }
+        h1 { font-size: 22px; margin: 28px 0 4px; }
+        h2 { font-size: 17px; margin: 0 0 8px; }
+        p { margin: 8px 0; }
+        code {
+            padding: 1px 5px;
+            background: #f6f8fa;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .hud {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+            margin: 16px 0 8px;
+            padding: 10px 16px;
+            background: #f6f8fa;
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .hud b { font-variant-numeric: tabular-nums; }
+        section {
+            margin: 24px 0;
+            padding: 4px 20px 20px;
+            border: 1px solid #d0d7de;
+            border-radius: 8px;
+        }
+        .hint { font-size: 13px; color: #57606a; }
+        .lane {
+            position: relative;
+            height: 30px;
+            margin: 8px 0;
+            background: #f6f8fa;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        .marker {
+            position: absolute;
+            top: 5px;
+            left: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            background: #0969da;
+            will-change: transform;
+        }
+        .marker.timer { background: #cf222e; }
+        .marker.clamped { background: #1a7f37; }
+        .label { font-size: 13px; font-weight: 600; }
+        /* 一行「标签 + 数值」挨着排，数值长短不一也不会错位 */
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 32px;
+            margin: 10px 0;
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+        }
+        .stats > span { display: inline-flex; align-items: baseline; gap: 8px; }
+        .label { color: #57606a; font-weight: 600; }
+        /* §3.1 是两行四列的对照表，用网格才对齐 */
+        .matrix {
+            display: grid;
+            grid-template-columns: 104px repeat(4, minmax(0, 1fr));
+            gap: 6px 12px;
+            margin: 10px 0;
+            font-size: 13px;
+            font-variant-numeric: tabular-nums;
+        }
+        .matrix .label { align-self: center; }
+        button {
+            padding: 6px 14px;
+            margin-right: 8px;
+            font-size: 13px;
+            background: #fff;
+            border: 1px solid #d0d7de;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        button:hover { background: #f3f4f6; }
+        #stage {
+            position: relative;
+            height: 160px;
+            margin: 8px 0;
+            background: #f6f8fa;
+            border-radius: 6px;
+            touch-action: none;
+            overflow: hidden;
+        }
+        #draggable {
+            position: absolute;
+            top: 0;
+            left: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 80px;
+            height: 80px;
+            background: #0969da;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 13px;
+            cursor: grab;
+            touch-action: none;
+            user-select: none;
+            will-change: transform;
+        }
+        #draggable.dragging { cursor: grabbing; }
+        #spinner {
+            width: 22px;
+            height: 22px;
+            margin: 8px 0;
+            background: #bf8700;
+            border-radius: 4px;
+            will-change: transform;
+        }
+        #idle-log {
+            height: 132px;
+            overflow: auto;
+            margin: 8px 0;
+            padding: 8px 12px;
+            background: #f6f8fa;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 12px;
+            line-height: 1.7;
+        }
+    </style>
+</head>
+<body>
+<h1>requestAnimationFrame 与 requestIdleCallback</h1>
+<p>每个小节对应文档 <code>apps/docs/js/advanced/misc/requestAnimationFrame.md</code> 的一节，打开控制台可以看更细的日志。</p>
+
+<div class="hud">
+    <span>实时 FPS：<b id="hud-fps">–</b></span>
+    <span>近 3 秒最长帧间隔：<b id="hud-gap">–</b> ms</span>
+    <span>requestIdleCallback：<b id="hud-ric">–</b></span>
+    <span>页面可见性：<b id="hud-visibility">visible</b></span>
+</div>
+
+<!-- ===================== §3.1 / §3.2 rAF 与 setTimeout(16) 的对比 ===================== -->
+<section>
+    <h2>§3.1 / §3.2 rAF 基本循环与停止：和 <code>setTimeout(16)</code> 比一比</h2>
+    <p class="hint">
+        两个方块速度一样，差别在「什么时候被调度」：rAF 由刷新帧驱动，<code>setTimeout(fn, 16)</code> 由定时器队列驱动。
+        在这一台机器上实测两者都接近 60fps，肉眼看不出区别——差距在「最大间隔」和后台行为上。
+    </p>
+    <div class="lane"><div class="marker" id="raf-marker"></div></div>
+    <div class="lane"><div class="marker timer" id="timer-marker"></div></div>
+    <div class="matrix">
+        <span></span>
+        <span class="label">FPS</span>
+        <span class="label">平均间隔</span>
+        <span class="label">最大间隔</span>
+        <span class="label">被吞掉的写入</span>
+
+        <span class="label">rAF</span>
+        <b id="raf-fps">–</b>
+        <b id="raf-avg">–</b>
+        <b id="raf-max">–</b>
+        <!-- rAF 每帧只会被调用一次，这个数永远是 0，留着和定时器对照 -->
+        <b id="raf-lost">0</b>
+
+        <span class="label">setTimeout(16)</span>
+        <b id="timer-fps">–</b>
+        <b id="timer-avg">–</b>
+        <b id="timer-max">–</b>
+        <b id="timer-lost">0</b>
+    </div>
+    <button id="loop-toggle">暂停</button>
+    <p class="hint">
+        「被吞掉的写入」是指：这一次改写样式时，rAF 还没有渲染出新的一帧，等于和上一次改动挤在同一帧里，前一次白写了。
+        rAF 永远是 0；定时器一开始通常也是 0——现代 Chrome 会把定时器对齐到渲染帧上，只有卡顿之后定时器「补跑」时才会突然往上跳，
+        这也正是它与刷新节奏没有保证的地方。切到别的标签页再回来：rAF 的 FPS 会先掉到 0（渲染帧停了），定时器被节流到约 1s 一次。
+    </p>
+</section>
+
+<!-- ===================== §3.6 delta 钳制 ===================== -->
+<section>
+    <h2>§3.6 delta 钳制：长任务之后会不会「瞬移」</h2>
+    <p class="hint">
+        两个球速度都是 150px/s，右边的球把 delta 钳制在 100ms 以内。
+        点「阻塞主线程 800ms」（忙等，模拟一个长任务，也等价于切回后台标签页的那一帧），
+        看两个球在恢复后各前进了多少：不钳制的会一次性补上 800ms 的距离。
+    </p>
+    <div class="lane"><div class="marker" id="raw-marker"></div></div>
+    <div class="lane"><div class="marker clamped" id="clamped-marker"></div></div>
+    <div class="stats">
+        <span><span class="label">不钳制</span><b id="raw-x">0 px</b></span>
+        <span><span class="label">本次最大 delta</span><b id="raw-peak">0 ms</b></span>
+        <span><span class="label">钳制到 100ms</span><b id="clamped-x">0 px</b></span>
+        <span><span class="label">本次最大 delta</span><b id="clamped-peak">0 ms</b></span>
+    </div>
+    <button id="block">阻塞主线程 800ms</button>
+    <button id="reset-ball">重置</button>
+    <p class="hint">球跑到底会停住；重置后重新开始。真实场景里对应的就是「页面隐藏期间真实时间照常流逝」。</p>
+</section>
+
+<!-- ===================== §5.3 拖拽的 rAF 节流 ===================== -->
+<section>
+    <h2>§5.3 拖拽：用 rAF 做「一帧最多写一次」的节流</h2>
+    <p class="hint">
+        <code>pointermove</code> 的派发频率可以高于帧率，一帧里可能来好几次。
+        <code>pointermove</code> 里只记录坐标，算与写丢给 rAF：多出来的事件被丢掉，但位置不会丢——rAF 用的永远是最新坐标。
+    </p>
+    <div id="stage">
+        <div id="draggable">拖我</div>
+    </div>
+    <div class="stats">
+        <span><span class="label">pointermove 事件</span><b id="move-count">0</b></span>
+        <span><span class="label">实际写入 DOM</span><b id="write-count">0</b></span>
+        <span><span class="label">省下的写入</span><b id="throttle-ratio">–</b></span>
+    </div>
+    <p class="hint">
+        写入次数的上限就是帧率：拖得越猛，事件越多而写入不变，省下的越多；慢慢挪则接近 1:1。
+        样式表里的 <code>touch-action: none</code> 是触屏上必须加的，否则拖动会被当成滚动。
+    </p>
+</section>
+
+<!-- ===================== §4 requestIdleCallback ===================== -->
+<section>
+    <h2>§4 requestIdleCallback：把大任务切成小片</h2>
+    <p class="hint">
+        总工作量固定：600 个计算单元，合起来约半秒的 CPU 时间。同步跑完会一口气占满主线程，页面冻住半秒；
+        idle 分片则把单元塞进每帧的空闲时间，全程不卡，代价是可能被随时打断、总耗时不确定。
+        上面那个黄色方块由 rAF 驱动，它转不转一眼就能看出主线程是不是被占满了。
+        日志里的 <code>timeRemaining</code> 是本帧剩余空闲时间，<code>didTimeout</code> 为 true 表示是 <code>timeout</code> 到点被强制执行的。
+    </p>
+    <div id="spinner"></div>
+    <button id="idle-run">idle 分片处理</button>
+    <button id="sync-run">同步处理（会卡住）</button>
+    <div class="stats">
+        <span><span class="label">已完成</span><b id="idle-done">0 / 600</b></span>
+        <span><span class="label">本次耗时</span><b id="idle-cost">–</b></span>
+    </div>
+    <div id="idle-log"></div>
+    <p class="hint">
+        测下来 idle 分片未必比同步慢——页面空闲时每帧能挤出十几毫秒，它买到的是「不阻塞渲染」，不是「总耗时更短」；
+        任务越重、页面越忙，它就越慢。<code>timeout</code> 是保底：页面一直很忙时 didTimeout 才会出现，
+        跑分片的同时点一下上面的「阻塞主线程 800ms」就能看到。
+        注意：idle 回调里改样式要等下一帧才上屏，视觉上的更新一律放 rAF；
+        回调一旦开始就不会被浏览器抢占，所以每个单元必须足够小，否则这一帧照样掉帧。
+    </p>
+</section>
+
+<script type="application/javascript">
+    'use strict'
+    const $ = id => document.getElementById(id)
+    const now = () => performance.now()
+
+    /* ========== 顶部 HUD：全局帧率监测 ========== */
+    // 用「最近 1 秒内的帧时间戳」算 FPS；window 数组只保留 1s，避免无限增长
+    const hud = (() => {
+        // 帧时间戳只保留最近 3 秒：长任务造成的那个大间隔过 3 秒会自己滚出窗口
+        const stamps = []
+        let lastPaint = 0
+        return function tick(t) {
+            stamps.push(t)
+            while (stamps.length > 1 && t - stamps[0] > 3000) stamps.shift()
+            if (t - lastPaint > 200) {
+                lastPaint = t
+                const recent = stamps.filter(s => s > t - 1000)
+                if (recent.length > 1) {
+                    const span = recent[recent.length - 1] - recent[0]
+                    $('hud-fps').textContent = (((recent.length - 1) * 1000) / span).toFixed(1)
+                }
+                let maxGap = 0
+                for (let i = 1; i < stamps.length; i++) {
+                    maxGap = Math.max(maxGap, stamps[i] - stamps[i - 1])
+                }
+                $('hud-gap').textContent = maxGap.toFixed(0)
+            }
+            requestAnimationFrame(tick)
+        }
+    })()
+    requestAnimationFrame(hud)
+
+    /* ========== §3.1 / §3.2：rAF 与 setTimeout(16) 的调度差异 ========== */
+    // 留出方块自身宽度，别让它冲出轨道；取 0 兜底，元素还没布局时不会算出负数
+    const laneWidth = () => Math.max($('raf-marker').parentElement.clientWidth - 20, 0)
+
+    // 每个循环一份统计：最近 1 秒的 FPS / 平均间隔 / 最大间隔
+    function createStats(keys) {
+        const stamps = []
+        let count = 0
+        return {
+            tick(t) {
+                count++
+                stamps.push(t)
+                while (stamps.length > 1 && t - stamps[0] > 1000) stamps.shift()
+                if (stamps.length < 2) return
+                let max = 0
+                for (let i = 1; i < stamps.length; i++) {
+                    max = Math.max(max, stamps[i] - stamps[i - 1])
+                }
+                const span = stamps[stamps.length - 1] - stamps[0]
+                $(keys.fps).textContent = (((stamps.length - 1) * 1000) / span).toFixed(1)
+                $(keys.avg).textContent = (span / (stamps.length - 1)).toFixed(1) + ' ms'
+                $(keys.max).textContent = max.toFixed(1) + ' ms'
+            },
+            get count() {
+                return count
+            },
+        }
+    }
+
+    const rafStats = createStats({ fps: 'raf-fps', avg: 'raf-avg', max: 'raf-max' })
+    const timerStats = createStats({ fps: 'timer-fps', avg: 'timer-avg', max: 'timer-max' })
+
+    let rafId = 0
+    let timerId = 0
+    let running = true
+    // rAF 已经渲染到第几帧：定时器某次回调若没看到新帧，说明这次写入和上一帧在同一帧里，白写了
+    let renderedFrame = 0
+    let timerSeenFrame = -1
+    let lostWrites = 0
+
+    function paint(marker, t) {
+        // 位置只与时间有关，两个方块速度一致，便于对照
+        marker.style.transform = `translateX(${(t * 0.12) % laneWidth()}px)`
+    }
+
+    function rafLoop(t) {
+        renderedFrame++
+        paint($('raf-marker'), t)
+        rafStats.tick(t)
+        rafId = requestAnimationFrame(rafLoop)
+    }
+
+    function timerLoop() {
+        const t = now()
+        paint($('timer-marker'), t)
+        timerStats.tick(t)
+        if (renderedFrame === timerSeenFrame) {
+            lostWrites++
+            $('timer-lost').textContent = lostWrites
+        }
+        timerSeenFrame = renderedFrame
+        timerId = setTimeout(timerLoop, 16)
+    }
+
+    function startLoops() {
+        if (running) return
+        running = true
+        timerSeenFrame = -1
+        rafId = requestAnimationFrame(rafLoop)
+        timerId = setTimeout(timerLoop, 16)
+        $('loop-toggle').textContent = '暂停'
+    }
+
+    function stopLoops() {
+        if (!running) return
+        running = false
+        // 取消已执行过、或已被取消过的 id 是静默无操作，这里不必判断
+        cancelAnimationFrame(rafId)
+        clearTimeout(timerId)
+        $('loop-toggle').textContent = '继续'
+    }
+
+    $('loop-toggle').addEventListener('click', () => (running ? stopLoops() : startLoops()))
+    rafId = requestAnimationFrame(rafLoop)
+    timerId = setTimeout(timerLoop, 16)
+
+    /* ========== §3.6：delta 钳制 ========== */
+    const SPEED = 150 // px/s，单位是「每秒」，与帧率无关
+    const MAX_DELTA = 100 // 钳制上限：单帧最多认 100ms
+    const ballLane = () => Math.max($('raw-marker').parentElement.clientWidth - 20, 0)
+
+    let rawX = 0
+    let rawLast = 0
+    let clampedX = 0
+    let clampedLast = 0
+    let rawPeak = 0
+    let clampedPeak = 0
+    // id 为 0 表示「没有排队中的帧」。注意不能只用 id 判断，因为每次排队 id 都会变——
+    // 所以回调一进来就把它清成 0，flush 也用了同一套写法
+    let ballId = 0
+
+    function ballLoop(t) {
+        ballId = 0
+        // 用 0 当「还没记过起点」的哨兵：首帧的时间戳不是 0（可能是几百毫秒），不能直接减
+        if (rawLast === 0) rawLast = t
+        if (clampedLast === 0) clampedLast = t
+
+        const delta = t - rawLast
+        rawLast = t
+        rawPeak = Math.max(rawPeak, delta)
+        // 不钳制：切回前台 / 长任务之后的 delta 可能是好几秒，一次全补上
+        rawX = Math.min(rawX + SPEED * (Math.min(delta, 5000) / 1000), ballLane())
+
+        const clampedDelta = Math.min(t - clampedLast, MAX_DELTA)
+        clampedLast = t
+        clampedPeak = Math.max(clampedPeak, clampedDelta)
+        clampedX = Math.min(clampedX + SPEED * (clampedDelta / 1000), ballLane())
+
+        $('raw-marker').style.transform = `translateX(${rawX}px)`
+        $('clamped-marker').style.transform = `translateX(${clampedX}px)`
+        $('raw-x').textContent = rawX.toFixed(0) + ' px'
+        $('clamped-x').textContent = clampedX.toFixed(0) + ' px'
+        // 记峰值：恢复后的下一帧 delta 就回到 17ms 了，只看瞬时值会错过那一跳
+        $('raw-peak').textContent = rawPeak.toFixed(0) + ' ms'
+        $('clamped-peak').textContent = clampedPeak.toFixed(0) + ' ms'
+
+        // 两个球都到终点就自然停帧；否则继续排下一帧
+        if (rawX < ballLane() || clampedX < ballLane()) ballId = requestAnimationFrame(ballLoop)
+    }
+
+    // 幂等启动：已经在跑就不再排队，避免并行出两条循环（「动画越跑越快」的经典成因）
+    function startBalls() {
+        if (ballId !== 0) return
+        ballId = requestAnimationFrame(ballLoop)
+    }
+    startBalls()
+
+    $('block').addEventListener('click', () => {
+        // 故意的忙等：占满主线程，rAF 与定时器都进不来
+        const start = now()
+        while (now() - start < 800) {
+            /* 空转，模拟长任务 */
+        }
+    })
+
+    $('reset-ball').addEventListener('click', () => {
+        cancelAnimationFrame(ballId) // 丢掉排队中的那一帧再重开，否则会留下第二条循环
+        ballId = 0
+        rawX = 0
+        clampedX = 0
+        rawLast = 0
+        clampedLast = 0
+        rawPeak = 0
+        clampedPeak = 0
+        startBalls()
+    })
+
+    /* ========== §5.3：拖拽的 rAF 节流 ========== */
+    const stage = $('stage')
+    const box = $('draggable')
+
+    let startX = 0 // 按下那一刻的指针位置
+    let startY = 0
+    let originX = 0 // 按下那一刻的元素位置
+    let originY = 0
+    let x = 0 // 最新目标位置（还没写进 DOM）
+    let y = 0
+    let flushId = 0
+    let moves = 0
+    let writes = 0
+
+    function flush() {
+        flushId = 0
+        writes++
+        // 只写 transform：不触发布局，交给合成器
+        box.style.transform = `translate3d(${x}px, ${y}px, 0)`
+        $('write-count').textContent = writes
+        // 省下的写入：拖得越猛，pointermove 来得越密，写入次数却仍然被帧率封顶
+        const saved = Math.max(moves - writes, 0)
+        $('throttle-ratio').textContent = moves
+            ? saved + ' 次（' + ((saved / moves) * 100).toFixed(0) + '%）'
+            : '0'
+    }
+
+    function clamp(v, max) {
+        return Math.max(0, Math.min(v, max))
+    }
+
+    function onPointerMove(e) {
+        moves++
+        $('move-count').textContent = moves
+        x = clamp(originX + e.clientX - startX, stage.clientWidth - box.offsetWidth)
+        y = clamp(originY + e.clientY - startY, stage.clientHeight - box.offsetHeight)
+        // 本帧没排过才排，多出来的 pointermove 直接丢
+        if (flushId === 0) flushId = requestAnimationFrame(flush)
+    }
+
+    function onPointerDown(e) {
+        startX = e.clientX
+        startY = e.clientY
+        originX = x
+        originY = y
+        box.classList.add('dragging')
+        // 指针移出元素甚至窗口，事件仍然派发给 box
+        box.setPointerCapture(e.pointerId)
+        box.addEventListener('pointermove', onPointerMove)
+    }
+
+    function onPointerUp(e) {
+        box.classList.remove('dragging')
+        box.removeEventListener('pointermove', onPointerMove)
+        // pointercancel 时指针已经失效，直接释放会抛 NotFoundError
+        if (box.hasPointerCapture(e.pointerId)) box.releasePointerCapture(e.pointerId)
+        cancelAnimationFrame(flushId) // 丢掉排队中的那一帧
+        flush() // 立刻补上最后的位置，别停在上一帧
+    }
+
+    box.addEventListener('pointerdown', onPointerDown)
+    box.addEventListener('pointerup', onPointerUp)
+    box.addEventListener('pointercancel', onPointerUp)
+
+    /* ========== §4 的参照物：一个由 rAF 驱动的「心跳」方块 ========== */
+    // 它每帧都在转：同步处理那几百毫秒里它会冻住，idle 分片时它一直在转
+    function spinnerLoop(t) {
+        $('spinner').style.transform = `rotate(${(t / 8) % 360}deg)`
+        requestAnimationFrame(spinnerLoop)
+    }
+    requestAnimationFrame(spinnerLoop)
+
+    /* ========== §4：requestIdleCallback 分片 ========== */
+    // 实测：100 万次 Math.sqrt 约 1ms，600 个单元合起来是半秒左右的 CPU 时间
+    const UNIT_ITERATIONS = 1000000
+    const TOTAL_UNITS = 600
+
+    // 能力判断 + 降级：垫片只是用一个 1ms 的宏任务假装「有空闲」，并非真实帧空闲时间
+    const nativeRic = typeof window.requestIdleCallback === 'function'
+    const idleCallback =
+        window.requestIdleCallback ||
+        function (cb) {
+            const start = Date.now()
+            return setTimeout(() => {
+                // 垫片里把预算调小到 10ms，否则一次「空闲任务」就能跑满 50ms，反而把帧撑爆
+                cb({ didTimeout: false, timeRemaining: () => Math.max(0, 10 - (Date.now() - start)) })
+            }, 1)
+        }
+    $('hud-ric').textContent = nativeRic ? '原生支持' : '垫片（setTimeout 降级）'
+
+    function workUnit() {
+        let sum = 0
+        for (let i = 0; i < UNIT_ITERATIONS; i++) sum += Math.sqrt(i)
+        return sum
+    }
+
+    let done = 0
+    let idleStartTime = 0
+    $('idle-done').textContent = '0 / ' + TOTAL_UNITS // 由常量推导，免得和 TOTAL_UNITS 对不上
+    const logLines = []
+
+    function log(text) {
+        logLines.push(text)
+        if (logLines.length > 24) logLines.shift()
+        $('idle-log').innerHTML = logLines.join('<br>')
+        $('idle-log').scrollTop = $('idle-log').scrollHeight
+    }
+
+    function pump(deadline) {
+        // didTimeout 为 true 时 timeRemaining() 通常只剩 0：至少强制做完一个单元，别原地空转
+        let force = deadline.didTimeout ? 1 : 0
+        let units = 0
+        // timeRemaining() 随回调执行而减少，必须每次重新调用，不能先存进变量
+        while (done < TOTAL_UNITS && (force > 0 || deadline.timeRemaining() > 0)) {
+            workUnit()
+            done++
+            units++
+            if (force > 0) force--
+        }
+        log(
+            `#${String(done).padStart(3, ' ')} 个单元完成：本帧剩余 ` +
+                deadline.timeRemaining().toFixed(1) +
+                'ms，本次做了 ' +
+                units +
+                ' 个，didTimeout=' +
+                deadline.didTimeout,
+        )
+        $('idle-done').textContent = done + ' / ' + TOTAL_UNITS
+        if (done < TOTAL_UNITS) {
+            // 还有剩，等下一个空闲时段；timeout 保底：页面一直很忙也必须推进
+            idleCallback(pump, { timeout: 500 })
+        } else {
+            $('idle-cost').textContent = (now() - idleStartTime).toFixed(0) + ' ms（不卡，但慢）'
+        }
+    }
+
+    $('idle-run').addEventListener('click', () => {
+        done = 0
+        idleStartTime = now()
+        $('idle-done').textContent = '0 / ' + TOTAL_UNITS
+        $('idle-cost').textContent = '处理中…'
+        log('—— idle 分片处理开始 ——')
+        idleCallback(pump, { timeout: 500 })
+    })
+
+    $('sync-run').addEventListener('click', () => {
+        const start = now()
+        let sum = 0
+        for (let i = 0; i < TOTAL_UNITS; i++) sum += workUnit()
+        done = TOTAL_UNITS
+        const cost = now() - start
+        $('idle-done').textContent = done + ' / ' + TOTAL_UNITS
+        $('idle-cost').textContent = cost.toFixed(0) + ' ms（快，但期间页面冻住）'
+        log(`—— 同步处理：${cost.toFixed(0)}ms 内一口气跑完，期间 rAF 一帧都没跑 ——`)
+        console.log('同步处理结果', sum)
+    })
+
+    /* ========== 页面可见性：rAF 会自己停，你自己的状态不会 ========== */
+    document.addEventListener('visibilitychange', () => {
+        $('hud-visibility').textContent = document.hidden ? 'hidden（rAF 已暂停）' : 'visible'
+    })
+</script>
+</body>
+</html>
