@@ -97,6 +97,8 @@ type PromptType = GetFirstArg<typeof chat>
 
 当你需要基于一个已有的接口，批量生成一个新的接口时，映射类型是唯一的解法。它的核心语法是 `[K in keyof T]`。
 
+[width(22,78)]
+
 | 映射语法节点     | 核心语义                                   |
 | ---------------- | ------------------------------------------ |
 | `keyof T`        | 取出对象所有键的**联合类型**。             |
@@ -186,10 +188,164 @@ type PathParam<T extends string> =
 type Params = PathParam<'/users/:userId/posts/:postId'>
 ```
 
-## 7. 高级类型避坑指南
+## 6. 递归类型
 
-| 常见误区             | 架构师建议                                                                                                                                                      |
-| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **过度沉迷类型体操** | 业务代码中不要堆砌高度复杂的递归与模式匹配，这会急剧增加同事的认知负担和编译耗时。复杂的业务实体优先使用简单、扁平的 `interface` 直接定义。                     |
-| **滥用场景**         | 高级类型（工具类型）**主要服务于底层库、框架的 API 边界以及泛型组件**。只有当“**输入类型**”和“**输出类型**”之间存在强烈的衍生与校验关系时，才值得投入精力编写。 |
-| **忽略编译性能**     | 嵌套极深的分发条件类型和模板字面量会导致 TS 检查器 CPU 飙升。对于极长的大型表单或对象，慎用全局递归遍历。                                                       |
+前面所有能力（条件类型、`infer`、映射类型、模板字面量）单用都只能处理**一层**结构。真正让类型系统产生质变的，是把它们**组合成递归**。前面 `DeepUnwrapPromise` 和 `PathParam` 其实已经在递归了，这一节把它讲透。
+
+### 6.1 递归的三要素
+
+任何可用的递归类型都必须同时具备这三点，缺一个就会报 `Type instantiation is excessively deep and possibly infinite`：
+
+[width(13,42,45)]
+
+| 要素         | 作用                                     | 典型写法                                   |
+| ------------ | ---------------------------------------- | ------------------------------------------ |
+| **模式匹配** | 判断当前输入长什么样，决定走哪条分支     | `T extends \`${infer Head}${infer Rest}\`` |
+| **提取处理** | 用 `infer` 取出这一步要消费的部分        | `infer Rest`、`T[number]`                  |
+| **收敛出口** | 有且至少有一条分支**不再递归**，直接返回 | `: S`（上面的兜底分支）                    |
+
+**新手最常犯的错**：只写了递归分支，忘了收敛出口，编译器只能一路递归到深度上限然后报错。**写递归类型时，先把终止条件写出来，再写递归分支。**
+
+### 6.2 结构递归：`DeepReadonly`
+
+处理嵌套对象的标准范式——原始类型和函数直接返回，数组和元组保持结构，普通对象递归每个属性。
+
+```ts
+type Primitive = string | number | boolean | bigint | symbol | null | undefined
+
+type DeepReadonly<T> = T extends Primitive | Function
+  ? T // 收敛出口 1：原始类型和函数不再深入
+  : T extends readonly unknown[]
+    ? Readonly<{ [K in keyof T]: DeepReadonly<T[K]> }> // 数组保持结构
+    : { readonly [K in keyof T]: DeepReadonly<T[K]> } // 普通对象递归属性
+
+interface Config {
+  name: string
+  nested: { timeout: number; retries: number }
+}
+
+type FrozenConfig = DeepReadonly<Config>
+// {
+//   readonly name: string
+//   readonly nested: { readonly timeout: number; readonly retries: number }
+// }
+```
+
+**注意**：`T extends Primitive | Function` 这个出口必须放在最前面。否则 `Function` 会被当成普通对象去遍历属性，递归永不收敛。
+
+### 6.3 字符串递归：`TrimLeft`
+
+字符串递归的终止条件是“不再匹配前缀模式”。
+
+```ts
+type WhiteSpace = ' ' | '\n' | '\t'
+
+type TrimLeft<S extends string> = S extends `${WhiteSpace}${infer Rest}`
+  ? TrimLeft<Rest> // 递归：剥掉一个空白字符，处理剩下的
+  : S // 收敛出口：首字符不是空白，原样返回
+```
+
+因为它也是**模板字面量的经典用法**，可以和 `infer` 组合出各种字符串解析器。
+
+### 6.4 累加器：让递归“带状态”
+
+有些计算必须记住“已经处理过什么”，这时给递归加一个**累加器参数**（默认值为空）。这是手写加法、`Join`、`ReplaceAll` 等类型的基础套路。
+
+```ts
+// 递归构建元组：每次往末尾塞一个元素，直到长度等于目标值
+type BuildTuple<
+  N extends number,
+  Acc extends unknown[] = [],
+> = Acc['length'] extends N ? Acc : BuildTuple<N, [...Acc, unknown]>
+
+// 用两个元组拼起来，长度相加就是结果
+type Add<A extends number, B extends number> = [
+  ...BuildTuple<A>,
+  ...BuildTuple<B>,
+]['length']
+
+type Five = Add<2, 3> // 5
+```
+
+`Acc['length'] extends N` 这一句是精髓：**用元组的长度当作数字计数器**，因为 TS 的类型系统里没有“数值运算”，只有结构匹配。这是类型体操的通用思维转换。
+
+### 6.5 尾递归消除：突破深度上限
+
+编译器对递归深度有硬性上限（不同版本数值不同，量级在数十层），撞上就报 `excessively deep`。TypeScript 4.5+ 引入了**尾递归消除**：如果递归调用是某个分支的**最终结果**（后面没有任何额外运算），编译器会把它优化成循环，从而突破深度限制。
+
+[width(33,15,52)]
+
+| 写法                           | 是否尾递归 | 说明                                               |
+| ------------------------------ | ---------- | -------------------------------------------------- |
+| `? TrimLeft<Rest> : S`         | ✅ 是      | 递归调用就是整个分支的结果                         |
+| `` ? `${L}${ReplaceAll<R>}` `` | ❌ 否      | 递归结果还要和外层模板拼接，必须等递归返回后才能算 |
+
+改造的办法就是**把“等待拼接”的部分提前攒进累加器**：
+
+```ts
+// ❌ 非尾递归：递归结果被模板字面量包住，深度限制低
+type ReplaceAll<
+  S extends string,
+  From extends string,
+  To extends string,
+> = S extends `${infer L}${From}${infer R}`
+  ? `${L}${To}${ReplaceAll<R, From, To>}` // 递归结果还要参与拼接
+  : S
+
+// ✅ 尾递归：已处理的部分攒进 Acc，递归调用成为最终结果
+type ReplaceAllTail<
+  S extends string,
+  From extends string,
+  To extends string,
+  Acc extends string = '',
+> = S extends `${infer L}${From}${infer R}`
+  ? ReplaceAllTail<R, From, To, `${Acc}${L}${To}`> // 递归调用就是整个结果
+  : `${Acc}${S}` // 收敛出口：把剩余部分接上
+
+type R = ReplaceAllTail<'a-b-c', '-', '_'> // 'a_b_c'
+```
+
+**实战建议**：只有当字符串/数组长到几十个元素时才会撞上限制。真撞上了，再考虑改写成尾递归；**为了“防御性”提前把每个递归类型都写成累加器形式，是可读性的净损失**（参考 7.1）。
+
+## 7. 常见问题 (FAQ)
+
+### 7.1 什么时候不该写高级类型？
+
+**结论**：业务代码里不要堆砌高度复杂的递归与模式匹配。
+
+- 它会急剧增加同事的认知负担和编译耗时——读懂一个 `DeepReadonly<T>` 远比读懂一个扁平的 `interface` 贵。
+- 复杂的业务实体优先使用简单、扁平的 `interface` 直接定义，把推导留给真正需要的地方。
+
+### 7.2 高级类型主要该用在哪里？
+
+**结论**：主要服务于底层库、框架的 API 边界以及泛型组件。
+
+只有当“**输入类型**”和“**输出类型**”之间存在强烈的衍生与校验关系时，才值得投入精力编写。仅在一两个地方复用，或为了少写几行显式类型而引入 `infer`，都属于滥用。
+
+### 7.3 递归类型为什么会让 IDE 卡顿，甚至报 `Type instantiation is excessively deep`？
+
+**原因**：TS 检查器对类型实例化有深度限制，嵌套极深的分发条件类型和模板字面量会让 CPU 消耗飙升。
+
+**解法**：
+
+- 用扁平化的映射类型替代递归。
+- 明确递归终止条件，并限制递归层级。
+- 对极长的大型表单或对象，慎用全局递归遍历。
+
+### 7.4 为什么 `T extends U ? X : Y` 有时会把联合类型拆开？
+
+这是**分发条件类型**在起作用：当 `extends` 左侧是**裸泛型参数**、且传入的是联合类型时，TS 会逐项代入再把结果重新联合。
+
+`ToArray<string | number>` 得到的是 `string[] | number[]`，而不是 `(string | number)[]`；手写 `Exclude` 正是靠这条分配律。
+
+### 7.5 怎么让条件类型不要把联合类型拆开？
+
+**解法**：用方括号把两侧包起来，`[T] extends [U]` 就把 `string | number` 当成一个完整的实体去比较了，可以做严格的全等判断。
+
+### 7.6 `infer` 为什么写在别处会报错？
+
+`infer` 是类型世界里的“**声明变量**”，**只能出现在条件类型的 `extends` 子句里**，用于在模式匹配过程中临时捕获并提取局部类型。离开 `extends` 子句就没有匹配上下文可用，自然报错。
+
+### 7.7 映射类型里怎么去掉 `readonly` 和 `?`？
+
+在键名前加 `-` 前缀即可：`-readonly [K in keyof T]-?: T[K]` 会同时剥离只读和可选，得到必填且可修改的类型。反过来 `+readonly`、`+?` 是显式添加（不加符号时默认就是添加）。
