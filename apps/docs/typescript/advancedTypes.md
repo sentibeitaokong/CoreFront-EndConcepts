@@ -88,7 +88,7 @@ type GetFirstArg<T> = T extends (first: infer A, ...args: any[]) => any
 function chat(prompt: string, maxTokens: number) {
   return '...'
 }
-
+// typeof chat 等同于 chat函数的类型(prompt: string, maxTokens: number) => string
 type PromptType = GetFirstArg<typeof chat>
 // 推导结果：string
 ```
@@ -235,7 +235,7 @@ type FrozenConfig = DeepReadonly<Config>
 
 ### 6.3 字符串递归：`TrimLeft`
 
-字符串递归的终止条件是“不再匹配前缀模式”。
+字符串递归的终止条件是“**不再匹配前缀模式**”。
 
 ```ts
 type WhiteSpace = ' ' | '\n' | '\t'
@@ -249,7 +249,7 @@ type TrimLeft<S extends string> = S extends `${WhiteSpace}${infer Rest}`
 
 ### 6.4 累加器：让递归“带状态”
 
-有些计算必须记住“已经处理过什么”，这时给递归加一个**累加器参数**（默认值为空）。这是手写加法、`Join`、`ReplaceAll` 等类型的基础套路。
+有些计算必须记住“**已经处理过什么**”，这时给递归加一个**累加器参数**（默认值为空）。这是手写加法、`Join`、`ReplaceAll` 等类型的基础套路。
 
 ```ts
 // 递归构建元组：每次往末尾塞一个元素，直到长度等于目标值
@@ -267,7 +267,7 @@ type Add<A extends number, B extends number> = [
 type Five = Add<2, 3> // 5
 ```
 
-`Acc['length'] extends N` 这一句是精髓：**用元组的长度当作数字计数器**，因为 TS 的类型系统里没有“数值运算”，只有结构匹配。这是类型体操的通用思维转换。
+`Acc['length'] extends N` 这一句是精髓：**用元组的长度当作数字计数器**，因为 TS 的类型系统里没有“**数值运算**”，只有结构匹配。这是类型体操的通用思维转换。
 
 ### 6.5 尾递归消除：突破深度上限
 

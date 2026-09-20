@@ -37,6 +37,11 @@ type TupleToObject<T extends readonly (string | number | symbol)[]> = {
   [K in T[number]]: K
 }
 // 使用 `as const` 保留字面量类型，T[number] 提取所有元素组成的联合类型
+
+const keys = ['a', 'b'] as const
+
+type Result = TupleToObject<typeof keys>
+// { a: 'a'; b: 'b' }
 ```
 
 ### 3.2 深度只读与递归映射
@@ -51,6 +56,20 @@ type DeepReadonly<T> = T extends Primitive | Function
   : T extends readonly unknown[]
     ? Readonly<{ [K in keyof T]: DeepReadonly<T[K]> }>
     : { readonly [K in keyof T]: DeepReadonly<T[K]> }
+
+interface Config {
+  name: string
+  nested: { list: number[] }
+}
+
+type ReadonlyConfig = DeepReadonly<Config>
+// {
+//   readonly name: string
+//   readonly nested: { readonly list: readonly number[] }
+// }
+
+// 原始类型与函数原样返回，不会被包装成对象
+type StillString = DeepReadonly<string> // string
 ```
 
 ### 3.3 字符串模式匹配：TrimLeft
@@ -63,6 +82,13 @@ type WhiteSpace = ' ' | '\n' | '\t'
 type TrimLeft<S extends string> = S extends `${WhiteSpace}${infer Rest}`
   ? TrimLeft<Rest>
   : S
+
+type Trimmed1 = TrimLeft<'  hello'>
+// 'hello'
+
+// 只吃左侧空白，右侧不动
+type Trimmed2 = TrimLeft<' hi '>
+// 'hi '
 ```
 
 ### 3.4 路由参数提取 (Real-world Utility)
@@ -81,11 +107,23 @@ type ParamsObject<T extends string> = { [K in PathParams<T>]: string }
 
 // 运行时实现：自动匹配路径参数
 function buildPath<T extends string>(path: T, params: ParamsObject<T>) {
-  return Object.entries(params).reduce(
+  // Object.entries 对泛型映射类型推导不出 string 值，这里显式收窄
+  const entries = Object.entries(params) as [string, string][]
+  return entries.reduce(
     (result, [key, value]) => result.replace(`:${key}`, value),
     path as string,
   )
 }
+
+type RouteParams = ParamsObject<'/users/:userId/posts/:postId'>
+// { userId: string; postId: string }
+
+// 参数名写错、漏传都会在编译期报错
+const url = buildPath('/users/:userId/posts/:postId', {
+  userId: '1',
+  postId: '2',
+})
+// '/users/1/posts/2'
 ```
 
 ### 3.5 字符串分割：Split
@@ -102,6 +140,10 @@ type Split<
 
 type Parts = Split<'a-b-c', '-'> // ['a', 'b', 'c']
 type Single = Split<'abc', '-'> // ['abc']
+
+// 切成元组后可直接按索引取段，配合 3.7 的递归即可解析深层路径
+type Second = Split<'a.b.c', '.'>[1]
+// 'b'
 ```
 
 **注意收敛出口返回的是 `[S]` 而不是 `S`**——返回元组才能保证每一层展开时结构一致（`[Head, ...Rest]` 要求右边是元组）。
@@ -118,12 +160,13 @@ type UnionToIntersection<U> = // 1. 先把联合分发成函数联合
 
 type Merged = UnionToIntersection<{ a: 1 } | { b: 2 }>
 // { a: 1 } & { b: 2 }
+
+// 实战：把多个事件 handler 的联合合并成一个完整的 props 对象
+type Handlers = { onClick: () => void } | { onFocus: () => void }
+
+declare const allHandlers: UnionToIntersection<Handlers>
+// 可当作 { onClick: () => void; onFocus: () => void } 使用
 ```
-
-**逐步拆解**：
-
-1. `U extends unknown ? ...` 触发**分发条件类型**，把 `A | B` 拆成 `((arg: A) => void) | ((arg: B) => void)`。
-2. 用条件类型去匹配这整个函数联合，`infer I` 在参数位置（**逆变位置**）捕获，编译器会求出所有候选的**交集**，也就是 `A & B`。
 
 **实战价值**：把联合类型的所有成员合并成一个对象——例如收集所有事件的 handler 集合。这一步是 `UnionToTuple` 等高级工具的前置步骤。
 
@@ -146,6 +189,10 @@ interface Data {
 
 type NameType = Get<Data, 'user.profile.name'> // string
 type Bad = Get<Data, 'user.missing'> // never
+
+// 传联合路径时，会分发到每个成员各自求值
+type NameOrAge = Get<Data, 'user.profile.name' | 'user.profile.age'>
+// string | number
 ```
 
 **实战价值**：表单库（如 `react-hook-form`、`vee-validate`）的 `name` 属性自动补全，就是靠这套推导实现的——你输入 `'user.'` 时 IDE 能列出 `profile`，是因为编译器正在实时递归。
@@ -159,7 +206,7 @@ TS 编译器在处理类型推导时，存在**实例化深度限制**。
   - 尽量用扁平化的映射类型替代递归。
   - 限制递归层级。
   - 对库调用者，通过显式声明 `type` 减少编译器计算量。
-  - 撞上深度上限时改写成**尾递归**（用累加器参数把“待拼接”的部分提前攒起来），TS 4.5+ 会把它优化成循环。完整对比见 [高级类型](/typescript/advancedTypes) 的 6.5 节。
+  - 撞上深度上限时改写成**尾递归**（用累加器参数把“**待拼接**”的部分提前攒起来），TS 4.5+ 会把它优化成循环。完整对比见 [高级类型](/typescript/advancedTypes) 的 6.5 节。
 
 ## 5. 常见问题 (FAQ)
 
@@ -173,7 +220,7 @@ TS 编译器在处理类型推导时，存在**实例化深度限制**。
 
 ### 5.2 类型体操该给谁写？业务代码能用吗？
 
-**给库开发者写**。它的价值在于**复用**与**自动化**，而不是通过堆砌语法实现类型上的“炫技”。
+**给库开发者写**。它的价值在于**复用**与**自动化**，而不是通过堆砌语法实现类型上的“**炫技**”。
 
 - 适合：框架/库底层适配多变输入、路由参数与请求 URL 模板的自动推导、基于对象属性自动生成 setter、从后端 JSON 生成前端契约。
 - 回避：常规业务的 Entity 定义、只在一两个地方复用的类型、超过 3 层以上的嵌套递归、为了少写几行显式类型而引入 `infer`。
@@ -193,7 +240,7 @@ TS 编译器在处理类型推导时，存在**实例化深度限制**。
 有，按这四步走：
 
 - **确定源点**：寻找逻辑的起点（`keyof T`、`T[number]`）。
-- **分解步骤**：把大需求拆成“分发、提取、映射、递归”。
+- **分解步骤**：把大需求拆成“**分发、提取、映射、递归**”。
 - **收敛递归**：类型体操本质是递归，必须明确终止条件。
 - **封装出口**：用 `type` 别名定义最终结果，对外隐藏实现。
 
@@ -201,7 +248,7 @@ TS 编译器在处理类型推导时，存在**实例化深度限制**。
 
 因为使用者只是想要一个**自动补全好用的 API**，而不是想学你的类型实现。
 
-把复杂的推导全部封在内部，对外只暴露一个语义清晰的 `type`。一旦调用方需要理解你的递归结构才能用对你的函数，这次抽象就已经亏了——参考 5.1 的第一问。
+把复杂的推导全部封在内部，对外只暴露一个语义清晰的 `type`。一旦调用方需要理解你的递归结构才能用对你的函数，这次抽象就已经亏了。
 
 ### 5.6 什么时候该放弃推导，直接手写类型？
 
@@ -217,15 +264,11 @@ TS 编译器在处理类型推导时，存在**实例化深度限制**。
 
 - **入门**：先手写一遍内置工具类型（`Partial` / `Pick` / `Exclude` / `ReturnType`）。它们是最小完备的练习题，写完就掌握了映射类型、分布式条件类型和 `infer` 三大件。
 - **进阶**：去 [type-challenges](https://github.com/type-challenges/type-challenges) 按难度刷。**重点不是做出答案，而是看懂别人的答案为什么更短**——同一道题往往有递归、累加器、尾递归三种写法。
-- **收敛**：刷到能一眼看穿“这道题是分发、提取、映射还是递归”就够了。**继续刷下去对业务能力的边际收益趋近于零**，把时间还给业务建模更划算。
-
-**必须避开的误区**：把刷题数量当成能力指标。真实项目里 90% 的类型问题用 `interface` + 几个内置工具类型就能解决（见 5.2）。
+- **收敛**：刷到能一眼看穿“**这道题是分发、提取、映射还是递归**”就够了。**继续刷下去对业务能力的边际收益趋近于零**，把时间还给业务建模更划算。
 
 ### 5.8 `UnionToIntersection` 到底是怎么工作的？
 
 它是**逆变**的直接产物，分两步理解：
 
-1. `U extends unknown ? (arg: U) => void : never` —— 先用分发条件类型，把联合 `A | B` 变成**函数类型的联合** `((arg: A) => void) | ((arg: B) => void)`。
-2. 外层再用 `extends (arg: infer I) => void` 去匹配。**函数参数是逆变位置**，当编译器要在多个候选里求出一个 `I` 时，它取的是**交集**，于是得到 `A & B`。
-
-**为什么是交集而不是联合**：因为一个函数若要同时满足“接受 `A`”和“接受 `B`”，它的参数就必须**同时是** `A` 和 `B`——这正是逆变的语义。完整代码见 3.6。
+- `U extends unknown ? (arg: U) => void : never` —— 先用分发条件类型，把联合 `A | B` 变成**函数类型的联合** `((arg: A) => void) | ((arg: B) => void)`。
+- 外层再用 `extends (arg: infer I) => void` 去匹配。**函数参数是逆变位置**，当编译器要在多个候选里求出一个 `I` 时，它取的是**交集**，于是得到 `A & B`。

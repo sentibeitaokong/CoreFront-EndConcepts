@@ -177,7 +177,7 @@ const item = list[10] // 数组越界，运行时是 undefined
 item.toUpperCase() // 不开开关时编译通过，运行时崩溃
 ```
 
-开启后 `item` 的类型变成 `string | undefined`，编译器会强制你处理越界情况。**代价是数组遍历时代码会变啰嗦**（到处要判空），所以这条需要在“安全性”和“书写成本”之间做取舍——**新项目建议直接开**。
+开启后 `item` 的类型变成 `string | undefined`，编译器会强制你处理越界情况。**代价是数组遍历时代码会变啰嗦**（到处要判空），所以这条需要在“**安全性**”和“**书写成本**”之间做取舍——**新项目建议直接开**。
 
 **`types` 的坑**：很多人发现 `process.env` 报错，以为是没装 `@types/node`，实际是 `types` 数组里漏了 `"node"`。反过来，如果你的全局类型莫名多出一堆不相干的东西，也先检查这里。
 
@@ -212,7 +212,7 @@ declare global {
 
 ## 4. 现代工程化典型配置模板 (Vite + Vue3/React)
 
-在现代构建工具体系中（如 Vite），TypeScript 通常剥离了“编译输出 JS”的工作，纯粹作为**静态类型检查器 (Linter)** 使用。
+在现代构建工具体系中（如 Vite），TypeScript 通常剥离了“**编译输出 JS**”的工作，纯粹作为**静态类型检查器 (Linter)** 使用。
 
 以下是一份标准的、适用于现代前端项目的 `tsconfig.json`：
 
@@ -280,7 +280,7 @@ declare global {
 
 在企业级项目中，**永远不要试图用一个巨大的 `tsconfig.json` 管理整个项目**。
 
-不同运行环境支持的全局变量、模块系统完全不同（例如 Node 环境有 `process`，浏览器有 `window`）。因此，最佳实践是采用“基础配置 + 按需扩展”的模式。
+不同运行环境支持的全局变量、模块系统完全不同（例如 Node 环境有 `process`，浏览器有 `window`）。因此，最佳实践是采用“**基础配置 + 按需扩展**”的模式。
 
 ```markdown
 project-root/
@@ -479,7 +479,7 @@ project-root/
 
 **原因**：现代工程里 TS 已经退化为**纯静态类型检查器**，真正的转译交给 Vite/esbuild/swc。
 
-`noEmit` 关掉的是“输出 JS”这个动作，但**类型检查规则、`strict` 系列开关、`paths` 别名、`include` 范围**全部还靠这份配置说话。没有它，编辑器不知道该按哪套规则检查你。
+`noEmit` 关掉的是“**输出 JS**”这个动作，但**类型检查规则、`strict` 系列开关、`paths` 别名、`include` 范围**全部还靠这份配置说话。没有它，编辑器不知道该按哪套规则检查你。
 
 ### 8.2 `skipLibCheck: true` 会不会漏掉类型错误？和 `strict` 冲突吗？
 
@@ -487,14 +487,14 @@ project-root/
 
 `skipLibCheck` 跳过的只是第三方声明**彼此之间**的矛盾，你自己代码里的错误一个都不会少报。收益很直接：极大提升冷启动和类型检查速度。代价是当两个依赖的声明互相矛盾时编译器不会替你报错——真遇到诡异现象，临时关掉它来定位即可。
 
-所以“开了 `strict` 同时开 `skipLibCheck`”是完全正常的组合，也是绝大多数项目的选择。
+所以“**开了 `strict` 同时开 `skipLibCheck`**”是完全正常的组合，也是绝大多数项目的选择。
 
 ### 8.3 `isolatedModules` 和 `verbatimModuleSyntax` 有什么区别？
 
 两者都在解决“**单文件转译**”场景下的问题，但管的事情不同：
 
 - **`isolatedModules`** 保证每个文件**能独立编译**，拦住那些必须跨文件分析才成立的写法。
-- **`verbatimModuleSyntax`** 保证 `import` / `export` 语句**原样保留**到产物里，同时强制“仅类型导入”必须显式写成 `import type`。
+- **`verbatimModuleSyntax`** 保证 `import` / `export` 语句**原样保留**到产物里，同时强制“**仅类型导入**”必须显式写成 `import type`。
 
 ```ts
 // 开了 verbatimModuleSyntax 后，这两行的产物行为完全不同：
@@ -508,27 +508,25 @@ import type { User } from './types' // 保证被完全擦除
 
 ### 8.4 `paths` 别名、`types` 都配了，为什么还是“找不到”？
 
-这是两个不同层面的“找不到”，放在一起对照着排查：
+这是两个不同层面的“**找不到**”，放在一起对照着排查：
 
-**① 别名 `@/` 编辑器认识，构建却报找不到模块**
+- **别名 `@/` 编辑器认识，构建却报找不到模块**
 
-`paths` 只是**给类型检查器看的**，它不改变运行时的模块解析规则，打包工具也不认这份映射。**解法**：必须在构建工具里再配一份等价别名——Vite / Webpack 用 `resolve.alias`，Node 场景用 `tsconfig-paths`。两处要同步维护，改一处漏一处就是这个症状。
+  `paths` 只是**给类型检查器看的**，它不改变运行时的模块解析规则，打包工具也不认这份映射。**解法**：必须在构建工具里再配一份等价别名——Vite / Webpack 用 `resolve.alias`，Node 场景用 `tsconfig-paths`。两处要同步维护，改一处漏一处就是这个症状。
 
-**② `process.env` 报错、`describe` 找不到**
+- **`process.env` 报错、`describe` 找不到**
 
-这类是全局类型包没被加载。两个配置分工不同：
+  这类是全局类型包没被加载。两个配置分工不同：
 
-- **`typeRoots`**：告诉编译器**去哪里找**类型包（默认 `node_modules/@types`），通常不需要改。
-- **`types`**：告诉编译器**只加载哪些**全局类型包。
+  - **`typeRoots`**：告诉编译器**去哪里找**类型包（默认 `node_modules/@types`），通常不需要改。
+  - **`types`**：告诉编译器**只加载哪些**全局类型包。
 
-有两个反直觉的行为要记住：
+  有两个反直觉的行为要记住：
 
-- 一旦**显式写了 `types`**，未列出的 `@types/*` 包**就不再自动加载**了——没写 `"node"` 就一定拿不到 Node 的全局类型。
-- 不写 `types` 时，`node_modules/@types` 下的**所有**包都会被自动加载，这可能让全局命名空间被意外污染。
+  - 一旦**显式写了 `types`**，未列出的 `@types/*` 包**就不再自动加载**了——没写 `"node"` 就一定拿不到 Node 的全局类型。
+  - 不写 `types` 时，`node_modules/@types` 下的**所有**包都会被自动加载，这可能让全局命名空间被意外污染。
 
 ### 8.5 `.d.ts` 里的 `declare module` 为什么没生效？
-
-**排查**：
 
 - 文件是否真的被 `include` 覆盖了？只放在 `src` 外的目录里，TS 根本不会加载它。
 - 全局扩展（如 `declare global { interface Window { ... } }`）必须写在**模块文件**里；如果这个 `.d.ts` 里没有任何 `import`/`export`，它会被当成全局脚本，`declare global` 反而失效。
@@ -537,31 +535,10 @@ import type { User } from './types' // 保证被完全擦除
 
 **解决的是增量构建与跨包类型联动**。
 
-`composite: true` 让子包生成 `.d.ts` 与构建信息文件，`references` 则在根配置里声明包之间的依赖关系。这样编译器不必每次全量重算，只重编改动过的包；同时 IDE 能正确认出“这个包依赖那个包”，跳转和提示都正常。
+`composite: true` 让子包生成 `.d.ts` 与构建信息文件，`references` 则在根配置里声明包之间的依赖关系。这样编译器不必每次全量重算，只重编改动过的包；同时 IDE 能正确认出“**这个包依赖那个包**”，跳转和提示都正常。
 
 ### 8.7 包发布到 npm 后，别人 `import` 进去为什么没有类型提示？
 
 **原因**：运行时 JS 里没有任何类型信息，调用方只能靠随包发布的 `.d.ts` 声明文件。
 
 **解法**：开启 `declaration: true` 生成声明文件，并在 `package.json` 里把入口指对——`"types"` 字段指向 `./dist/index.d.ts`，`exports` 里的 `types` 条件要**排在 `import` 前面**，否则解析时会被 JS 入口抢先。
-
-### 8.8 开了 `strict: true` 就万无一失了吗？数组取值为什么多出 `undefined`？
-
-**不是**。`strict` 只是**基础包**，至少有三条高价值开关不在其中（完整对照表见 2.4）：
-
-- **`noUncheckedIndexedAccess`** —— 最该开却最常被忽略。
-- **`exactOptionalPropertyTypes`** —— 不开的话，`{ timeout?: number }` 能接受 `{ timeout: undefined }`，`?:` 和 `| undefined` 的语义被混为一谈。
-- **`noImplicitOverride`** —— 不开的话，父类方法改名后子类的同名方法会**悄悄变成新方法**，继承关系静默断裂。
-
-**`noUncheckedIndexedAccess` 打开后最直观的变化就是数组取值**：
-
-```ts
-const list: string[] = ['a', 'b']
-const item = list[10] // 类型从 string 变成 string | undefined
-```
-
-这不是 bug——TS 无法证明索引一定在范围内，而运行时 `list[10]` 确实就是 `undefined`。**这个开关只是把一直存在的风险显式化了**。
-
-**应对方式**：改用 `for...of` 遍历（元素类型不受影响）、用 `.at()` 配合判空、或先做长度检查。确信不可能越界时可以局部断言，但要清楚这是在放弃这部分保护。
-
-新项目建议在 `strict: true` 基础上把这四条一起打开。

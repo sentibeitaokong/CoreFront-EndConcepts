@@ -41,8 +41,44 @@ type MyOmit<T, K extends keyof any> = {
 ```
 
 - **`Pick<T, K>`**：从对象中挑选部分属性。在严谨的架构中优先使用，防止源类型新增敏感字段后被意外暴露。
+
+  ```ts
+  interface UserEntity {
+    id: number
+    name: string
+    email: string
+    password: string
+    createdAt: string
+  }
+
+  // 白名单裁剪：只把安全字段交出去
+  type PublicUser = Pick<UserEntity, 'id' | 'name'>
+  // { id: number; name: string }
+  ```
+
 - **`Omit<T, K>`**：从对象中排除部分属性。适合排除 `id`、`createdAt` 等公共字段生成创建载荷 (CreateDTO)。
+
+  ```ts
+  // 黑名单裁剪：id / createdAt 由服务端生成，不该出现在创建载荷里
+  type CreateUserDTO = Omit<UserEntity, 'id' | 'createdAt'>
+  // { name: string; email: string; password: string }
+  ```
+
 - **`Record<K, T>`**：生成统一键类型的字典。其中 `keyof any` 是 TS 内部设定的安全键集，等价于 `string | number | symbol`。
+
+  ```ts
+  // 键为字面量联合时，漏写任何一个键都会直接编译报错
+  type Status = 'idle' | 'loading' | 'done'
+
+  const labels: Record<Status, string> = {
+    idle: '空闲',
+    loading: '加载中',
+    done: '已完成',
+  }
+
+  // 键与值都统一的字典
+  const requestCount: Record<string, number> = { '/api/user': 3 }
+  ```
 
 ## 3. 联合类型集合运算
 
@@ -52,6 +88,26 @@ type MyOmit<T, K extends keyof any> = {
 type MyExclude<T, U> = T extends U ? never : T
 type MyExtract<T, U> = T extends U ? T : never
 type MyNonNullable<T> = T extends null | undefined ? never : T
+
+// 下面用内置版本演示用法（与上方 MyXxx 等价）
+type Status = 'loading' | 'success' | 'error'
+
+// 差集：从联合里踢掉 'loading'
+type Settled = Exclude<Status, 'loading'>
+// 'success' | 'error'
+
+// 交集：只保留 'error'
+type Failed = Extract<Status, 'error'>
+// 'error'
+
+// 过滤空值：null 与 undefined 一并剔除
+type SafeName = NonNullable<string | null | undefined>
+// string
+
+// 最常用的一招：配合 keyof 干掉不可编辑的键
+type UserEntity = { id: number; name: string; email: string }
+type EditableKey = Exclude<keyof UserEntity, 'id'>
+// 'name' | 'email'
 ```
 
 [width(22,21,57)]
@@ -153,9 +209,39 @@ type RawData = SimpleAwaited<Promise<Promise<string[]>>>
 用于结合**模板字面量类型**生成动态键名。
 
 - `Uppercase<StringType>`：全大写。
+
+  ```ts
+  type Env = Uppercase<'prod'>
+  // 'PROD'
+
+  // 对联合类型也会逐个成员生效
+  type Loud = Uppercase<'ok' | 'no'>
+  // 'OK' | 'NO'
+  ```
+
 - `Lowercase<StringType>`：全小写。
+
+  ```ts
+  type Method = Lowercase<'GET'>
+  // 'get'
+  ```
+
 - `Capitalize<StringType>`：首字母大写 (如 `name` $\rightarrow$ `Name`，常拼接为 `setName`)。
+
+  ```ts
+  // 拼接成 setter 名：'name' -> 'setName'
+  type Setter<K extends string> = `set${Capitalize<K>}`
+  type NameSetter = Setter<'name'>
+  // 'setName'
+  ```
+
 - `Uncapitalize<StringType>`：首字母小写。
+
+  ```ts
+  // 组件名 -> 实例变量名：'Modal' -> 'modal'
+  type ModalVar = Uncapitalize<'Modal'>
+  // 'modal'
+  ```
 
 ## 7. This 上下文绑定
 
@@ -244,7 +330,7 @@ type DraftSettings = DeepPartial<Settings>
 // editor 也变成了可选的：editor?: { fontSize?: number; tabSize?: number }
 ```
 
-**代价提醒**：递归类型是编译性能的主要杀手，大型表单上慎用（见 10.2）。
+**代价提醒**：递归类型是编译性能的主要杀手，大型表单上慎用。
 
 ### 9.2 把指定键变成必填 / 可选
 
@@ -292,16 +378,18 @@ type ValidQuery = RequireAtLeastOne<SearchQuery>
 
 ### 9.4 `NoInfer<T>`：阻止某处参与推导 (TS 5.4+)
 
-有时你需要某个位置**只能校验、不能影响推导**。`NoInfer<T>` 就是给编译器下的“这里闭嘴”指令。
+有时你需要某个位置**只能校验、不能影响推导**。`NoInfer<T>` 就是给编译器下的“**这里闭嘴**”指令。
 
 ```ts
 // 没有 NoInfer：S 会同时从 initial 和 states 推导
+// 推导结果 S = 'typo' | 'idle' | 'loading'
 declare function createFSM<S extends string>(config: {
   initial: S
   states: S[]
 }): void
 
 // 有 NoInfer：S 只由 states 决定，initial 仅做校验
+// 推导结果 S= 'idle' | 'loading'
 declare function createFSMStrict<S extends string>(config: {
   initial: NoInfer<S>
   states: S[]
@@ -322,6 +410,29 @@ createFSMStrict({
 由于 `Omit` 的底层依赖 `Exclude` 和键名重映射，它实际上**破坏了原类型的辨识度**。
 
 对于存在联合类型的对象（判别联合），使用 `Omit` 后会丢失判别式能力，降级为普通对象。涉及严格辨识的场景应手动重构类型或改用 `Extract`。
+
+```ts
+type Shape =
+  | { kind: 'circle'; radius: number }
+  | { kind: 'square'; side: number }
+
+// ❌ Omit 不会分发到联合的每个成员：keyof (A | B) 只取公共键
+// 于是分支专有字段全被抹掉，联合也塌缩成了一个普通对象
+type Collapsed = Omit<Shape, 'radius'>
+// { kind: 'circle' | 'square' } —— radius 和 side 都没了
+
+// ✅ 想让每个分支各自 Omit，必须用条件类型强制分发
+type DistributiveOmit<T, K extends keyof any> = T extends any
+  ? Omit<T, K>
+  : never
+
+type StillUnion = DistributiveOmit<Shape, 'radius'>
+// { kind: 'circle' } | { kind: 'square'; side: number }
+
+// ✅ 只想取某一个分支：用 Extract，而不是 Omit
+type Circle = Extract<Shape, { kind: 'circle' }>
+// { kind: 'circle'; radius: number }
+```
 
 ### 10.2 工具类型会让编译变慢吗？
 
@@ -349,7 +460,7 @@ const c: Partial<Config> = {
 }
 ```
 
-需要深层可选时自定义 `DeepPartial<T>`，但要先确认真的值得——递归工具类型正是 10.2 里编译变慢的主要来源。
+需要深层可选时自定义 `DeepPartial<T>`，但要先确认真的值得——递归工具类型正是编译变慢的主要来源。
 
 再说 `Readonly<T>`：它只在编译期拦截赋值，产物里没有任何运行时约束，绕过类型（`as`、`any`）或在 JS 侧直接改依然生效。需要运行时防篡改要配合 `Object.freeze`，而 `Object.freeze` 同样是浅层的——嵌套对象内的字段仍然可改，深冻结要自己递归处理。
 
@@ -358,7 +469,7 @@ const c: Partial<Config> = {
 - 操作**联合类型**用 `Exclude<T, U>`：从 `'success' | 'failed'` 里剔除成员。
 - 操作**对象类型**用 `Omit<T, K>`：从接口里排除某些键（如生成 `CreateDTO` 时去掉 `id`、`createdAt`）。
 
-记住 `Omit` 的底层正是 `Exclude` + 键名重映射，所以它才带有 9.1 里那个缺点。
+记住 `Omit` 的底层正是 `Exclude` + 键名重映射。
 
 ### 10.5 `Parameters` / `ReturnType` 为什么常配 `typeof` 一起用？
 
@@ -368,9 +479,9 @@ const c: Partial<Config> = {
 
 ### 10.6 `Record<K, T>` 的 `K` 为什么有时要写 `keyof any`？
 
-`keyof any` 是 TS 内部设定的安全键集，等价于 `string | number | symbol`，也就是“**任何合法的对象键**”。
+`keyof any` 是 TS 内部设定的安全键集,等价于 `string | number | symbol`，也就是“**任何合法的对象键**”。
 
-需要生成“键类型不定、值类型统一”的字典时，写 `Record<keyof any, T>` 比写 `Record<string, T>` 更准确，因为后者会把 `symbol` 键排除在外。
+需要生成“**键类型不定、值类型统一**”的字典时，写 `Record<keyof any, T>` 比写 `Record<string, T>` 更准确，因为后者会把 `symbol` 键排除在外。
 
 ### 10.7 `Required<T>` 全变必填太狠了，能只改一个字段吗？
 
@@ -386,6 +497,6 @@ type WithRequired<T, K extends keyof T> = T & { [P in K]-?: T[P] }
 
 它解决的是**推导来源太宽**的问题。
 
-默认情况下，一个泛型参数会从**所有出现它的位置**共同推导。如果某个位置只应该被“校验”而不该“贡献推导”，它的值就会污染整个推导结果，让约束形同虚设。`NoInfer<T>` 就是把这个位置从推导中摘出去：**只检查，不参与。**
+默认情况下，一个泛型参数会从**所有出现它的位置**共同推导。如果某个位置只应该被“**校验**”而不该“**贡献推导**”，它的值就会污染整个推导结果，让约束形同虚设。`NoInfer<T>` 就是把这个位置从推导中摘出去：**只检查，不参与。**
 
-典型场景是“初始值必须是状态列表之一”这类 FSM 配置。完整例子见第 9.4 节。
+典型场景是“**初始值必须是状态列表之一**”这类 FSM 配置。
