@@ -4,6 +4,9 @@
 
 **一句话理解**：**「`fetch` 用 Promise 统一了异步请求，但它的『异常处理』『取消请求』『响应体一次性消费』有反直觉的坑，必须单独掌握。」**
 
+> [!TIP] 相关阅读
+> `fetch` 的报文格式与协议语义见 [HTTP 协议](/networkAndBrowsers/http/http)、[HTTP 请求头与响应头](/networkAndBrowsers/http/headers)；跨域与预检见 [跨域 CORS](/webSecurity/cors)；响应体作为流的上层玩法见 [Web Streams API](/networkAndBrowsers/browser/webStreams)；发出去之后的取消、重试、并发与幂等治理见 [请求治理](/networkAndBrowsers/api/requestGovernance)。
+
 ## 1. 基本用法
 
 ```javascript
@@ -15,6 +18,8 @@ const data = await response.json()
 ```
 
 `fetch(url, init)` 的 `init` 常用配置：
+
+[width(19,81)]
 
 | 字段          | 说明                                                                                        |
 | ------------- | ------------------------------------------------------------------------------------------- |
@@ -29,6 +34,9 @@ const data = await response.json()
 | `keepalive`   | 页面卸载后请求是否继续存活（用于埋点/心跳）                                                 |
 | `integrity`   | 子资源完整性校验（SRI）哈希，不匹配则拒绝                                                   |
 | `referrer`    | 请求的 `Referer` 来源策略                                                                   |
+
+> [!NOTE] 高频场景
+> 日常写得最多的就是这一句 —— 增删改查。三个字段几乎必配：`method`、`headers`、`body`；其中 `Content-Type` 决定**后端怎么解析请求体**，`Authorization: Bearer <token>` 决定**你是谁**。
 
 ## 2. `Request` 与 `Headers` 对象
 
@@ -81,7 +89,7 @@ await res.arrayBuffer()
 await res.formData()
 ```
 
-## 4. 关键陷阱：`fetch` 不会对非 2xx 自动 reject
+## 4. `fetch` 不会对非 2xx 自动 reject
 
 `fetch` 只有在**网络错误**（断网、DNS 失败、CORS 拦截）时才 reject；**HTTP 错误状态码（404、500）会正常 resolve**。因此必须手动检查 `res.ok`：
 
@@ -97,6 +105,8 @@ const data = await res.json()
 
 **错误类型的区分**：
 
+[width(24,15,61)]
+
 | 错误来源           | 是否 reject | `err.name` / 类型   |
 | ------------------ | ----------- | ------------------- |
 | 网络断开、DNS 失败 | ✅ reject   | `TypeError`         |
@@ -104,7 +114,10 @@ const data = await res.json()
 | 手动 `abort()`     | ✅ reject   | `AbortError`        |
 | 404 / 500 状态码   | ❌ resolve  | 需手动判断 `res.ok` |
 
-## 5. 请求体（body）的类型与序列化
+> [!NOTE] 高频场景
+> 所有项目都会把它包进统一请求函数：`401` 跳登录、`403` 提示无权限、`5xx` 走兜底提示。**漏掉 `res.ok` 判断的后果，是业务代码把错误响应当成成功数据继续处理** —— 这类问题在线上事故里占比很高。
+
+## 5. 请求体的类型与序列化
 
 `fetch` 不会自动帮你序列化 `body`，**传对象前必须手动转字符串**：
 
@@ -133,6 +146,9 @@ fetch('/api', {
 
 > 传 `FormData` 时**不要手动设置 `Content-Type`**，否则会丢失浏览器自动生成的 `boundary` 导致后端无法解析。详见 [URL、URLSearchParams 与 FormData](/js/advanced/misc/urlAndFormData)。
 
+> [!NOTE] 高频场景
+> JSON 提交占日常开发的绝大多数（配 `Content-Type: application/json`）；老后端要 `application/x-www-form-urlencoded` 时用 `URLSearchParams`；只要带文件，就一定用 `FormData`，且**不要手写 `Content-Type`**。
+
 ## 6. 取消请求：`AbortController`
 
 `fetch` 本身没有 `.cancel()`，取消依赖 `AbortController`：
@@ -150,14 +166,85 @@ fetch('/api/slow', { signal: controller.signal }).catch(err => {
 setTimeout(() => controller.abort(), 3000)
 ```
 
-一个 `AbortController` 的 `signal` 可以同时传给多个 `fetch`，实现「一键取消一批请求」。`AbortSignal.timeout(ms)` 可快捷生成自动超时的 signal：
+### 6.1 **批量取消请求**
+
+同一个 `signal` 传给多个 `fetch`
 
 ```javascript
-const res = await fetch('/api', { signal: AbortSignal.timeout(5000) })
-// 超过 5 秒自动 abort，抛出 AbortError
+const controller = new AbortController()
+const urls = ['/api/a', '/api/b', '/api/c']
+
+// 三个请求共享同一个 signal —— abort() 调一次，三个请求同时被取消
+const tasks = urls.map(url =>
+  fetch(url, { signal: controller.signal }).then(res => res.json()),
+)
+
+// 用户点“取消” / 离开页面时调一次（这里假设 1 秒后触发）
+setTimeout(() => controller.abort(), 1000)
+
+// 用 allSettled 而非 all：被取消的请求不会让整批结果一起丢失，已完成的部分仍能拿到
+const results = await Promise.allSettled(tasks)
+// results[i]: { status: 'fulfilled', value } | { status: 'rejected', reason: AbortError }
 ```
 
-**实战：竞态请求只保留最新**——输入框搜索时，新请求发出即取消上一个：
+注意 `controller` **用后即废**：一旦 `abort()`，它的 `signal` 永久处于已取消状态，要再发请求必须新建一个 `AbortController`。
+
+### 6.2 **自动超时**：`AbortSignal.timeout(ms)`
+
+```javascript
+async function fetchWithTimeout(url, ms = 5000) {
+  try {
+    const res = await fetch(url, {
+      // 5 秒内没完成就自动 abort，不用自己 setTimeout + clearTimeout
+      signal: AbortSignal.timeout(ms),
+    })
+    return await res.json()
+  } catch (err) {
+    // 超时抛的是 TimeoutError，不是 AbortError
+    if (err.name === 'TimeoutError') throw new Error('请求超时，请重试')
+    throw err
+  }
+}
+```
+
+### 6.3 **两者叠加：`AbortSignal.any([...])`**
+
+真实业务往往要**同时**满足“**用户能取消**”和“**到点必须超时**”，用 `AbortSignal.any` 把两个信号合成一个：
+
+```javascript
+const controller = new AbortController()
+
+const res = await fetch('/api/search?kw=vue', {
+  signal: AbortSignal.any([
+    controller.signal, // 用户主动取消
+    AbortSignal.timeout(5000), // 兜底超时
+  ]),
+})
+```
+
+合成后的信号**哪个先触发就以哪个的 reason 拒绝**，于是可以在 `catch` 里把两种取消区分开：
+
+```javascript
+try {
+  await fetch('/api/slow', {
+    signal: AbortSignal.any([controller.signal, AbortSignal.timeout(3000)]),
+  })
+} catch (err) {
+  if (err.name === 'TimeoutError') console.warn('超时，可提示用户重试')
+  else if (err.name === 'AbortError') console.log('用户取消，静默忽略')
+  else throw err // 真正的网络或业务异常
+}
+```
+
+> [!NOTE] 三个容易踩的细节
+>
+> - **超时抛的是 `TimeoutError`，不是 `AbortError`**。不少旧文章写成 AbortError，照抄就会漏判超时分支。
+> - **`abort(reason)` 传入字符串时，`fetch` 拒绝的值就是那个字符串本身**，`err.name` 是 `undefined`，上面那句 `err.name === 'AbortError'` 会静默失效。想带自定义原因又保持类型统一，就传 `new DOMException('页面切换', 'AbortError')`；不需要原因就别传参数。
+> - **`AbortSignal.any` 是新 API**（Chrome 116+ / Safari 17.4+ / Firefox 124+ / Node 20.3+，2024-03 才进入 Baseline）。要兼容更旧的环境，就退回手写 `setTimeout(() => controller.abort(), ms)`，并记得在 `finally` 里 `clearTimeout` —— 这也正是下一节要自己封装超时的原因。
+
+### 6.4 实战:竞态请求
+
+输入框搜索时，新请求发出即取消上一个：
 
 ```javascript
 let controller = null
@@ -170,6 +257,13 @@ async function search(keyword) {
   return res.json()
 }
 ```
+
+> [!NOTE] 高频场景
+> 四个最常见的触发点：**搜索框联想**（每次输入取消上一次）、**Tab / 筛选项快速切换**、**路由跳转**、**组件卸载**（React `useEffect` 的 cleanup 里 `abort()`）。
+>
+> 配套两个概念：**竞态 (Race Condition)** —— 响应的到达顺序与请求的发出顺序不一致，旧数据覆盖新状态；**时序锁** —— 给每次请求编号、返回时比对，比取消更彻底，能挡住“**取消来不及**”的漏网响应。
+>
+> 还有一个坑：取消抛出的 `AbortError` **不是业务异常**，必须单独吞掉，否则会被全局错误上报记成一次“**接口报错**”。
 
 ## 7. 流式读取响应
 
@@ -189,6 +283,9 @@ while (true) {
 
 > `stream: true` 避免多字节字符（中文）被分块截断导致乱码。流的更多玩法（背压、`tee`、`TransformStream`）见 [Web Streams API](/networkAndBrowsers/browser/webStreams)。
 
+> [!NOTE] 高频场景
+> 现在最典型的是 **AI 打字机输出**（大模型流式响应）、**大文件下载**、**实时日志**。要注意 `chunk` 的切分点**不保证落在事件边界上** —— 服务端下发 SSE 时，必须自己按 `\n\n` 攒缓冲再解析，这是流式接入最常见的 bug（机制见 [实时通信](/networkAndBrowsers/realtime/realtimeCommunication)）。
+
 ## 8. 下载进度
 
 `fetch` 下载进度可借助「`Content-Length` + 流式读取」实现：
@@ -206,6 +303,9 @@ while (true) {
   console.log(`进度：${((received / total) * 100).toFixed(1)}%`)
 }
 ```
+
+> [!NOTE] 高频场景
+> 导出报表、下载资源包这类“**用户愿意等**”的操作，进度条能明显降低中途放弃率。**前提是服务端返回 `Content-Length`** —— 响应被 gzip 压缩或走 chunked 时通常拿不到，此时只能退化成“**已下载 N MB**”。
 
 ## 9. 上传进度（fetch 的短板）
 
@@ -242,6 +342,9 @@ await fetch('/api/upload', {
 })
 ```
 
+> [!NOTE] 高频场景
+> 头像、图片、附件上传都想要进度条。业务里的常见取舍是：**小文件走 `FormData`、不看进度；大文件退 XHR 或用流式 body**。流式 body 必须显式写 `duplex: 'half'`，并且要接受它在部分浏览器上兼容性一般。
+
 ## 10. `keepalive`：页面卸载后仍要送达的请求
 
 页面关闭/跳转时，普通请求会被中断。埋点、心跳、崩溃上报这类「最后一刻」数据需要 `keepalive: true`：
@@ -260,6 +363,9 @@ document.addEventListener('visibilitychange', () => {
 ```
 
 > 限制：`keepalive` 请求体总和有上限（约 64KB），且 `keepalive` 与 `FormData` 等流式 body 兼容性有限，更适合小体积 JSON。
+
+> [!NOTE] 高频场景
+> 三个经典用途：**停留时长与曝光埋点**、**崩溃与错误上报**、**离开前保存草稿**。触发时机建议绑 `visibilitychange`（切到后台）而不是 `beforeunload` —— 移动端上 `beforeunload` 经常不触发。
 
 ## 11. 封装一个健壮的请求函数（超时 + 重试）
 
@@ -302,6 +408,9 @@ async function request(url, options = {}, retries = 3) {
 }
 ```
 
+> [!NOTE] 高频场景
+> 每个项目都会写这个函数：超时 + 重试 + 统一错误 + 统一鉴权头。但**重试有红线 —— 只有读操作能无脑重试**，写操作必须先确认服务端幂等（见 [请求治理](/networkAndBrowsers/api/requestGovernance)）；而且重试要加退避与抖动，否则弱网恢复的瞬间会把服务端二次打垮。
+
 ## 12. 常见问题 (FAQ)
 
 ### 12.1 `fetch` 和 XHR 有什么区别？
@@ -330,11 +439,3 @@ const b = await clone.text()
 ### 12.5 `mode: 'no-cors'` 是什么？
 
 `no-cors` 模式请求会成功，但响应类型是 `opaque`（不透明），JS **读不到任何内容**，只能用于「能发出去、不关心响应」的场景（如埋点、灯塔）。正常业务一律用默认的 `cors` 模式。
-
-## 13. 总结
-
-- `fetch` 基于 Promise，抽象为 `Request` / `Response` / `Headers`。
-- 非 2xx **不会自动 reject**，必须检查 `res.ok`；只有网络错误 / `abort()` 才 reject。
-- 取消用 `AbortController`（`AbortSignal.timeout` 快捷超时），响应体只能消费一次（`res.clone()`）。
-- 上传进度是短板（退 XHR 或流式 body），下载进度靠「`Content-Length` + 流式读取」。
-- 埋点上报用 `keepalive`，传对象记得 `JSON.stringify`，`FormData` 别手动设 `Content-Type`。
