@@ -41,6 +41,14 @@ Streams API 定义了三种标准流，通过**链式管道**（pipe）连接：
 
 ## 3. 可读流 (ReadableStream)
 
+**先建立一个心智模型**：一条可读流 = **数据源**（你写的 `underlyingSource`）+ **内部队列**（生产出来但还没被取走的数据）+ **消费者**（`reader`）。三者的节奏是「**拉**」不是「推」：
+
+- 消费者调 `reader.read()` 取一块；
+- 队列空了，流回头调用你的 `pull()` 再生产一批；
+- 队列满了（达到水位 `highWaterMark`），`pull()` **就不再被调用**——这就是背压。
+
+所以生产者**不会在你没要的时候硬塞数据**（唯一例外是你在 `start` 里主动 `enqueue`）。
+
 ### 3.1 API 签名
 
 ```javascript
@@ -100,6 +108,48 @@ stream.locked                              // boolean：是否已绑定 reader
 | `error(reason)`  | 让流进入错误状态                             |
 | `desiredSize`    | 内部缓冲期望大小（背压信号，供 `pull` 判断） |
 
+**`desiredSize` 怎么读**：它的值就是 `highWaterMark - 队列中已有的块数`，含义很直接：
+
+[width(11,34,55)]
+
+| 取值   | 含义                          | 生产者该怎么做                   |
+| ------ | ----------------------------- | -------------------------------- |
+| `> 0`  | 队列还有空间                  | 可以继续 `enqueue`               |
+| `<= 0` | 队列已满 / 超了，消费者跟不上 | **停下来**，等下次 `pull` 再生产 |
+
+```javascript
+// 典型写法：pull 里按需生产，生产到队列满就自然停下
+let id = 0
+const stream = new ReadableStream({
+  pull(controller) {
+    if (id >= 5) {
+      controller.close() // 生产完了：正常结束
+      return
+    }
+    id += 1
+    controller.enqueue(`第 ${id} 块`) // 每 enqueue 一次，desiredSize 就减小
+  },
+})
+
+// 消费端只会拿到这 5 块，然后收到 { done: true }
+const reader = stream.getReader()
+console.log((await reader.read()).value) // '第 1 块'
+```
+
+**第二个构造参数 `queuingStrategy`** 的形状是 `{ highWaterMark, size }`——水位，以及「一块算多大」：
+
+```javascript
+// 省略时等价于 { highWaterMark: 1, size: () => 1 }：按「块数」计，缓冲 1 块
+const stream = new ReadableStream(source, {
+  highWaterMark: 64 * 1024, // 缓冲区上限：64KB
+  size: chunk => chunk.byteLength, // 每块按字节算（默认每块算作 1）
+})
+// 按字节计水位很常见，用内置策略类更直观：
+// new ByteLengthQueuingStrategy({ highWaterMark: 64 * 1024 })
+```
+
+> `highWaterMark` 是**生产者侧的缓冲上限**，不是「一次读多少块」。调大 = 吞吐更高但更吃内存，调小 = 更省内存但更频繁地暂停生产。详见第 6 节。
+
 ### 3.2 创建与消费
 
 ```javascript
@@ -117,6 +167,18 @@ while (true) {
 console.log(result)
 ```
 
+这段循环里有三个必须理解的点：
+
+[width(22,78)]
+
+| 细节                              | 说明                                                                                                                                            |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `{ done, value }` 是两态          | `done: false` 时 `value` 是一块 `Uint8Array`；`done: true` 表示流结束（此时 `value` 为 `undefined`），**之后再 `read()` 依然返回 `done: true`** |
+| `read()` 是**异步**的             | 队列里没数据时它会一直 pending，直到有数据或流结束——「边下载边处理」正是建立在这上面                                                            |
+| `decode(value, { stream: true })` | 一块可能切在**多字节字符中间**（UTF-8 一个汉字 3 字节），`stream: true` 让解码器把不完整的字节留到下一块，避免乱码                              |
+
+> 一句话：`reader.read()` 拿到的永远是**字节**，要文本就得解码；解码必须用 `{ stream: true }` 或 `TextDecoderStream`。
+
 ### 3.3 异步迭代
 
 `ReadableStream` 实现了异步可迭代协议，可直接使用 `for await...of`：
@@ -129,21 +191,45 @@ for await (const chunk of res.body) {
 }
 ```
 
+`for await...of` 只是 `getReader()` + 循环 + 清理的语法糖，但它多做了两件贴心的事：
+
+- **中途 `break` 或抛错时，会自动 `cancel()` 掉这条流**——不用手动清理，也不会把上游资源挂在那里；
+- 循环结束后自动释放锁，不会出现「流被锁住」的问题。
+
+代价是**不够灵活**：拿不到 `reader` 就没法用 `releaseLock()`、`cancel(reason)`，也读不到每次的 `{ done, value }` 状态。所以：
+
+[width(54,46)]
+
+| 场景                                             | 用哪个                             |
+| ------------------------------------------------ | ---------------------------------- |
+| 把整条流读到底、边读边处理                       | `for await...of`（简洁、自动清理） |
+| 只读几块就停、要传具体的取消原因、要复用手动循环 | `getReader()` + `while`            |
+
+> 注意 `for await...of` 循环期间这条流是**加锁**的，循环内再 `getReader()` 会抛 `TypeError`。
+
 ### 3.4 自定义可读流
+
+**三个回调的调用顺序（理解了就懂了整条流）：**
+
+```markdown
+new ReadableStream(source)
+└─ ① 立刻调用 start(controller)，只调一次
+reader.read()
+└─ ② 队列为空 → 调用 pull(controller)
+└─ ③ pull 返回的 Promise resolve 之后，才可能再次调用 pull
+（所以 pull 里 await 网络请求是安全的，不会并发重入）
+reader.cancel()
+└─ ④ 调用 cancel(reason)，在这里清定时器 / 断请求 / 释放连接
+```
+
+最简形态——数据已经就绪，在 `start` 里一次性塞完：
 
 ```javascript
 const stream = new ReadableStream({
   start(controller) {
-    // 初始化，可用 controller.enqueue / close / error
     controller.enqueue('第一块')
     controller.enqueue('第二块')
-    controller.close()
-  },
-  pull(controller) {
-    // 可选：消费者请求更多数据时触发，用于按需拉取
-  },
-  cancel(reason) {
-    // 可选：消费者取消时触发
+    controller.close() // 不 close 的话消费者会一直等下去
   },
 })
 
@@ -151,15 +237,68 @@ const reader = stream.getReader()
 console.log((await reader.read()).value) // '第一块'
 ```
 
+真正体现价值的是 **`pull` 按需生产**——把分页接口包装成流，消费端读一块才去拉一页：
+
+```javascript
+// 场景：分页接口 → 可读流。消费端处理得慢，请求就发得慢（背压自然生效）
+let page = 0
+const stream = new ReadableStream({
+  async pull(controller) {
+    page += 1
+    const res = await fetch(`/api/users?page=${page}`)
+    const { items, hasMore } = await res.json()
+
+    if (!items.length) {
+      controller.close() // 没有更多数据：正常结束
+      return
+    }
+    controller.enqueue(items) // 一次 enqueue 一组，就是「一块」
+    if (!hasMore) controller.close()
+  },
+  cancel(reason) {
+    console.log('消费者不要了，停止拉取', reason) // 这里该断掉进行中的请求
+  },
+})
+
+for await (const pageItems of stream) {
+  await saveToIndexedDB(pageItems) // 存得慢，上游就不会急着拉下一页
+}
+```
+
+> **别在 `start` 里做无限生产**：`start` 只执行一次且不受背压约束，往里面塞海量数据会直接吃满内存。**要多少给多少的逻辑一律放 `pull`**。
+
 ### 3.5 `tee()` 分流
 
 将一条可读流复制成两条，供两个消费者独立读取（如：一份用于预览、一份用于缓存）：
 
 ```javascript
 const [stream1, stream2] = res.body.tee()
+
+// 两个消费者各读各的，互不干扰
+renderToPage(stream1)
+saveToCache(stream2)
 ```
 
+[width(22,78)]
+
+| 行为                                 | 说明                                                                                       |
+| ------------------------------------ | ------------------------------------------------------------------------------------------ |
+| **上游只被读一次**                   | 源数据被分发到两个**各自独立**的内部队列，两个消费者看到的是同一份内容                     |
+| **消费速度互不影响接口，但互相拖累** | 慢的那条会把快的那条一起拖住（上游要等两边都跟上），而且慢的一侧会**积压数据占内存**       |
+| **取消要两边都取消**                 | 只有 `stream1` 和 `stream2` **都被取消**时，才会真正取消上游；只取消一条，另一条照常拿数据 |
+
+> 所以 `tee()` 适合「两个消费者速度相近」的场景（页面渲染 + 同时写缓存）；如果两者速度差一个数量级，慢的那侧会持续积压——这种场景更适合先落地存储，再从存储里分别读。
+
+流的分流是 Streams 的通用能力，同一套 API 也存在于 `TransformStream`产生的流上。
+
 ## 4. 可写流 (WritableStream)
+
+可写流是**数据汇**，结构上和可读流镜像对称：**写入者**（`writer`）+ **内部队列** + **你的处理逻辑**（`underlyingSink`）。区别在于背压的方向——
+
+- 可读流的背压表现为「**`pull()` 不再被调用**」；
+- 可写流的背压表现为「**`writer.write()` 返回的 Promise 迟迟不 resolve**」。
+
+写入者只管 `write()`，**处理得太慢时压力会自动回传到写入者身上**，不用你手写限流。
 
 ### 4.1 API 签名
 
@@ -197,31 +336,86 @@ stream.locked               // boolean：是否已绑定 writer
 | `close()`                  | 流关闭时                 | 收尾                                |
 | `abort(reason)`            | 流被中止时               | 清理                                |
 
+**回调的时序规则（同样重要）：**
+
+```markdown
+writer.write(a) → sink.write(a) 被调用，返回 Promise P
+writer.write(b) → 排队等待，直到 P resolve 才会调用 sink.write(b)
+```
+
+- 也就是说 **`sink.write` 永远不会并发执行**——你返回的 Promise 就是「这一块处理完了」的信号，也是背压的开关。处理逻辑是异步的（写库、上传），**一定要把 Promise `return` 出去**，忘了 return 等于放弃背压。
+- `sink.start` 也可以返回 Promise，流会等它 settle 后再处理第一块。
+- **`close()` 与 `abort()` 的分工**：`close` 是正常收尾（写完最后一块、刷缓冲、提交事务）；`abort` 是异常清理（回滚、删临时文件）。`writer.close()` 触发前者，`writer.abort(reason)` / `stream.abort(reason)` 触发后者，**二者只会有一个被调用**。
+
+> **`controller.error(reason)`**：在 `write` 里发现数据有问题时调用它，流会立刻进入错误态，后续 `write()` 全部 reject，且**不会**再调用 `close()`。
+
+**`queuingStrategy` 同样适用于可写流**（第二个构造参数），含义与可读流一致：内部缓冲的水位，决定什么时候让 `write()` 的 Promise 挂着不 resolve。
+
 ### 4.2 基本用法
+
+最小骨架——四个回调各司其职：
 
 ```javascript
 const writable = new WritableStream({
+  start() {
+    // 初始化：开文件、开事务、建连接
+  },
   write(chunk) {
-    // 处理每一块数据，返回 Promise 表示写入完成
+    // 处理每一块；返回 Promise 表示「这块处理完了」
     console.log('写入', chunk)
   },
   close() {
-    console.log('流关闭')
+    // 正常收尾：关文件、提交事务
   },
   abort(reason) {
-    console.log('流被中止', reason)
+    // 异常清理：回滚、删临时数据
   },
 })
 
 const writer = writable.getWriter()
 await writer.write('hello')
-await writer.write(' world')
+await writer.write(' world') // 等上一块的 Promise resolve 后才会执行
 await writer.close()
+```
+
+放到真实场景里，可写流最常干的两件事是**分片上传**和**批量落库**：
+
+```javascript
+// 场景：分片上传——每写一块发一次请求，服务端处理慢时自动背压
+const uploadSink = new WritableStream({
+  async write(chunk) {
+    // 关键：把 Promise return 出去，服务端慢时 write() 就不会 resolve
+    await fetch('/api/upload', { method: 'POST', body: chunk })
+  },
+  async close() {
+    await fetch('/api/upload/finish', { method: 'POST' }) // 通知服务端合并分片
+  },
+  abort(reason) {
+    console.warn('上传中止，需清理服务端已收的临时分片', reason)
+  },
+})
+
+// 最常见的是直接把它接到可读流后面，写多少、什么时候结束都不用你管
+await readableStream.pipeTo(uploadSink) // 背压由 pipeTo 自动管理
+
+// 也可以手动控制每一块的时机
+const writer = uploadSink.getWriter()
+await writer.write(chunkA)
+await writer.abort('用户取消了上传') // 中断：走 abort 分支，close 不会再触发
 ```
 
 ## 5. 变换流 (TransformStream)
 
-用于在管道中间转换数据，例如解压 gzip、编解码文本。
+变换流就是**一条流的两面**：它内部同时持有一条可读流和一条可写流——写进去、转换后读出来。
+
+[width(19,81)]
+
+| 属性          | 说明                                                     |
+| ------------- | -------------------------------------------------------- |
+| `ts.writable` | 变换的**输入**端（WritableStream），可以 `getWriter()`   |
+| `ts.readable` | 变换后的**输出**端（ReadableStream），可以 `getReader()` |
+
+`pipeThrough(ts)` 做的事就是「把上游接到 `ts.writable`，再把 `ts.readable` 交给你」——正因为它是「一进一出」，才能无缝串进管道。
 
 **底层 `transformer` 回调（配置项）：**
 
@@ -232,6 +426,40 @@ await writer.close()
 | `start(controller)`            | 构造时立即执行一次 | 初始化                                   |
 | `transform(chunk, controller)` | 每进来一块数据时   | 转换并用 `controller.enqueue` 输出       |
 | `flush(controller)`            | 输入流结束时       | 输出尾部数据（如压缩流写尾、缓冲 flush） |
+
+**`transform` 里能做什么**——不只是「一变一」：
+
+[width(13,51,36)]
+
+| 产出情况     | 怎么写                                         | 典型用途                      |
+| ------------ | ---------------------------------------------- | ----------------------------- |
+| **不产出**   | 直接 `return`，不调 `enqueue`                  | 过滤、丢弃心跳包              |
+| **一进一出** | `controller.enqueue(处理后的块)`               | 大小写转换、解压、解密        |
+| **一进多出** | 循环调多次 `enqueue`                           | 按行 / 按分隔符切分（见下例） |
+| **攒着不出** | 先存进闭包变量，满足条件再输出                 | 攒够一批再发、按帧对齐        |
+| **异步处理** | `transform` 写成 `async`，`await` 完再 enqueue | 调接口、写数据库              |
+
+**`flush` 是收尾用的**：输入流结束后调用一次，用来吐出缓冲区里的残留——压缩流要在这里写完尾部标记，按行切分要在这里吐出没有换行符结尾的最后一行。**只要 `transform` 里存了状态，几乎都需要 `flush`。**
+
+```javascript
+// 场景：把字节流按行切开。§8.3 处理大 CSV 用的就是这个 splitByLine
+function splitByLine() {
+  let buffer = ''
+  return new TransformStream({
+    transform(chunk, controller) {
+      buffer += chunk
+      const lines = buffer.split('\n')
+      buffer = lines.pop() // 最后一段可能是半行，留到下一块再拼
+      lines.forEach(line => controller.enqueue(line)) // 一进多出
+    },
+    flush(controller) {
+      if (buffer) controller.enqueue(buffer) // 收尾：吐出没有换行符的最后一行
+    },
+  })
+}
+```
+
+`pipeThrough()` 返回的是**变换后的可读流**，所以可以一路链式串下去：
 
 ```javascript
 const uppercase = new TransformStream({
@@ -248,10 +476,24 @@ const readable = new ReadableStream({
   },
 })
 
+// pipeThrough 返回新的可读流，后续还能继续 .pipeThrough(...)
 const result = await readable.pipeThrough(uppercase).getReader().read()
 
 console.log(result.value) // 'HELLO'
 ```
+
+**内置变换流**（不必自己写，直接 new 来用）：
+
+[width(49,20,31)]
+
+| 内置类                                    | 作用                                    | 常见搭配                                        |
+| ----------------------------------------- | --------------------------------------- | ----------------------------------------------- |
+| `TextDecoderStream`                       | 字节 → 字符串，自动处理多字节字符被切断 | `res.body.pipeThrough(new TextDecoderStream())` |
+| `TextEncoderStream`                       | 字符串 → 字节                           | 流式上传文本                                    |
+| `CompressionStream('gzip' / 'deflate')`   | 压缩                                    | 上传前压缩（见 8.2）                            |
+| `DecompressionStream('gzip' / 'deflate')` | 解压                                    | 处理服务端返回的压缩数据                        |
+
+> 为什么推荐 `TextDecoderStream` 而不是手写 `TextDecoder`？它就是「用 `flush` 帮你兜住半截多字节字符」的标准实现——自己写容易漏掉 `{ stream: true }`，于是中文被切出乱码（见 12.5）。
 
 ## 6. 背压 (Backpressure)
 
@@ -355,7 +597,7 @@ const compressed = await new Response(
 const res = await fetch('/large.csv')
 const lines = res.body
   .pipeThrough(new TextDecoderStream())
-  .pipeThrough(splitByLine()) // 自定义：按 \n 切块
+  .pipeThrough(splitByLine()) // 自定义：按 \n 切块，实现见第 5 节
 
 for await (const line of lines) {
   console.log('处理行:', line)
@@ -408,15 +650,15 @@ await fetch('/api/upload', {
 
 [width(24,76)]
 
-| 场景                 | 用什么                                                        |
-| -------------------- | ------------------------------------------------------------- |
-| AI 对话 / 打字机效果 | `Response.body` + `TextDecoderStream`，逐块解析 SSE（见 8.1） |
-| 大文件下载 + 进度    | `getReader()` 累加 `byteLength`（见第 11 节）                 |
-| 大文件上传 + 进度    | `file.stream()` + `duplex: 'half'`（见 8.4）                  |
-| 接口压缩传输         | `CompressionStream` / `DecompressionStream`（见 8.2）         |
-| 超大数据量导出       | 服务端流式返回，前端边收边写 `Blob`，避免拼超长字符串         |
-| 一份数据两处用       | `tee()` 分流：一份渲染、一份缓存或上传（见 3.5）              |
-| 首字节更快的页面     | Service Worker 里先返回响应头，内容边取边拼                   |
+| 场景                 | 用什么                                                |
+| -------------------- | ----------------------------------------------------- |
+| AI 对话 / 打字机效果 | `Response.body` + `TextDecoderStream`，逐块解析 SSE   |
+| 大文件下载 + 进度    | `getReader()` 累加 `byteLength`                       |
+| 大文件上传 + 进度    | `file.stream()` + `duplex: 'half'`                    |
+| 接口压缩传输         | `CompressionStream` / `DecompressionStream`           |
+| 超大数据量导出       | 服务端流式返回，前端边收边写 `Blob`，避免拼超长字符串 |
+| 一份数据两处用       | `tee()` 分流：一份渲染、一份缓存或上传                |
+| 首字节更快的页面     | Service Worker 里先返回响应头，内容边取边拼           |
 
 ## 10. 最佳实践总结
 
@@ -424,7 +666,7 @@ await fetch('/api/upload', {
 - **注意背压**：手动消费时，务必 `await` 每次 `write()`，否则会失去背压保护。
 - **及时关闭/取消**：处理完成后 `close()`，不再需要时 `reader.cancel()` 释放资源。
 - **注意「锁」**：一个流同一时刻只能有一个 reader / writer，用 `releaseLock()` 释放或 `cancel()` 丢弃，否则后续消费会抛 `TypeError`。
-- **上传流式请求体必须写 `duplex: 'half'`**：漏掉直接报错（见 8.4）。
+- **上传流式请求体必须写 `duplex: 'half'`**：漏掉直接报错。
 - **用 `TextDecoderStream` 处理文本**：避免手动拼接 `TextDecoder` 造成多字节字符被截断。
 - **兼容性降级**：老浏览器可通过 `web-streams-polyfill` 提供支持。
 
@@ -486,11 +728,9 @@ controller.abort() // 触发取消
 
 ### 12.1 为什么 `res.body` 是 `null`？
 
-三类原因：
-
 - **响应本来就没有响应体**：状态码 `204` / `304`，或 `HEAD` / `OPTIONS` 请求，规范规定此时 `body` 为 `null`。
 - **跨源不透明响应**：`mode: 'no-cors'` 拿到的不透明响应读不出内容。
-- **已经被读过了**：见 12.2。
+- **已经被读过了**
 
 另外 `fetch` 失败（网络错误）是直接 reject，不会走到读流这一步。
 
@@ -511,18 +751,16 @@ controller.abort() // 触发取消
 
 ### 12.4 为什么上传流式请求体一定要写 `duplex: 'half'`？
 
-因为 fetch 需要知道「请求体是流式发送的」。规范要求流式请求体必须显式声明半双工（HTTP/2 虽然本质全双工，但 fetch 目前只实现 `half`），漏写会直接抛 `TypeError: RequestInit: duplex option is required when sending a body`。这是纯配置项，补上即可（见 8.4）。
+因为 fetch 需要知道「请求体是流式发送的」。规范要求流式请求体必须显式声明半双工（HTTP/2 虽然本质全双工，但 fetch 目前只实现 `half`），漏写会直接抛 `TypeError: RequestInit: duplex option is required when sending a body`。
 
 ### 12.5 分块解码后中文为什么变乱码？
 
 UTF-8 的一个汉字占 3 字节，**可能被切在块的边界上**，单独解码就会得到乱码。两种正确写法：
 
-- 用 `TextDecoderStream` 走管道（推荐，见 8.1）；
+- 用 `TextDecoderStream` 走管道；
 - 手动解码时传 `{ stream: true }`，让解码器把不完整的字节留到下一块：`decoder.decode(chunk, { stream: true })`。
 
 ### 12.6 `tee()` 有什么代价？
-
-两点：
 
 - **内存**：两个分支各自缓冲，慢的那个会一直攒数据，内存占用比单路读翻倍甚至更多。
 - **背压**：上游速度由**较慢的那个分支**决定，快的分支也会被拖住。
