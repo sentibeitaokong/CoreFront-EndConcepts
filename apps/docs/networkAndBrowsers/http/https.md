@@ -302,7 +302,7 @@ HTTPS 不只是运维的事，它在浏览器里有一堆硬性规则，会直�
 - **Service Worker / PWA 离线缓存**（见 [Service Worker 与 PWA](/networkAndBrowsers/caching/serviceWorkerPwa)）
 - **Geolocation** 定位
 - **getUserMedia**（摄像头 / 麦克风）、`getDisplayMedia`（屏幕共享）
-- **Web Crypto API**、**WebAuthn / Passkey**（见 [WebAuthn 与 Passkey](/webSecurity/webauthnPasskey)）
+- **Web Crypto API**、**WebAuthn / Passkey**
 - **Push API**、**Clipboard API**（部分）、**Web Bluetooth / USB / Serial**
 - **HTTP/2、HTTP/3 在浏览器上基本也只走 HTTPS**
 

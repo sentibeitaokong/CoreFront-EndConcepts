@@ -704,7 +704,6 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
                         {text: 'ClickJacking 与 SameSite Cookie', link: '/webSecurity/clickJackingSameSite'},
                         {text: 'JWT / Cookie / Session', link: '/webSecurity/authStorageTradeoff'},
                         {text: 'OAuth2 / OIDC', link: '/webSecurity/oauthOidc'},
-                        {text: 'WebAuthn / Passkey', link: '/webSecurity/webauthnPasskey'},
                         {text: '敏感信息与供应链安全', link: '/webSecurity/sensitiveInfoSupplyChain'},
                         {text: '企业级鉴权与安全方案', link: '/webSecurity/enterpriseAuthSecurity'},
                     ]

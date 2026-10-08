@@ -4,6 +4,8 @@
 
 ## 1. 基础概念与凭证载体
 
+[width(13,23,23,41)]
+
 | 概念             | 本质定义                           | 常见存储位置                 | 验证逻辑                               |
 | ---------------- | ---------------------------------- | ---------------------------- | -------------------------------------- |
 | **Cookie**       | 浏览器的 KV 存储与跨站自动携带机制 | 浏览器 Cookie Jar            | 服务端从 HTTP 请求头中提取并读取       |
@@ -14,11 +16,13 @@
 
 ### 1.1 Cookie 核心安全属性配置矩阵
 
-认证 Cookie 的安全性很大程度取决于属性配置。
+认证 Cookie 的安全性很大程度取决于属性配置，下面几个属性几乎出现在所有生产环境的 `Set-Cookie` 中。
 
 ```http
 Set-Cookie: sid=abc123; HttpOnly; Secure; SameSite=Lax; Path=/
 ```
+
+[width(26,35,39)]
 
 | 属性                  | 作用                                | 认证场景建议                     |
 | :-------------------- | :---------------------------------- | :------------------------------- |
@@ -29,15 +33,25 @@ Set-Cookie: sid=abc123; HttpOnly; Secure; SameSite=Lax; Path=/
 | `Domain`              | 限制 Cookie 发送域名                | 能不设置就不设置，避免扩大作用域 |
 | `Max-Age` / `Expires` | 控制 Cookie 过期时间                | 根据会话类型设置短期或长期       |
 
-- **HttpOnly**：物理隔绝 JS 通过 `document.cookie` 读取凭证。**建议：登录态 Cookie 必加。**
-- **Secure**：强制仅在 HTTPS 下传输。**建议：生产环境必加。**
-- **SameSite**：限制跨站请求携带。`Strict` (全拦截) / `Lax` (部分放行) / `None` (全放行)。**建议：默认 `Lax`。**
+**高频场景：不同业务下的 Cookie 属性组合**
+
+[width(22,42,36)]
+
+| 业务场景                      | 推荐组合                                                       | 关键取舍                                                                           |
+| ----------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| 同域后台管理 / 传统 Web       | `HttpOnly; Secure; SameSite=Lax; Path=/`                       | 默认基线，安全与体验的平衡点                                                       |
+| 多子域共享登录态              | `HttpOnly; Secure; SameSite=Lax; Domain=.example.com`          | `Domain` 会放大作用域，任一子域被攻破都会波及 Cookie                               |
+| 跨站 iframe 嵌入（客服/组件） | `HttpOnly; Secure; SameSite=None; Partitioned`                 | 必须 HTTPS；`Partitioned` 让 Cookie 只在对应站点的嵌入分区内生效，防跨站追踪       |
+| 移动端 WebView 内嵌 H5        | `HttpOnly; Secure; SameSite=None`                              | 部分安卓 WebView 对 `SameSite` 支持不一致，跨站场景可能要显式设 `None` 并兜住 CSRF |
+| 纯 API / 多端                 | Cookie 只存 Refresh Token，`HttpOnly; Secure; SameSite=Strict` | `Strict` 断开全部跨站携带，刷新接口只能在同站页面内发起                            |
 
 ## 2. Session + Cookie
 
 ### 2.1 流转逻辑
 
 校验账号密码 ➔ 服务端生成 `session_id` 并存入 Redis ➔ 通过 `Set-Cookie` 下发 ➔ 后续请求自动携带 ➔ 服务端查库鉴权。
+
+[width(36,24,40)]
 
 | 优势                                                                                                   | 风险                                                                           | 最佳实践                                                                                                                |
 | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
@@ -51,15 +65,30 @@ Set-Cookie: sid=abc123; HttpOnly; Secure; SameSite=Lax; Path=/
 
 JWT 核心在于无状态，其防御重点取决于前端的存储位置：
 
+[width(21,23,28,28)]
+
 | 存储位置            | 优势                                   | 核心风险                             | 适用场景                |
 | ------------------- | -------------------------------------- | ------------------------------------ | ----------------------- |
 | **localStorage**    | 免疫传统 CSRF；多端鉴权统一。          | **XSS 极高危**：凭证易被持久盗取。   | 纯 API 服务、多端架构。 |
 | **HttpOnly Cookie** | **XSS 低危**：JS 无法读取 Token 实体。 | **复活 CSRF**：需引入 CSRF 防御。    | 高安全 Web 后台。       |
 | **JS 内存变量**     | 防持久化泄露，刷新页面即销毁。         | 实现复杂度高，需配合 Refresh Token。 | 极度敏感的金融系统。    |
 
+**高频场景：真实项目里 Token 到底放在哪**
+
+[width(21,43,36)]
+
+| 场景                           | 常见落地                                                | 风险提示                                                      |
+| ------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------- |
+| 前后端分离 + 自家后端（推荐）  | Access Token 放内存，Refresh Token 放 `HttpOnly Cookie` | 刷新接口仍需防 CSRF，Access 过期后用 Refresh 静默续期         |
+| 老系统改造、改不动后端         | Access + Refresh 都放 `localStorage`                    | 一次 XSS 全盘泄露，必须把 Access 寿命压到极短并配 CSP         |
+| 多端统一（Web / App / 小程序） | JWT 放 `localStorage`，请求走 `Authorization`           | 天然免疫 CSRF，防御重心全部转到 XSS 与短时效                  |
+| 高安全后台 / 金融              | 干脆不用 JWT，全走 `HttpOnly Cookie` Session            | 需标配 CSRF Token + `Origin` 校验，换取服务端可随时吊销的能力 |
+
 ## 4. Access Token、Refresh Token 与 CSRF Token
 
 ### 4.1 基础属性对比
+
+[width(25,26,25,24)]
 
 | 对比维度           | Access Token           | Refresh Token              | CSRF Token                |
 | :----------------- | :--------------------- | :------------------------- | :------------------------ |
@@ -70,11 +99,11 @@ JWT 核心在于无状态，其防御重点取决于前端的存储位置：
 | 常见位置           | Header / 内存 / Cookie | HttpOnly Cookie / 安全存储 | Header / 表单隐藏字段     |
 | 主要风险           | 被偷后可直接调用接口   | 被偷后可长期续期           | 被 XSS 读取后失效         |
 
-Access Token 可以是 JWT，也可以是不透明随机字符串。CSRF Token 不是登录凭证，它只用于证明“这个请求不是攻击者跨站伪造出来的”。
+Access Token 可以是 JWT，也可以是不透明随机字符串。CSRF Token 不是登录凭证，它只用于证明“**这个请求不是攻击者跨站伪造出来的**”。
 
 ### 4.2 推荐刷新模型
 
-现代高安全鉴权的标配，旨在平衡“短暴露窗口”与“长体验”。
+现代高安全鉴权的标配，旨在平衡“**短暴露窗口**”与“**长体验**”。
 
 - **短效 Access Token (5-15分钟)**：放入内存或 Header，专门调用业务 API。
 - **长效 Refresh Token (7-30天)**：强制存入 HttpOnly; Secure Cookie，仅用于刷新接口，不暴露给 JS。
@@ -82,21 +111,17 @@ Access Token 可以是 JWT，也可以是不透明随机字符串。CSRF Token �
 
 ## 5. 选型建议
 
-| 场景                 | 推荐方案                                    |
-| :------------------- | :------------------------------------------ |
-| 传统同域 Web 应用    | Session + HttpOnly Cookie                   |
-| 前后端分离但同主站   | HttpOnly Cookie + SameSite + CSRF Token     |
-| 纯 API、多端统一鉴权 | JWT + Authorization Header                  |
-| 高安全后台系统       | Session + 短过期 + 二次验证                 |
-| 需要兼顾体验和安全   | 内存 Access Token + HttpOnly Refresh Cookie |
+[width(26,33,41)]
 
-更具体的判断方式：
-
-- 如果你最需要“**服务端可控、可踢下线、权限立即生效**”，优先 Session。
-- 如果你最需要“多端统一、API 网关统一验签、减少服务端会话状态”，可以用 JWT，但要接受主动失效成本。
-- 如果是浏览器 Web 应用，不要只因为“**JWT 流行**”就把长期 Token 放 localStorage。
-- 如果使用 Cookie 鉴权，默认把 CSRF 防护当作必做项。
-- 如果使用 Authorization Header，默认把 XSS 防护和短时效当作必做项。
+| 场景 / 诉求                      | 推荐方案                                      | 判断依据                                                             |
+| :------------------------------- | :-------------------------------------------- | :------------------------------------------------------------------- |
+| 传统同域 Web 应用                | Session + `HttpOnly Cookie`                   | 服务端可控、可踢下线、权限立即生效，前端零侵入                       |
+| 前后端分离但同主站               | `HttpOnly Cookie` + `SameSite` + CSRF Token   | 同主站共享 Cookie，**CSRF 防护是必做项**                             |
+| 纯 API、多端统一鉴权             | JWT + `Authorization` Header                  | 多端统一、API 网关统一验签、减少服务端会话状态，但要接受主动失效成本 |
+| 高安全后台系统                   | Session + 短过期 + 二次验证                   | 高风险场景，要求强校验与即时吊销                                     |
+| 需要兼顾体验和安全               | 内存 Access Token + `HttpOnly` Refresh Cookie | 短暴露窗口叠加长体验，是当前推荐组合                                 |
+| 浏览器应用想用 JWT               | 长期 Token **不要**放 `localStorage`          | 不能只因为“**JWT 流行**”就牺牲 XSS 防线                              |
+| 使用 `Authorization` Header 鉴权 | Access Token 短时效 + 强化 XSS 防护           | 身份靠 JS 手动塞进头部，默认把 XSS 防护与短时效当必做项              |
 
 ## 6. 实战建议
 
@@ -133,7 +158,7 @@ Access Token 可以是 JWT，也可以是不透明随机字符串。CSRF Token �
 - 如果 JWT 存在 localStorage，并由前端手动放入 `Authorization` Header，传统 CSRF 风险较低，通常不需要 CSRF Token。
 - 如果 JWT 存在 Cookie 中，浏览器会自动携带它，仍然需要 `SameSite`、CSRF Token 或 `Origin` 校验。
 
-JWT 证明“请求者有合法身份”，CSRF Token 证明“请求来自真实页面的主动提交”，二者解决的问题不同。
+JWT 证明“**请求者有合法身份**”，CSRF Token 证明“请求来自真实页面的主动提交”，二者解决的问题不同。
 
 ### 7.4 用了 HttpOnly Cookie，是不是就不用管 XSS？
 
@@ -152,12 +177,10 @@ JWT 证明“请求者有合法身份”，CSRF Token 证明“请求来自真�
 
 传统 CSRF 风险确实低很多，因为浏览器不会自动把 localStorage 里的 Token 加到跨站请求中。
 
-但仍然要注意两点：
-
 - 如果有 XSS，攻击脚本可以读取 Token 并主动加 `Authorization` Header。
 - 如果服务端同时还依赖 Cookie 登录态，那么 Cookie 那部分仍然需要 CSRF 防护。
 
-所以可以说“localStorage + Authorization Header 通常不依赖 CSRF Token”，但不能说“它整体更安全”。
+所以可以说“**localStorage + Authorization Header 通常不依赖 CSRF Token**”，但不能说“**它整体更安全**”。
 
 ### 7.6 Refresh Token 放 HttpOnly Cookie，刷新接口还需要 CSRF 防护吗？
 
@@ -178,8 +201,6 @@ JWT 证明“请求者有合法身份”，CSRF Token 证明“请求来自真�
 ### 7.8 Token 过期时间应该设置多久？
 
 没有固定答案，取决于业务风险和体验要求。
-
-常见做法：
 
 - access token 设置短时效，通常几分钟到十几分钟。
 - refresh token 设置较长时效，例如几天到几周，但必须支持轮换和吊销。

@@ -12,6 +12,8 @@
 
 ### 1.1 简单请求的触发条件 (必须同时满足)
 
+[width(18,82)]
+
 | 限制维度         | 严格要求                                                                                                                                                                  |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **HTTP 方法**    | 只能是 `GET`、`POST`、`HEAD` 三者之一。                                                                                                                                   |
@@ -43,6 +45,20 @@
 - 请求体的 `Content-Type` 使用了 `application/json` 格式（现代前端主流的 API 交互格式）。
 - 携带了自定义的 HTTP 请求头（如跨域状态下常见的 `Authorization: Bearer <token>`、`X-Requested-With`）。
 
+**高频场景：日常代码里哪些写法会触发预检**
+
+[width(47,11,42)]
+
+| 日常写法                                        | 是否触发预检 | 原因                                |
+| ----------------------------------------------- | ------------ | ----------------------------------- |
+| `axios.post(url, data)`（对象默认 JSON 序列化） | **触发**     | `Content-Type: application/json`    |
+| 请求头带 `Authorization: Bearer <token>`        | **触发**     | 自定义请求头                        |
+| 请求头带 `X-Requested-With`                     | **触发**     | 自定义请求头                        |
+| `fetch(url, { method: 'PUT' / 'DELETE' })`      | **触发**     | 非简单 HTTP 方法                    |
+| `new FormData()` 上传文件                       | 不触发       | `multipart/form-data` 属于简单格式  |
+| `URLSearchParams` / 表单编码提交                | 不触发       | `application/x-www-form-urlencoded` |
+| 默认的 `fetch(url)` / `axios.get(url)`          | 不触发       | `GET` + 无自定义头，属于简单请求    |
+
 ### 2.2 预检请求的工作流程
 
 - 前端发起复杂的 AJAX/Fetch 请求（例如一个带有 JSON 载荷的 `POST` 请求）。
@@ -60,6 +76,21 @@
 ![Logo](/img/corsPreflightRequest.png)
 
 ## 3. 身份凭证与预检缓存 (防线与优化)
+
+**高频属性：决定跨域成败的响应头（由后端下发）**
+
+[width(38,24,38)]
+
+| 响应头                             | 作用                         | 常见取值                                 |
+| ---------------------------------- | ---------------------------- | ---------------------------------------- |
+| `Access-Control-Allow-Origin`      | 允许哪些源访问               | 精确源，或 `*`（带凭证时**禁用**）       |
+| `Access-Control-Allow-Methods`     | 预检时声明允许的 HTTP 方法   | `GET, POST, PUT, DELETE`                 |
+| `Access-Control-Allow-Headers`     | 预检时声明允许的自定义请求头 | `Content-Type, Authorization`            |
+| `Access-Control-Allow-Credentials` | 是否允许携带 Cookie / 凭证   | `true`（此时 `Allow-Origin` 不能用 `*`） |
+| `Access-Control-Max-Age`           | 预检结果的缓存秒数           | `86400`                                  |
+| `Access-Control-Expose-Headers`    | 允许前端 JS 读取的**响应头** | `Content-Disposition, X-Total-Count`     |
+
+> 常在踩坑的两条：`Allow-Credentials: true` 时 `Allow-Origin` 必须回显精确源；想让前端读到分页总数、下载文件名这类自定义响应头，必须显式写进 `Expose-Headers`。
 
 ### 3.1 身份凭证 (Credentials)
 
@@ -80,9 +111,11 @@
 - **优化手段**：服务器在 `OPTIONS` 的成功响应头中，加上 `Access-Control-Max-Age: <秒数>`（例如 `86400`，代表 24 小时）。
 - **优化效果**：浏览器会在指定的秒数内“**记住**”这次审批结果。在缓存有效期内，相同特征的复杂跨域请求将直接绕过 OPTIONS 探测阶段，变回一次网络往返的丝滑体验。
 
-## 4. CORS 深度对比及常见问题 (FAQ)
+## 4. 常见问题 (FAQ)
 
 ### 4.1 简单请求 vs 预检请求 核心差异对比
+
+[width(18,37,45)]
 
 | 对比维度         | 简单请求 (Simple Request)                                                         | 预检请求 (Preflight Request)                                                                           |
 | ---------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -107,5 +140,5 @@
 
 ### 4.5 为什么现在的跨域请求中，几乎都不带 withCredentials 参数了？
 
-- **因为现代前后端架构的主流鉴权范式，已经从“依赖浏览器自动发送 Cookie” 全面转向了“前端手动携带 JWT (Token)”。**
-- 过去使用 Session/Cookie 鉴权时，必须开启 `withCredentials` 来强制浏览器在跨域时带上身份凭证。但在现代微服务架构中，前端通常会将登录后获取的 JWT 存储在 `localStorage` 中，并在发送请求时通过 Axios 拦截器**手动**将其塞入请求头（如 `Authorization: Bearer <token>`）。既然身份信息是前端用 JS 代码主动塞进 HTTP Header 的，不再依赖浏览器底层的 Cookie 自动发送机制，`withCredentials` 自然就失去了存在的意义。此外，抛弃 Cookie 转向手动携带 Token 的做法，还能从物理层面上彻底免疫 CSRF（跨站请求伪造）攻击。
+- 因为现代前后端架构的主流鉴权范式，已经从“**依赖浏览器自动发送 Cookie**” 全面转向了“**前端手动携带 JWT (Token)**”。
+- 过去使用 Session/Cookie 鉴权时，必须开启 `withCredentials` 来强制浏览器在跨域时带上身份凭证。但在现代微服务架构中，前端通常会将登录后获取的 JWT 存储在 `localStorage` 中，并在发送请求时通过 Axios 拦截器**手动**将其塞入请求头（如 `Authorization: Bearer <token>`）。既然身份信息是前端用 JS 代码主动塞进 HTTP Header 的，不再依赖浏览器底层的 Cookie 自动发送机制，`withCredentials` 自然就失去了存在的意义。此外，抛弃 Cookie 转向手动携带 Token 的做法，还能从物理层面上彻底免疫CSRF攻击。
