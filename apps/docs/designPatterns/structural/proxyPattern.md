@@ -115,8 +115,6 @@ const proxyUser = new Proxy(user, {
 
 代理在真实项目里几乎无处不在，它常常以“**包装**”“**中间层**”的姿态出现。
 
-**高频场景：遇到这类需求，直接对号入座**
-
 [width(23,15,62)]
 
 | 场景                | 代理类型  | 关键手段                                              |
@@ -151,8 +149,6 @@ const proxyUser = new Proxy(user, {
 - **代理不等于原对象**：`proxy !== target`，用 `Map` 缓存时要想清楚键该用谁。
 - **忘了透传 `receiver`**：写成 `Reflect.get(target, key)` 会丢参数，继承场景下 `this` 指向会出错。
 - **拦不全想要的枚举行为**：只实现 `ownKeys` 可能还不够，`for...in` 需要配合 `getOwnPropertyDescriptor`。
-
-面试常被追问：`Proxy` 相比 `Object.defineProperty` 强在哪 —— 见 6.2。
 
 ## 5. 模式对比
 
