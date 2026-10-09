@@ -167,17 +167,48 @@ order(3, 100) // 普通购买...
 
 ### 5.4 在 JavaScript 中如何实现更现代的职责链？
 
-可以参考 **AOP (面向切面编程)** 的思想。通过给函数原型添加 `after` 方法，可以非常优雅地组合函数，而不需要显式创建 `Chain` 类：
+可以参考 **AOP (面向切面编程)** 的思想：节点就是普通函数，把「**处理不了就交给下一个**」这件事抽成一个组合子，就不必再显式造 `Chain` 类。
 
 ```js
+const order500 = (type, amount) => {
+  if (type === 1 && amount >= 500) {
+    console.log('500元定金预购，得到100元优惠券')
+    return
+  }
+  return 'nextSuccessor'
+}
+
+const order200 = (type, amount) => {
+  if (type === 2 && amount >= 200) {
+    console.log('200元定金预购，得到50元优惠券')
+    return
+  }
+  return 'nextSuccessor'
+}
+
+const orderNormal = (type, amount) => {
+  console.log('普通购买，无优惠券') // 链尾保底节点，不返回 nextSuccessor
+}
+
+// ① 挂在 Function.prototype 上：写法最省事，但改的是全局原型
 Function.prototype.after = function (fn) {
   const self = this
   return function (...args) {
     const ret = self.apply(this, args)
-    if (ret === 'nextSuccessor') return fn.apply(this, args)
-    return ret
+    return ret === 'nextSuccessor' ? fn.apply(this, args) : ret
   }
 }
-const order = order500.after(order200).after(orderNormal)
-order(1, 500)
+const orderA = order500.after(order200).after(orderNormal)
+
+// ② 推荐：写成独立的组合子，再用 reduce 串链，不污染任何内置对象
+const chainAfter = (f, g) =>
+  function (...args) {
+    const ret = f(...args)
+    return ret === 'nextSuccessor' ? g(...args) : ret
+  }
+const orderB = [order500, order200, orderNormal].reduce(chainAfter)
+
+orderA(1, 500) // 500元定金预购，得到100元优惠券
+orderB(2, 200) // 200元定金预购，得到50元优惠券
+orderB(3, 100) // 普通购买，无优惠券
 ```

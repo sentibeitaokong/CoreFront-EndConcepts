@@ -159,7 +159,15 @@ div[class*='language-'] pre {
   overflow-wrap: anywhere;
 }
 
-body {
+/* 正文文字色。这里必须用 `html body` 而不是 `body`：
+   theme/index.ts 里 `import('xb-element/dist/x-element.css')` 是运行时异步加载的，
+   那份样式排在 custom.css 之后，且自带一条
+     body { color: var(--vk-text-color-primary) }   // #303133，浅色主题的深灰
+   同优先级、后加载，会把正文色盖成深灰。黑夜模式下于是出现「同一页里标题和
+   段落是浅色（下面那条 h1..p 规则救回来了），表格 td/th、列表 li、<strong> 等
+   只靠继承 body 的元素却是深色」的割裂。多一个类型选择器提高优先级即可压回去，
+   不依赖加载顺序，也不用 !important。 */
+html body {
   color: var(--vp-c-text-1);
 }
 h1,

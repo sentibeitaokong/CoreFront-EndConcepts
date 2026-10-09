@@ -26,13 +26,51 @@
 - `value`: 当前迭代的值。
 - `done`: 布尔值，如果迭代已结束则为 `true`。
 
+```js
+// 自带游标的对象：每调一次 next() 就吐出下一个值
+const iterator = {
+  i: 0,
+  next() {
+    return this.i < 3
+      ? { value: this.i++, done: false }
+      : { value: undefined, done: true }
+  },
+}
+
+console.log(iterator.next()) // { value: 0, done: false }
+console.log(iterator.next()) // { value: 1, done: false }
+console.log(iterator.next()) // { value: 2, done: false }
+console.log(iterator.next()) // { value: undefined, done: true }
+```
+
+注意：满足这个协议只是「迭代器」，**还不是可迭代对象**——`for...of iterator` 会抛 `TypeError`，因为缺了`Symbol.iterator`方法。
+
 ### 2.2 可迭代协议 (Iterable Protocol)
 
 一个对象要成为“**可迭代的**”，必须实现 `Symbol.iterator` 方法，该方法返回一个迭代器。
 
-### 2.3 与迭代器相关的原生能力
+```js
+const iterable = {
+  // 每次调用都返回一个「全新」的迭代器，所以能反复遍历
+  [Symbol.iterator]() {
+    let i = 0
+    return {
+      next() {
+        return i < 3
+          ? { value: i++, done: false }
+          : { value: undefined, done: true }
+      },
+    }
+  },
+}
 
-掌握这几个内置 API，面试与实战基本够用：
+console.log([...iterable]) // [0, 1, 2]：展开语法消费的正是它
+for (const n of iterable) console.log(n) // 0、1、2 各打一行
+```
+
+`for...of` / `[...x]` 只认 `Symbol.iterator`：先调它拿到迭代器，再反复调 `next()` 直到 `done`。
+
+### 2.3 与迭代器相关的原生能力
 
 - **原生可迭代对象**：`Array`、`String`、`Map`、`Set`、`TypedArray`、`arguments`、Node 的 Stream 都自带 `Symbol.iterator`。
 - **消费迭代器的语法**：`for...of`、展开 `[...it]`、解构 `const [a, b] = it`、`Array.from(it)`、`new Map(entries)`。
@@ -141,8 +179,6 @@ console.log(result) // [6, 8]
 ## 5. 常见问题 (FAQ)
 
 ### 5.1 `for...in` 和 `for...of` 有什么区别？
-
-这是初学者最容易混淆的点：
 
 - **`for...in`**：遍历的是对象的**键（Index/Key）**。它会遍历原型链上的属性，通常用于普通对象，不推荐用于数组。
 - **`for...of`**：遍历的是**值（Value）**。它专门为实现迭代器协议的对象设计。
