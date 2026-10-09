@@ -6,7 +6,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ## 1. 核心概念与特性
 
-**MVC (Model-View-Controller)** 是软件工程中最经典、历史最悠久的架构设计模式之一。它的核心思想是**“关注点分离 (Separation of Concerns)”**：将应用程序的内部逻辑、用户界面和用户输入控制这三个维度强制性地分离开来。
+**MVC (Model-View-Controller)** 是软件工程中最经典、历史最悠久的架构设计模式之一。它的核心思想是“**关注点分离 (Separation of Concerns)**”：将应用程序的内部逻辑、用户界面和用户输入控制这三个维度强制性地分离开来。
 
 在前端发展的早期（如 Backbone.js 时代），MVC 模式被广泛采用，它为混乱的“**意大利面条式**” DOM 操作代码带来了秩序。
 
@@ -19,8 +19,6 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 | **Controller** | **控制器 (逻辑层)** | 应用程序的**大脑 (协调者)**。它是 View 和 Model 之间的粘合剂。负责接收用户的输入（如点击、键盘事件），解析这些输入，然后调用 Model 执行业务逻辑，最后可能还会决定让哪个 View 进行更新。 |
 
 一句话定义：**Model 管数据、View 管展示、Controller 管调度**，三者各司其职，任何一方都不越界。这套“**关注点分离**”的思想，是后续所有前端架构模式的共同起点。
-
-**优点与缺点一览**
 
 [width(13,87)]
 
@@ -49,8 +47,6 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 3. **Model** 执行业务逻辑，更新自身的数据状态。
 4. **Model** 数据更新后，触发事件通知 **View**。
 5. **View** 收到通知，从 Model 中拉取最新数据并重新渲染屏幕。
-
-_(注意：在不同的框架和演进阶段，MVC 的具体流向可能会有变种，比如 View 直接向 Controller 报告，Controller 再去更新 View。)_
 
 ## 2. 原生 JavaScript 模拟实现 MVC
 
@@ -100,10 +96,20 @@ class CounterModel {
 
 View 接收 DOM 元素，并提供渲染数据的方法。它也负责将用户的 DOM 事件**委托**给 Controller。
 
+:::code-group
+
+```html
+<div id="app">
+  <span id="value"> </span>
+  <button id="inc"></button>
+  <button id="dec"></button>
+</div>
+```
+
 ```js
 class CounterView {
   constructor() {
-    // 假设 HTML 中有这三个元素：<div id="app"> 包含 <span id="value">, <button id="inc">, <button id="dec">
+    // 假设 HTML 中有这三个元素：
     this.app = document.getElementById('app')
     this.valueDisplay = document.getElementById('value')
     this.btnInc = document.getElementById('inc')
@@ -126,6 +132,8 @@ class CounterView {
   }
 }
 ```
+
+:::
 
 ### 2.3 Controller 层 (居中协调)
 
@@ -165,13 +173,11 @@ const appView = new CounterView()
 const appController = new CounterController(appModel, appView)
 ```
 
-### 2.4 实现中出现的关键语言特性与易错点
-
-上面这段原生实现，几乎把理解 MVC 所需的 JS 基础都用上了：
+### 2.4 关键语言特性与易错点
 
 - **ES6 `class`**：类方法默认是非绑定的，把 `this.view.render` 直接当回调传出去会丢失 `this`，所以代码里写成 `this.view.render.bind(this.view)`。
 - **`Function.prototype.bind`**：用来固定回调执行时的 `this`，是事件委托里最容易被忽略的坑。
-- **发布-订阅（观察者）**：Model 用一个 `listeners` 数组加 `forEach` 手动广播，这正是 Vue 响应式里 `Dep` 与 `Watcher` 的雏形（见 4.2 的对比）。
+- **发布-订阅（观察者）**：Model 用一个 `listeners` 数组加 `forEach` 手动广播，这正是 Vue 响应式里 `Dep` 与 `Watcher` 的雏形。
 - **`addEventListener` 与事件委托**：View 只暴露 `bindIncrement(handler)`，把“**点击后干什么**”交给 Controller，避免 View 里混入业务逻辑。
 - **`textContent` 对比 `innerHTML`**：渲染纯文本优先用 `textContent`，不会触发 HTML 解析，也没有 XSS 风险。
 
@@ -180,8 +186,6 @@ const appController = new CounterController(appModel, appView)
 ## 3. 典型应用场景
 
 MVC 在前端虽然退化，但它“**分离数据、展示、交互**”的通用范式实际上无处不在。
-
-**高频场景：遇到这类需求，直接对号入座**
 
 [width(15,47,38)]
 
@@ -201,8 +205,8 @@ MVC 在前端虽然退化，但它“**分离数据、展示、交互**”的通
 
 ### 4.1 为什么前端放弃了纯 MVC？
 
-1. **数据流混乱（双向依赖噩梦）**：在复杂的业务中，往往是多个 Model 对应多个 View。View 可以修改 Model，Model 也能更新 View。当项目变大时，数据流向会变成一张极其复杂的“**蜘蛛网**”，只要改一个数据，很容易引发不可预知的级联更新甚至死循环。
-2. **Controller 极其臃肿（Fat Controller）**：前端有海量的 DOM 操作和事件监听。Controller 作为中间人，很快就会被塞满各种恶心的 DOM 查找和事件绑定代码，变得难以维护。
+- **数据流混乱（双向依赖噩梦）**：在复杂的业务中，往往是多个 Model 对应多个 View。View 可以修改 Model，Model 也能更新 View。当项目变大时，数据流向会变成一张极其复杂的“**蜘蛛网**”，只要改一个数据，很容易引发不可预知的级联更新甚至死循环。
+- **Controller 极其臃肿（Fat Controller）**：前端有海量的 DOM 操作和事件监听。Controller 作为中间人，很快就会被塞满各种恶心的 DOM 查找和事件绑定代码，变得难以维护。
 
 ### 4.2 从 MVC 到 MVVM 的伟大进化
 
@@ -210,7 +214,7 @@ MVC 在前端虽然退化，但它“**分离数据、展示、交互**”的通
 
 - **本质区别**：MVVM 彻底消灭了 Controller，引入了 **ViewModel**。
 - **数据绑定 (Data Binding)**：ViewModel 内部实现了一个极其强大的**双向数据绑定引擎**（例如 Vue 的响应式系统）。
-- **降维打击**：开发者再也不需要像上面的原生代码那样手动写 `addEventListener`，也不需要手动调用 `view.render()`。只要 Model 里的数据一变，ViewModel 自动帮你把 DOM 刷新；只要你在输入框打字，ViewModel 自动帮你把数据存进 Model。这种**“声明式渲染”**彻底解放了前端生产力。
+- **降维打击**：开发者再也不需要像上面的原生代码那样手动写 `addEventListener`，也不需要手动调用 `view.render()`。只要 Model 里的数据一变，ViewModel 自动帮你把 DOM 刷新；只要你在输入框打字，ViewModel 自动帮你把数据存进 Model。这种“**声明式渲染**”彻底解放了前端生产力。
 
 ## 5. 常见问题 (FAQ) 与避坑指南
 
@@ -222,7 +226,7 @@ MVC 在前端虽然退化，但它“**分离数据、展示、交互**”的通
 
 ### 5.2 现在流行的 React 是 MVC 还是 MVVM？
 
-这是一个极具争议的话题，但官方给出的答案是：**React 既不是 MVC，也不是 MVVM。它只是一个构建用户界面的 V (View 库)。**
+**React 既不是 MVC，也不是 MVVM。它只是一个构建用户界面的 V (View 库)。**
 
 - React 本身只关注视图的渲染（组件化、虚拟 DOM）。
 - 如果你非要给它套上架构模式，React 社区推崇的是 **Flux / Redux (单向数据流) 架构**。在 Redux 中，Action (动作) -> Dispatcher (分发) -> Store (数据/Model) -> View (视图)。数据永远只能单向流动，彻底解决了传统 MVC 晚期数据流混乱的“**蜘蛛网**”问题。
