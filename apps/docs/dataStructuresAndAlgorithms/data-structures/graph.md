@@ -24,13 +24,13 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 | 分类方式                      | 描述                                                                                                           |
 | :---------------------------- | :------------------------------------------------------------------------------------------------------------- |
-| **有向图 (Directed Graph)**   | 边是**有方向**的。比如 A 关注了 B，但 B 不一定关注 A（如 Twitter/微博）。边用箭头表示：$A \rightarrow B$。     |
+| **有向图 (Directed Graph)**   | 边是**有方向**的。比如 A 关注了 B，但 B 不一定关注 A（如 Twitter/微博）。边用箭头表示：$A -> B$。              |
 | **无向图 (Undirected Graph)** | 边是**没有方向**的，是双向平等的。比如 A 和 B 是微信好友，A 必然也是 B 的好友。边用直线表示：$A - B$。         |
 | **加权图 (Weighted Graph)**   | 边上带有**权重（数字）**。比如地图上 A 城市到 B 城市的距离，或者机票的价格。                                   |
 | **无权图 (Unweighted Graph)** | 边只是表示“**连接**”这一状态，没有具体的数值大小。                                                             |
 | **有向无环图 (DAG)**          | 边有方向、且**不存在任何环**的图。“**无环**”保证了它可以被拓扑排序，是依赖管理、任务调度、编译构建的核心模型。 |
-| **稠密图 (Dense Graph)**      | 边数接近顶点数的平方（$E \approx V^2$）。各顶点之间几乎两两相连，用邻接矩阵存储更划算。                        |
-| **稀疏图 (Sparse Graph)**     | 边数远少于 $V^2$（通常 $E \approx V$）。前端里的依赖图、社交图几乎都是稀疏图，用邻接表最省空间。               |
+| **稠密图 (Dense Graph)**      | 边数接近顶点数的平方。各顶点之间几乎两两相连，用邻接矩阵存储更划算。                                           |
+| **稀疏图 (Sparse Graph)**     | 边数远少于 $V^2$。前端里的依赖图、社交图几乎都是稀疏图，用邻接表最省空间。                                     |
 | **完全图 (Complete Graph)**   | 任意两个顶点之间都恰好有一条边。$V$ 个顶点的无向完全图共有 $\frac{V(V-1)}{2}$ 条边。                           |
 | **简单图 / 多重图**           | 不含自环和重边的是简单图；允许自环或两顶点间有多条边的是多重图。通常讨论的图默认指简单图。                     |
 
@@ -74,10 +74,32 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ### 2.1 邻接矩阵 (Adjacency Matrix)
 
-使用一个**二维数组（矩阵）**来表示。如果顶点 $i$ 和顶点 $j$ 之间有边，则 `matrix[i][j] = 1`（或权重），否则为 `0`。
+使用一个 **二维数组（矩阵）** 来表示。如果顶点 $i$ 和顶点 $j$ 之间有边，则 `matrix[i][j] = 1`（或权重），否则为 `0`。
 
 - **优点**：查找两个特定顶点是否相连极快 $O(1)$。
 - **缺点**：**极其浪费空间**。如果是“**稀疏图**”（节点很多但边很少），矩阵里绝大多数都是 0，造成巨大的内存浪费 $O(V^2)$。
+
+```js
+// 4 个顶点 A B C D 编号 0~3，边为 A-B、A-C、B-D
+const matrix = Array.from({ length: 4 }, () => Array(4).fill(0)) // 4×4 全 0
+
+function addEdge(i, j) {
+  matrix[i][j] = 1
+  matrix[j][i] = 1 // 无向图：两个方向都标 1，矩阵沿对角线对称
+}
+
+addEdge(0, 1) // A-B
+addEdge(0, 2) // A-C
+addEdge(1, 3) // B-D
+
+//         A  B  C  D
+//    A [  0  1  1  0 ]
+//    B [  1  0  0  1 ]
+//    C [  1  0  0  0 ]
+//    D [  0  1  0  0 ]
+
+console.log(matrix[0][3]) // 0 —— A 与 D 不相连，一次寻址就判定
+```
 
 ### 2.2 邻接表 (Adjacency List) —— (最常用)
 
@@ -177,8 +199,6 @@ console.log(myGraph.toString())
 遍历图最大的难点在于：**图可能有环**。如果不做标记，你的程序会陷入无限死循环。
 解决办法是：使用一个数组或字典记录“**已被访问过的顶点 (visited)**”。
 
-在刚才的 `Graph` 类中，我们加入 BFS 和 DFS 算法：
-
 ### 4.1 广度优先搜索 (BFS - Breadth First Search)
 
 - **策略**：像水波纹一样，从起点开始，先访问距离起点为 1 的所有邻居，再访问距离为 2 的所有邻居。
@@ -186,34 +206,40 @@ console.log(myGraph.toString())
 - **典型应用**：在无权图中寻找**最短路径**（如走迷宫、计算六度空间）。
 
 ```js
-  // --- 广度优先搜索 (接在 Graph 类内部) ---
-  bfs(startVertex, callback) {
-    if (!this.adjList.has(startVertex)) return;
+// --- 广度优先搜索 (接在 Graph 类内部) ---
+function bfs(startVertex, callback) {
+  if (!this.adjList.has(startVertex)) return
 
-    const visited = {}; // 记录访问过的顶点
-    const queue = [];   // 使用数组模拟队列
+  const visited = {} // 记录访问过的顶点
+  const queue = [] // 使用数组模拟队列
 
-    queue.push(startVertex);   // 1. 起点入队
-    visited[startVertex] = true; // 标记起点已访问
+  queue.push(startVertex) // 1. 起点入队
+  visited[startVertex] = true // 标记起点已访问
 
-    while (queue.length > 0) {
-      const currentVertex = queue.shift(); // 2. 队头出队
+  while (queue.length > 0) {
+    const currentVertex = queue.shift() // 2. 队头出队
 
-      const neighbors = this.adjList.get(currentVertex); // 获取它的所有邻居
+    const neighbors = this.adjList.get(currentVertex) // 获取它的所有邻居
 
-      // 3. 遍历邻居，把没访问过的加入队列排队
-      for (let i = 0; i < neighbors.length; i++) {
-        const neighbor = neighbors[i];
-        if (!visited[neighbor]) {
-          visited[neighbor] = true; // 入队时就标记为已访问，防止重复入队
-          queue.push(neighbor);
-        }
+    // 3. 遍历邻居，把没访问过的加入队列排队
+    for (let i = 0; i < neighbors.length; i++) {
+      const neighbor = neighbors[i]
+      if (!visited[neighbor]) {
+        visited[neighbor] = true // 入队时就标记为已访问，防止重复入队
+        queue.push(neighbor)
       }
-
-      // 4. 执行回调逻辑 (处理当前出队节点)
-      if (callback) callback(currentVertex);
     }
+
+    // 4. 执行回调逻辑 (处理当前出队节点)
+    if (callback) callback(currentVertex)
   }
+}
+
+console.log('\n--- BFS (广度优先，从 A 开始) ---')
+let bfsResult = []
+myGraph.bfs('A', v => bfsResult.push(v))
+console.log(bfsResult.join(' -> '))
+// 输出: A -> B -> C -> D -> E -> F -> G -> H -> I (按层级铺开)
 ```
 
 ### 4.2 深度优先搜索 (DFS - Depth First Search)
@@ -223,39 +249,27 @@ console.log(myGraph.toString())
 - **典型应用**：走迷宫找一条可行路径、拓扑排序、检测图中是否有环。
 
 ```js
-  // --- 深度优先搜索 (接在 Graph 类内部) ---
-  dfs(startVertex, callback) {
-    const visited = {}; // 记录访问过的顶点
+// --- 深度优先搜索 (接在 Graph 类内部) ---
+function dfs(startVertex, callback) {
+  const visited = {} // 记录访问过的顶点
 
-    // 定义内部的递归函数
-    const dfsRecursive = (vertex) => {
-      visited[vertex] = true; // 1. 标记当前顶点已访问
-      if (callback) callback(vertex); // 2. 处理当前顶点
+  // 定义内部的递归函数
+  const dfsRecursive = vertex => {
+    visited[vertex] = true // 1. 标记当前顶点已访问
+    if (callback) callback(vertex) // 2. 处理当前顶点
 
-      const neighbors = this.adjList.get(vertex); // 3. 获取所有邻居
+    const neighbors = this.adjList.get(vertex) // 3. 获取所有邻居
 
-      // 4. 对所有没访问过的邻居，深入递归
-      for (let i = 0; i < neighbors.length; i++) {
-        const neighbor = neighbors[i];
-        if (!visited[neighbor]) {
-          dfsRecursive(neighbor);
-        }
+    // 4. 对所有没访问过的邻居，深入递归
+    for (let i = 0; i < neighbors.length; i++) {
+      const neighbor = neighbors[i]
+      if (!visited[neighbor]) {
+        dfsRecursive(neighbor)
       }
-    };
-
-    dfsRecursive(startVertex);
+    }
   }
-```
-
-**测试遍历结果：**
-
-```js
-// 基于前面构建的 myGraph
-console.log('\n--- BFS (广度优先，从 A 开始) ---')
-let bfsResult = []
-myGraph.bfs('A', v => bfsResult.push(v))
-console.log(bfsResult.join(' -> '))
-// 输出: A -> B -> C -> D -> E -> F -> G -> H -> I (按层级铺开)
+  dfsRecursive(startVertex)
+}
 
 console.log('\n--- DFS (深度优先，从 A 开始) ---')
 let dfsResult = []
@@ -268,35 +282,36 @@ console.log(dfsResult.join(' -> '))
 
 拓扑排序只适用于**有向无环图 (DAG)**：它把所有顶点排成一个线性序列，使得对图中每条边 $u \rightarrow v$，$u$ 都排在 $v$ 的前面。它解决的正是“**谁必须先于谁**”的依赖问题，是包管理、构建编排、任务调度的核心算法。
 
-常见实现有两种：
-
-**（1）Kahn 算法（BFS + 入度）**
+#### 4.3.1 **Kahn 算法（BFS + 入度）**
 
 先统计每个顶点的入度，把所有入度为 0 的顶点入队；每次出队一个顶点就把它加入结果，并把它的所有邻居入度减 1，减到 0 的邻居再入队。若最终结果里的顶点数少于总数，说明图中存在环。
 
 ```js
 // Kahn 入度法：numVertices 为顶点数，edges 为 [u, v] 数组，代表一条 u -> v 的边
 function topologicalSortKahn(numVertices, edges) {
+  // 1. 建邻接表，顺带统计每个顶点的入度
   const adj = Array.from({ length: numVertices }, () => [])
   const inDegree = new Array(numVertices).fill(0)
 
   for (const [u, v] of edges) {
     adj[u].push(v)
-    inDegree[v]++
+    inDegree[v]++ // v 又多了一条入边
   }
 
+  // 2. 入度为 0 表示没有前置依赖，可以立刻执行，先全部入队
   const queue = []
   for (let i = 0; i < numVertices; i++) {
     if (inDegree[i] === 0) queue.push(i)
   }
 
+  // 3. 每出队一个顶点就「解除」它对邻居的依赖，谁被解锁谁入队
   const order = []
   while (queue.length > 0) {
     const curr = queue.shift()
-    order.push(curr)
+    order.push(curr) // 能出队就说明依赖已清空，直接定序
     for (const next of adj[curr]) {
-      inDegree[next]--
-      if (inDegree[next] === 0) queue.push(next)
+      inDegree[next]-- // curr 排好了，next 少一个前置依赖
+      if (inDegree[next] === 0) queue.push(next) // 减到 0 就可以执行了
     }
   }
 
@@ -305,36 +320,41 @@ function topologicalSortKahn(numVertices, edges) {
 }
 ```
 
-**（2）DFS 后序法**
+#### 4.3.2 **DFS 后序法**
 
 对每个顶点做深度优先搜索，在**递归返回的那一刻**把顶点压入结果数组（后序），全部完成后整体反转，就得到了拓扑序。用“**三色标记**”（未访问 / 在递归栈上 / 已完成）可以顺带检测环。
 
 ```js
+// DFS 后序法：在「递归返回的那一刻」记录顶点，全部走完后整体反转
 function topologicalSortDFS(numVertices, edges) {
+  // 1. 建邻接表
   const adj = Array.from({ length: numVertices }, () => [])
   for (const [u, v] of edges) adj[u].push(v)
 
-  const state = new Array(numVertices).fill(0) // 0 未访问, 1 在递归栈上, 2 已完成
+  // 2. 三色标记：0 未访问 / 1 在递归栈上 / 2 已完成
+  const state = new Array(numVertices).fill(0)
   const order = []
   let hasCycle = false
 
   const dfs = u => {
-    state[u] = 1
+    state[u] = 1 // 入栈，标记为「正在处理」
     for (const v of adj[u]) {
       if (state[v] === 1) {
         hasCycle = true // 又走回了递归栈上的顶点，说明有环
       } else if (state[v] === 0) {
-        dfs(v)
+        dfs(v) // 未访问过，继续往里走
       }
     }
     state[u] = 2
     order.push(u) // 后序：等所有邻居处理完再记录自己
   }
 
+  // 3. 图可能不连通，每个未访问的顶点都要发起一次深搜
   for (let i = 0; i < numVertices; i++) {
     if (state[i] === 0) dfs(i)
   }
 
+  // 后序记录的是「依赖在前」的逆序，反转后才是拓扑序
   return hasCycle ? [] : order.reverse()
 }
 
@@ -410,13 +430,6 @@ for (const [u, v] of undirectedEdges) {
 console.log(foundCycle) // true
 ```
 
-**高频用途：**
-
-- **判连通 / 判环**：`union` 返回 `false` 就意味着两端本已连通，在无向图里这条边必然成环。
-- **统计连通分量**：维护一个计数器，每成功 `union` 一次就减 1，最终剩下的就是连通分量个数。
-- **Kruskal 最小生成树**：把边按权重从小到大排序，用并查集跳过会成环的边，取满 $V-1$ 条即得最小生成树。
-- **账户 / 朋友圈合并**：LeetCode 547（省份数量）、721（账户合并）都是并查集的经典题。
-
 ## 5. 最短路径详解与实现
 
 在讨论最短路径前，我们必须先明确图的类型。因为图是否带有“**权重**”（边上的数值，代表距离或代价），决定了我们必须使用完全不同的算法。
@@ -425,7 +438,7 @@ console.log(foundCycle) // true
 
 如果图中所有的边都没有权重（或者说权重都等于 1），比如走迷宫、求社交网络中的最少朋友跳转次数（六度空间），那么 **广度优先搜索 (BFS)** 是寻找单源最短路径的最优且最简单的算法。
 
-#### 1. 原理解析
+#### 5.1.1 原理解析
 
 BFS 像水波纹一样，一层一层地向外扩散。
 
@@ -433,7 +446,7 @@ BFS 像水波纹一样，一层一层地向外扩散。
 - 第 2 层：距离起点为 2 的所有节点。
   因此，当你**第一次**碰见目标节点时，你走过的层数，绝对是所有可能路径中最少的。
 
-#### 2. JS 代码实现 (计算最短跳数及还原路径)
+#### 5.1.2 计算最短跳数及还原路径
 
 为了不仅能求出最短距离，还能**把具体的路径打印出来**，我们需要在 BFS 的过程中，记录每个节点是“**从谁那里走过来的**”（即它的前驱节点，通常用一个 `predecessors` 对象记录）。
 
@@ -509,15 +522,15 @@ console.log(`最短路径: ${result.path.join(' -> ')}`) // 最短路径: A -> C
 
 此时，我们必须使用著名的 **Dijkstra 算法**（用于计算单源最短路径，且**权重不能为负数**）。
 
-#### 1. 原理解析 (贪心思想)
+#### 5.2.1 原理解析 (贪心思想)
 
-1.  **初始化**：创建一个距离表 `distances`，记录起点到所有其他节点的距离。一开始，起点到自己的距离是 0，到其他所有节点的距离都是无穷大 (Infinity)。
-2.  **找最近**：在所有**还没被处理过**的节点中，找到当前距离起点**最近**的那个节点。
-3.  **松弛操作 (Relaxation)**：以这个最近的节点作为跳板，看看能不能通过它，抄近道走到它的邻居那里。如果【起点 -> 当前节点 -> 邻居】的距离，比【起点直接走到邻居】的原有距离还要短，就**更新**这个邻居的最短距离。
-4.  **标记完成**：把当前节点标记为“**已处理**”，以后不再碰它。
-5.  **循环**：重复步骤 2 和 3，直到所有可达节点都被处理完。
+1. **初始化**：创建一个距离表 `distances`，记录起点到所有其他节点的距离。一开始，起点到自己的距离是 0，到其他所有节点的距离都是无穷大 (Infinity)。
+2. **找最近**：在所有**还没被处理过**的节点中，找到当前距离起点**最近**的那个节点。
+3. **松弛操作 (Relaxation)**：以这个最近的节点作为跳板，看看能不能通过它，抄近道走到它的邻居那里。如果【起点 -> 当前节点 -> 邻居】的距离，比【起点直接走到邻居】的原有距离还要短，就**更新**这个邻居的最短距离。
+4. **标记完成**：把当前节点标记为“**已处理**”，以后不再碰它。
+5. **循环**：重复步骤 2 和 3，直到所有可达节点都被处理完。
 
-#### 2. JS 代码实现 (Dijkstra 算法)
+#### 5.2.2 Dijkstra 算法
 
 ```js
 // 加权图的邻接表表示 (值为对象，包含邻居节点和权重)
@@ -609,45 +622,22 @@ console.log(
 // A -> B -> C -> E -> D -> F
 ```
 
-### 5.3 单源加权图的最短路径(**权重可以为负数**):Bellman-Ford（贝尔曼-福特） 算法详解与实现
+### 5.3 单源加权图的最短路径(**权重可以为负数**):Bellman-Ford(贝尔曼-福特)算法
 
-在解决“**单源最短路径**”问题时，Dijkstra 算法是绝对的王者，但它有一个致命的弱点：**无法处理带有负数权重的边**。一旦图中出现负权边，Dijkstra 的贪心策略就会崩溃。
+Dijkstra 是**单源最短路径**的王者，但它有个致命弱点：**处理不了负权边**——一旦出现负权，贪心策略就会崩溃。
 
-**Bellman-Ford 算法**就是为了解决这个问题而诞生的。它不仅能处理带有负数权重的边，还能**检测图中是否存在“负权回路 (Negative Cycle)”**。
+**Bellman-Ford 算法**正是为此而生：不仅能处理负权边，还能**检测负权回路 (Negative Cycle)**。
 
-#### 1.核心概念与原理
+#### 5.3.1 核心概念与原理
 
-Bellman-Ford 算法的核心思想是**动态规划 (Dynamic Programming)**，具体操作称为“**松弛 (Relaxation)**”。
+算法的核心思想是**动态规划 (Dynamic Programming)**，具体操作称为“**松弛 (Relaxation)**”，起点 `S` 经中转点 `U` 到终点 `V`：若 `dist[U] + weight(U, V) < dist[V]`，就把 `dist[V]` 更新为这个更小的值——也就是“**从 `U` 绕一下更近，抄这条近道**”。
 
-##### 什么是“**松弛操作**”？
+> [!WARNING] 如何检测负权回路？
+> 若环上所有边的权重之和为负，在环里绕圈总距离就会不断减小、趋近于负无穷，这种情况下根本没有“**最短**”路径可言。
 
-假设我们有三个点：起点 `S`，中转点 `U`，终点 `V`。
+#### 5.3.2 代码实现
 
-- 已知 `S` 到 `V` 的当前最短距离为 `dist[V]`。
-- 已知 `S` 到 `U` 的最短距离为 `dist[U]`，并且 `U` 到 `V` 有一条边，权重为 `weight(U, V)`。
-- **松弛**：如果 `dist[U] + weight(U, V) < dist[V]`，我们就把 `dist[V]` 更新为这个更小的值。意思是：“**通过 `U` 中转去 `V`，比原来去 `V` 的路更近，我抄这条近道**”。
-
-##### 算法的“**暴力美学**”
-
-Dijkstra 算法每次都要精挑细选找最近的节点去松弛，而 Bellman-Ford 的做法非常简单粗暴：
-**把图中所有的边，不论三七二十一，全部拿出来尝试松弛一遍。**
-
-一遍肯定不够，那要松弛几遍呢？
-答案是：**$V-1$ 遍**（其中 $V$ 是图的顶点总数）。
-
-- **原理解释**：在一个包含 $V$ 个顶点的图中，任意两个顶点之间的**最短简单路径**（不包含环的路径）最多只包含 **$V-1$ 条边**。每次我们把所有边松弛一遍，实际上就是把最短路径的长度向前推进了一条边。所以，最多进行 $V-1$ 轮完整的松弛操作，就能找出所有节点的最短路径。
-
-##### 如何检测负权回路？
-
-如果图中存在一个环，且环上所有边的权重加起来是负数，那么在这个环里绕圈，总距离就会不断减小，趋近于负无穷大。这种情况下，是没有“**最短**”路径的。
-
-Bellman-Ford 的绝技在于：在完成了规定的 $V-1$ 轮松弛后，**再强行进行第 $V$ 轮松弛**。
-如果第 $V$ 轮还能成功更新某个距离，说明图中绝对存在负权回路！
-
-#### 2. JavaScript 代码实现
-
-为了方便遍历所有的边，通常我们会将图表示为**边集数组**（Edges Array），而不是邻接表。
-每条边是一个对象：`{ source: 'u', target: 'v', weight: w }`。
+遍历所有边时，图通常表示为**边集数组**（Edges Array）而非邻接表——每条边是一个 `{ u, v, weight }` 对象。
 
 ```js
 /**
@@ -746,13 +736,11 @@ function getPath(predecessors, target) {
 
 ### 5.4 多源加权图的最短路径：弗洛伊德算法 (Floyd-Warshall)
 
-**Dijkstra 算法**，它解决的是“**单源最短路径**”问题（即从*一个固定起点*到其他所有点的最短距离），而 **弗洛伊德算法 (Floyd-Warshall)** 解决的是“**多源最短路径**”问题。它非常暴力且优雅，能一次性计算出图中**任意两个节点之间**的最短路径。
+Dijkstra 解决的是“**单源最短路径**”（从一个固定起点出发，到其他所有点的最短距离），**弗洛伊德算法 (Floyd-Warshall)** 解决的是“**多源最短路径**”——它能一次性算出图中**任意两个节点之间**的最短路径，非常暴力且优雅。
 
-**算法核心思想：动态规划 (DP)**
+它的核心思想是**动态规划 (Dynamic Programming)**。
 
-弗洛伊德算法的核心是一种极其精妙的**动态规划 (Dynamic Programming)** 思想。
-
-#### 1. JavaScript 代码实现
+#### 5.4.1 代码实现
 
 与 Dijkstra 使用邻接表不同，Floyd 算法天生适合使用**邻接矩阵 (Adjacency Matrix)** 来实现。
 
@@ -760,7 +748,7 @@ function getPath(predecessors, target) {
 /**
  * 弗洛伊德算法 (Floyd-Warshall)
  * @param {number[][]} graph 邻接矩阵表示的加权图。
- *                           graph[i][j] 代表 i 到 j 的权重。无法直达则为 Infinity。
+ * graph[i][j] 代表 i 到 j 的权重。无法直达则为 Infinity。
  * @return {number[][]} 返回所有点对之间的最短距离矩阵
  */
 function floydWarshall(graph) {
@@ -826,10 +814,9 @@ console.table(shortestPaths)
 */
 ```
 
-#### 2. 进阶：如何还原具体的路径？
+#### 5.4.2 进阶：如何还原具体的路径？
 
-上面的代码只算出了“**最短距离是多少**”，但现实中我们往往需要知道“**具体该怎么走**”。
-为此，我们需要引入一个**路径记录矩阵 `path`**。
+上面的代码只算出了“**最短距离是多少**”，但现实中往往还需要知道“**具体该怎么走**”——那就要再引入一个**路径记录矩阵 `path`**。
 
 ```js
 function floydWarshallWithPath(graph) {
@@ -893,6 +880,51 @@ console.log('\nA(0) 到 C(2) 的最短路径:', printPath(result.path, 0, 2)) //
 - **解法 (DFS)**：深度优先遍历时，除了记录节点是否 `visited`，还要把它的 **“父亲节点”（从谁走到它的）** 作为参数传下去。
 - 遍历邻居时，若某个邻居**已被 `visited` 且不是我的父亲节点**，说明撞到了以前走过的路，形成了环。
 
+```js
+// 邻接表表示的无向图，判断有无环
+function hasCycle(numVertices, edges) {
+  const adj = Array.from({ length: numVertices }, () => [])
+  for (const [u, v] of edges) {
+    adj[u].push(v)
+    adj[v].push(u) // 无向图：两个方向都要连
+  }
+
+  const visited = new Array(numVertices).fill(false)
+
+  // parent 是「从谁走到 u 的」，用来排除回头看的这条边
+  const dfs = (u, parent) => {
+    visited[u] = true
+    for (const v of adj[u]) {
+      if (!visited[v]) {
+        if (dfs(v, u)) return true // 没走过就继续深入，u 成为下一层的 parent
+      } else if (v !== parent) {
+        return true // 已访问又不是父亲 —— 撞上老路，成环
+      }
+    }
+    return false
+  }
+
+  // 图可能不连通，每个未访问的顶点都要发起一次 DFS
+  for (let i = 0; i < numVertices; i++) {
+    if (!visited[i] && dfs(i, -1)) return true
+  }
+  return false
+}
+
+const triangle = [
+  [0, 1],
+  [1, 2],
+  [2, 0],
+]
+const chain = [
+  [0, 1],
+  [1, 2],
+]
+
+console.log(hasCycle(3, triangle)) // true，0-1-2-0 成环
+console.log(hasCycle(3, chain)) // false，一条链
+```
+
 ### 6.2 图的遍历时间复杂度是多少？
 
 - 用**邻接表**表示图时，BFS 和 DFS 的时间复杂度都是 **$O(V + E)$**（$V$ 为顶点数，$E$ 为边数）：每个顶点访问一次，每条边也探索一次。
@@ -906,7 +938,7 @@ console.log('\nA(0) 到 C(2) 的最短路径:', printPath(result.path, 0, 2)) //
 ### 6.4 A\* 算法和 Dijkstra 有什么区别？
 
 - **Dijkstra**：按“**起点到当前顶点的实际代价**” $g(n)$ 排序取最小，像水波一样向四周均匀扩散，保证最优，但会探索大量与终点无关的顶点。
-- **A\***：按 $f(n) = g(n) + h(n)$ 排序，其中 $h(n)$ 是“**当前顶点到终点的启发式估计**”（如欧氏距离、曼哈顿距离）。只要 $h(n)$ 不高估真实距离（可采纳），A\* 仍能保证最优，但搜索方向被“**拉**”向终点，扩展的顶点更少。
+- **A\***：按 $f(n) = g(n) + h(n)$ 排序，其中 $h(n)$ 是“**当前顶点到终点的启发式估计**”(如欧氏距离、曼哈顿距离)。只要 $h(n)$ 不高估真实距离（可采纳），A\* 仍能保证最优，但搜索方向被“**拉**”向终点，扩展的顶点更少。
 - **关系**：当 $h(n) \equiv 0$ 时，A\* 就退化成 Dijkstra。地图导航、游戏寻路几乎都用 A\*。
 
 ### 6.5 最小生成树 (MST)：Prim 和 Kruskal 有什么区别？
@@ -919,7 +951,7 @@ console.log('\nA(0) 到 C(2) 的最短路径:', printPath(result.path, 0, 2)) //
 
 - **DFS 三色标记**：顶点有“**未访问 / 在递归栈上 / 已完成**”三种状态。若在 DFS 中遇到一个**正处于递归栈上**的邻居，说明绕回了自己，存在环。
 - **Kahn 拓扑排序**：跑完后若排出的顶点数小于总数，说明剩下的顶点互相成环。
-- **无向图**不能用三色法，要用并查集或“**DFS 记录父亲节点**”（见 6.1）。
+- **无向图**不能用三色法，要用并查集或“**DFS 记录父亲节点**”。
 
 ### 6.7 邻接矩阵和邻接表该怎么选？
 
