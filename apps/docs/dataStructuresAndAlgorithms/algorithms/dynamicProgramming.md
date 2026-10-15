@@ -24,7 +24,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 - **初始化（Initialization）：** 确定 `dp` 数组的初始值（如 `dp[0]`、`dp[1]`），为状态转移提供起点。
 - **确定遍历顺序（Traversal Order）：** 明确是应该从前向后遍历，还是从后向前，或是二维数组的特殊遍历方式。
 
-## 2. 经典 DP 场景与 JavaScript 实现
+## 2. 经典 DP 场景
 
 ### 2.1 爬楼梯问题 (Climbing Stairs)
 
