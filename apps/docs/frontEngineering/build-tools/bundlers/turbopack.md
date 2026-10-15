@@ -4,7 +4,9 @@
 
 在前端工程化领域，Webpack 统治了长达十年的基建江山，而 Vite 则通过 ESM 实现了开发体验的弯道超车。然而，Webpack 的生父 Tobias Koppers 加入 Vercel 后，并没有选择修补 Webpack，也没有盲从 Vite 的路线，而是用 Rust 语言彻底推倒重来，打造了 **Turbopack**。
 
-理解 Turbopack，必须跳出“打包器”的固有思维，将其视为一个**极速的增量计算引擎**。
+理解 Turbopack，必须跳出“**打包器**”的固有思维，将其视为一个**极速的增量计算引擎**。
+
+[width(20,24,28,28)]
 
 | 核心差异点         | Webpack (Legacy Bundle)  | Vite (Bundleless / ESM)                                      | Turbopack (Incremental Bundle)                                     |
 | ------------------ | ------------------------ | ------------------------------------------------------------ | ------------------------------------------------------------------ |
@@ -15,7 +17,7 @@
 
 ### 1.1 什么是 Incremental Bundling（增量打包）？
 
-Vite 证明了开发环境不需要“全量打包”，但 Vite 的 `Bundleless` 策略在大规模企业级应用中暴露了致命缺陷：当页面包含数千个相互引用的细碎模块时，浏览器会因建立海量的 HTTP 连接而陷入停滞。
+Vite 证明了开发环境不需要“**全量打包**”，但 Vite 的 `Bundleless` 策略在大规模企业级应用中暴露了致命缺陷：当页面包含数千个相互引用的细碎模块时，浏览器会因建立海量的 HTTP 连接而陷入停滞。
 
 **Turbopack 的核心思想是：开发环境依然需要打包（Bundle），但必须做到极致的“按需”和“增量”。**
 
@@ -23,7 +25,7 @@ Turbopack 在开发环境下的流转过程如下：
 
 - **按请求级编译 (Request-level compilation)**：启动服务器时，它不编译任何内容。当浏览器请求 `/dashboard` 页面时，Turbopack 仅将该页面及其直接依赖作为一个独立的 Chunk 进行极速打包，并返回给浏览器。
 - **消除网络瀑布流**：与 Vite 动辄几百个请求不同，Turbopack 会把关联的小模块合并成较大的 Chunk 发送给浏览器，完美规避了浏览器的并发请求限制。
-- **基于函数的缓存复用**：修改某个文件时，底层的 Turbo Engine 会精准计算出依赖图中受影响的“最小函数节点”，只重新执行这些 Rust 函数，其余保持不变。
+- **基于函数的缓存复用**：修改某个文件时，底层的 Turbo Engine 会精准计算出依赖图中受影响的“**最小函数节点**”，只重新执行这些 Rust 函数，其余保持不变。
 
 ### 1.2 Turbopack 实现原理
 
@@ -37,7 +39,7 @@ Turbopack 在编译层彻底摒弃了 Babel 等 JS 写的转译器，全面拥�
 
 #### 1.2.3 内存与持久化缓存状态
 
-Turbo Engine 会记住每一个函数的输入和输出。不仅是最终产物，连中间的 AST 语法树、模块解析路径都会被缓存在内存或磁盘中。这意味着，即使你重启了开发服务器，只要文件没变，Turbopack 就能瞬间从缓存中恢复整个依赖图，实现“热启动”。
+Turbo Engine 会记住每一个函数的输入和输出。不仅是最终产物，连中间的 AST 语法树、模块解析路径都会被缓存在内存或磁盘中。这意味着，即使你重启了开发服务器，只要文件没变，Turbopack 就能瞬间从缓存中恢复整个依赖图，实现“**热启动**”。
 
 #### 1.2.4 框架级服务端组件 (RSC) 深度融合
 
@@ -75,7 +77,7 @@ JavaScript 是单线程的，Webpack 即使利用 worker-pool 也存在沉重的
 
 ## 3. Turbopack 核心基础配置实战
 
-由于 Turbopack 目前与 Next.js 框架深度绑定，其“独立形态”仍在完善中。在企业级实战中，我们通常在 `next.config.js` 中对其进行配置与调优。
+由于 Turbopack 目前与 Next.js 框架深度绑定，其“**独立形态**”仍在完善中。在企业级实战中，我们通常在 `next.config.js` 中对其进行配置与调优。
 
 ```js
 // next.config.js
@@ -147,6 +149,33 @@ module.exports = nextConfig
 }
 ```
 
+### 3.1 高频配置项速查
+
+真正需要日常动手的配置项其实很固定。这里有一个必须先记住的版本变化：`experimental.turbo` 是 Next.js 13.0～15.2 的写法，15.3 起改名为顶层 `turbopack` 字段；到 Next.js 16，Turbopack 已经是默认打包器，配置统一收敛到顶层 `turbopack` 下。
+
+[width(23,36,41)]
+
+| 配置项 / 标志                 | 作用                                                      | 典型值 / 用法                                            |
+| :---------------------------- | :-------------------------------------------------------- | :------------------------------------------------------- |
+| `next dev --turbopack`        | 显式开启 Turbopack 开发服务器（`--turbo` 是更早的别名）   | Next.js 16 起默认开启，需回退 Webpack 时改传 `--webpack` |
+| `turbopack.root`              | 指定工程根目录，必须是绝对路径                            | `root: path.join(__dirname, '..')`                       |
+| `turbopack.resolveAlias`      | 导入重定向，对齐 Webpack 的 `resolve.alias`               | `{'@/utils/*': './src/utils/*'}`                         |
+| `turbopack.resolveExtensions` | 覆写模块后缀解析顺序，只作用于源码，不进入 `node_modules` | `['.tsx', '.ts', '.jsx', '.js', '.mjs', '.json']`        |
+| `turbopack.rules`             | 按文件后缀挂载兼容的 Webpack Loader                       | `{'*.svg': {loaders: ['@svgr/webpack'], as: '*.js'}}`    |
+| `turbopack.treeShaking`       | 为开发服务器与构建开启 Tree Shaking                       | `treeShaking: true`                                      |
+| `turbopack.debugIds`          | 在 JS bundle 与 source map 中注入稳定的 debug id          | `debugIds: true`                                         |
+
+默认的模块解析后缀是 `.tsx`、`.ts`、`.jsx`、`.js`、`.mjs`、`.json`（服务端额外带 `.node`）；一旦覆写 `resolveExtensions`，必须把默认值一并写回，否则自有源码会解析失败。
+
+### 3.2 Turbopack 的 Webpack 兼容边界 (Loader 与 Plugin)
+
+迁移时最容易踩的坑是“**原来那堆插件还能不能用**”。结论很明确：
+
+- **Plugin 基本不支持**：Turbopack 会直接忽略 `next.config.js` 里的 `webpack()` 函数，`DefinePlugin`、`MiniCssExtractPlugin`、`CopyWebpackPlugin` 这类依赖 Webpack 内部钩子的插件都无法运行。
+- **Loader 只支持子集**：只有“**最终返回 JavaScript 代码**”的 Loader（如 `@svgr/webpack`）才能在 `turbopack.rules` 下工作；负责输出样式、图片等非 JS 产物的 Loader 不受支持。
+- **Loader API 有缺失**：`emitFile`、`importModule`、`loadModule` 均未实现，`fs` 只实现了 `fs.readFile`；Loader 的 `options` 必须是可序列化的普通值，不能传入 `require()` 得到的模块。
+- **优先走 SWC**：Babel 相关诉求应尽量改用 Next.js 的 `compiler` 选项（由 SWC 原生实现），继续挂 Babel 插件只会把性能拉回 JS 执行级别。
+
 ## 4. 性能优化大杀器 (企业级调优)
 
 在 Turbopack 体系下，大部分底层的性能优化（如分包策略、并发控制）已经被 Rust 引擎在内部接管，架构师的优化重心应转向**模块加载策略**和**编译边界控制**。
@@ -162,7 +191,7 @@ module.exports = nextConfig
 
 ### 4.2 优化巨型第三方库解析 (Resolve Extensions)
 
-在巨型 Monorepo 中，模块寻址（Resolution）往往是一个隐形的性能黑洞。通过严格约束 `resolveExtensions`，可以减少 Turbopack 引擎在文件系统中“猜”后缀名的 I/O 开销。
+在巨型 Monorepo 中，模块寻址（Resolution）往往是一个隐形的性能黑洞。通过严格约束 `resolveExtensions`，可以减少 Turbopack 引擎在文件系统中“**猜**”后缀名的 I/O 开销。
 
 ```js
 // next.config.js
@@ -197,9 +226,17 @@ module.exports = {
 }
 ```
 
+### 4.4 高频应用场景与落地姿势
+
+- **大型 Next.js 应用本地冷启动太慢**：`next dev --turbopack` 配合合理的 `turbopack.root` 与精简后的 `resolveExtensions`，首次建图完成后写入 `.next` 缓存，二次启动基本秒开，热更新稳定在毫秒级。
+- **CI 流水线端到端构建提速**：`next build --turbopack` 让 SWC 的多核压缩与智能分包在 CI 机器上跑满 CPU，同时把 `.next/cache` 纳入流水线缓存复用，直接压缩每次构建的墙钟时间。
+- **Monorepo / 软链依赖解析失败**：把 `turbopack.root` 指向包含全部 workspace 包的父目录，避免 `pnpm link`、`npm link` 产生的软链包被判定为“**项目外文件**”。
+- **接入 SVG 与自定义后缀资源**：用 `turbopack.rules` 挂 `@svgr/webpack` 或团队自研 Loader，替代 Webpack 时代的 `file-loader` / `url-loader` 套路。
+- **多环境 / 微前端代码重定向**：用 `turbopack.resolveAlias` 在编译期把重型 SDK 或网关地址整体替换为轻量桩代码，省掉运行时的 `if/else` 判断。
+
 ## 5. 增量计算图引擎 (Incremental Computation Graph)
 
-如果说 Vite 的灵魂是“微内核 + 插件流水线”，那么 Turbopack 的灵魂就是**增量计算图（Incremental Computation Graph）**。理解它，才能明白前端构建工具进化的终极形态。
+如果说 Vite 的灵魂是“**微内核 + 插件流水线**”，那么 Turbopack 的灵魂就是**增量计算图（Incremental Computation Graph）**。理解它，才能明白前端构建工具进化的终极形态。
 
 ### 5.1 从流水线 (Pipeline) 到计算图 (Graph) 的降维打击
 
@@ -215,7 +252,7 @@ module.exports = {
 在 Turbopack 的 Rust 底层代码中，大量使用了 `#[turbo_tasks::function]` 宏。这相当于给每一个处理函数加上了绝对的缓存防伪标签。
 
 - **状态一致性传递**：当你修改了 `Button.tsx`。图引擎检测到代表该文件内容的节点 Hash 发生了变化。引擎会向上传递失效信号。
-- **最小重新评估边界**：引擎发现 `Button.tsx` 改变了，因此“编译 Button.tsx”这个函数节点需要重新执行。但是，引入了 `Button.tsx` 的 `Header.tsx` 的源码并没有变，如果重新编译 `Button.tsx` 后生成的对外暴露接口（Exports）没有变化，图引擎就会在此处**强行斩断失效链**！`Header.tsx` 根本不会被重新编译。
+- **最小重新评估边界**：引擎发现 `Button.tsx` 改变了，因此“**编译 Button.tsx**”这个函数节点需要重新执行。但是，引入了 `Button.tsx` 的 `Header.tsx` 的源码并没有变，如果重新编译 `Button.tsx` 后生成的对外暴露接口（Exports）没有变化，图引擎就会在此处**强行斩断失效链**！`Header.tsx` 根本不会被重新编译。
 - 这就是 Turbopack 能够实现 $O(1)$ 热更新的终极秘密。
 
 ### 5.3 资产与过渡 (Assets and Transitions)
@@ -244,7 +281,7 @@ module.exports = {
 
 ### 7.1 Turbopack 以后会完全取代 Webpack 吗？我的老 Webpack 项目能一键迁移吗？
 
-- **答**：Turbopack 的**终极目标**确实是成为 Webpack 的继任者。但目前（包括可预见的短期内），它**无法做到**旧有巨型 Webpack 项目的“一键无缝迁移”。
+- **答**：Turbopack 的**终极目标**确实是成为 Webpack 的继任者。但目前（包括可预见的短期内），它**无法做到**旧有巨型 Webpack 项目的“**一键无缝迁移**”。
 - Webpack 积攒了 10 年的复杂魔法配置和数以万计的野生社区插件，Turbopack 不可能也没必要用 Rust 全部重写一遍。它的最佳落地场景是从 0 到 1 的现代框架新项目（首选 Next.js）。旧有老项目如果饱受编译速度折磨，目前更推荐迁移至 **Rspack**（字节跳动开源的、高度兼容 Webpack API 的 Rust 打包器）。
 
 ### 7.2 Turbopack 和 Vite (Rolldown) 究竟谁更强？架构师该如何选型？
@@ -255,11 +292,11 @@ module.exports = {
 
 ### 7.3 为什么我第一次开启 `--turbo` 时，感觉启动反而有点慢？
 
-- **答**：Turbopack 宣称的“极速”建立在**缓存被建立之后**。第一次冷启动时，Turbo Engine 需要扫描硬盘、解析大量依赖并建立底层的增量计算图，这个过程需要消耗一定的计算资源。一旦初次计算完成，所有的中间状态被存入内存和硬盘的 `.next` 缓存目录，从第二次启动以及后续的任何热更新开始，你就会体验到真正的“快到飞起”。
+- **答**：Turbopack 宣称的“**极速**”建立在**缓存被建立之后**。第一次冷启动时，Turbo Engine 需要扫描硬盘、解析大量依赖并建立底层的增量计算图，这个过程需要消耗一定的计算资源。一旦初次计算完成，所有的中间状态被存入内存和硬盘的 `.next` 缓存目录，从第二次启动以及后续的任何热更新开始，你就会体验到真正的“**快到飞起**”。
 
 ### 7.4 Turbopack 会支持 Vue 吗？
 
-- **答**：Vercel 官方并未在底层排斥任何框架。Turbopack 的架构被设计为“框架无关（Framework-agnostic）”。理论上，只要社区有人用 Rust 写出了解析 `.vue` 文件的 SWC/Turbopack 核心插件，Vue 项目同样能享受它的加持。但从商业逻辑和生态壁垒来看，Turbopack 的资源倾斜必然长期服务于 React 体系。Vue 生态的核心依然会牢牢绑定在 Vite 战车之上。
+- **答**：Vercel 官方并未在底层排斥任何框架。Turbopack 的架构被设计为“**框架无关（Framework-agnostic）**”。理论上，只要社区有人用 Rust 写出了解析 `.vue` 文件的 SWC/Turbopack 核心插件，Vue 项目同样能享受它的加持。但从商业逻辑和生态壁垒来看，Turbopack 的资源倾斜必然长期服务于 React 体系。Vue 生态的核心依然会牢牢绑定在 Vite 战车之上。
 
 ### 7.5 Turbopack 和 Turborepo 是什么关系？
 
@@ -268,3 +305,23 @@ module.exports = {
   - **Turborepo**：负责**宏观**的项目管线。它是用来管理 Monorepo 中多个包（Packages）之间谁先 build、谁后 build 的任务编排工具。
   - **Turbopack**：负责**微观**的代码管线。它是用来处理单个项目内部 `.js`, `.css` 文件之间如何解析、如何编译的打包器。
   - **终极形态**：在企业级架构中，外层用 Turborepo 调度多项目，内层业务（Next.js）用 Turbopack 打包，这就是 Vercel 构想的前端性能终局。
+
+### 7.6 `--turbo`、`--turbopack` 和顶层 `turbopack` 字段到底怎么对应？升级后配置为什么报错？
+
+- **答**：它们指的是同一套东西，只是版本演进中换过名字。
+  - **CLI 标志**：Next.js 14/15 用 `next dev --turbo`，后来统一成 `--turbopack`；到 Next.js 16，Turbopack 已是默认打包器，不需要再加标志，反而要回退 Webpack 时才传 `--webpack`。
+  - **配置字段**：13.0～15.2 写在 `experimental.turbo`，15.3 起改名为顶层 `turbopack`，旧字段已废弃。
+  - **升级姿势**：执行 `npx @next/codemod@latest next-experimental-turbo-to-turbopack .` 可以把配置自动挪到顶层，之后再删掉不再支持的字段即可。
+
+### 7.7 我项目里的 Webpack Loader / Plugin 在 Turbopack 下没生效，怎么排查？
+
+- **答**：先明确边界——**Plugin 不被支持，Loader 只支持“返回 JS 代码”的子集**。
+  - **Plugin**：只要 `next.config.js` 里写了 `webpack()` 函数，Turbopack 会整段忽略，压缩 / CSS 抽取这类调优插件建议直接删除，Turbopack 已有等价的内置能力；确有硬需求的用 `next dev --webpack` 回退到 Webpack。
+  - **Loader**：把需要的 Loader 搬进 `turbopack.rules`，只保留返回 JS 的那几个；依赖 `emitFile`、`importModule` 等 API 的 Loader 无法迁移，需要改写或寻找对应的 SWC 版本。
+  - **Babel 插件**：优先改用 Next.js 的 `compiler` 选项（SWC 原生实现），比继续挂 Babel 插件更快。
+
+### 7.8 Monorepo 里开启 Turbopack 后一直报模块找不到、或反复重新编译，怎么办？
+
+- **答**：十有八九是**工程根目录（root）**没有识别对。
+  - Next.js 默认靠在项目里向上查找 `pnpm-lock.yaml`、`package-lock.json`、`yarn.lock`、`bun.lock` 等锁文件来推断根目录；Monorepo 或 `npm link` / `pnpm link` 出来的软链依赖，经常落在这个推断范围之外。
+  - **解决方案**：显式设置 `turbopack.root` 为包含所有相关包的父目录，例如 `root: path.join(__dirname, '..')`；同时确认 `resolveExtensions` 里保留了默认后缀，否则自有源码也会解析失败。

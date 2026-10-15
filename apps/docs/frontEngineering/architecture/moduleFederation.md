@@ -4,13 +4,13 @@ outline: [2, 3]
 
 # Module Federation 模块联邦
 
-Module Federation（模块联邦）是近年来前端工程化领域**最具颠覆性的架构创新**，其核心思想是：让多个**独立构建、独立部署**的前端应用，在浏览器运行时**动态加载**对方的模块，共享公共依赖，并组合成一个完整的页面。它并不是传统意义上的"微前端沙箱框架"，而是**运行时模块化的基础设施**。
+Module Federation（模块联邦）是近年来前端工程化领域**最具颠覆性的架构创新**，其核心思想是：让多个**独立构建、独立部署**的前端应用，在浏览器运行时**动态加载**对方的模块，共享公共依赖，并组合成一个完整的页面。它并不是传统意义上的“**微前端沙箱框架**”，而是**运行时模块化的基础设施**。
 
 ## 1. 核心定位与底层原理
 
-### 1.1 从"构建时依赖"到"运行时依赖"
+### 1.1 从“**构建时依赖**”到“**运行时依赖**”
 
-传统打包工具（Webpack、Rollup 等）在构建阶段就把所有依赖关系确定下来，产出闭合的静态 Bundle。Module Federation 打破了这一范式：**它将一部分模块依赖推迟到运行时动态解析**，让不同构建产物之间可以互相"**import**"。
+传统打包工具（Webpack、Rollup 等）在构建阶段就把所有依赖关系确定下来，产出闭合的静态 Bundle。Module Federation 打破了这一范式：**它将一部分模块依赖推迟到运行时动态解析**，让不同构建产物之间可以互相“**import**”。
 
 ```markdown
 传统打包模型（构建时闭合）:
@@ -26,7 +26,7 @@ import('order/App')
 vue、pinia 等共享依赖只加载一次
 ```
 
-> **关键洞察：** Module Federation 不是"**微前端框架**"，它是一个**分布式模块系统**。它解决的核心问题是"**如何让不同构建产物在运行时高效共享代码**"，而非"**如何隔离应用**"。
+> **关键洞察：** Module Federation 不是“**微前端框架**”，它是一个**分布式模块系统**。它解决的核心问题是“**如何让不同构建产物在运行时高效共享代码**”，而非“**如何隔离应用**”。
 
 ### 1.2 运行时加载流程
 
@@ -56,14 +56,18 @@ sequenceDiagram
 
 ## 2. 核心概念
 
-| 概念                 | 说明                                                                                          |
-| -------------------- | --------------------------------------------------------------------------------------------- |
-| **Host**             | 消费者 / 主应用，负责加载远程模块并组合页面                                                   |
-| **Remote**           | 生产者 / 远程应用，暴露模块供其他应用消费。一个应用可以同时是 Host 和 Remote（Bidirectional） |
-| **`remoteEntry.js`** | Remote 构建产出的模块清单文件，包含所有 exposes 的异步加载入口和 shared 元信息                |
-| **`exposes`**        | Remote 声明"**我对外暴露哪些模块**"，每个模块会独立拆分为一个异步 chunk                       |
-| **`remotes`**        | Host 声明"**我要消费哪些远程应用**"，指定名称到 `remoteEntry.js` URL 的映射                   |
-| **`shared`**         | 声明多应用间共享的依赖（如 Vue、React、组件库），运行时协商只保留一份实例                     |
+[width(18,82)]
+
+| 概念                 | 说明                                                                                                  |
+| -------------------- | ----------------------------------------------------------------------------------------------------- |
+| **Host**             | 消费者 / 主应用，负责加载远程模块并组合页面                                                           |
+| **Remote**           | 生产者 / 远程应用，暴露模块供其他应用消费。一个应用可以同时是 Host 和 Remote（Bidirectional）         |
+| **`remoteEntry.js`** | Remote 构建产出的模块清单文件，包含所有 exposes 的异步加载入口和 shared 元信息                        |
+| **`exposes`**        | Remote 声明“**我对外暴露哪些模块**”，每个模块会独立拆分为一个异步 chunk                               |
+| **`remotes`**        | Host 声明“**我要消费哪些远程应用**”，指定名称到 `remoteEntry.js` URL 的映射                           |
+| **`shared`**         | 声明多应用间共享的依赖（如 Vue、React、组件库），运行时协商只保留一份实例                             |
+| **Share Scope**      | 共享作用域，运行时存放共享依赖实例的全局注册表，默认名为 `default`；Host 与 Remote 通过它协商复用依赖 |
+| **Container**        | 容器，`remoteEntry.js` 向全局暴露的对象，提供 `init(shareScope)` 与 `get(module)` 两个方法            |
 
 ## 3. Webpack 5 模块联邦
 
@@ -298,6 +302,50 @@ new ModuleFederationPlugin({
 
 :::
 
+### 3.6 ModuleFederationPlugin 高频配置字段
+
+`ModuleFederationPlugin` 的配置项不多，但每一个都直接影响运行时行为。以下是日常最高频的字段：
+
+[width(13,23,15,49)]
+
+| 字段         | 类型               | 默认值             | 作用与注意事项                                                                               |
+| ------------ | ------------------ | ------------------ | -------------------------------------------------------------------------------------------- |
+| `name`       | `string`           | —                  | **远程应用的全局唯一标识**。Host 侧 `remotes` 的 key 必须与它一致，否则运行时找不到容器      |
+| `filename`   | `string`           | `'remoteEntry.js'` | 远程入口产物名，部署后 Host 通过该文件发现模块清单与共享依赖元信息                           |
+| `exposes`    | `object`           | —                  | 对外暴露的模块，key **必须显式以 `./` 开头**（如 `'./OrderApp'`），否则报 `Module not found` |
+| `remotes`    | `object`           | —                  | 消费的远程应用，值为 `'name@url'`，`name` 对应远端 `name`，`url` 指向其 `remoteEntry.js`     |
+| `shared`     | `object` / `array` | —                  | 共享依赖及协商策略，字段详见 6.2 节                                                          |
+| `library`    | `object`           | —                  | 产物模块格式，需要以 ESM 输出时设为 `{ type: 'module' }`                                     |
+| `runtime`    | `string` / `false` | —                  | 指定联邦运行时的 chunk 名，多个入口共用同一 `runtime` 可避免运行时被重复注入                 |
+| `shareScope` | `string`           | `'default'`        | 共享作用域名称，多套依赖体系并存时可用不同 scope 做隔离                                      |
+
+> **提示：** `remotes` 的值除 `'name@url'` 字符串外，还支持 `promise new Promise(...)` 的动态写法，可在运行时才决定远程地址，对应 3.4 节的动态 Remote 方案。
+
+### 3.7 运行时 API 与手动加载
+
+除了在配置里静态声明 `remotes`，也可以在运行时用 Webpack 注入的全局 API 手动加载远程应用（3.4 节的 `loadRemote` 就是这么实现的）。排查联邦问题时，这几个全局量是关键抓手：
+
+[width(40,17,43)]
+
+| API                               | 位置        | 作用                                                                       |
+| --------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| `import('order/OrderApp')`        | 业务代码    | 最常用的消费方式，构建时被编译为对远程容器的异步请求                       |
+| `__webpack_init_sharing__(scope)` | Host 运行时 | 初始化**当前应用自身**的共享作用域，手动加载远程容器前必须先调用           |
+| `__webpack_share_scopes__[scope]` | Host 运行时 | 只读访问共享作用域对象，作为参数交给远程容器的 `init`                      |
+| `container.init(shareScope)`      | Remote 容器 | 把 Host 的共享作用域交给 Remote 协商，返回 `Promise`                       |
+| `container.get(moduleKey)`        | Remote 容器 | 按 `exposes` 的 key 取出模块工厂，返回 `Promise`，调用工厂后才拿到真实导出 |
+
+```js
+// 手动加载一个未在 remotes 中声明的远程应用
+async function loadRemoteApp(scopeName, moduleKey) {
+  await __webpack_init_sharing__('default') // ① 初始化 Host 自己的共享作用域
+  const container = window[scopeName] // ② remoteEntry.js 会把容器挂到全局同名变量
+  await container.init(__webpack_share_scopes__.default) // ③ 协商共享依赖
+  const factory = await container.get(moduleKey) // ④ 取出模块工厂
+  return factory() // ⑤ 执行并返回真实导出
+}
+```
+
 ## 4. Vite 模块联邦
 
 Vite 本身没有内置 Module Federation，但社区有成熟的插件方案。**`@originjs/vite-plugin-federation`** 是目前最主流、维护最活跃的 Vite 模块联邦实现，它模拟了 Webpack 5 的 `ModuleFederationPlugin` 接口。
@@ -396,6 +444,8 @@ export default defineConfig({
 
 Vite 的模块联邦实现与 Webpack 5 存在一些关键差异，落地时必须关注：
 
+[width(24,30,46)]
+
 | 差异点                  | Webpack 5                            | Vite (`vite-plugin-federation`)                                             |
 | ----------------------- | ------------------------------------ | --------------------------------------------------------------------------- |
 | **底层包格式**          | 支持多种格式，默认产出 Webpack chunk | **强制要求 ESM 格式**（`build.target: 'esnext'`），否则模块无法动态导入     |
@@ -411,12 +461,14 @@ Vite 的模块联邦实现与 Webpack 5 存在一些关键差异，落地时必�
 
 ### 5.1 架构层面的本质差异
 
+[width(13,42,45)]
+
 | 维度               | Webpack 5 Module Federation                                                                   | Vite `vite-plugin-federation`                                                                   |
 | ------------------ | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | **实现层级**       | **构建工具内置**。Webpack 5 的 `container` 插件是核心模块，有完整的 API、生命周期和运行时支持 | **第三方插件模拟**。通过 Vite 插件机制在 Rollup 构建阶段注入 Module Federation 的运行时包装代码 |
 | **运行时基础设施** | 内置 `__webpack_share_scopes__` 全局共享作用域，协商逻辑成熟                                  | 通过插件在构建产物中注入简化的共享作用域逻辑，行为接近但非 100% 对齐 Webpack                    |
 | **生态成熟度**     | 生产验证 5 年+，SAP、Adobe、AWS 等大型企业已落地                                              | 社区维护，适合统一技术栈的中型项目，落地案例相对较少                                            |
-| **开发体验**       | `webpack-dev-server` 支持 Host 和 Remote 同时在开发模式下联动，HMR 可直接跨应用生效           | 开发模式联动能力有限，联调时通常需要 Remote 先构建，Host 引用产物，开发体验偏"构建后集成"       |
+| **开发体验**       | `webpack-dev-server` 支持 Host 和 Remote 同时在开发模式下联动，HMR 可直接跨应用生效           | 开发模式联动能力有限，联调时通常需要 Remote 先构建，Host 引用产物，开发体验偏“**构建后集成**”   |
 | **产物兼容性**     | 可配置 `library.type` 支持多种模块格式（`var`、`module`、`commonjs` 等）                      | 强制 ESM 格式（`build.target: 'esnext'`），对旧浏览器兼容需要额外处理                           |
 | **CSS 模块联邦**   | 成熟的 CSS chunk 分离和异步加载                                                               | CSS 隔离方案需要手动约定（CSS Modules / 构建时前缀），CSS 相关共享配置不如 Webpack 完善         |
 | **Rspack 兼容**    | **Rspack 原生兼容** Webpack 5 的 Module Federation API，可近乎零成本迁移                      | 不兼容（Rspack 的 API 对 Webpack 而非对 Vite）                                                  |
@@ -490,22 +542,29 @@ shared: {
 
 ### 6.2 shared 配置项详解
 
-| 配置项            | 类型      | 默认值  | 作用与注意事项                                                                                                      |
-| ----------------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------- |
-| `singleton`       | `boolean` | `false` | **只允许全局存在一个实例**。Vue、React、状态管理库、路由库、设计系统包通常必须设为 `true`，否则会出现"多实例地狱"。 |
-| `requiredVersion` | `string`  | —       | 声明期望的 semver 范围（如 `^3.5.0`）。Host 和 Remote 的版本必须在这个范围内兼容，否则运行时会警告。                |
-| `strictVersion`   | `boolean` | `false` | 版本不匹配时直接抛出错误而非警告。**不建议在开发阶段使用，可在 CI / 预发环境开启严格检查。**                        |
-| `eager`           | `boolean` | `false` | 是否随 `remoteEntry.js` 同步加载。`false`（推荐）延迟到首次 import 该模块时才加载，显著减小入口 JS 体积。           |
-| `version`         | `string`  | —       | 明确声明当前应用所使用的确切版本。不同于 `requiredVersion`（期望范围），`version` 是"**我实际打包的版本**"。        |
+[width(15,10,12,63)]
+
+| 配置项            | 类型      | 默认值      | 作用与注意事项                                                                                                          |
+| ----------------- | --------- | ----------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `singleton`       | `boolean` | `false`     | **只允许全局存在一个实例**。Vue、React、状态管理库、路由库、设计系统包通常必须设为 `true`，否则会出现“**多实例地狱**”。 |
+| `requiredVersion` | `string`  | —           | 声明期望的 semver 范围（如 `^3.5.0`）。Host 和 Remote 的版本必须在这个范围内兼容，否则运行时会警告。                    |
+| `strictVersion`   | `boolean` | `false`     | 版本不匹配时直接抛出错误而非警告。**不建议在开发阶段使用，可在 CI / 预发环境开启严格检查。**                            |
+| `eager`           | `boolean` | `false`     | 是否随 `remoteEntry.js` 同步加载。`false`（推荐）延迟到首次 import 该模块时才加载，显著减小入口 JS 体积。               |
+| `version`         | `string`  | —           | 明确声明当前应用所使用的确切版本。不同于 `requiredVersion`（期望范围），`version` 是“**我实际打包的版本**”。            |
+| `shareKey`        | `string`  | 包名        | 共享模块在共享作用域中的注册键，默认等于包名。需要同一包的不同版本并存时，可显式指一个不同的 key。                      |
+| `packageName`     | `string`  | —           | 共享子路径模块（如 `@scope/ui/es/button`）时，指定其归属的包名，让版本协商按整包进行。                                  |
+| `shareScope`      | `string`  | `'default'` | 该共享依赖注册到哪个作用域。用多个 scope 可以让两套依赖体系互不干扰。                                                   |
 
 ### 6.3 常见 shared 问题
+
+[width(26,31,43)]
 
 | 问题现象                                   | 根因分析                                                          | 解决方案                                                                  |
 | ------------------------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | 页面同时出现两套 Vue 实例，`ref()` 不共享  | `singleton: true` 未设置或设置不一致                              | 全部应用统一设置 `singleton: true` + `requiredVersion`                    |
 | Remote 加载后 Host 的 UI 组件库样式丢失    | 大型 UI 库的 CSS 被 Remote 重复注入，覆盖了 Host 的样式变量       | CSS Modules / CSS 变量命名空间前缀 / 构建时 `additionalData` 注入前缀     |
 | `remoteEntry.js` 体积过大                  | 大量 `eager: true` 的共享依赖被打进了入口文件                     | 将非必需同步加载的库设为 `eager: false`                                   |
-| 开发环境正常，生产环境报"**版本不兼容**"   | 开发时用了 `*` 或宽泛的版本范围，生产环境 `package.json` 版本收紧 | 统一使用 `pnpm overrides` 锁定版本，CI 中加 `pnpm ls --json` 做版本审计   |
+| 开发环境正常，生产环境报“**版本不兼容**”   | 开发时用了 `*` 或宽泛的版本范围，生产环境 `package.json` 版本收紧 | 统一使用 `pnpm overrides` 锁定版本，CI 中加 `pnpm ls --json` 做版本审计   |
 | Remote 的 Pinia store 在 Host 中 undefined | Pinia 实例在 Remote 初始化时机早于 Host 的共享注入                | 确保 Host 先初始化共享依赖，或 Remote 延迟创建 store 直到 Host 完成初始化 |
 
 ## 7. 路由与组合模式
@@ -513,6 +572,8 @@ shared: {
 ### 7.1 模块组合粒度
 
 Module Federation 的灵活性体现在组合粒度可以从粗到细：
+
+[width(11,47,23,19)]
 
 | 粒度       | 示例                                          | 适用场景                       | 工程化复杂度 |
 | ---------- | --------------------------------------------- | ------------------------------ | ------------ |
@@ -590,7 +651,7 @@ async function registerRemoteRoutes(router: Router) {
 
 ### 7.3 跨应用组件共享
 
-当多应用共享同一个 Header、Footer 或全局 Sidebar 时，可以用一个专门的 "**Shared" Remote**：
+当多应用共享同一个 Header、Footer 或全局 Sidebar 时，可以用一个专门的 “**Shared**” Remote：
 
 :::code-group
 
@@ -632,9 +693,23 @@ const GlobalFooter = defineAsyncComponent(() => import('shared/GlobalFooter'))
 
 :::
 
+### 7.4 高频应用场景
+
+不同诉求对应不同的组合方式，下面是最常见的几类落地场景：
+
+[width(15,35,26,24)]
+
+| 场景                 | 典型做法                                                                         | 关键点                                             | 注意事项                                 |
+| -------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------- | ---------------------------------------- |
+| 跨团队共享业务组件库 | 建一个专门的 `shared` Remote，暴露 Header、主题、鉴权按钮等                      | `exposes` + `shared: { vue: { singleton: true } }` | 组件库与 Host 必须严格共享同一份框架实例 |
+| 微前端子应用互通     | 每个子应用既是 Host 又是 Remote，互相消费对方的页面或组件                        | 同时声明 `remotes` 与 `exposes`                    | 注意双向依赖的加载顺序与初始化时机       |
+| 按需远程加载大模块   | 富文本、图表、地图、低代码引擎等大体积模块独立成 Remote，路由命中时才 `import()` | `defineAsyncComponent` 异步加载                    | 首屏不加载，必须配加载失败降级           |
+| 多团队独立发版       | 每个业务域各自一个 Remote，独立 CI/CD、独立域名部署                              | 版本化的 `remoteEntry` URL                         | 依赖第 8 节的版本治理与兼容矩阵          |
+| 渐进式替换遗留系统   | 新页面走模块联邦，旧页面继续独立运行，由 Host 统一编排路由                       | `import('legacy/Page')`                            | 技术栈差异过大时优先考虑 Wujie / iframe  |
+
 ## 8. 发布与版本治理
 
-Module Federation 的最大工程风险是**运行时版本不一致**。Host 部署时消费的是某个 Remote 的 `remoteEntry.js` URL，而 Remote 可能随时发布新版本。如果没有良好的版本治理策略，就会出现"**Host 今天正常，明天突然挂掉**"的情况。
+Module Federation 的最大工程风险是**运行时版本不一致**。Host 部署时消费的是某个 Remote 的 `remoteEntry.js` URL，而 Remote 可能随时发布新版本。如果没有良好的版本治理策略，就会出现“**Host 今天正常，明天突然挂掉**”的情况。
 
 ### 8.1 版本化远程入口 URL
 
@@ -694,6 +769,8 @@ async function bootstrapRemotes() {
 
 ### 8.3 构建产物缓存策略
 
+[width(25,20,55)]
+
 | 文件类型            | 缓存策略            | 原因                                                                              |
 | ------------------- | ------------------- | --------------------------------------------------------------------------------- |
 | `remoteEntry.js`    | **短缓存 (5 分钟)** | 需要确保 Host 能尽快获取到最新的模块清单。服务器设置 `Cache-Control: max-age=300` |
@@ -703,7 +780,7 @@ async function bootstrapRemotes() {
 
 ### 8.4 版本兼容与依赖锁定
 
-在多 Remote 的大型系统中，需要维护一份"**版本兼容矩阵**"，明确每个 Remote 版本与 Host 版本的兼容关系：
+在多 Remote 的大型系统中，需要维护一份“**版本兼容矩阵**”，明确每个 Remote 版本与 Host 版本的兼容关系：
 
 ```json
 // compat-matrix.json（由 CI 在构建时自动生成）
@@ -744,7 +821,9 @@ async function validateRemoteVersions() {
 
 ## 9. 微前端方案的协同
 
-Module Federation 不是"**替代**"其他微前端方案，它们可以**组合使用**：
+Module Federation 不是“**替代**”其他微前端方案，它们可以**组合使用**：
+
+[width(47,53)]
 
 | 场景                                       | 推荐组合                                                      |
 | ------------------------------------------ | ------------------------------------------------------------- |
@@ -753,9 +832,35 @@ Module Federation 不是"**替代**"其他微前端方案，它们可以**组合
 | 异构框架（React + Vue + Angular）共存的    | qiankun / Wujie 做应用级隔离，MF 在同类技术栈内部做模块级共享 |
 | 需要强安全隔离的核心业务                   | Wujie（Web Component + iframe 物理隔离）                      |
 
-## 10. 常见问题 (FAQ) 与排查手册
+## 10. 落地建议
 
-### 10.1 `Shared module is not available for eager consumption`
+```markdown
+阶段 1：基础设施搭建（1-2 周）
+├── 统一所有应用的 shared 依赖版本（pnpm overrides）
+├── 搭建 Remote 应用的 CI/CD 流水线（版本化部署 + CDN 上传）
+├── 建立配置中心或环境变量管理 remoteEntry 地址
+└── 编写 loadRemote 工具函数（含重试、降级、监控）
+
+阶段 2：试点接入（2-4 周）
+├── 选择一个低风险的独立业务页面作为 Remote 试点
+├── Host 接入该 Remote，验证加载链路和 shared 协商
+├── 建立版本兼容矩阵和本地联调方案
+└── 完善监控告警（远程模块加载失败率、版本不匹配告警）
+
+阶段 3：规模化推广（持续）
+├── 按业务域逐个拆分，每个域独立为 Remote
+├── 抽象跨应用共享组件到 shared-app Remote
+├── 实现配置中心驱动的灰度发布和版本切换
+└── 沉淀最佳实践文档和脚手架工具
+```
+
+---
+
+**核心原则：** Module Federation 是一个**强大的模块共享基础设施**，但它不是沙箱方案。如果你的首要目标是异构系统整合，优先考虑 Wujie、qiankun 或 Micro-app。如果你的核心诉求是统一技术栈下的模块复用、独立发版和运行时共享依赖，Module Federation 就是最强方案 — 无论是在 Webpack 5 还是 Vite 生态中。
+
+## 11. 常见问题 (FAQ) 与排查手册
+
+### 11.1 `Shared module is not available for eager consumption`
 
 - **现象：** 控制台报错，Host 加载时提示共享模块不可用于急切消费。
 - **原因：** 在 Host 的入口文件中同步 `import` 了一个声明在 `shared` 中的模块，但该共享模块尚未初始化完成。
@@ -771,7 +876,7 @@ createApp(App).mount('#app')
 import('./bootstrap') // bootstrap.ts 中再 import vue 和 mount
 ```
 
-### 10.2 Remote 组件类型缺失
+### 11.2 Remote 组件类型缺失
 
 - **问题：** `import('order/OrderApp')` 的返回值是 `any`，无法享受类型提示。
 - **解决方案：**
@@ -807,7 +912,7 @@ pnpm build -- --declaration --emitDeclarationOnly
 # 发布到私有 npm 或通过 CI artifact 传递给 Host
 ```
 
-### 10.3 样式污染与隔离
+### 11.3 样式污染与隔离
 
 Module Federation **不提供 CSS 隔离能力**。多个应用的样式加载到同一个页面后会产生全局污染。解决方案：
 
@@ -816,7 +921,7 @@ Module Federation **不提供 CSS 隔离能力**。多个应用的样式加载�
 - **Shadow DOM**：仅在需要强隔离的局部区域使用（注意 UI 弹窗可能逃逸到 `document.body` 的问题）。
 - **约定命名空间**：每个 Remote 的所有全局 class 以应用名为前缀（如 `.order-page-*`）。
 
-### 10.4 远程模块加载失败的容错
+### 11.4 远程模块加载失败的容错
 
 :::code-group
 
@@ -858,7 +963,7 @@ const OrderApp = defineAsyncComponent({
 
 :::
 
-### 10.5 本地联调时的跨域问题
+### 11.5 本地联调时的跨域问题
 
 :::code-group
 
@@ -875,28 +980,20 @@ devServer: {
 
 :::
 
-## 11. 落地建议
+### 11.6 `exposes` 已配置却仍报 `Module not found`
 
-```markdown
-阶段 1：基础设施搭建（1-2 周）
-├── 统一所有应用的 shared 依赖版本（pnpm overrides）
-├── 搭建 Remote 应用的 CI/CD 流水线（版本化部署 + CDN 上传）
-├── 建立配置中心或环境变量管理 remoteEntry 地址
-└── 编写 loadRemote 工具函数（含重试、降级、监控）
+- **现象：** Host 执行 `import('order/OrderApp')` 时提示找不到远程模块。
+- **原因：** 名称链路三方对不上。① `exposes` 的 key 没有以 `./` 开头；② Host 的 `remotes` key 与 Remote 的 `name` 不一致；③ `remoteEntry.js` 的 URL 404，或 Vite 场景下路径少了 `/assets/`。
+- **解决：** 按 Remote `name` → Host `remotes` 的 key → `import('key/模块名')` 的对应关系逐项核对。`exposes` 的 key 必须写成 `'./Xxx'`，而 Host 侧 `import` 时写 `key/Xxx`（不带 `./`）。
 
-阶段 2：试点接入（2-4 周）
-├── 选择一个低风险的独立业务页面作为 Remote 试点
-├── Host 接入该 Remote，验证加载链路和 shared 协商
-├── 建立版本兼容矩阵和本地联调方案
-└── 完善监控告警（远程模块加载失败率、版本不匹配告警）
+### 11.7 Remote 发布了新版本，Host 仍加载旧模块
 
-阶段 3：规模化推广（持续）
-├── 按业务域逐个拆分，每个域独立为 Remote
-├── 抽象跨应用共享组件到 shared-app Remote
-├── 实现配置中心驱动的灰度发布和版本切换
-└── 沉淀最佳实践文档和脚手架工具
-```
+- **现象：** Remote 已重新部署，页面行为却没变化，监控里仍是旧版本号。
+- **原因：** `remoteEntry.js` 被浏览器或 CDN 长缓存；或 Host 指向的是固定 URL，没有随版本更新。
+- **解决：** 给 `remoteEntry.js` 设短缓存（`Cache-Control: max-age=300`），只有带 content hash 的 chunk 才用长缓存；把远程地址换成版本化 URL（如 `/order/1.8.0/remoteEntry.js`），并通过配置中心下发（见 8.1、8.2）。
 
----
+### 11.8 远程模块拿到的不是组件，要再取 `.default`
 
-**核心原则：** Module Federation 是一个**强大的模块共享基础设施**，但它不是沙箱方案。如果你的首要目标是异构系统整合，优先考虑 Wujie、qiankun 或 Micro-app。如果你的核心诉求是统一技术栈下的模块复用、独立发版和运行时共享依赖，Module Federation 就是最强方案 — 无论是在 Webpack 5 还是 Vite 生态中。
+- **现象：** `await import('order/OrderApp')` 的结果不能直接当组件用，必须取 `.default`。
+- **原因：** `import()` 返回的是模块命名空间对象。Remote 若用 `export default` 导出，真正的组件挂在 `namespace.default` 上。
+- **解决：** 手动 `import()` 时解构取默认导出（`const { default: Comp } = await import('order/OrderApp')`）；用 `defineAsyncComponent(() => import('order/OrderApp'))` 时会自动解包 `default`，推荐优先使用（见 3.3）。

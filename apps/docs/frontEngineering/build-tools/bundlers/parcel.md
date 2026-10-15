@@ -101,6 +101,46 @@ Parcel 通过一个插件化的 **转换器（Transformer）** 系统来处理�
 }
 ```
 
+### 2.8 高频配置项与常用命令速查
+
+零配置不等于不能配置，只是把配置收敛到了三个地方：`package.json` 的 `targets` / `browserslist`、项目根目录的 `.parcelrc`，以及 CLI 标志。
+
+[width(37,15,48)]
+
+| 配置项 / 命令                                              | 所在位置                    | 作用                                                                                                                                                        |
+| :--------------------------------------------------------- | :-------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `source`                                                   | `package.json`              | 声明源码入口，`parcel build` 会直接读取它，不必在命令里再写路径                                                                                             |
+| `targets`                                                  | `package.json`              | 声明构建目标：`context`（`browser` / `node` / `electron-main` 等）、`outputFormat`（`esmodule` / `commonjs`）、`distDir`、`publicUrl`、`includeNodeModules` |
+| `browserslist` / `.browserslistrc`                         | `package.json` / 项目根目录 | 目标浏览器范围，决定语法降级与 CSS 前缀                                                                                                                     |
+| `.parcelrc` 的 `extends`                                   | 项目根目录                  | 继承 `@parcel/config-default` 再覆写，是定制转换链的入口                                                                                                    |
+| `.parcelrc` 的 `transformers` / `validators` / `reporters` | 项目根目录                  | 按后缀覆写转换器，或追加校验器与报告器                                                                                                                      |
+| `parcel build --dist-dir <dir>`                            | CLI                         | 覆盖默认输出目录，优先级高于 `targets.*.distDir`                                                                                                            |
+| `parcel build --public-url <url>`                          | CLI                         | 设置产物中资源路径的前缀，部署到子目录时必用                                                                                                                |
+| `parcel build --target <name>`                             | CLI                         | 只构建 `targets` 中指定的某一个目标                                                                                                                         |
+| `parcel build --no-scope-hoist`                            | CLI                         | 关闭作用域提升（即关闭 Tree Shaking），用于排查产物问题                                                                                                     |
+| `parcel build --no-content-hash`                           | CLI                         | 关闭文件名内容哈希，便于需要固定文件名的部署场景                                                                                                            |
+| `parcel watch <入口>`                                      | CLI                         | 只监听文件变化并重建，不启动开发服务器                                                                                                                      |
+
+需要非默认的转换行为时，靠的是 `@parcel/transformer-*` 系列插件配合 `.parcelrc`：
+
+[width(24,35,41)]
+
+| 插件                                 | 作用                           | 启用方式                                                   |
+| :----------------------------------- | :----------------------------- | :--------------------------------------------------------- |
+| `@parcel/transformer-svg-react`      | 把 `.svg` 转换成 React 组件    | 在 `.parcelrc` 的 `transformers` 里覆盖 `*.svg`            |
+| `@parcel/transformer-inline-string`  | 把文件内容作为字符串内联进 JS  | 在 `.parcelrc` 里覆盖指定后缀                              |
+| `@parcel/validator-typescript`       | 构建期执行 TypeScript 类型检查 | 加入 `.parcelrc` 的 `validators`                           |
+| `@parcel/reporter-bundle-analyzer`   | 生成打包体积分析报告           | `parcel build --reporter @parcel/reporter-bundle-analyzer` |
+| `@parcel/reporter-static-files-copy` | 把静态目录原样拷贝进产物       | 追加到 `.parcelrc` 的 `reporters`                          |
+
+### 2.9 高频应用场景
+
+- **快速起 demo / 原型**：`parcel index.html` 零配置起步，代码里引用了没装的依赖 Parcel 会自动安装，特别适合验证想法和写分享示例。
+- **静态站点 / 多页站点**：直接拿 HTML 当入口，Parcel 自动处理其中的 `link`、`script`、`img` 与 CSS `url()`，配合 `browserslist` 自动降级到目标浏览器。
+- **组件库 / 工具库打包**：在 `package.json` 用 `source` + `main` + `module` + `types` 声明多重输出，一条 `parcel build` 同时产出 CommonJS、ES Module 与 `.d.ts`。
+- **需要原样拷贝静态资源的站点**：用 `@parcel/reporter-static-files-copy` 把 `public` 目录整体搬进产物，再用 `staticFiles` 字段指定来源。
+- **部署到子目录的前端应用**：用 `parcel build --public-url /my-app/` 一次性修正全部资源前缀，避免上线后图片与脚本 404。
+
 ## 3. 核心进阶：现代前端框架实战 (React + TypeScript)
 
 **痛点场景**：搭建一个 React + TypeScript 的项目，如果使用传统的构建工具，你需要手动配置 `babel-loader`、`ts-loader`、`@babel/preset-react` 等数十行配置，一旦版本不兼容就会报出满屏红字。
@@ -206,15 +246,17 @@ root.render(<App />)
     }
     ```
 
-### 5.4 "零配置" 是不是意味着完全不能配置？
+### 5.4 “**零配置**” 是不是意味着完全不能配置？
 
-**不是。** "零配置" 指的是 **开箱即用**，对于绝大多数常见场景，你不需要任何配置。但当你需要深度定制时，Parcel 提供了强大的插件 API 和配置文件（`.parcelrc`）。
+**不是。** “**零配置**” 指的是 **开箱即用**，对于绝大多数常见场景，你不需要任何配置。但当你需要深度定制时，Parcel 提供了强大的插件 API 和配置文件（`.parcelrc`）。
 
 例如，你需要为 Babel 添加一个特定的插件，你可以创建一个 `babel.config.json` 文件；需要配置 PostCSS，可以创建 `postcss.config.js`。Parcel 会自动发现并尊重这些配置文件。
 
 ### 5.5 Parcel 和 Webpack 有什么区别？
 
 这是一个非常常见的问题。
+
+[width(13,38,49)]
 
 | 特性         | Parcel                                 | Webpack                                                         |
 | :----------- | :------------------------------------- | :-------------------------------------------------------------- |
@@ -267,3 +309,18 @@ console.log(process.env.API_KEY);
 - **使用相对路径**：确保你的路径是相对于当前文件的，例如 `./images/logo.png`。
 - **使用绝对路径 (从根目录)**：如果你的资源在 `public` 或 `static` 目录下，并希望路径从根开始，使用 `/` 开头的路径，例如 `/images/logo.png`。
 - **配置 `publicUrl`**：在 `package.json` 的 `targets` 中，`publicUrl` 决定了最终 HTML 文件中资源路径的前缀。默认是 `./`。如果你将网站部署到子目录（如 `www.example.com/my-app/`），你需要将其设置为 `/my-app/`。
+
+### 5.8 如何在 Parcel 里处理 SVG 或自定义资源（比如把 SVG 变成 React 组件）？
+
+- **答**：**通过 `.parcelrc` 覆写 `transformers`，而不是把配置写死。**
+  - Parcel 默认用内置转换器处理 `.svg`。要把它转成 React 组件，安装 `@parcel/transformer-svg-react` 后覆盖该后缀的转换器：
+    ```json
+    {
+      "extends": ["@parcel/config-default"],
+      "transformers": {
+        "*.svg": ["@parcel/transformer-svg-react"]
+      }
+    }
+    ```
+  - 只想把文件内容当字符串引入（比如 Markdown、GLSL 着色器），用 `@parcel/transformer-inline-string` 同理覆盖即可。
+  - 需要在构建期做类型检查就加上 `@parcel/validator-typescript`；想看产物体积，用 `parcel build --reporter @parcel/reporter-bundle-analyzer`。

@@ -44,9 +44,24 @@ Monorepo（单一仓库）是一种将多个项目或包集中存放在一个版
 - **构建时间爆炸**：通过 Turborepo 的物理级缓存和任务并发拓扑图（DAG），将整体构建耗时压缩到极致。
 - **包边界混乱**：严格限制 `package.json` 的 `exports` 字段，禁止跨包引用深层未暴露的文件，保证架构的清晰。
 
+### 3.3 高频落地场景
+
+企业里真正高频的落地形态，基本都落在下面几类：
+
+[width(18,24,58)]
+
+| 场景                | 仓库结构                           | 关键做法                                                                  |
+| ------------------- | ---------------------------------- | ------------------------------------------------------------------------- |
+| 组件库 + 多应用同仓 | `apps/*` 消费 `packages/ui`        | UI 包导出组件与样式，应用用 `workspace:*` 引用，改动即时生效、无需发版    |
+| 公共工具 / 类型抽包 | `packages/utils`、`packages/types` | 跨应用复用的纯函数与类型集中在独立包，天然支持热更新与 `exports` 边界约束 |
+| 统一依赖版本        | 根 `pnpm-workspace.yaml`           | 用 `catalog` 集中声明版本，或用 `pnpm.overrides` 强制收敛传递依赖         |
+| 统一工程配置        | `packages/eslint-config` 等        | 把 ESLint / TypeScript / Prettier 配置封成包，各包 `extends` 复用         |
+| 统一任务编排与缓存  | 根 `turbo.json`                    | 一次 `turbo run build` 按依赖拓扑并发构建，并复用本地 / 远端缓存          |
+| 多包联动发版        | Changesets + CI                    | 按 Git 提交自动计算版本、生成 CHANGELOG 并统一发布                        |
+
 ## 4. 企业级主流工具链生态
 
-构建企业级架构，你需要一套经得起时间考验的“王牌组合”：
+构建企业级架构，你需要一套经得起时间考验的“**王牌组合**”：
 
 - **包管理与拓扑寻址：** `pnpm` (结合 Workspace 协议实现本地软链同步)。
 - **智能任务调度与缓存：** `Turborepo` (Vercel 出品，云端/本地双重缓存)。
@@ -408,3 +423,109 @@ pnpm build
 
 # 运行应用（需要时配置 ts-node 或 tsx）
 ```
+
+### 5.11 pnpm workspace 高频字段与依赖协议
+
+`pnpm-workspace.yaml` 只有几个字段，配合依赖协议就能覆盖绝大多数场景：
+
+[width(23,27,50)]
+
+| 字段 / 协议         | 位置                  | 作用与示例                                                                     |
+| ------------------- | --------------------- | ------------------------------------------------------------------------------ |
+| `packages`          | `pnpm-workspace.yaml` | 声明工作空间包含哪些目录，支持 glob，如 `- 'apps/*'`、`- 'packages/*'`         |
+| `catalog`           | `pnpm-workspace.yaml` | 集中声明一批依赖的版本，各包用 `catalog:` 引用，实现全仓统一版本（pnpm ≥ 9.5） |
+| `catalogs`          | `pnpm-workspace.yaml` | 命名分组目录，包内用 `catalog:group` 引用，例如给不同大版本分组                |
+| `workspace:*`       | 子包 `package.json`   | 引用工作空间内的本地包，安装时创建软链，发布时替换为真实版本号                 |
+| `workspace:^` / `~` | 子包 `package.json`   | 同上，但发布时按 `^` / `~` 语义替换为实际版本                                  |
+| `pnpm.overrides`    | 根 `package.json`     | 强制指定某个依赖（含传递依赖）在全仓使用的版本，用于抹平版本冲突               |
+
+`catalog` 的典型用法是：在 `pnpm-workspace.yaml` 里集中声明版本，各子包只写 `catalog:` 引用。
+
+```yaml
+# pnpm-workspace.yaml
+packages:
+  - 'apps/*'
+  - 'packages/*'
+catalog:
+  vue: ^3.5.0
+  typescript: ^5.6.0
+```
+
+```json
+// apps/web/package.json
+{
+  "dependencies": {
+    "vue": "catalog:"
+  }
+}
+```
+
+### 5.12 Turborepo `turbo.json` 高频字段
+
+[width(26,74)]
+
+| 字段                 | 作用                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------- |
+| `dependsOn`          | 任务依赖。`^build` 表示“**先跑所有上游依赖包的 build**”；不带 `^` 的 `build` 表示同包内先跑 build |
+| `outputs`            | 命中缓存时用于恢复的产物目录（如 `dist/**`）。**写错会导致缓存命中但产物缺失**                    |
+| `inputs`             | 参与 hash 计算的文件集合。默认包含包内被 Git 跟踪的文件，显式声明可缩小或扩大范围                 |
+| `cache`              | 是否启用缓存，设为 `false` 用于 `dev` 等不可缓存的任务                                            |
+| `env` / `globalEnv`  | 声明参与 hash 的环境变量，漏声明会导致“**改了环境变量却命中旧缓存**”                              |
+| `persistent`         | 标记长驻任务（如 dev server），不可被其他任务 `dependsOn`                                         |
+| `globalDependencies` | 根级公共文件（如根 `tsconfig.json`），任一变化都会使所有任务缓存失效                              |
+
+> **版本差异：** Turborepo 2.0 起顶层字段由 `pipeline` 更名为 `tasks`，二者语义一致。新项目建议直接使用 `tasks`。
+
+### 5.13 `--filter` 语法与常用命令
+
+`--filter`（简写 `-F`）是 pnpm 与 Turborepo 共用的包筛选语法：
+
+[width(36,64)]
+
+| 写法                          | 含义                                     |
+| ----------------------------- | ---------------------------------------- |
+| `--filter @my-monorepo/web`   | 只对指定包执行                           |
+| `--filter "./packages/*"`     | 按目录 glob 筛选                         |
+| `--filter ...@my-monorepo/ui` | 该包**及其所有上游依赖**（前置 `...`）   |
+| `--filter @my-monorepo/ui...` | 该包**及其所有下游依赖者**（后置 `...`） |
+| `--filter "[origin/main]"`    | 只筛选相对 `origin/main` 发生改动的包    |
+| `--filter "!./apps/docs"`     | 排除某个包                               |
+
+[width(26,74)]
+
+| 高频场景             | 命令示例                                           |
+| -------------------- | -------------------------------------------------- |
+| 只构建受改动影响的包 | `pnpm turbo run build --filter="...[origin/main]"` |
+| 给某个应用安装依赖   | `pnpm --filter @my-monorepo/web add lodash-es`     |
+| 只跑组件库的测试     | `pnpm --filter @my-monorepo/ui test`               |
+| 全仓统一升级某个依赖 | `pnpm up -r --filter "./packages/*" vue`           |
+
+## 6. 常见问题 (FAQ)
+
+### 6.1 子包安装了却提示找不到本地包？
+
+- **答**：依次核对三处——`pnpm-workspace.yaml` 的 `packages` 是否覆盖该目录、子包 `package.json` 的 `name` 是否与引用一致、依赖是否写成 `workspace:*` 协议；改完执行 `pnpm install` 让 pnpm 重建软链。
+
+### 6.2 两个子包互相引用，构建报循环依赖怎么办？
+
+- **答**：循环引用会让 pnpm 打印 cycle 警告，并让 Turborepo 的 `dependsOn: ["^build"]` 任务图出现环而无法收敛。先用 `pnpm turbo run build --graph` 可视化依赖图定位环，再把两者共用的部分下沉到第三个包（如 `packages/shared`）打破环。
+
+### 6.3 团队成员依赖版本不一致导致 CI 失败？
+
+- **答**：在根 `package.json` 用 `packageManager` 字段配合 `corepack` 锁定 pnpm 版本，提交 `pnpm-lock.yaml`，CI 使用 `pnpm install --frozen-lockfile`；依赖版本再用 `catalog` 或 `pnpm.overrides` 收敛，避免各包各装一份。
+
+### 6.4 代码没改动，Turborepo 却每次都重新构建？
+
+- **答**：先确认 `outputs` 与真实产物目录一致、`inputs` 没有把频繁变化的文件纳入 hash、`env` 是否漏声明了影响产物的环境变量；用 `pnpm turbo run build --dry=json` 查看每个任务的 hash 与命中原因。另外注意 `pipeline` 在 Turborepo 2.0 起已更名为 `tasks`。
+
+### 6.5 改了公共包，其他包没有同步生效？
+
+- **答**：开发态建议让公共包 `package.json` 的 `main` / `exports` 直接指向 `src` 源文件，应用侧即可实时感知改动；若指向 `dist`，则需要先构建，或让公共包以 watch 模式持续产出。
+
+### 6.6 如何只构建 / 测试受影响的包，而不是全仓？
+
+- **答**：用 `--filter` 的变更范围语法，例如 `pnpm turbo run build --filter="...[origin/main]"`（该包及其上游）或 `pnpm --filter "[origin/main]" test`；CI 中要先把 `origin/main` 拉全，否则 diff 范围计算会失准。
+
+### 6.7 根包或内部包被误发布到 npm？
+
+- **答**：根 `package.json` 以及所有不需要发布的包都要加 `"private": true`，这是发布流程唯一的硬闸门；Changesets 的 `ignore` 配置只影响版本计算与发布编排，并不能替代 `private`。

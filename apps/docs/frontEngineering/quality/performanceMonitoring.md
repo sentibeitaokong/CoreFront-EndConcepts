@@ -92,6 +92,39 @@ new PerformanceObserver(entryList => {
 }).observe({ type: 'largest-contentful-paint', buffered: true })
 ```
 
+### 4.5 高频指标与采集 API 速查
+
+生产环境极少手写 `PerformanceObserver`，通常直接引入 `web-vitals` 库，它抹平了各浏览器的差异，并提供统一的回调：
+
+```js
+import { onLCP, onINP, onCLS, onFCP, onTTFB } from 'web-vitals'
+
+// 五个核心回调，统一拿到 { name, value, rating, delta, id }
+onLCP(metric => report('LCP', metric))
+onINP(metric => report('INP', metric))
+onCLS(metric => report('CLS', metric))
+onFCP(metric => report('FCP', metric))
+onTTFB(metric => report('TTFB', metric))
+```
+
+各指标对应的底层 `PerformanceObserver` 事件与取值方式：
+
+[width(15,46,39)]
+
+| 指标 / 事件 | 采集方式                                        | 说明                                   |
+| ----------- | ----------------------------------------------- | -------------------------------------- |
+| LCP         | 监听 `largest-contentful-paint` / `onLCP`       | 视口内最大内容元素渲染完成的时间       |
+| INP         | 监听 `event`（含 `first-input`）/ `onINP`       | 交互到浏览器绘制下一帧的延迟           |
+| CLS         | 监听 `layout-shift` / `onCLS`                   | 意外布局偏移分数累计                   |
+| FCP         | 监听 `paint` / `onFCP`                          | 首次内容绘制                           |
+| TTFB        | `navigation` 时序 / `onTTFB`                    | 首字节时间，反映后端与网络             |
+| 长任务      | 监听 `longtask`                                 | 主线程被阻塞超过 50ms 的任务           |
+| 资源瀑布    | 监听 `resource`                                 | 静态资源的加载时序与体积               |
+| 导航时序    | `performance.getEntriesByType('navigation')[0]` | 一次导航内 DNS/TCP/TTFB/DOM 各阶段耗时 |
+| 自定义打点  | `performance.mark()` / `performance.measure()`  | 业务侧自定义的耗时区间                 |
+
+> 兼容性提醒：`longtask`、`first-input` 目前主要是 Chromium 系浏览器支持，Safari/Firefox 下拿不到，采集时需做能力检测与降级；跨域的 `resource` 条目只有配上 `Timing-Allow-Origin` 响应头，才能拿到细粒度耗时。
+
 ## 5. 数据上报的底层策略 (Transport Architecture)
 
 拿到了错误和性能数据，怎么把它们发送给后端的统计服务器？这就涉及到了前端的“**网络工程学**”。
@@ -279,7 +312,7 @@ jobs:
 
 ## 7. 企业级性能监控实战
 
-在企业级前端工程化体系中，将 Sentry 性能监控与 CI/CD（持续集成/持续部署）流水线深度融合，是实现“从代码提交到线上报警”全链路闭环的终极形态。
+在企业级前端工程化体系中，将 Sentry 性能监控与 CI/CD（持续集成/持续部署）流水线深度融合，是实现“**从代码提交到线上报警**”全链路闭环的终极形态。
 
 这套架构的核心诉求有三个：**安全（SourceMap 绝不泄露到公网）**、**精准（报警直接关联到具体的 Git Commit 和代码行）**、**可控（精细化管理海量并发下的 API 额度和采样率）**。
 
@@ -403,7 +436,7 @@ export default defineConfig({
 
 ### 7.3 CI/CD 流水线编排 (GitHub Actions 示例)
 
-真正的自动化体现在流水线脚本中。流水线承担着环境注入、打包编译、产物推送以及向 Sentry 发送“上线通知”的职责。
+真正的自动化体现在流水线脚本中。流水线承担着环境注入、打包编译、产物推送以及向 Sentry 发送“**上线通知**”的职责。
 
 :::code-group
 
@@ -467,10 +500,10 @@ jobs:
 
 ### 7.4 大盘监控与嫌疑人追踪 (Suspect Commits)
 
-当这套 CI/CD 流程跑通后，你的团队将获得堪比“上帝视角”的研发体验：
+当这套 CI/CD 流程跑通后，你的团队将获得堪比“**上帝视角**”的研发体验：
 
 - **源码级报错还原：** 线上用户触发了一个报错，Sentry 面板不仅能展示具体的 `App.vue:142` 行代码，还会直接高亮出那行代码的内容。
-- **精准责任落实 (Suspect Commits)：** 因为我们在 CI 中注入了 Git 信息，Sentry 会自动分析报错行对应的 `git blame`。面板会醒目地提示：**“此错误极有可能是由 [开发者A] 在 4小时前的 Commit `refactor: 重构权限计算钩子` 引发的”**，并直接附带跳转到代码托管平台的 PR 链接。
+- **精准责任落实 (Suspect Commits)：** 因为我们在 CI 中注入了 Git 信息，Sentry 会自动分析报错行对应的 `git blame`。面板会醒目地提示：“**此错误极有可能是由 [开发者A] 在 4小时前的 Commit `refactor: 重构权限计算钩子` 引发的**”，并直接附带跳转到代码托管平台的 PR 链接。
 - **版本性能劣盘 (Release Health)：** 在 Sentry 的 Releases 面板中，你可以对比本次 `main` 分支发布与上个版本的指标差异。如果新版本的 INP（交互延迟）从平均 120ms 暴增到 400ms，或者无崩溃会话率（Crash Free Sessions）跌破 99%，团队可以立刻决定启动自动化回滚策略。
 
 ## 8. 性能治理闭环：预算、异动排查与告警降噪
@@ -529,6 +562,15 @@ jobs:
 - **持续性窗口阈值**：避免短时网络抖动触发「狼来了」，设定如「连续 3 个 5 分钟窗口 P75 LCP > 3000ms」才触发 P1 级电话告警。
 - **优先级矩阵**：按业务核心链路分配权重，交易链路红线告警直达高管，周边支持型页面仅作日报汇总。
 
+### 8.5 高频落地场景
+
+- **首屏劣化归因**：把 LCP 拆成 `TTFB → 资源加载延迟 → 资源加载耗时 → 渲染延迟` 四段，与上一版本对比，快速判断是后端接口慢、CDN 资源慢，还是首屏 JS 阻塞了主线程。
+- **慢接口定位**：用 `resource` 条目或 `performance.measure` 给关键请求打点，把前端 `duration` 与后端 trace-id 关联，区分“**网络慢**”还是“**服务端慢**”。
+- **线上白屏告警**：同时监听 `window.onerror`、`unhandledrejection`、资源加载失败与 Sentry 的 Crash Free Sessions，任一指标突变即告警，而不是等客服反馈。
+- **交互卡顿排查**：用 `longtask` 采集主线程阻塞，定位到具体的长任务及其触发组件，指导拆包、惰性渲染或用 `requestIdleCallback` 分片。
+- **第三方脚本审计**：单独统计第三方域名的 `resource` 耗时与体积，揪出拖后腿的广告/统计脚本并做异步化或延迟加载。
+- **发布回归对比**：每次 Release 绑定版本号，对比新旧版本的 Core Web Vitals P75，超过阈值自动触发回滚评估。
+
 ## 9. 常见问题 (FAQ) 与架构级避坑指南
 
 ### 8.1 报错日志里全都是神秘的 `Script error.`，完全没有堆栈，怎么办？
@@ -549,3 +591,26 @@ jobs:
 
 - **认知的鸿沟：Lighthouse 不是银弹。** 开发者在本地用 Lighthouse 跑出的叫**实验室数据 (Lab Data)**（千兆网速、顶配 MacBook）。而线上收集回来的叫**真实用户数据 (RUM - Real User Monitoring)**。
 - 真实用户可能在坐地铁信号极差，可能用的是 5 年前的千元安卓机。**RUM 数据才是衡量系统架构质量的唯一真理。** 监控系统的核心使命，就是去捕获那真实世界中 90 分位（P90）长尾用户的痛点，并指导架构师进行极致的性能重构。
+
+### 8.4 为什么 `window.onerror` 抓不到图片、JS 加载失败这类错误？
+
+- **根因：** 资源加载错误不会冒泡到 `window`，所以常规（冒泡阶段）的 `window.onerror` 收不到。
+- **解法：** 用事件捕获阶段监听——`window.addEventListener('error', handler, true)`，第三个参数 `true` 是关键；同时配合 `window.addEventListener('unhandledrejection', handler)` 兜住未处理的 Promise。
+- **补充：** 在监控 SDK 初始化时就要**最先**注册这两个监听，否则会漏掉页面早期发生的错误。
+
+### 8.5 FID 为什么被 INP 取代？采集上要注意什么？
+
+- **区别：** FID 只测量**第一次**交互的输入延迟，且只算到“**浏览器开始响应**”为止；INP 测量**整个生命周期内所有交互**，并一直算到“**下一帧真正绘制出来**”。因此 INP 更能反映用户全程的卡顿体感，也能揪出“**第一次点击很快、后面越用越卡**”的性能劣化。
+- **采集：** 用 `web-vitals` 的 `onINP` 即可，它内部会处理交互筛选与 P98 取值；自研 SDK 则需监听 `event` 条目并按交互分组取高分位，不要用平均值。
+
+### 8.6 Sentry 的 `tracesSampleRate` 设成多少合适？
+
+- **原则：** 采样率不是越高越好，要在**数据代表性**与**费用/性能开销**之间权衡。
+- **推荐值：** 生产环境性能数据通常控制在 5% - 10%（如 `tracesSampleRate: 0.05`），既能反映宏观趋势又不会压垮 Sentry 配额；预发/测试环境可设 `1.0` 全量采集。
+- **降低成本：** 会话录屏用 `replaysSessionSampleRate: 0.0` 平时不录、`replaysOnErrorSampleRate: 1.0` 只在报错时录制，能在保留排障能力的同时省下大量存储。
+
+### 8.7 线上突然大面积白屏，如何第一时间告警而不是等客诉？
+
+- **告警信号：** 组合监控几个信号——JS 错误率突增、`unhandledrejection` 飙升、Sentry 的 Crash Free Sessions 跌破阈值、以及关键资源（入口 `index.html`、主 JS）加载失败率上升。
+- **关联发布：** 把告警与 `release` 版本绑定，出现异常时立刻能判断“**是不是刚刚这次发布引起的**”，从而果断回滚。
+- **窗口与降噪：** 用“**连续 N 个时间窗口错误率超阈值**”触发 P1，避免偶发抖动误报；同时用 SourceMap 反解出首错堆栈，直接定位到源码行。

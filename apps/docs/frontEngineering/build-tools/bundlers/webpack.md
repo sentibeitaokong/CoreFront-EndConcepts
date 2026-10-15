@@ -8,14 +8,20 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 **Webpack** 是现代 JavaScript 应用程序的**静态模块打包器 (Static Module Bundler)**。当 Webpack 处理应用程序时，它会在内部从一个或多个入口点构建一个**依赖图 (Dependency Graph)**，然后将项目所需的每一个模块组合成一个或多个 **bundles**（通常只有一个），它们均为可直接在浏览器中运行的静态资源。
 
-| 配置域          | 核心职责                                                              | 常用子属性                                   |
-| :-------------- | :-------------------------------------------------------------------- | :------------------------------------------- |
-| **`entry`**     | **指定入口**：告诉 Webpack 从哪个文件开始构建依赖图。                 | 单入口(String)、多入口(Object)               |
-| **`output`**    | **指定出口**：控制编译后物理文件的输出路径和命名规则。                | `path`, `filename`, `publicPath`, `clean`    |
-| **`resolve`**   | **模块解析**：配置寻找模块的规则，让代码里的 `import` 更简洁。        | `alias`, `extensions`, `modules`             |
-| **`module`**    | **资源转换**：定义针对不同类型文件（CSS/图片/TS）的 Loader 翻译规则。 | `rules`, `test`, `use`, `exclude`            |
-| **`plugins`**   | **插件扩展**：贯穿整个构建生命周期，执行自动化宏观任务。              | `HtmlWebpackPlugin`, `DefinePlugin` 等       |
-| **`devServer`** | **本地服务**：配置开发环境的本地 HTTP 服务器及热更新。                | `port`, `proxy`, `hot`, `historyApiFallback` |
+[width(15,41,44)]
+
+| 配置域             | 核心职责                                                              | 常用子属性                                   |
+| :----------------- | :-------------------------------------------------------------------- | :------------------------------------------- |
+| **`entry`**        | **指定入口**：告诉 Webpack 从哪个文件开始构建依赖图。                 | 单入口(String)、多入口(Object)               |
+| **`output`**       | **指定出口**：控制编译后物理文件的输出路径和命名规则。                | `path`, `filename`, `publicPath`, `clean`    |
+| **`resolve`**      | **模块解析**：配置寻找模块的规则，让代码里的 `import` 更简洁。        | `alias`, `extensions`, `modules`             |
+| **`module`**       | **资源转换**：定义针对不同类型文件（CSS/图片/TS）的 Loader 翻译规则。 | `rules`, `test`, `use`, `exclude`            |
+| **`plugins`**      | **插件扩展**：贯穿整个构建生命周期，执行自动化宏观任务。              | `HtmlWebpackPlugin`, `DefinePlugin` 等       |
+| **`devServer`**    | **本地服务**：配置开发环境的本地 HTTP 服务器及热更新。                | `port`, `proxy`, `hot`, `historyApiFallback` |
+| **`optimization`** | **构建优化**：代码分割、压缩、Tree Shaking、Runtime 抽离的总开关。    | `splitChunks`, `minimizer`, `runtimeChunk`   |
+| **`mode`**         | **构建模式**：内置 `development` / `production` 两套优化预设。        | `'development'`, `'production'`, `'none'`    |
+| **`devtool`**      | **源码映射**：决定生成何种精度的 Source Map，直接影响构建速度。       | `'eval-cheap-module-source-map'`, `false`    |
+| **`cache`**        | **构建缓存**：Webpack 5 原生物理缓存，二次构建提速的关键。            | `{ type: 'filesystem' }`                     |
 
 ## 2. Webpack 核心配置与实战
 
@@ -270,9 +276,57 @@ module.exports = {
 }
 ```
 
+### 2.8 高频 Loader / Plugin / 配置字段速查
+
+Webpack 配置的字段成百上千，但真正高频使用的其实很集中。先看配置字段：
+
+[width(26,13,61)]
+
+| 字段                                       | 作用         | 高频实践                                                                                                        |
+| :----------------------------------------- | :----------- | :-------------------------------------------------------------------------------------------------------------- |
+| **`entry`**                                | 打包入口     | 单页用字符串，多页用对象；对象的 key 会作为 `output.filename` 中 `[name]` 占位符的取值。                        |
+| **`output.publicPath`**                    | 资源公共前缀 | 部署到根目录写 `'/'`，部署到子目录写 `'/admin/'`，CDN 写完整域名；写错是线上静态资源 404 的头号原因。           |
+| **`resolve.alias` / `resolve.extensions`** | 模块解析     | 别名减少深层相对路径，`extensions` 按数组顺序补全后缀；别把 `.vue`、`.jsx` 放进 `extensions`，会影响 IDE 推断。 |
+| **`module.rules`**                         | 资源转换     | 每条规则由 `test` / `include` / `exclude` + `use` 组成，**务必 `exclude: /node_modules/`**，否则编译极慢。      |
+| **`optimization.splitChunks`**             | 代码分割     | 用 `cacheGroups` 把框架与公共依赖拆出来，配合 `[contenthash]` 做长缓存。                                        |
+| **`devServer.proxy`**                      | 开发代理     | 解决本地跨域，`changeOrigin` 改写 Host，`pathRewrite` 抹掉前缀；**只在开发环境生效**。                          |
+| **`cache`**                                | 构建缓存     | `{ type: 'filesystem' }` 是 Webpack 5 二次构建提速的关键，记得同时声明 `buildDependencies.config`。             |
+| **`devtool`**                              | Source Map   | 开发用 `'eval-cheap-module-source-map'`（快），生产用 `false` 或独立的 `'source-map'`（慢但精度高）。           |
+
+再看高频 Loader 与 Plugin：
+
+[width(29,13,58)]
+
+| 名称                                      | 类型     | 典型用途                                                                                           |
+| :---------------------------------------- | :------- | :------------------------------------------------------------------------------------------------- |
+| **`babel-loader`**                        | Loader   | 用 Babel 把 ES6+ / TS / JSX 降级为兼容性更好的 JS，是 `@babel/preset-env` 的载体。                 |
+| **`ts-loader`**                           | Loader   | 借助 TypeScript 官方编译器做类型检查与转译；纯转译场景可用 `esbuild-loader` 或 `swc-loader` 提速。 |
+| **`css-loader`**                          | Loader   | 解析 CSS 中的 `@import` 与 `url()`，让 CSS 变成可被依赖的模块。                                    |
+| **`style-loader`**                        | Loader   | 把 CSS 以 `<style>` 标签动态注入 DOM，**只适合开发环境**（生产环境请改用抽离方案）。               |
+| **`sass-loader` / `less-loader`**         | Loader   | 把 Sass / Less 编译为普通 CSS，必须与 `css-loader` 串联使用。                                      |
+| **`postcss-loader`**                      | Loader   | 接入 PostCSS 生态，做 `autoprefixer` 自动补前缀、`tailwindcss` 等处理。                            |
+| **Asset Modules (`type: 'asset'`)**       | 内置模块 | Webpack 5 内置的图片 / 字体处理方案，取代 `file-loader` 与 `url-loader`。                          |
+| **`HtmlWebpackPlugin`**                   | Plugin   | 以模板生成 HTML 并自动注入打包产物，多页应用可实例化多次。                                         |
+| **`MiniCssExtractPlugin`**                | Plugin   | 把 CSS 抽离成独立文件，生产环境替代 `style-loader`。                                               |
+| **`DefinePlugin`**                        | Plugin   | 编译期替换全局常量，常用于注入 `process.env.NODE_ENV`、接口地址等。                                |
+| **`CopyPlugin`**（`copy-webpack-plugin`） | Plugin   | 把 `public` 下无需编译的静态资源原样拷贝到输出目录。                                               |
+| **`BundleAnalyzerPlugin`**                | Plugin   | 生成可视化的体积分析报告，定位“**哪个依赖把包撑大了**”。                                           |
+
+### 2.9 高频应用场景
+
+- **多页应用 (MPA)**：`entry` 用对象声明多个入口，`HtmlWebpackPlugin` 实例化多份，`output.filename` 用 `[name]` 区分产物。
+- **第三方库长缓存**：`optimization.splitChunks` 把框架与公共依赖抽成 `vendors`，`runtimeChunk: 'single'` 保护其 hash，配合 `[contenthash]` 实现内容不变则缓存不失效。
+- **路由懒加载**：业务侧写 `import()`，Webpack 自动切分 chunk 并按需加载，首屏只下载必要代码。
+- **小图内联**：用 Asset Modules 的 `dataUrlCondition.maxSize` 把小于阈值的图片转成 Base64，减少 HTTP 请求。
+- **开发期跨域联调**：`devServer.proxy` 转发接口，并配合 `historyApiFallback` 解决 History 路由刷新 404。
+- **构建速度治理**：大项目开启 `cache: { type: 'filesystem' }` 持久化缓存，再对耗时的 Babel 转换叠加 `thread-loader` 或改用它编译器。
+- **产物体积体检**：用 `webpack-bundle-analyzer` 出图，揪出被误全量引入的大包（如 `moment`、`lodash`）。
+
 ## 3. 核心性能优化方案
 
 Webpack 的优化可以明确划分为两个方向：**让打包速度更快（开发体验）** 和 **让打包体积更小（用户体验）**。
+
+[width(18,37,45)]
 
 | 优化维度                       | 核心目标                                                        | 常用优化策略大纲                                                                          |
 | :----------------------------- | :-------------------------------------------------------------- | :---------------------------------------------------------------------------------------- |
@@ -430,7 +484,7 @@ module.exports = {
 这是 Webpack 面试中最核心、必考的问题。
 
 - **答**：
-  - **职责层面**：`Loader` 是“翻译官/转换器”，它工作在模块加载层面，专注于对某种特定类型的文件（如 CSS、Vue、图片）进行内容转换。`Plugin` 是“监听器/扩展器”，它工作在 Webpack 的整个生命周期中，可以执行范围更广的任务（如打包优化、注入环境变量、自动生成 HTML）。
+  - **职责层面**：`Loader` 是“**翻译官/转换器**”，它工作在模块加载层面，专注于对某种特定类型的文件（如 CSS、Vue、图片）进行内容转换。`Plugin` 是“**监听器/扩展器**”，它工作在 Webpack 的整个生命周期中，可以执行范围更广的任务（如打包优化、注入环境变量、自动生成 HTML）。
   - **配置层面**：Loader 在 `module.rules` 中配置，通常以数组形式存在。Plugin 在 `plugins` 数组中配置，通常需要 `new` 一个该插件的实例并传入配置参数。
 
 ### 4.2 彻底搞懂 Hash、Chunkhash 和 Contenthash 的区别？
@@ -455,14 +509,14 @@ Tree-shaking 是指摇掉代码中没有用到的死代码。如果它失效了�
 
 - **答**：
   1.  **没有使用 ES Modules (ESM)**：Tree-shaking 的底层原理依赖于 ESM 的静态分析特性（`import/export`）。如果在 Babel 配置中，不小心把模块编译成了 CommonJS（例如 `@babel/preset-env` 中的 `modules: 'commonjs'`），静态分析就会失效，Tree-shaking 彻底瘫痪。
-  2.  **副作用 (Side Effects) 阻挠**：Webpack 不敢随意删除看起来没被引用的代码，因为它怕这段代码有“副作用”（比如它偷偷向全局 `window` 注入了变量，或者它是一个纯粹用来引入全局样式的 `import './style.css'`）。
+  2.  **副作用 (Side Effects) 阻挠**：Webpack 不敢随意删除看起来没被引用的代码，因为它怕这段代码有“**副作用**”（比如它偷偷向全局 `window` 注入了变量，或者它是一个纯粹用来引入全局样式的 `import './style.css'`）。
   3.  **解决方案**：在项目的 `package.json` 中配置 `"sideEffects": false`，明确告诉 Webpack 这个项目里的模块都是纯净的，放心大胆地删。如果要保留样式文件，配置为 `"sideEffects": ["*.css", "*.less"]`。
 
 ### 4.5 如何精准定位是哪一步拖慢了 Webpack 的打包速度，又是哪个包导致了体积过大？
 
 - **答**：在做性能优化前，**切忌盲目猜测**，必须依赖分析工具。
   - **体积分析 (Bundle Size)**：使用 `webpack-bundle-analyzer` 插件。它会在构建完成后打开一个可视化网页，用矩形树图清晰地展示每一个文件的体积占比。你一眼就能看出是不是不小心把整个 `echarts` 或 `moment.js` 全量打包进去了。
-  - **速度分析 (Build Speed)**：使用 `speed-measure-webpack-plugin`。它会精确测算并打印出每一个 Loader 和 Plugin 的执行耗时，帮你揪出构建过程中的“性能刺客”。
+  - **速度分析 (Build Speed)**：使用 `speed-measure-webpack-plugin`。它会精确测算并打印出每一个 Loader 和 Plugin 的执行耗时，帮你揪出构建过程中的“**性能刺客**”。
 
 ### 4.6 `thread-loader` (多进程) 是不是只要配了就一定会变快？
 
@@ -476,3 +530,10 @@ Tree-shaking 是指摇掉代码中没有用到的死代码。如果它失效了�
   - **背景**：Webpack 打包后，会生成一段管理模块间依赖关系和加载逻辑的底层引导代码，这就是 Runtime 代码。
   - **痛点**：如果你修改了 `app.js` 的业务代码，它的 chunkhash 会变。因为 `app.js` 的名字变了，记录所有模块映射关系的 Runtime 代码也会跟着变。如果 Runtime 代码恰好被打包在了 `vendors.js`（第三方库）中，就会导致哪怕第三方库一行没改，`vendors.js` 的 hash 也会被迫改变，从而导致用户浏览器中的巨大的 Vendors 缓存无辜失效。
   - **解决方案**：在 `optimization` 中配置 `runtimeChunk: 'single'`。强行把这段极其微小但频繁变动的 Runtime 逻辑剥离成一个独立的 `runtime.js` 文件，从而彻底保护 `vendors.js` 的长期缓存。
+
+### 4.8 为什么 `resolve.alias` 配好了，命令行能打包，TypeScript 和 IDE 却报找不到模块？
+
+- **答**：因为 **Webpack 与 TypeScript 各自维护着一套独立的模块解析逻辑**，`webpack.config.js` 里的 `alias` 只对 Webpack 生效。
+  - **原因**：编辑器（VS Code）和 `tsc` 走的是 TypeScript 自己的解析流程，它不认识 `resolve.alias`，所以 `import Button from '@/components/Button'` 在编译期会报 `Cannot find module`。
+  - **解决方案**：在 `tsconfig.json` 中同步配置 `baseUrl` 与 `paths`（如 `"@/*": ["src/*"]`），把同一套别名再声明一遍。若在 CSS 中使用了别名，还需要给 `css-loader` 配置 `alias` 选项。
+  - **避坑**：两处配置必须保持同步，否则会出现“**命令行能打包、IDE 满屏红线**”的割裂感，也让新同学难以判断到底哪个才是可信的。

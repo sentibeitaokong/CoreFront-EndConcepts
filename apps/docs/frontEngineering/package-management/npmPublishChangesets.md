@@ -41,6 +41,8 @@
 }
 ```
 
+[width(22,78)]
+
 | 字段                 | 核心作用与避坑指南                                                                             |
 | -------------------- | ---------------------------------------------------------------------------------------------- |
 | **`files`**          | 上传白名单。只填需要发布的目录（如 `dist`），极大减少包体积。                                  |
@@ -53,6 +55,8 @@
 
 版本号格式：`MAJOR.MINOR.PATCH`。
 
+[width(18,61,21)]
+
 | 版本级别         | 触发场景                                                 | 示例           |
 | ---------------- | -------------------------------------------------------- | -------------- |
 | **`major`**      | 破坏性变更，不向下兼容旧 API（如删除属性、改默认行为）。 | `2.0.0`        |
@@ -64,6 +68,8 @@
 
 `dist-tag` 决定了用户执行 `npm install` 时默认拉取哪个版本。
 
+[width(13,87)]
+
 | tag      | 用途               |
 | -------- | ------------------ |
 | `latest` | 默认稳定版本       |
@@ -74,6 +80,18 @@
 - **常规发布**：默认打上 `latest` 标签。
 - **内测发布**：`npm publish --tag beta`（用户需显式执行 `pnpm add pkg@beta` 安装）。
 - **版本提升**：若 beta 测试稳定，直接执行 `npm dist-tag add @acme/button@1.3.0 latest` 提升标签，而非重新打包发布。
+
+### 3.2 `npm publish` 的高频参数
+
+[width(20,44,36)]
+
+| 参数              | 作用                                             | 场景                                |
+| ----------------- | ------------------------------------------------ | ----------------------------------- |
+| `--access public` | 发布 scoped 包（`@scope/name`）时声明为公开      | 首次发布开源的 scoped 包            |
+| `--tag beta`      | 指定 dist-tag，不占用 `latest`                   | 预发、灰度、内测                    |
+| `--dry-run`       | 只打印将要发布的文件与结果，不真正上传           | 检查 `files` 白名单是否漏打包       |
+| `--otp <code>`    | 传入双因素认证的一次性验证码                     | 账号开了 2FA，在 CI 外手动发布      |
+| `--provenance`    | 生成并上传构建来源证明（需 CI 与 npm 9.5+ 支持） | 提升供应链安全，配合 GitHub Actions |
 
 ## 4. Changesets 核心机制与开发流
 
@@ -109,6 +127,14 @@ pnpm changeset init
 }
 ```
 
+配置项速览（`.changeset/config.json`）：
+
+- **`access`：** 发布包的默认可见性，`public` 为公开、`restricted` 为私有，等价于命令行加 `npm publish --access public`。
+- **`baseBranch`：** 主分支名，Changesets 用它比对变更、生成版本 PR 的目标基线。
+- **`updateInternalDependencies`：** 当内部包被升版时，依赖它的兄弟包版本号自动更新的粒度（通常 `patch`）。
+- **`ignore`：** 声明不参与发布的包名数组；注意它只影响版本计算，真正阻止误发还必须给该包设置 `"private": true`。
+- **`commit`：** 是否让 `changeset version` 自动提交；流程交给 CI 时通常保持 `false`。
+
 ### 4.2 写入变更集 (PR 阶段)
 
 开发完成时执行 `pnpm changeset`，通过交互式命令行生成 Markdown 意图文件，将其与代码一同提交入库。
@@ -135,9 +161,26 @@ pnpm -r build
 pnpm changeset publish
 ```
 
+### 4.5 预发布（Prerelease）模式
+
+需要连续发多个 beta 版本时，逐个手动改版本号既繁琐又易错，Changesets 提供了进入预发布模式的能力：
+
+```bash
+pnpm changeset pre enter beta   # 进入 beta 预发布模式
+pnpm changeset version          # 版本号自动变成 1.3.0-beta.0、1.3.0-beta.1 ...
+pnpm changeset publish --tag beta
+pnpm changeset pre exit         # 发布正式版前退出预发布模式
+```
+
+- **自动递增序号：** 进入模式后，每次 `changeset version` 都会在 prerelease 号上自增，无需手写。
+- **`changeset status`：** 在 CI 或本地查看“**当前有哪些待发布的变更**”，用于判断是否需要升版。
+- **退出后归位：** `pre exit` 后再执行一次 `version`，即可把版本提升为正式版并打回 `latest`。
+
 ## 5. Monorepo 版本拓扑策略
 
 在 `.changeset/config.json` 中，可根据业务形态定义包的连动策略：
+
+[width(12,53,35)]
 
 | 策略            | 表现形式                                                                                       | 适用场景                                           |
 | --------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------- |
@@ -216,3 +259,29 @@ pnpm changeset publish
 ```
 
 不要尝试删除后重发同版本。npm 对删除和重发都有严格限制，企业内网 registry 也应遵守不可变版本原则。
+
+## 8. 常见问题 (FAQ)
+
+### 8.1 `pnpm changeset` 和 `changeset version` 分别在什么时候执行？
+
+- **答：** `changeset` 在开发/提 PR 阶段执行，生成一个描述“**这次改了哪个包、是 major/minor/patch**”的 Markdown 意图文件，需与代码一起提交；`changeset version` 在发布前夕执行，统一消耗这些意图文件、批量改写 `version` 和内部依赖、生成 `CHANGELOG.md`。前者只记录意图，后者才真正动版本号。
+
+### 8.2 为什么 `npm publish` 报 `EPRIVATE` 或提示需要付费？
+
+- **答：** scoped 包（`@scope/name`）默认按私有发布，而 npm 的私有包是收费的。开源或免费发布需显式声明公开：命令加 `--access public`，或在 `package.json` 里写 `"publishConfig": { "access": "public" }`。
+
+### 8.3 我明明配置了 `ignore`，为什么包还是被发布了？
+
+- **答：** `.changeset/config.json` 的 `ignore` 只影响版本计算与 `changeset status`，并不能阻止 `npm publish`。要让一个包彻底不可发布，必须在它的 `package.json` 里设置 `"private": true`，否则批量发布时仍会被推上去。
+
+### 8.4 发错了版本，可以 `npm unpublish` 撤回吗？
+
+- **答：** 不建议。npm 对删除有严格的时间与次数限制（发布超过 72 小时或已被他人依赖后基本无法删除），且同一版本号终身不可复用。正确做法是向前修正：用 `npm deprecate` 标记问题版本，再发布一个修复的 patch 版本。
+
+### 8.5 怎么确认 `files` 白名单没有漏打包文件？
+
+- **答：** 发布前用 `npm publish --dry-run` 预览本次会包含哪些文件，它会列出 tarball 内容而不真正上传。`files` 是白名单，未匹配的目录（如 `src`、测试）会被自动排除，但 `README`、`LICENSE`、`package.json` 等始终包含。
+
+### 8.6 Monorepo 里只想发布某一个包，该怎么做？
+
+- **答：** Changesets 以“**有变更意图 + 版本被提升**”为准，不会无差别发布所有包。若只想动单个包，用 `pnpm changeset` 时只勾选该包；发布时 `changeset publish` 也只会推送版本号发生变化的包。对外部依赖它的兄弟包，按 `updateInternalDependencies` 策略决定是否连带升版。

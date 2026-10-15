@@ -6,7 +6,7 @@ JavaScript 模块化的演进史，不仅是一部前端技术从“**玩具脚�
 
 在模块化规范诞生之前，前端开发面临着三大致命痛点：
 
-- **全局污染与命名冲突：** 所有的 `<script>` 标签共享同一个 `window` 全局作用域，变量极易被意外覆盖，引发难以排查的“幽灵 Bug”。
+- **全局污染与命名冲突：** 所有的 `<script>` 标签共享同一个 `window` 全局作用域，变量极易被意外覆盖，引发难以排查的“**幽灵 Bug**”。
 - **依赖关系脆弱：** 脚本的加载顺序由 HTML 中的编写顺序决定。一旦底层工具库（如 jQuery）放在了业务代码之后，整个页面将直接崩溃，维护这种隐式的依赖拓扑图宛如走钢丝。
 - **作用域真空：** 缺乏“**私有空间**”的概念，所有内部逻辑和临时变量都毫无保留地暴露给外部，毫无安全性与封装性可言。
 
@@ -51,7 +51,7 @@ const UserModule = (function () {
 })()
 ```
 
-> **架构意义：** 确立了 **“私有状态 + 暴露公有接口”** 的核心设计模式，这一思想贯穿了后续所有的模块化规范。
+> **架构意义：** 确立了 “**私有状态 + 暴露公有接口**” 的核心设计模式，这一思想贯穿了后续所有的模块化规范。
 
 ## 3. 服务端的破局者：CommonJS (CJS)
 
@@ -82,7 +82,7 @@ const math = require('./math.js')
 
 ## 4. 浏览器端的妥协：AMD、CMD 与 UMD
 
-在 ES Modules 出现前，浏览器端受限于网络延迟，无法使用 CommonJS 的“同步加载”（会导致页面假死），社区演化出了异步加载规范。
+在 ES Modules 出现前，浏览器端受限于网络延迟，无法使用 CommonJS 的“**同步加载**”（会导致页面假死），社区演化出了异步加载规范。
 
 ### 4.1 AMD (Asynchronous Module Definition) & RequireJS
 
@@ -138,9 +138,21 @@ console.log(count) // 输出: 1
 // count = 100; // ❌ TypeError: Assignment to constant variable.
 ```
 
+### 5.3 导入导出的高频写法
+
+日常开发中真正高频出现的不过几种形态，记住它们能避开绝大多数“**导入报错**”：
+
+- **具名导出（Named Export）：** `export const api = ...`、`export function request() {}`，导入时名字必须一一对应，可用 `as` 重命名：`import { request as http } from './api'`。
+- **默认导出（Default Export）：** `export default function App() {}`，导入时名字自由：`import App from './App'`。一个模块**只能有一个**默认导出，但可同时存在多个具名导出。
+- **混合导入：** `import React, { useState, useEffect } from 'react'`，逗号前是默认导出，大括号内是具名导出。
+- **中转与聚合：** `export * from './utils'` 把子模块的所有具名导出再导出；`export { default as Button } from './button'` 可在中转时重命名，常用来搭建组件库统一出口 `index.ts`。
+- **命名空间导入：** `import * as utils from './utils'` 适合一次性引入一组工具函数，但不利于 Tree-Shaking，能用具名就别用星号。
+
 ## 6. 史诗级对决：CommonJS vs ES Modules
 
 理解两者的差异，是排查现代工程编译 Bug、理解打包工具优化的关键：
+
+[width(27,33,40)]
 
 | 维度                       | CommonJS (CJS)                            | ES Modules (ESM)                           |
 | -------------------------- | ----------------------------------------- | ------------------------------------------ |
@@ -157,7 +169,7 @@ console.log(count) // 输出: 1
 当模块 A 依赖 B，模块 B 又依赖 A 时：
 
 - **CommonJS 的无奈：** CommonJS 是“**边加载、边执行、边缓存**”的动态同步模型，当 A 执行到一半去 `require(B)` 时，A 被挂起。B 执行时去 `require(A)`，此时 CJS 会从缓存中捞出 A **未执行完的半成品对象**（通常是一个空对象 `{}`）塞给 B。极易引发 `TypeError: x is not a function`。
-- **ESM 的从容：** 因为 ESM 构建的是是“ **先解析、后链接内存、最后再执行**”的内存引用图谱，当产生循环引用时，如果在模块的顶层作用域（同步执行栈）直接去读取循环依赖引入的值，引擎在求值阶段（Evaluation）就会当场崩溃。“**规避死区**”的秘诀就在于不要去同步调用。把对外部依赖的读取，包裹在**函数**、**类方法**或**异步钩子**中，整个依赖网就可以完美建立并正常运行的，
+- **ESM 的从容：** 因为 ESM 构建的是是“**先解析、后链接内存、最后再执行**”的内存引用图谱，当产生循环引用时，如果在模块的顶层作用域（同步执行栈）直接去读取循环依赖引入的值，引擎在求值阶段（Evaluation）就会当场崩溃。“**规避死区**”的秘诀就在于不要去同步调用。把对外部依赖的读取，包裹在**函数**、**类方法**或**异步钩子**中，整个依赖网就可以完美建立并正常运行的，
 
 ## 7. 现代工程化视角的模块化
 
@@ -168,7 +180,7 @@ console.log(count) // 输出: 1
 Tree-Shaking 这个词是由 Rollup 提出，并发扬光大的。
 它的实现 100% 依赖于 ES Modules 的**静态特性**。由于构建工具（如 Webpack、Vite 底层的 esbuild）在不运行代码的情况下就能知道你引入了哪些模块的哪些方法，它就可以把那些导出了但从未被 `import` 过的代码安全地从最终产物中剔除（Drop），极大减小打包体积。
 
-> **高级避坑：** 为了防止 Tree-Shaking 误删带有副作用的代码（比如一段单纯修改原型链或全局变量的 polyfill），工程化中引入了 `package.json` 中的 `"sideEffects": false` 字段，明确告诉打包工具：“我的包很纯净，放心删”。
+> **高级避坑：** 为了防止 Tree-Shaking 误删带有副作用的代码（比如一段单纯修改原型链或全局变量的 polyfill），工程化中引入了 `package.json` 中的 `"sideEffects": false` 字段，明确告诉打包工具：“**我的包很纯净，放心删**”。
 
 ### 7.2 Node.js 生态的阵痛与双模支持
 
@@ -184,3 +196,54 @@ Tree-Shaking 这个词是由 Rollup 提出，并发扬光大的。
 
 Webpack 时代，为了处理 CJS 和 ESM 的混写，必须把所有文件合并打包（Bundle）成一个巨大的 JS。
 Vite 的核心架构 **Bundleless**，则是直接把浏览器当做“**模块解析器**”。它利用现代浏览器对 `<script type="module">` 的原生支持，劫持浏览器的 `import` 请求，让本地服务器（esbuild）实现真正的**按需即时编译响应**，这也是为什么无论项目体积多大，Vite 都能瞬间启动的底层逻辑。
+
+### 7.4 动态导入 `import()` 与按需加载
+
+静态 `import` 会在模块加载时全部执行，而 `import()` 是**运行时函数调用**，返回一个 `Promise`，天然支持条件加载与代码分割。
+
+```javascript
+// 1. 路由懒加载：只有访问该路由才下载对应 chunk
+const UserPage = () => import('./views/UserPage.vue')
+
+// 2. 条件加载 polyfill：仅在不支持时下载
+if (!('IntersectionObserver' in window)) {
+  const mod = await import('intersection-observer')
+  mod.default()
+}
+
+// 3. 交互触发加载：点击后才拉取重型依赖
+button.onclick = async () => {
+  const { renderChart } = await import('echarts')
+  renderChart()
+}
+```
+
+- **代码分割：** 打包器（Webpack / Vite）会把 `import()` 的目标拆成独立 chunk，首屏只加载必需代码。
+- **返回结构：** `import()` 的 Promise 解析结果为模块命名空间对象，若目标用了默认导出，需取 `.default`。
+- **模块元信息：** 原生 ESM 还提供 `import.meta.url`（当前模块的绝对 URL），Vite 额外提供 `import.meta.env`（环境变量），二者均在构建期被静态替换。
+
+## 8. 常见问题 (FAQ)
+
+### 8.1 CommonJS 的 `exports` 和 `module.exports` 有什么区别？
+
+- **答：** `exports` 只是 `module.exports` 的初始引用（`exports === module.exports`）。给 `exports.a = 1` 添加属性能生效；但一旦执行 `module.exports = {...}` 整体替换，`exports` 就指向了旧对象，之后的 `exports.x = 1` 全部失效。结论：要么一直用 `module.exports` 赋值，要么只用 `exports.xxx` 挂属性，别混着写。
+
+### 8.2 为什么 `require` 拿到的值后来变了，`import` 却能拿到最新值？
+
+- **答：** CommonJS 导出的是值的浅层拷贝（快照），模块内部后续修改不会反映到外部；ES Modules 导出的是“**实时绑定**”（Live Bindings），拿到的是指向源变量内存地址的引用，所以能读到最新值。
+
+### 8.3 报错 `ERR_REQUIRE_ESM` 怎么解决？
+
+- **答：** 说明你在 CommonJS 文件中用 `require()` 加载了纯 ESM 包。ESM 是异步解析的，CJS 无法同步加载它。解法：改用动态导入 `const pkg = await import('esm-package')`；或把该文件升级为 ESM（设置 `"type": "module"` 或将后缀改为 `.mjs`）。
+
+### 8.4 同一个包里同时存在 `.cjs` 和 `.mjs` 是怎么回事？
+
+- **答：** 这是双格式（dual package）发布：`exports` 字段按 `import` / `require` 条件分别指向 `.mjs` 与 `.cjs` 入口，让 ESM 用户和 CJS 用户都能正确加载。文件后缀 `.mjs` / `.cjs` 只影响 Node.js 的解析方式，与文件里写什么语法无关。
+
+### 8.5 为什么我的库被别人引入后 Tree-Shaking 失效了？
+
+- **答：** 常见三种原因：一是产物是 CommonJS 格式（动态 `exports` 无法静态分析）；二是模块顶层有副作用却未声明 `"sideEffects": false`；三是打包器把整个 `index` 桶文件都拉了进来。解法是同时提供 ESM 产物、正确声明 `sideEffects`、并避免无谓的星号聚合。
+
+### 8.6 静态 `import` 与动态 `import()` 该怎么选？
+
+- **答：** 首屏必需、依赖确定的模块用静态 `import`（利于 Tree-Shaking 与依赖图分析）；按路由、按条件或按交互才需要的大体积模块用 `import()`，它会返回 Promise 并把目标拆成独立 chunk。此外，`import()` 在 CommonJS 文件中同样可用，是 CJS 调用 ESM 的唯一通道。

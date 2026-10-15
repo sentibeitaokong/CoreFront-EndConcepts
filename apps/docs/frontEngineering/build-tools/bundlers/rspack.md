@@ -8,7 +8,9 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 **Rspack** 是由字节跳动开发并开源的基于 Rust 的高性能 Web 构建工具。它的核心设计哲学是：**在提供与 Webpack 极其相似的 API 和生态兼容性的同时，带来 10 倍到 100 倍的构建速度提升。**
 
-如果说 Vite 是通过“**Bundleless (不打包)**”绕过了性能瓶颈，那么 Rspack 则是通过“Rust 多核并发计算”正面击碎了打包性能瓶颈。
+如果说 Vite 是通过“**Bundleless (不打包)**”绕过了性能瓶颈，那么 Rspack 则是通过“**Rust 多核并发计算**”正面击碎了打包性能瓶颈。
+
+[width(16,84)]
 
 | 核心特性                         | 深度解析与工程价值                                                                                                                                  |
 | :------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -20,6 +22,8 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 ## 2. 核心配置深度拆解
 
 Rspack 的配置文件通常命名为 `rspack.config.js`。如果你熟悉 Webpack，你会发现它的结构几乎一模一样，但**配置量大幅减少**，因为很多底层脏活被 Rspack 内部消化了。
+
+[width(15,28,57)]
 
 | 配置属性      | 作用描述                                         | Rspack 的开箱即用优势                                                      |
 | :------------ | :----------------------------------------------- | :------------------------------------------------------------------------- |
@@ -147,6 +151,53 @@ module.exports = {
   },
 }
 ```
+
+### 2.3 高频配置项：Webpack 写法在 Rspack 中的对应关系
+
+这是迁移时最需要对照的一张表。凡是表里没提到的（如 `entry`、`output`、`resolve.alias`、`resolve.extensions`、`optimization.splitChunks`），**写法与 Webpack 完全一致，照搬即可**。
+
+[width(13,29,58)]
+
+| 能力               | Webpack 写法                                           | Rspack 写法 / 差异                                                                                                         |
+| :----------------- | :----------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------- |
+| JS / TS / JSX 转译 | `babel-loader` 或 `ts-loader`                          | `builtin:swc-loader`，内核内置无需安装；用 `env.targets` 做语法降级，替代 `@babel/preset-env`。                            |
+| CSS / Less / Sass  | `css-loader` + `style-loader` + `MiniCssExtractPlugin` | `type: 'css'`，引入、HMR、生产环境物理抽离全部由内部完成；早期 0.x 需 `experiments.css: true` 开启，1.0 起已稳定默认可用。 |
+| CSS Modules        | `css-loader` 的 `modules: true` 选项                   | `type: 'css/module'`，无需任何 Loader，产物类名同样带哈希。                                                                |
+| HTML 生成          | `HtmlWebpackPlugin`                                    | `rspack.HtmlRspackPlugin`，从 `@rspack/core` 直接解构，无需安装三方包。                                                    |
+| 代码压缩           | `TerserPlugin` + `CssMinimizerPlugin`                  | `rspack.SwcJsMinimizerRspackPlugin` + `rspack.LightningCssMinimizerRspackPlugin`（底层分别为 SWC 与 Lightning CSS）。      |
+| 资源模块           | Asset Modules（`type: 'asset/resource'` 等）           | 完全兼容，写法不变。                                                                                                       |
+| 模块联邦 (MF)      | `webpack.container.ModuleFederationPlugin`             | `require('@rspack/core').container.ModuleFederationPlugin`，API 100% 兼容。                                                |
+| 开发服务器         | `webpack-dev-server`                                   | `@rspack/dev-server`，`devServer` 各项配置几乎 100% 兼容。                                                                 |
+| 构建分析           | `webpack-bundle-analyzer`                              | `RsdoctorRspackPlugin`（`@rsdoctor/rspack-plugin`），字节自家分析器，可同时给出产物体积与构建各阶段耗时诊断。              |
+
+下面这个片段展示了 CSS Modules 与 Rsdoctor 这两个高频配置项的接入方式：
+
+```js
+const rspack = require('@rspack/core')
+const { RsdoctorRspackPlugin } = require('@rsdoctor/rspack-plugin')
+
+module.exports = {
+  module: {
+    rules: [
+      // CSS Modules：不再需要 css-loader 的 modules 选项
+      { test: /\.module\.css$/, type: 'css/module' },
+    ],
+  },
+  plugins: [
+    // 需要分析产物时才开启，会生成可视化的构建报告
+    new RsdoctorRspackPlugin({}),
+  ],
+}
+```
+
+### 2.4 高频应用场景
+
+- **Webpack 老项目平滑迁移**：把 `webpack.config.js` 复制为 `rspack.config.js`，将 `babel-loader` / `ts-loader` 换成 `builtin:swc-loader`、`HtmlWebpackPlugin` 换成 `rspack.HtmlRspackPlugin`、删掉 CSS 相关的 Loader 与 `MiniCssExtractPlugin` 改用 `type: 'css'`，即可在改动极小的前提下拿到数倍提速。
+- **超大型 SPA 冷启动治理**：Rspack 坚持 Bundle-based，开发与生产产物行为一致，靠 Rust 多核并发把数千模块项目的冷启动与 HMR 压到秒级。
+- **微前端 / 模块联邦**：用 `ModuleFederationPlugin` 做 Host / Remote 拆分，配合 `shared.singleton` 保证 React / Vue 单例，避免多实例导致的运行时崩溃。
+- **CSS 工程化**：原生 `type: 'css'` 直接完成引入、HMR 与生产抽离；需要自动补前缀或 Tailwind 时再挂上 `postcss-loader`。
+- **构建产物与耗时体检**：接入 `RsdoctorRspackPlugin`，定位“**包变大 / 构建变慢**”的具体模块与阶段。
+- **保留 Babel 生态的过渡期**：确实必须使用自研 Babel 插件时，可暂时保留 `babel-loader`，代价是失去大部分 Rust 加速。
 
 ## 3. 生产环境性能优化配置实战
 
@@ -291,40 +342,36 @@ module.exports = {
 ### 5.1 经典面试题：既然 Vite 那么快，为什么字节还要去造一个 Rspack？它们怎么选？
 
 - **答**：这是底层架构理念的区别。
-  - **Vite 的局限**：Vite 在开发环境使用 `ESM + Bundleless`。对于几百个文件的中小型项目极其丝滑。但字节内部有成千上万个模块的**史诗级巨型项目**，如果用 Vite，浏览器在刷新时瞬间发起上万个 HTTP 请求，会导致浏览器网络层直接崩溃（请求瀑布流）。且 Vite 开发环境（不打包）和生产环境（Rollup 打包）机制不同，容易产生“开发好好的，上线全挂了”的隐患。
+  - **Vite 的局限**：Vite 在开发环境使用 `ESM + Bundleless`。对于几百个文件的中小型项目极其丝滑。但字节内部有成千上万个模块的**史诗级巨型项目**，如果用 Vite，浏览器在刷新时瞬间发起上万个 HTTP 请求，会导致浏览器网络层直接崩溃（请求瀑布流）。且 Vite 开发环境（不打包）和生产环境（Rollup 打包）机制不同，容易产生“**开发好好的，上线全挂了**”的隐患。
   - **Rspack 的破局**：Rspack 和 Webpack 一样，坚持 **Bundle-based (必须打包)**。它保证了开发和生产环境产物行为的一致性，同时利用 Rust 暴力拉升了打包速度。
   - **选型建议**：中小型项目、Vue 生态优先选 **Vite**；巨型企业级项目、极其沉重的 Webpack 历史老项目迁移、微前端（Module Federation）重度用户优先选 **Rspack**。
 
-### 5.2 我有一个很老的 Webpack 项目，可以直接把 `webpack` 命令换成 `rspack` 吗？
+### 5.2 我有一个很老的 Webpack 项目，可以直接把 `webpack` 命令换成 `rspack` 吗？深度依赖自研的 Babel 插件怎么办？
 
-- **答**：**不能做到 100% 零成本一键切换，但迁移成本极低。**
+- **答**：**不能做到 100% 零成本一键切换，但迁移成本极低；真正难啃的只有自研 Babel 插件。**
   - **兼容部分**：核心的 `entry`, `output`, `resolve`, 以及绝大多数标准的 Loader（如 `less-loader`, `vue-loader`）都是直接兼容的。
   - **需要修改的部分**：
     1. 必须移除 Babel 相关的 loader，替换为 `builtin:swc-loader`。
     2. 必须移除 `MiniCssExtractPlugin`，改为使用 `type: 'css'`。
-    3. 必须移除 `HtmlWebpackPlugin`，替换为官方提供的 `@rspack/html-rspack-plugin`。
+    3. 必须移除 `HtmlWebpackPlugin`，替换为官方提供的 `rspack.HtmlRspackPlugin`。
     4. 某些利用了极度底层的 Webpack 钩子手写的自定义 Plugin，可能需要重新适配。
+  - **若深度依赖自己写的 Babel AST 插件（如按需注入埋点），则面临两难选择**：Rspack 底层使用 SWC (Rust) 进行语法转换，它**不认识** JS 写的 Babel 插件。
+    - **妥协方案**：你依然可以在 Rspack 中配置使用 `babel-loader`。Rspack 也是兼容的！但代价是，代码转换工作又回到了 JS 单线程中，你会**丧失 Rspack 带来的大部分性能提升**。
+    - **终极方案**：使用 Rust / WASM 重写你的定制化 Babel 插件并接入 SWC 体系（学习成本较高）。
 
-### 5.3 我的老项目深度依赖 Babel 自己写的一些特定 AST 插件（如按需注入埋点），Rspack 支持吗？
-
-- **答**：**面临两难选择。**
-  - Rspack 底层使用 SWC (Rust) 进行语法转换，它**不认识** JS 写的 Babel 插件。
-  - **妥协方案**：你依然可以在 Rspack 中配置使用 `babel-loader`。Rspack 也是兼容的！但代价是，代码转换工作又回到了 JS 单线程中，你会**丧失 Rspack 带来的大部分性能提升**。
-  - **终极方案**：使用 Rust / WASM 重写你的定制化 Babel 插件并接入 SWC 体系（学习成本较高）。
-
-### 5.4 Rspack 的 `builtin` 属性为什么在最新的文档里找不到了？
+### 5.3 Rspack 的 `builtin` 属性为什么在最新的文档里找不到了？
 
 - **答**：**历史演进遗留问题。**
   - 在 Rspack 早期版本（0.x），团队试图通过一个巨大的 `builtins` 对象来包揽所有的功能（如 html 压缩、css 提取），从而区别于 Webpack。
   - 但随着版本迭代，为了实现**对 Webpack 终极完美的兼容**，Rspack 团队在接近 1.0 版本时转变了方向。他们废弃了 `builtins` 顶层配置，转而鼓励使用更加 Webpack-native 的方式：即通过 `module.rules` 中的 `builtin:swc-loader` 和各种原生的 `RspackPlugin` 来配置。编写现代 Rspack 配置时，请**坚决拥抱 Webpack 的心智模型**。
 
-### 5.5 为什么 Rspack 不需要安装 `css-loader` 和 `style-loader`？
+### 5.4 为什么 Rspack 不需要安装 `css-loader` 和 `style-loader`？
 
 - **答**：这是 Rspack 相较于 Webpack 的巨大体验提升。
   - **Webpack 痛点**：Webpack 本质上只懂 JS。要把 CSS 塞进页面，必须经过 `css-loader`（解析 CSS 语法）和 `style-loader`（生成 `<style>` 标签插入 DOM）这两道繁琐的工序。
   - **Rspack 优势**：Rspack 在其 Rust 底层直接将 CSS 设计为**一等公民**。当你配置 `type: 'css'` 时，Rspack 内部会自动处理 CSS 的导入、热更新，甚至在生产环境（`mode: 'production'`）下自动将 CSS 物理抽离为单独的 `.css` 文件。这一切都无需任何外挂 Loader 和 Plugin。
 
-### 5.6 如果 Rspack 默认只用 `builtin:swc-loader`，那遇到老旧浏览器的兼容性要求怎么办？
+### 5.5 如果 Rspack 默认只用 `builtin:swc-loader`，那遇到老旧浏览器的兼容性要求怎么办？
 
 - **答**：`swc-loader` 完全具备类似于 Babel 的语法降级能力。
   - 你只需在 `swc-loader` 的 `options` 中配置 `env: { targets: "..." }` 属性。
@@ -341,19 +388,19 @@ module.exports = {
   ```
   - 配置后，SWC 引擎在编译时会自动将高阶的 ES6+ 语法安全地降级转换为目标浏览器认识的老旧语法。
 
-### 5.7 Rspack 既然原生支持 CSS，为什么有时还需要配置 PostCSS？
+### 5.6 Rspack 既然原生支持 CSS，为什么有时还需要配置 PostCSS？
 
 - **答**：Rspack 的原生 CSS 支持（`type: 'css'`）主要负责 CSS 模块的引入、HMR 热更新以及物理提取打包。
   - **它的盲区**：原生功能目前无法执行复杂的 CSS 降级转换（比如自动添加浏览器前缀 `-webkit-`），也无法处理像 Tailwind CSS 这种基于编译的原子化样式框架。
   - **应对策略**：如果你需要处理兼容性前缀或使用 Tailwind，你仍然需要在 Rspack 中配置传统的 `postcss-loader`，并传入相应的 PostCSS 插件。
 
-### 5.8 为什么开启了 `SwcJsMinimizerRspackPlugin`，我的代码依然没有被压缩？
+### 5.7 为什么开启了 `SwcJsMinimizerRspackPlugin`，我的代码依然没有被压缩？
 
 - **答**：
   - **原理**：在 Webpack/Rspack 的架构设计中，压缩插件是挂载在 `optimization.minimizer` 数组中的。但是，这个数组里的插件**只会在 `optimization.minimize` 为 `true` 时才会被触发执行**。
   - **避坑指南**：很多开发者只配置了插件，却忘记了打开总开关。必须确保 `mode: 'production'`（这会自动开启 minimize）或者显式声明 `minimize: true`。
 
-### 5.9 在微前端 Module Federation 中，`shared: { singleton: true }` 到底有什么用？
+### 5.8 在微前端 Module Federation 中，`shared: { singleton: true }` 到底有什么用？
 
 - **答**：这是微前端架构中极其关键的防崩溃配置。
   - **痛点**：假设你的基座应用自带了一份 `React v18`，它动态加载了一个微应用，微应用里也打包了一份 `React v18`。当微应用渲染时，页面上同时存在两个 React 实例的上下文。由于 React 的底层机制限制（特别是 Hooks），跨实例的状态共享会瞬间导致程序抛出红色致命错误。

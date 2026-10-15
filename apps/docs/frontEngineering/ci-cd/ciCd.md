@@ -34,6 +34,8 @@ CI/CD 不是一个具体的工具，而是一套软件交付的哲学。
 
 目前企业级开发中，主要被三大 CI/CD 引擎统治。了解它们的底层差异，决定了你的架构选型。
 
+[width(15,26,28,31)]
+
 | 维度           | Jenkins (昔日霸主)                                 | GitLab CI (企业私有化标配)                 | GitHub Actions (现代开源金标准)                                     |
 | -------------- | -------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------- |
 | **底层架构**   | 基于 Java 编写，主从 (Master-Slave) 架构。         | 与 GitLab 仓库深度绑定，基于 Runner 调度。 | 微软与 GitHub 强力驱动，Serverless 体验。                           |
@@ -43,7 +45,7 @@ CI/CD 不是一个具体的工具，而是一套软件交付的哲学。
 
 ## 4. 核心基石：YAML 语法与流水线解构
 
-要真正驾驭 CI/CD，必须先熟练掌握其“**通用语言**”——YAML。无论你使用的是 GitHub Actions、GitLab CI 还是其他现代 CI/CD 工具，YAML 都是定义自动化流程的标准方式。它以数据为中心，比 JSON 更易读，比 XML 更简洁，是实现“**基础设施即代码** (IaC, Infrastructure as Code)”的理想载体。
+要真正驾驭 CI/CD，必须先熟练掌握其“**通用语言**”——YAML。无论你使用的是 GitHub Actions、GitLab CI 还是其他现代 CI/CD 工具，YAML 都是定义自动化流程的标准方式。它以数据为中心，比 JSON 更易读，比 XML 更简洁，是实现“**基础设施即代码 (IaC, Infrastructure as Code)**”的理想载体。
 
 ### 4.1 YAML 语法精要：不仅仅是键值对
 
@@ -99,7 +101,7 @@ script: |
 
 理解了 YAML 语法后，我们将其映射到 CI/CD 的抽象模型中。以 GitHub Actions 为例，一条完整的流水线（Pipeline/Workflow）通常由以下几个层级解构而成：
 
-#### 4.2.1 触发器 (Triggers/Events) —— "何时启动？"
+#### 4.2.1 触发器 (Triggers/Events) —— “**何时启动？**”
 
 定义在什么条件下触发流水线的执行。这是流水线的入口。
 在 YAML 中，通常由 `on` 关键字定义。
@@ -120,7 +122,7 @@ on:
       - main
 ```
 
-#### 4.2.2 任务 (Jobs) —— "做什么？在哪里做？"
+#### 4.2.2 任务 (Jobs) —— “**做什么？在哪里做？**”
 
 一个工作流包含一个或多个任务（Job）。Job 是流水线中粗粒度的执行单元。
 
@@ -139,7 +141,7 @@ jobs:
     steps: ...
 ```
 
-#### 4.2.3 步骤 (Steps) —— "具体怎么做？"
+#### 4.2.3 步骤 (Steps) —— “**具体怎么做？**”
 
 每个 Job 由一系列严格按顺序执行的步骤（Step）组成。Step 是最小的执行单元。
 
@@ -178,9 +180,30 @@ steps:
 - **清晰的命名与文档化：** 为每一个 Job 和 Step 赋予清晰、具描述性的 `name`，这在排查线上构建失败的日志时，价值无可估量。
 - **版本控制与审计：** 所有的流水线定义必须与业务代码一同纳入 Git 版本控制。这使得基础设施变更可追溯、可审计、可回滚。
 
+### 4.4 高频配置字段速查
+
+写流水线时，日常真正反复调整的就是下面这些字段，先混个脸熟再深入细节：
+
+[width(26,14,60)]
+
+| 字段                              | 层级     | 作用                                                              |
+| --------------------------------- | -------- | ----------------------------------------------------------------- |
+| `on`                              | 顶层     | 触发条件：`push`、`pull_request`、`schedule`、`workflow_dispatch` |
+| `jobs.<id>.runs-on`               | Job      | 指定运行环境，如 `ubuntu-latest`、`windows-latest`                |
+| `jobs.<id>.needs`                 | Job      | 声明依赖，前置 Job 成功后才执行，实现串行                         |
+| `jobs.<id>.if`                    | Job/Step | 条件执行，如 `if: github.ref == 'refs/heads/main'`                |
+| `strategy.matrix`                 | Job      | 矩阵构建，一套配置跑多个 Node 版本 / 操作系统组合                 |
+| `strategy.fail-fast`              | Job      | 矩阵中某个组合失败时是否取消其余组合，默认 `true`                 |
+| `concurrency`                     | 顶层/Job | 并发控制，用 `group` + `cancel-in-progress` 取消旧任务            |
+| `permissions`                     | 顶层/Job | 收紧 `GITHUB_TOKEN` 权限，遵循最小权限原则                        |
+| `env` / `secrets`                 | 各层级   | 注入环境变量与加密密钥，密钥只在运行时解密                        |
+| `actions/cache` / `cache: 'pnpm'` | Step     | 缓存依赖，避免每次全量下载                                        |
+| `timeout-minutes`                 | Job/Step | 超时上限，防止卡死的任务白占额度                                  |
+| `actions/upload-artifact`         | Step     | 上传构建产物，供后续 Job 下载或人工排查                           |
+
 ## 5. 工程实战：从零编写 GitHub Actions 自动化构建与部署
 
-在现代前端工程架构中，`pnpm` 凭借其“**内容寻址存储（Content-addressable store）**”和“**严格的非扁平化** `node_modules`”大杀四方。但在 CI/CD 环境中，这种独特的架构也带来了一个挑战：**传统的针对 npm/yarn 的缓存策略在 pnpm 面前会大打折扣，甚至完全失效。**
+在现代前端工程架构中，`pnpm` 凭借其“**内容寻址存储（Content-addressable store）**”和“**严格的非扁平化 `node_modules`**”大杀四方。但在 CI/CD 环境中，这种独特的架构也带来了一个挑战：**传统的针对 npm/yarn 的缓存策略在 pnpm 面前会大打折扣，甚至完全失效。**
 
 在 GitHub Actions 中实战 pnpm，核心在于**正确挂载全局 Store 缓存**以及**保障锁文件的绝对纯净**。
 
@@ -285,7 +308,7 @@ jobs:
 ### 6.1 云级缓存优化 (Cache Management) 与 Store 劫持
 
 每次 CI 运行都要经历漫长的 `pnpm install` 下载几百兆甚至上 G 的依赖，极其浪费生命与 CI 运行时长。
-pnpm 的核心优势在于“全局 Store 存储与硬链接”，但这在每次都是白纸一张的云端容器（如 `ubuntu-latest`）中默认是失效的。
+pnpm 的核心优势在于“**全局 Store 存储与硬链接**”，但这在每次都是白纸一张的云端容器（如 `ubuntu-latest`）中默认是失效的。
 
 > **架构级解法：** 我们不缓存 `node_modules`，而是直接缓存 **pnpm 的全局虚拟存储区 (Store)**。
 
@@ -338,6 +361,15 @@ pnpm 的核心优势在于“全局 Store 存储与硬链接”，但这在每�
     TARGET: '/var/www/frontend-app/' # 指定服务器的目标部署路径
 ```
 
+### 6.4 高频落地场景
+
+- **PR 校验门禁**：`on: pull_request` 触发，跑 lint + type-check + 单测 + 构建，任何一步失败就卡住合并按钮，这是出现频率最高的用法。
+- **主干发布**：`on: push: branches: [main]` 触发，构建产物推送到 CDN 或服务器，并通知 Sentry 发布新版本。
+- **多环境部署**：用 `workflow_dispatch` 的 `inputs` 选择目标环境，或按分支区分（`develop → staging`、`main → production`），再配合 GitHub Environments 加一道人工审批。
+- **定时任务**：`on: schedule` 跑依赖安全扫描（如 `pnpm audit`）或每日构建，发现漏洞和新警告时及时处理。
+- **矩阵测试**：用 `strategy.matrix` 让一套配置覆盖多个 Node 版本 / 操作系统，保证类库的兼容性。
+- **并发取消**：用 `concurrency` 让同一分支的新推送自动取消上一次仍在跑的任务，既省额度又能更快拿到最新结果。
+
 ## 7. 常见问题 (FAQ) 与高级避坑指南
 
 ### 7.1 流水线报红：`Process completed with exit code 1` 是什么意思？
@@ -381,3 +413,16 @@ pnpm 的核心优势在于“全局 Store 存储与硬链接”，但这在每�
 ```
 
 _Vite 会在编译阶段拦截并在 AST 层面替换这些带有 `VITE_` 前缀的环境变量，生成纯静态的 JS 产物。\_
+
+### 7.7 为什么同一分支连推两次，前一次的流水线被取消了？
+
+- **原因：** 这是 `concurrency` 在起作用。若同时设置了 `group` 与 `cancel-in-progress: true`，同一 `group`（例如按分支或 PR 号分组）内新任务启动时会自动取消尚未完成的旧任务。
+- **价值：** 开发者刚推完一次马上又改动再推，旧的那次结果早已过时，取消它能节省 CI 额度、也让状态反馈更快。
+- **例外：** 发布类流水线通常不希望被取消，把 `cancel-in-progress` 设为 `false`，让其必须完整跑完。
+
+### 7.8 步骤里的 `if` 写 `success()`、`failure()`、`always()` 有什么区别？
+
+- **`success()`：** 默认行为，前面所有步骤都成功才执行，普通步骤无需显式书写。
+- **`failure()`：** 前面步骤失败时才执行，常用于“**失败时发通知、上传日志**”。
+- **`always()`：** 无论成功失败都执行，最典型的是用 `actions/upload-artifact` 上传测试报告——即使测试失败，也要把报告留下来排查。
+- **提醒：** 步骤级 `if` 默认会隐含 `success()`，一旦你写了 `if: failure()` 这类状态判断就不再隐含，务必理清它对执行时机的影响。

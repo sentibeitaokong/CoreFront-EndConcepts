@@ -4,27 +4,29 @@
 
 Gulp 是一个基于 **Node.js 流（Stream）** 的前端自动化构建工具。它可以自动执行重复性的开发任务，例如代码压缩、CSS 预处理、图片优化、文件合并、自动刷新浏览器等。
 
-Gulp 的核心理念是 **“代码优于配置”**（Code over Configuration）。与 Grunt 等工具通过复杂的 JSON 配置文件来定义任务不同，Gulp 允许你使用简洁的 JavaScript 代码来编写构建任务，这使得任务定义更加直观、灵活和强大。
+Gulp 的核心理念是 “**代码优于配置**”（Code over Configuration）。与 Grunt 等工具通过复杂的 JSON 配置文件来定义任务不同，Gulp 允许你使用简洁的 JavaScript 代码来编写构建任务，这使得任务定义更加直观、灵活和强大。
 
 ## 2. 四个核心 API
 
 Gulp 的 API 非常精简，你只需要掌握四个核心 API 就可以开始工作。
 
-| API            | 描述                                                                                                                                                                                 |
-| :------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `gulp.src()`   | **源文件读取**：获取一个或多个文件以供处理。它接受一个 `glob` 模式（类似 `*.js` 或 `src/**/*.css`）作为参数，并返回一个 Node.js 流（Stream），这个流可以被“管道”到其他 Gulp 插件中。 |
-| `gulp.dest()`  | **目标文件写入**：将处理后的文件流写入到指定的目录。如果目录不存在，Gulp 会自动创建它。                                                                                              |
-| `gulp.task()`  | **任务定义** (Gulp 3.x 及更早版本)：用于定义一个 Gulp 任务。在 Gulp 4.x 中，虽然它仍然可用，但更推荐直接导出 JavaScript 函数。                                                       |
-| `gulp.watch()` | **文件监视**：监视文件或目录的变化，并在变化发生时自动执行指定的任务。                                                                                                               |
+[width(20,80)]
+
+| API            | 描述                                                                                                                                                                                     |
+| :------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gulp.src()`   | **源文件读取**：获取一个或多个文件以供处理。它接受一个 `glob` 模式（类似 `*.js` 或 `src/**/*.css`）作为参数，并返回一个 Node.js 流（Stream），这个流可以被“**管道**”到其他 Gulp 插件中。 |
+| `gulp.dest()`  | **目标文件写入**：将处理后的文件流写入到指定的目录。如果目录不存在，Gulp 会自动创建它。                                                                                                  |
+| `gulp.task()`  | **任务定义** (Gulp 3.x 及更早版本)：用于定义一个 Gulp 任务。在 Gulp 4.x 中，虽然它仍然可用，但更推荐直接导出 JavaScript 函数。                                                           |
+| `gulp.watch()` | **文件监视**：监视文件或目录的变化，并在变化发生时自动执行指定的任务。                                                                                                                   |
 
 ## 3. 核心概念解析
 
 ### 3.1 流 (Streams)
 
-这是 Gulp 最核心、最基础的概念。想象一条从 `gulp.src()` 到 `gulp.dest()` 的“管道”，文件就像水流一样在这条管道中流动。
+这是 Gulp 最核心、最基础的概念。想象一条从 `gulp.src()` 到 `gulp.dest()` 的“**管道**”，文件就像水流一样在这条管道中流动。
 
 - **起点**：`gulp.src()` 从文件系统中读取文件，并将它们转换成内存中的虚拟文件对象（Vinyl File Object），然后将这些对象放入流中。
-- **中间处理**：流中的文件可以被 `.pipe()` 方法“导向”到各种 Gulp 插件中进行处理（例如，`gulp-sass`、`gulp-terser`）。每个插件都会对流中的文件执行特定操作，然后将处理后的文件再次推入流中，传递给下一个插件。
+- **中间处理**：流中的文件可以被 `.pipe()` 方法“**导向**”到各种 Gulp 插件中进行处理（例如，`gulp-sass`、`gulp-terser`）。每个插件都会对流中的文件执行特定操作，然后将处理后的文件再次推入流中，传递给下一个插件。
 - **终点**：`gulp.dest()` 接收最终处理过的文件流，并将它们写回到文件系统中。
 
 **优点**：基于流的操作极其高效，因为它不需要频繁地读写磁盘。文件在内存中被一次性读取，经过一系列插件处理后，最后一次性写入，大大减少了 I/O 开销。
@@ -97,6 +99,24 @@ Gulp 拥有一个庞大且活跃的生态系统，包含数千个插件。每个
 
 使用插件非常简单，通常只需 `npm install` 安装，然后在 `gulpfile.js` 中 `require`，并用 `.pipe()` 将其插入到处理流中即可。
 
+### 3.5 高频 API 与常用参数速查
+
+除了四个基础 API，日常真正高频使用的就是 `series` / `parallel` 两个组合器，以及 `src`、`dest`、`watch` 的常用选项。
+
+[width(27,34,39)]
+
+| API                                | 高频选项 / 用法                                                          | 说明                                                                                  |
+| :--------------------------------- | :----------------------------------------------------------------------- | :------------------------------------------------------------------------------------ |
+| `gulp.src(globs, options)`         | `{ base, since, sourcemaps: true, allowEmpty: true, dot: true, ignore }` | `since` 配合 `gulp.lastRun(task)` 可实现增量构建；`allowEmpty` 避免源文件为空时抛错   |
+| `gulp.dest(dir, options)`          | `{ sourcemaps: '.', mode, overwrite: false }`                            | 传入 `sourcemaps` 即写出 `.map`；`mode` 可指定写出文件的权限                          |
+| `gulp.series(...tasks)`            | 串行执行                                                                 | 有先后依赖的任务（如先 `clean` 再 `build`）                                           |
+| `gulp.parallel(...tasks)`          | 并行执行                                                                 | 互不依赖的任务（如同时处理 `js` 与 `css`）                                            |
+| `gulp.watch(globs, options, task)` | `{ ignoreInitial, events, delay, queue, awaitWriteFinish }`              | 返回 watcher 对象，可用 `.on('change')` / `.on('add')` / `.on('unlink')` 做细粒度监听 |
+| `gulp.lastRun(taskName)`           | 返回上次成功完成的时间戳                                                 | 配合 `src` 的 `since` 选项做增量构建                                                  |
+| `gulp.task(name, fn)`              | Gulp 3.x 的旧写法                                                        | 4.x 中仍可用，但推荐直接写 `exports.taskName = fn`                                    |
+
+另外，`gulp.src` 返回的流本身就是 Node.js 的 `Stream`，所以 `.pipe()`、`.on('error')` 这些原生能力可以直接用；需要把多个流合并后再统一 `dest` 时，常见做法是借助 `merge-stream` 把若干子任务的流合并成一个。
+
 ## 4. 核心实战
 
 在实际项目中，我们通常需要处理 HTML、编译 Sass/Less、转译最新的 JavaScript 语法（如你最近在研究的 ES6+ 高级特性），并且需要一个本地服务器来实时预览。
@@ -105,14 +125,20 @@ Gulp 拥有一个庞大且活跃的生态系统，包含数千个插件。每个
 
 在搭建完整工作流时，以下插件是你的得力助手：
 
-| 插件名称         | 核心作用         | 典型应用场景                                                 |
-| ---------------- | ---------------- | ------------------------------------------------------------ |
-| `gulp-babel`     | JS 语法转译      | 将 ES6+ 高级语法转为向后兼容的 JS 代码                       |
-| `gulp-uglify`    | JS 代码压缩      | 生产环境混淆和压缩 JavaScript 体积                           |
-| `gulp-sass`      | Sass 编译        | 将 `.scss` 文件编译为标准 CSS                                |
-| `gulp-clean-css` | CSS 代码压缩     | 生产环境压缩 CSS 体积                                        |
-| `browser-sync`   | 本地服务与热更新 | 启动本地 Server，并在文件修改时自动刷新浏览器                |
-| `gulp-plumber`   | 错误处理守卫     | 防止因语法错误（如少写个分号）导致 `gulp.watch` 进程崩溃退出 |
+[width(25,22,53)]
+
+| 插件名称            | 核心作用         | 典型应用场景                                                 |
+| ------------------- | ---------------- | ------------------------------------------------------------ |
+| `gulp-babel`        | JS 语法转译      | 将 ES6+ 高级语法转为向后兼容的 JS 代码                       |
+| `gulp-uglify`       | JS 代码压缩      | 生产环境混淆和压缩 JavaScript 体积                           |
+| `gulp-sass`         | Sass 编译        | 将 `.scss` 文件编译为标准 CSS                                |
+| `gulp-clean-css`    | CSS 代码压缩     | 生产环境压缩 CSS 体积                                        |
+| `browser-sync`      | 本地服务与热更新 | 启动本地 Server，并在文件修改时自动刷新浏览器                |
+| `gulp-plumber`      | 错误处理守卫     | 防止因语法错误（如少写个分号）导致 `gulp.watch` 进程崩溃退出 |
+| `gulp-autoprefixer` | CSS 前缀补全     | 按 `browserslist` 自动补 `-webkit-` / `-moz-` 等厂商前缀     |
+| `gulp-rename`       | 文件重命名       | 把 `app.js` 输出为 `app.min.js`，或调整产物的输出层级        |
+| `gulp-imagemin`     | 图片压缩         | 批量压缩 `png` / `jpg` / `svg`，减小静态资源体积             |
+| `del`               | 目录清理         | 构建前删除旧的 `dist` 目录（返回 Promise，天然契合 Gulp 4）  |
 
 ### 4.2 核心 `gulpfile.js` 模板
 
@@ -166,9 +192,17 @@ exports.scripts = scripts
 exports.default = series(parallel(styles, scripts), serve)
 ```
 
+### 4.3 高频应用场景
+
+- **老项目的静态资源流水线**：Sass 编译 → `gulp-autoprefixer` 补前缀 → `gulp-clean-css` 压缩；JS 走 Babel 转译 → `gulp-uglify` 压缩，这是传统多页项目最经典的一条链路。
+- **静态页 / 多页站点的批量处理**：对 `*.html` 批量压缩、对 `images/**` 批量跑 `gulp-imagemin`、用 `gulp-rename` 统一产物命名，再用 `del` 清空旧目录，一次性产出可部署的 `dist`。
+- **本地开发的实时预览**：`browser-sync` 起服务并注入 `stream()`，改 Sass 时无刷新替换样式，改 HTML 时整页刷新，配合 `gulp.watch` 做到“**保存即生效**”。
+- **接入 npm scripts 与 CI**：把 `gulp build` / `gulp serve` 挂到 `package.json` 的 `scripts` 里，CI 只跑一次 `gulp build`，产物交给后续部署流程。
+- **增量构建加速**：文件多起来之后，用 `src(globs, { since: lastRun(task) })` 只处理改动过的文件，避免每次 `watch` 都全量重编。
+
 ## 5. 常见问题 (FAQ)
 
-### 5.1 任务执行时报错 "Did you forget to signal async completion?" (你是否忘记了标记异步任务完成？)
+### 5.1 任务执行时报错 “**Did you forget to signal async completion?**” (你是否忘记了标记异步任务完成？)
 
 **问题描述**:
 Gulp 4.x 要求所有任务都必须明确地告知 Gulp 它们何时完成，否则 Gulp 就会认为任务一直没有结束，最终超时并报错。
@@ -275,3 +309,62 @@ Gulp 4.x 的 API 发生了重大变化，旧的 `gulpfile.js` 不再兼容。
       .pipe(gulp.dest('dist/css'))
   }
   ```
+
+### 5.5 `gulp.watch` 下如何只处理改动过的文件（增量构建）？
+
+**问题描述**:
+项目文件一多，每次保存都全量重新编译一遍，`watch` 越用越卡。
+
+**解决方案**:
+用 `gulp.src` 的 `since` 选项配合 `gulp.lastRun()`，只挑出上次成功构建之后改动过的文件。
+
+```javascript
+const { src, dest, lastRun } = require('gulp')
+
+function scripts() {
+  return src('src/js/**/*.js', { since: lastRun(scripts) }).pipe(
+    dest('dist/js'),
+  )
+}
+```
+
+首次运行时 `lastRun` 返回 `0`，因此会当作全量构建，这正是我们想要的行为。
+
+### 5.6 构建前如何清理旧的 `dist` 目录？
+
+**问题描述**:
+多次构建后，`dist` 里会残留已被删除页面的产物，需要每次构建前先清空。
+
+**解决方案**:
+用 `del`（官方推荐的替代方案，取代已废弃的 `gulp-rimraf`）删除目录，再把它串到构建流程最前面。
+
+```javascript
+const { series, parallel } = require('gulp')
+const del = require('del')
+
+function clean() {
+  return del(['dist']) // 返回 Promise，Gulp 会等它完成
+}
+
+exports.build = series(clean, parallel(styles, scripts))
+```
+
+`del` 返回 Promise，正好满足 Gulp 4 的异步完成约定，不需要额外调用 `done`。
+
+### 5.7 如何在 Gulp 4 中输出 Source Map？
+
+**问题描述**:
+压缩后的代码无法调试，需要同时产出 `.map` 文件。
+
+**解决方案**:
+Gulp 4 已内置 sourcemap 支持，不需要再安装 `gulp-sourcemaps`：在 `src` 打开开关，在 `dest` 指定 `.map` 的写入位置即可。
+
+```javascript
+function styles() {
+  return src('src/scss/**/*.scss', { sourcemaps: true })
+    .pipe(sass())
+    .pipe(dest('dist/css', { sourcemaps: '.' }))
+}
+```
+
+`dest` 的 `sourcemaps` 接收一个相对路径，表示把 `.map` 写到相对输出文件的哪个位置，`'.'` 即与产物同目录。

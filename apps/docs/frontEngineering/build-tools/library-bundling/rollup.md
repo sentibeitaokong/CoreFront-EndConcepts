@@ -4,7 +4,7 @@
 
 ### 1.1 为什么选择 Rollup？
 
-在前端构建工具的生态中，有一句著名的行话：**“App 用 Webpack/Vite，库（Library）用 Rollup。”**
+在前端构建工具的生态中，有一句著名的行话：“**App 用 Webpack/Vite，库（Library）用 Rollup。**”
 
 - **极致的 Tree-Shaking**：Rollup 是原生基于 ES 模块（ESM）设计的，它的静态分析能力极强，能完美剔除没有用到的代码，产物体积极其小巧。
 - **纯净的产物**：Webpack 打包后会注入大量自己的模块加载引导代码（`__webpack_require__` 等），而 Rollup 打包出来的代码几乎和手写的一样干净。
@@ -12,15 +12,17 @@
 
 ### 1.2 核心概念与配置全景
 
-Rollup 的设计哲学是 **“小即是美”**。它的核心配置文件（通常是 `rollup.config.js`）导出一个对象或对象数组。
+Rollup 的设计哲学是 “**小即是美**”。它的核心配置文件（通常是 `rollup.config.js`）导出一个对象或对象数组。
 
-| 核心配置项   | 英文名称        | 核心职责与工程意义                                                                           |
-| :----------- | :-------------- | :------------------------------------------------------------------------------------------- |
-| **入口**     | **`input`**     | 定义打包的起点。可以是单个字符串、数组或对象（用于多入口和代码分割）。                       |
-| **出口**     | **`output`**    | （极其重要）定义打包产物的结构、格式（ESM/CJS/UMD）、存放路径、变量命名以及分包策略。        |
-| **外部依赖** | **`external`**  | 告诉 Rollup 哪些模块是“外部的”。这些模块**不会被打包进最终产物中**，而是保留 `import` 语句。 |
-| **插件体系** | **`plugins`**   | 扩展 Rollup 能力的唯一途径。用于处理非 JS 文件、解析 Node 模块、转译 TS/Babel 等。           |
-| **摇树优化** | **`treeshake`** | （高级）细粒度控制 Rollup 的静态分析算法。默认开启，通常不需要手动修改。                     |
+[width(15,17,68)]
+
+| 核心配置项   | 英文名称        | 核心职责与工程意义                                                                               |
+| :----------- | :-------------- | :----------------------------------------------------------------------------------------------- |
+| **入口**     | **`input`**     | 定义打包的起点。可以是单个字符串、数组或对象（用于多入口和代码分割）。                           |
+| **出口**     | **`output`**    | （极其重要）定义打包产物的结构、格式（ESM/CJS/UMD）、存放路径、变量命名以及分包策略。            |
+| **外部依赖** | **`external`**  | 告诉 Rollup 哪些模块是“**外部的**”。这些模块**不会被打包进最终产物中**，而是保留 `import` 语句。 |
+| **插件体系** | **`plugins`**   | 扩展 Rollup 能力的唯一途径。用于处理非 JS 文件、解析 Node 模块、转译 TS/Babel 等。               |
+| **摇树优化** | **`treeshake`** | （高级）细粒度控制 Rollup 的静态分析算法。默认开启，通常不需要手动修改。                         |
 
 ### 1.3 基础使用
 
@@ -147,13 +149,43 @@ export default {
 }
 ```
 
+### 2.3 高频配置项与官方插件速查
+
+日常写 `rollup.config.js` 时反复用到的字段，基本就是下面这一张表；`output` 里的字段尤其容易漏配。
+
+[width(19,27,54)]
+
+| 配置项                   | 常见取值                                 | 工程用途                                                     |
+| :----------------------- | :--------------------------------------- | :----------------------------------------------------------- |
+| `input`                  | 字符串 / 数组 / 对象                     | 打包起点；对象形式用于多入口并保留目录结构                   |
+| `output.dir`             | 目录路径                                 | 多入口或存在动态 `import()`（代码分割）时必须用它替代 `file` |
+| `output.file`            | 单文件路径                               | 仅单入口、无代码分割时使用                                   |
+| `output.format`          | `es` / `cjs` / `umd` / `iife` / `system` | 决定产物的模块规范，通常 `es` + `cjs` 各出一份               |
+| `output.name`            | 全局变量名                               | 仅 `umd` / `iife` 需要，决定挂到 `window` 上的名字           |
+| `output.exports`         | `auto` / `named` / `default` / `none`    | CJS 产物遇到混合导出时的映射策略                             |
+| `output.globals`         | `{ react: 'React' }`                     | `umd` / `iife` 下把 `external` 依赖映射到浏览器全局变量      |
+| `output.preserveModules` | `true` / `false`                         | 保持源码的模块结构逐个输出，利于使用者按需引入               |
+| `external`               | 字符串数组 / 正则 / 函数                 | 剔除宿主依赖（通常是 `peerDependencies`）                    |
+| `plugins`                | 插件数组                                 | 唯一的扩展入口                                               |
+| `treeshake`              | `true` / `false` / 对象                  | 摇树总开关；传对象可做 `moduleSideEffects` 等细粒度控制      |
+
+写类库时，`plugins` 数组里高频出现的就是下面这几个官方插件（都挂在 `@rollup/*` 命名空间下）：
+
+- `@rollup/plugin-node-resolve`：让 Rollup 能像 Node.js 一样去 `node_modules` 寻址，处理 `import _ from 'lodash'` 这类裸模块。
+- `@rollup/plugin-commonjs`：把 CommonJS 包转成 ESM，必须排在 `node-resolve` 之后。
+- `@rollup/plugin-typescript`：官方 TS 支持（社区也常用 `rollup-plugin-typescript2`）。
+- `@rollup/plugin-babel`：接入 Babel 转译链路，处理 TS 之外的语法降级。
+- `@rollup/plugin-terser`：生产环境代码压缩与混淆。
+- `@rollup/plugin-json`：把 `.json` 文件直接当 ES 模块 `import` 进来。
+- `@rollup/plugin-replace`：构建期常量替换，常用于注入 `process.env.NODE_ENV`。
+
 ## 3. 插件系统：构建钩子、输出钩子与上下文机制
 
 Rollup 的插件系统是其实现模块化打包、摇树优化（Tree-shaking）以及性能卓越的关键。它采用了一种基于“**钩子函数**”的发布-订阅模式，将构建流程解耦。理解插件系统，本质上就是理解 Rollup 如何在构建的各个时间点，将控制权交给插件进行干预。
 
 ### 3.1 插件调度策略：First, Sequential, Parallel
 
-为了与构建过程交互，你的插件对象包括“钩子”。钩子是在构建的各个阶段调用的函数。钩子可以影响构建的运行方式，提供关于构建的信息，或在构建完成后修改构建。有不同种类的钩子：
+为了与构建过程交互，你的插件对象包括“**钩子**”。钩子是在构建的各个阶段调用的函数。钩子可以影响构建的运行方式，提供关于构建的信息，或在构建完成后修改构建。有不同种类的钩子：
 
 - **`async` (异步) / `sync` (同步)：** 决定该钩子是否可以返回一个 Promise。
 - **`first` (熔断型)：** 如果有多个插件，只要有一个插件返回了非 `null/undefined` 的值，后续插件的该钩子就不再执行。（例如 `resolveId`，找到了路径就不往下找了）。
@@ -488,7 +520,7 @@ pnpm add -D vue
 
 ### 4.3 确立源码结构
 
-源码目录的设计直接决定了组件库后期的可扩展性。采用“组件与样式分离”的范式：
+源码目录的设计直接决定了组件库后期的可扩展性。采用“**组件与样式分离**”的范式：
 
 ```markdown
 enterprise-ui/
@@ -738,56 +770,69 @@ npm publish --access public
 **3. 线上验证**
 发布成功后，静待几分钟。打开 `https://unpkg.com/您的包名` 或 `https://jsdelivr.net/npm/您的包名`，检查线上的 CDN 目录结构是否与您本地的 `dist` 完全一致。至此，您的组件库正式走向世界！
 
+### 4.8 高频落地场景速览
+
+上面的配置可以直接套用到下面这些最常见的真实需求：
+
+- **组件库 / 工具函数库**：用 `external` 外置 `peerDependencies`，`output` 数组同时产出 `es` 与 `cjs`，再用 `rollup-plugin-dts` 单独合并出 `index.d.ts`。这就是“**库用 Rollup**”的经典形态。
+- **一套源码、多格式分发**：同一个 `input`，`output` 数组里分别声明 `es`（给 Vite/Webpack 做 Tree-shaking）、`cjs`（给 Node/SSR）、`umd`（给浏览器 `<script>`），一次性覆盖所有宿主环境。
+- **CDN 直接引入**：以 `umd` 或 `iife` 格式产出单文件，配合 `output.name` 与 `output.globals`，再把 `dist` 托管到 unpkg / jsDelivr，用户一行 `<script src="...">` 就能拿到全局变量。
+- **按需引入**：给 `output` 配置 `preserveModules: true`，或在 `input` 中逐组件声明多入口，让使用者只 `import` 到真正用到的那个组件。
+- **Monorepo 子包构建**：在 `packages/*` 下各放一份 `rollup.config.js`，用 `external` 把包与包之间的互相引用也排除掉，避免同一份代码被重复打包。
+
 ## 5. 常见问题 (FAQ) 与避坑指南
 
 ### 5.1 经典面试题：Webpack 和 Rollup 到底该怎么选？
 
-- **答**：行业内有一句公认的黄金准则：**"App 选 Webpack (Vite)，Library 选 Rollup"**。
+- **答**：行业内有一句公认的黄金准则：**“**App 选 Webpack (Vite)，Library 选 Rollup**”**。
   - **开发业务应用 (App)**：你需要处理极其复杂的路由、海量的图片/CSS、代码分割，以及极其依赖开发时的热更新 (HMR)。这些是 Webpack 和 Vite 的绝对强项，Rollup 处理这些会非常吃力。
   - **开发类库 (Library)**：比如写一个 Vue 组件库、一个工具函数包。你的代码最终会被别人 `npm install` 并用 Webpack/Vite 再次打包。你需要的仅仅是极其干净的、支持按需引入的纯 JS 产物。这时候如果用 Webpack，产物里塞满的闭包函数会恶心死使用者，**Rollup 才是绝对的王者**。
 
-### 5.2 为什么 Rollup 提示 `Unresolved dependencies` (找不到 npm 包)？
+### 5.2 为什么 Rollup 找不到 npm 包，或报 `Does not export xyz` / 语法错误？
 
 - **答**：
-  - **原因**：与 Webpack 默认会去 `node_modules` 里找包不同，Rollup 默认情况下**极其“清高”**。它只认识像 `import { a } from './utils.js'` 这种相对路径。如果你写了 `import _ from 'lodash'`，它根本不知道去哪找，会将其视作外部依赖并抛出警告。
-  - **避坑指南**：必须安装并配置官方插件 `@rollup/plugin-node-resolve`。它赋予了 Rollup 像 Node.js 一样去 `node_modules` 目录下寻址的能力。
+  - **原因（找不到包）**：与 Webpack 默认会去 `node_modules` 里找包不同，Rollup 默认情况下**极其“清高”**。它只认识像 `import { a } from './utils.js'` 这种相对路径。如果你写了 `import _ from 'lodash'`，它根本不知道去哪找，会将其视作外部依赖并抛出警告。
+  - **避坑指南（找不到包）**：必须安装并配置官方插件 `@rollup/plugin-node-resolve`。它赋予了 Rollup 像 Node.js 一样去 `node_modules` 目录下寻址的能力。
+  - **原因（导出 / 语法报错）**：Rollup 只支持 ES Modules (即 `import/export`)。但是 `node_modules` 里面的历史遗留包，大约有 70% 是使用 CommonJS (`require/module.exports`) 导出的（比如老版本的 React）。Rollup 拿到这些代码直接懵了。
+  - **避坑指南（导出 / 语法报错）**：必须紧接着 resolve 插件之后，配置 `@rollup/plugin-commonjs` 插件。它的唯一作用就是将第三方库底层的 CommonJS 语法动态转换为 ESM 语法，从而让 Rollup 能继续愉快地进行 Tree-shaking 静态分析。
 
-### 5.3 为什么引入了 npm 包后，Rollup 报错 `Does not export xyz` 或报语法错误？
-
-- **答**：
-  - **原因**：Rollup 只支持 ES Modules (即 `import/export`)。但是 `node_modules` 里面的历史遗留包，大约有 70% 是使用 CommonJS (`require/module.exports`) 导出的（比如老版本的 React）。Rollup 拿到这些代码直接懵了。
-  - **避坑指南**：必须紧接着 resolve 插件之后，配置 `@rollup/plugin-commonjs` 插件。它的唯一作用就是将第三方库底层的 CommonJS 语法动态转换为 ESM 语法，从而让 Rollup 能继续愉快地进行 Tree-shaking 静态分析。
-
-### 5.4 `external` 属性到底有多重要？如果不配置会引发什么灾难？
+### 5.3 `external` 属性到底有多重要？如果不配置会引发什么灾难？
 
 - **答**：在类库开发中，它是**生死攸关**的属性。
   - 假设你开发了一个 React 组件库，你依赖了 `react`。如果你不把 `'react'` 加入 `external` 数组，Rollup 会非常敬业地**把整个 React 的源码打包进你的组件库产物中**！
   - **灾难后果**：
     1. 你的组件库体积直接暴增几百 KB。
     2. 当别人安装你的组件库时，别人自己的项目里有一个 React，你的库里也夹带了一个私货 React。由于 React 的底层机制限制，**如果同一个页面运行着两个不同实例的 React，会导致严重的不可预知 Bug（如 Hooks 报错崩溃）**。
-  - **正解**：将所有在 `package.json` 的 `peerDependencies` 中的包，全部声明在 `external` 数组中。告诉 Rollup：“别管它，假定运行环境中已经存在这个包了”。
+  - **正解**：将所有在 `package.json` 的 `peerDependencies` 中的包，全部声明在 `external` 数组中。告诉 Rollup：“**别管它，假定运行环境中已经存在这个包了**”。
 
-### 5.5 `output.file` 和 `output.dir` 有什么区别？什么时候用哪个？
+### 5.4 `output.file` 和 `output.dir` 有什么区别？什么时候用哪个？
 
 - **答**：
   - **`file`**：用于输出**单一**文件。如果你的 `input` 只有一个起点，且代码中没有任何动态导入（`import()`），Rollup 默认会把所有代码打包进这一个文件中，此时必须使用 `file`。
   - **`dir`**：用于输出**目录**。只要你的配置涉及了**多入口 (Multiple inputs)** 或者**代码分割 (Code splitting 动态导入)**，Rollup 会产出多个 chunk 文件，此时配置 `file` 会直接报错，必须配置 `dir` 指定输出文件夹。
 
-### 5.6 开发 UMD 格式时，控制台疯狂警告 `Missing global variable name` 是怎么回事？
+### 5.5 开发 UMD 格式时，控制台疯狂警告 `Missing global variable name` 是怎么回事？
 
 - **答**：
   - **原因**：UMD 和 IIFE 格式旨在直接运行在浏览器中。如果你配置了 `external: ['react']`，Rollup 知道不打包 React，但浏览器运行时根本没有 `require` 或 `import` 机制，它怎么去找到 React 呢？它只能去全局变量 `window` 上找。
   - **解决方案**：必须在 `output` 中配置 `globals` 映射对象。比如 `globals: { react: 'React' }`。这句话的意思是：将代码中引入的 `react` 模块，映射并替换为浏览器全局变量 `window.React`。如果不配，Rollup 就会抛出上述警告，且你的库在浏览器里会报错崩溃。
 
-### 5.7 `output.exports` 属性是干什么用的？为什么有时候会报 "mixed exports" 警告？
+### 5.6 `output.exports` 属性是干什么用的？为什么有时候会报 “**mixed exports**” 警告？
 
 - **答**：这主要发生在你将包含 ES6 `export default` 的代码打包成 CommonJS (`cjs`) 格式时。
   - **背景**：ES Modules 允许同时存在**具名导出** (`export const a`) 和**默认导出** (`export default b`)。但在 Node.js 的 CommonJS 中，只有单一的 `module.exports`。
   - **警告原因**：Rollup 不知道该如何完美地将混合导出映射到 `module.exports` 上。如果它强行映射，可能会改变代码的使用方式（比如使用者必须写 `require('lib').default` 才能拿到默认导出）。
-  - **解决方案**：显式配置 `output: { exports: 'named' }`。这告诉 Rollup：“我知道有混合导出，请把它们统一挂载为 `module.exports.xxx` 和 `module.exports.default`”。或者重构你的源码，尽量只使用具名导出。
+  - **解决方案**：显式配置 `output: { exports: 'named' }`。这告诉 Rollup：“**我知道有混合导出，请把它们统一挂载为 `module.exports.xxx` 和 `module.exports.default`**”。或者重构你的源码，尽量只使用具名导出。
 
-### 5.8 为什么我的 Rollup 连 CSS 和图片都打包不了？
+### 5.7 为什么我的 Rollup 连 CSS 和图片都打包不了？
 
 - **答**：
-  - **理念差异**：Webpack 认为“万物皆模块”，而 Rollup 坚持“我就是一个纯粹的 JavaScript 打包器”。它原生在解析阶段完全不认识 `.css` 或 `.png` 等静态资源。
+  - **理念差异**：Webpack 认为“**万物皆模块**”，而 Rollup 坚持“**我就是一个纯粹的 JavaScript 打包器**”。它原生在解析阶段完全不认识 `.css` 或 `.png` 等静态资源。
   - **避坑指南**：如果你在开发组件库时必须引入 CSS，你需要安装并配置相关的 Rollup 插件（如 `rollup-plugin-postcss`）。但这其实并不是 Rollup 的强项。现代组件库（如 VueUse 或某些 React 库）往往建议**将 CSS 和 JS 分离编译**（例如用 Gulp 单独处理 Less/Sass），以保持 JS 逻辑包的绝对纯净。
+
+### 5.8 组件库怎么做按需引入？`treeshake` 和 `sideEffects` 该怎么配？
+
+- **答**：按需引入取决于“**产物结构**”和“**摇树配置**”两件事，缺一不可。
+  - **产物结构**：源码被打成单个大 bundle 时，使用者即便只 `import { Button }`，整个包也会被拉进来。用 `output.preserveModules: true`（或在 `input` 中声明多入口）让每个模块单独成文件，真正的按需引入才有物理基础。
+  - **摇树开关**：`treeshake` 默认开启，一般无需改动；若确认某些模块一定是无副作用的纯代码，可用 `treeshake.moduleSideEffects: false` 让 Rollup 更激进地删除。反过来，如果样式或副作用代码被误删，往往是 `package.json` 里漏写了 `"sideEffects"` 声明。
+  - **宿主侧配合**：使用者的打包器只会对 `es` 格式做 Tree-shaking，所以务必让 `package.json` 的 `module`（或 `exports.import`）字段指向 ESM 产物。

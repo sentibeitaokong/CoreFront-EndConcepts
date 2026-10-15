@@ -10,16 +10,29 @@ Git 在每个仓库的 `.git/hooks/` 目录下内置了一系列钩子脚本，�
 
 ### 1.1 常见钩子分类
 
-| 钩子            | 触发时机       | 常见用途           |
-| --------------- | -------------- | ------------------ |
-| `pre-commit`    | 提交前         | 运行 lint、格式化  |
-| `commit-msg`    | 提交信息写入前 | 校验提交信息格式   |
-| `pre-push`      | 推送到远程前   | 运行测试、安全检查 |
-| `post-commit`   | 提交完成后     | 通知、记录         |
-| `post-checkout` | 切换分支后     | 重建依赖           |
-| `post-merge`    | 合并后         | 重新安装依赖       |
+[width(26,26,48)]
+
+| 钩子                 | 触发时机             | 常见用途             |
+| -------------------- | -------------------- | -------------------- |
+| `pre-commit`         | 提交前               | 运行 lint、格式化    |
+| `commit-msg`         | 提交信息写入前       | 校验提交信息格式     |
+| `pre-push`           | 推送到远程前         | 运行测试、安全检查   |
+| `post-commit`        | 提交完成后           | 通知、记录           |
+| `prepare-commit-msg` | 提交信息编辑器打开前 | 预填模板、追加分支号 |
+| `post-checkout`      | 切换分支后           | 重建依赖             |
+| `post-merge`         | 合并后               | 重新安装依赖         |
+| `pre-rebase`         | 变基操作前           | 阻止对已推送分支变基 |
 
 **痛点**：`.git/hooks/` 目录**不会被 Git 跟踪**，无法随仓库共享，团队协作时每个人都要手动配置。`husky` 解决了这个分发问题。
+
+### 1.2 客户端钩子与服务端钩子
+
+按执行位置，钩子分为两类，理解这一区分是排查“**为什么本地没拦住**”的关键：
+
+- **客户端钩子 (Client-side)**：在开发者本机执行。常见的有 `pre-commit`、`commit-msg`、`prepare-commit-msg`、`pre-push`、`pre-rebase`、`post-merge`、`post-checkout`。它们只受本机控制，因此可以用 `git commit --no-verify` 或 `git push --no-verify` 跳过。
+- **服务端钩子 (Server-side)**：在远端仓库执行，不随仓库分发，需在 Git 服务端（如 GitLab、Gitea 的 hooks 目录）配置。常见的有 `pre-receive`、`update`、`post-receive`，它们**无法被客户端绕过**，常用于最终的质量闸门。
+
+`--no-verify` 只对客户端钩子生效：`git commit --no-verify` 跳过 `pre-commit` 与 `commit-msg`，`git push --no-verify` 跳过 `pre-push`，但对服务端钩子无能为力。因此真正严格的红线应放在 CI 或服务端钩子上。
 
 ## 2. husky：可管理的 Git Hooks
 
@@ -56,6 +69,8 @@ npx husky add .husky/pre-push "pnpm test"
 ```
 
 ### 2.2 husky v9 与旧版差异
+
+[width(13,35,52)]
 
 | 版本     | 配置方式                       | 特点                            |
 | -------- | ------------------------------ | ------------------------------- |
@@ -95,6 +110,18 @@ export default {
 pnpm lint-staged
 ```
 
+### 3.3 高频 CLI 参数与配置项
+
+[width(24,46,30)]
+
+| 参数/配置          | 作用                                              | 典型场景                   |
+| ------------------ | ------------------------------------------------- | -------------------------- |
+| `--concurrent <n>` | 并发执行的子任务数量，默认取 CPU 核数             | 大仓库上控制内存占用       |
+| `--no-stash`       | 关闭自动 stash 未暂存改动，避免隐式副作用         | 频繁遇到未暂存改动被还原时 |
+| `--diff <range>`   | 只对与指定分支/提交有差异的文件执行，而非仅暂存区 | CI 中校验整个 PR 的改动    |
+| `--relative`       | 传给命令的文件名使用相对于当前目录的路径          | 命令对绝对路径敏感时       |
+| `--allow-empty`    | 即使没有匹配文件也返回 0，不阻断提交              | 暂存区恰好没有匹配的文件   |
+
 ## 4. commitlint：规范提交信息
 
 `commitlint` 校验提交信息是否符合约定（通常用 Conventional Commits 规范）：
@@ -119,6 +146,8 @@ export default {
 
 type: feat | fix | docs | style | refactor | perf | test | build | ci | chore
 ```
+
+[width(16,14,70)]
 
 | type       | 含义      | 示例                           |
 | ---------- | --------- | ------------------------------ |
@@ -192,13 +221,29 @@ git commit
 pnpm add -D husky lint-staged @commitlint/cli @commitlint/config-conventional commitizen cz-conventional-changelog standard-version
 ```
 
-## 8. 常见问题 (FAQ)
+### 7.1 高频落地场景
 
-### 8.1 为什么我提交时钩子没生效？
+- **提交前只 lint 改动文件**：`pre-commit` 挂 `lint-staged`，配置 `*.{js,ts,vue}` 跑 `eslint --fix` + `prettier --write`，项目再大也只处理暂存区，耗时与改动量成正比。
+- **提交信息规范校验**：`commit-msg` 挂 `commitlint --edit $1`，强制 `feat/fix/docs` 前缀，配合 `standard-version` 或 Changesets 自动生成 Changelog 与版本号。
+- **推送前跑单测**：`pre-push` 挂 `pnpm test`，把明显失败的用例拦在本地，避免污染远端 CI 队列、浪费流水线额度。
+- **切换分支 / 合并后重装依赖**：`post-checkout`、`post-merge` 里判断 `pnpm-lock.yaml` 是否变化，变了才执行 `pnpm install`，避免依赖与代码不匹配。
+- **预处理提交信息**：`prepare-commit-msg` 预填模板或自动追加分支号（如 `JIRA-123`），让提交历史结构统一。
+- **保护主干**：`pre-rebase` 阻止对已推送分支执行变基，避免把团队共享的提交历史改写掉。
+
+## 8. 总结
+
+- Git Hooks 是「自动门卫」，husky 让它随仓库共享。
+- lint-staged 只查改动文件，commitlint 规范提交信息，commitizen 交互式生成。
+- 标准组合：`husky + lint-staged + commitlint`，本地把关 + CI 兜底。
+- 规范提交是自动 changelog、自动发版的基石。
+
+## 9. 常见问题 (FAQ)
+
+### 9.1 为什么我提交时钩子没生效？
 
 检查 `.husky/` 目录是否已生成、`prepare` 脚本是否执行过（`npx husky` 或重新 `pnpm install`）。旧版 husky 还需要确认 `core.hooksPath` 指向 `.husky`。
 
-### 8.2 如何临时跳过钩子？
+### 9.2 如何临时跳过钩子？
 
 ```bash
 git commit --no-verify   # 跳过 pre-commit 和 commit-msg
@@ -206,23 +251,28 @@ git commit --no-verify   # 跳过 pre-commit 和 commit-msg
 
 > 慎用，跳过校验可能把未通过 lint 的代码提交上去。
 
-### 8.3 lint-staged 为什么快？
+### 9.3 lint-staged 为什么快？
 
 它只对**暂存区的文件**执行命令，而不是全项目扫描。改动 2 个文件就只查 2 个，时间与改动量成正比。
 
-### 8.4 commitlint 和 commitizen 有什么区别？
+### 9.4 commitlint 和 commitizen 有什么区别？
 
 - `commitlint`：**校验**提交信息是否规范（事后把关）。
 - `commitizen`：**引导**你写出规范的提交信息（事前辅助）。
 - 二者常搭配使用：commitizen 帮你写规范，commitlint 兜底拦截不规范。
 
-### 8.5 CI 里已经跑 lint 了，还需要 Git Hooks 吗？
+### 9.5 CI 里已经跑 lint 了，还需要 Git Hooks 吗？
 
 需要。Git Hooks 在**本地提交前**即时反馈，CI 是**推送后**的兜底。前者更快、更省 CI 资源；后者无法被绕过（`--no-verify` 能跳过本地钩子）。**本地 + CI 双层防线**才是完整方案。
 
-## 9. 总结
+### 9.6 为什么我用了 `--no-verify`，某个检查还是把提交拦下了？
 
-- Git Hooks 是「自动门卫」，husky 让它随仓库共享。
-- lint-staged 只查改动文件，commitlint 规范提交信息，commitizen 交互式生成。
-- 标准组合：`husky + lint-staged + commitlint`，本地把关 + CI 兜底。
-- 规范提交是自动 changelog、自动发版的基石。
+`--no-verify` 只能跳过**客户端**钩子（`pre-commit`、`commit-msg`、`pre-push`）。如果拦截发生在推送之后（例如服务端的 `pre-receive`、`update` 钩子，或 CI 流水线），本地参数完全无效。判断拦截来源很简单：报错由本地终端输出，就是客户端钩子；由远端返回，就是服务端或 CI。
+
+### 9.7 lint-staged 失败后，我未 `git add` 的改动不见了？
+
+`lint-staged` 默认会把未暂存的改动临时 `git stash` 起来，只让工具看到暂存区内容，跑完再自动恢复。若中途异常退出（如被 `Ctrl+C` 打断），stash 可能没来得及恢复。用 `git stash list` 找到对应记录后 `git stash pop` 即可；若频繁遇到，可加 `--no-stash` 关闭这一行为（代价是工具会看到工作区的全部改动）。
+
+### 9.8 团队规范的“**红线**”应该放在本地钩子还是 CI？
+
+本地钩子是**提速工具**，不是**强制手段**——任何人一个 `--no-verify` 就能绕过。合理的分工是：本地放快速反馈类检查（格式化、改动文件 lint、提交信息格式），CI 或服务端钩子放不可绕过的红线（全量测试、类型检查、构建成功）。两者职责不同，不能互相替代。

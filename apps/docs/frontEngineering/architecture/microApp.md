@@ -4,9 +4,9 @@ outline: [2, 3]
 
 # Micro-app 微前端方案
 
-`Micro-app` 是京东零售开源的、基于 **Web Components** 的微前端框架。其核心设计理念是 **"零侵入接入"** —— 子应用不需要暴露
+`Micro-app` 是京东零售开源的、基于 **Web Components** 的微前端框架。其核心设计理念是 **“**零侵入接入**”** —— 子应用不需要暴露
 `bootstrap`、`mount`、`unmount` 生命周期即可运行，主应用像使用普通 HTML 标签一样嵌入子应用。相比 qiankun 的 `single-spa`
-体系，Micro-app 更强调"**把复杂度封装在自定义元素内部**"。
+体系，Micro-app 更强调“**把复杂度封装在自定义元素内部**”。
 
 ## 1. 核心架构原理
 
@@ -168,6 +168,28 @@ renderApp({
 })
 ```
 
+### 2.3 基座高频 API 速查
+
+`start()` 之后，主应用日常用的基本都是默认导出 `microApp` 上的方法，以及 `renderApp` / `preFetch` / `unmountApp` 等具名导出：
+
+[width(34,37,29)]
+
+| API                                 | 典型签名                                        | 用途                                   |
+| ----------------------------------- | ----------------------------------------------- | -------------------------------------- |
+| `microApp.start(options)`           | `start({ iframe, 'disable-sandbox', ... })`     | 全局初始化，一个页面只能执行一次       |
+| `microApp.setData(appName, data)`   | 浅合并写入子应用数据                            | 下发 token、主题、权限等公共状态       |
+| `microApp.forceSetData`             | `forceSetData(appName, data)`                   | 跳过差异对比强制触发，用于时间戳类字段 |
+| `microApp.getData(appName)`         | 读取主应用侧缓存的最近一次数据                  | 子应用未挂载时也能取值                 |
+| `microApp.addDataListener`          | `addDataListener(appName, cb)`                  | 接收子应用 `dispatch` 上来的数据       |
+| `microApp.setGlobalData(data)`      | 写入全局数据                                    | 环境、版本号等所有子应用共享的数据     |
+| `preFetch(apps, delay)`             | 具名导出，空闲时串行预加载                      | 预热高频子应用                         |
+| `renderApp(options)`                | 具名导出，`{ name, url, container, baseroute }` | 无模板场景命令式渲染                   |
+| `unmountApp(appName, options)`      | `unmountApp('order', { destroy, clearData })`   | 精确卸载单个子应用                     |
+| `microApp.reload(appName, destroy)` | 重新渲染某个子应用，`destroy` 为 true 时先销毁  | 子应用版本切换、灰度回滚               |
+| `microApp.getAllApps()`             | 具名导出 `getAllApps` / `getActiveApps`         | 调试、埋点，统计当前挂载或活跃的子应用 |
+
+> `setData` / `forceSetData` 都是**浅合并**，只传差异字段即可；卸载后数据缓存默认保留，需要清掉就加 `clear-data` 属性或调用 `microApp.clearData(appName)`。
+
 ## 3. 自定义元素
 
 Micro-app 的核心是继承 `HTMLElement` 的 `MicroAppElement` 类。子应用的加载、渲染、保活、卸载全部由这个 Custom Element
@@ -254,7 +276,7 @@ class MicroAppElement extends HTMLElement {
 
 ### 3.4 应用渲染调度
 
-`handleConnected` 是 Micro-app 的"**路由分发中心**"。它判断当前 appName 是否已存在实例，根据实例状态决定复用、唤醒还是重新创建：
+`handleConnected` 是 Micro-app 的“**路由分发中心**”。它判断当前 appName 是否已存在实例，根据实例状态决定复用、唤醒还是重新创建：
 
 ```js
 class MicroAppElement extends HTMLElement {
@@ -283,6 +305,33 @@ class MicroAppElement extends HTMLElement {
   }
 }
 ```
+
+### 3.5 高频属性速查
+
+`<micro-app>` 上的属性不多，按加载、隔离、缓存、路由四类记住就够日常使用：
+
+[width(30,13,57)]
+
+| 属性                    | 取值    | 说明                                               |
+| ----------------------- | ------- | -------------------------------------------------- |
+| `name`                  | string  | 必填，应用唯一标识，会先经 `formatAppName` 归一化  |
+| `url`                   | string  | 必填，子应用 HTML 入口地址                         |
+| `baseroute`             | string  | 子应用路由前缀，与 `__MICRO_APP_BASE_ROUTE__` 对齐 |
+| `data`                  | object  | 首次下发数据，等价于挂载前先调用 `setData`         |
+| `keep-alive`            | boolean | 卸载转隐藏保活；与 `destroy` 同时存在时失效        |
+| `destroy`               | boolean | 卸载时彻底销毁实例并清空数据缓存                   |
+| `clear-data`            | boolean | 只清空数据通信缓存，不销毁实例                     |
+| `shadowDOM`             | boolean | 开启 Shadow DOM 强样式隔离                         |
+| `inline`                | boolean | 用内联 `<script>` 执行 JS，源码可定位              |
+| `disable-scopecss`      | boolean | 关闭 Scoped CSS 前缀重写                           |
+| `disable-sandbox`       | boolean | 关闭 JS 沙箱，子应用直接操作真实 `window`          |
+| `ssr`                   | string  | 声明子应用是 SSR 应用，按 SSR 模式加载             |
+| `router-mode`           | string  | 虚拟路由模式，取值见第 8 节                        |
+| `fiber`                 | boolean | 异步执行子应用 JS，减少对主应用渲染的阻塞          |
+| `iframe`                | boolean | 只为当前子应用启用 iframe 沙箱                     |
+| `disable-patch-request` | boolean | 关闭请求代理，子应用直接使用原生 `fetch`           |
+
+> 记忆顺序：加载看 `name` / `url` / `baseroute` / `data`，隔离看 `shadowDOM` / `disable-scopecss` / `disable-sandbox` / `iframe`，缓存看 `keep-alive` / `destroy` / `clear-data`，路由看 `router-mode`。
 
 ## 4. 资源加载机制
 
@@ -559,6 +608,8 @@ function serialExecFiberTasks(tasks) {
 
 Micro-app 提供两套沙箱方案，通过 `iframe` 配置切换：
 
+[width(24,15,37,24)]
+
 | 沙箱类型                                | 适用场景         | 原理                                             | 特点                           |
 | --------------------------------------- | ---------------- | ------------------------------------------------ | ------------------------------ |
 | **Proxy 沙箱**（默认，`iframe: false`） | 同域子应用       | `Proxy` 代理 `window`，写入落到 `microAppWindow` | 性能好、通信便捷、配置灵活     |
@@ -566,7 +617,7 @@ Micro-app 提供两套沙箱方案，通过 `iframe` 配置切换：
 
 ### 6.1 Proxy 沙箱
 
-核心逻辑：创建一个 `microAppWindow` 作为子应用的"**假 window**"，通过 `new Proxy(microAppWindow, handler)` 拦截所有读写。
+核心逻辑：创建一个 `microAppWindow` 作为子应用的“**假 window**”，通过 `new Proxy(microAppWindow, handler)` 拦截所有读写。
 
 ```js
 function createProxyWindow(appName, microAppWindow, sandbox) {
@@ -732,7 +783,7 @@ function patchWindowEffect(microAppWindow, appName) {
 
 ## 7. CSS 样式隔离
 
-Micro-app 的 CSS 隔离采用 **"样式前缀重写"** 方案（Scoped CSS），而非 Shadow DOM。默认将子应用所有 CSS 选择器加上
+Micro-app 的 CSS 隔离采用 **“**样式前缀重写**”** 方案（Scoped CSS），而非 Shadow DOM。默认将子应用所有 CSS 选择器加上
 `micro-app[name=xxx]` 前缀，实现样式作用域约束。
 
 ### 7.1 Scoped CSS 原理
@@ -778,6 +829,8 @@ class CSSParser {
 
 ### 7.2 样式隔离方案对比
 
+[width(23,33,23,21)]
+
 | 方案                             | 原理                                        | 优点                   | 局限                          |
 | -------------------------------- | ------------------------------------------- | ---------------------- | ----------------------------- |
 | **Scoped CSS**（micro-app 默认） | 重写选择器为 `micro-app[name=xxx] selector` | 无 Shadow DOM 边界问题 | 需要处理复杂选择器、第三方库  |
@@ -789,14 +842,19 @@ class CSSParser {
 
 ## 8. 路由机制
 
-Micro-app 提供三套路由模式：
+`router-mode` 共五个取值，默认 `search`（1.0 正式版起将改为 `state`）：
 
-| 模式       | 说明                                                           |
-| ---------- | -------------------------------------------------------------- |
-| **search** | 默认模式。子应用路由通过 `?` 参数传递，如 `/?/order/list`      |
-| **native** | 原生模式。子应用路由直接拼接在主应用路径后面，如 `/order/list` |
-| **pure**   | 纯模式。子应用内部路由独立管理，不影响浏览器 URL               |
-| **custom** | 自定义模式。完全由开发者控制路由同步逻辑                       |
+[width(12,88)]
+
+| 模式             | 说明                                                                                                 |
+| ---------------- | ---------------------------------------------------------------------------------------------------- |
+| **search**       | 默认模式。子应用路由以 `?` 参数同步到浏览器地址，如 `/?/order/list`                                  |
+| **state**        | 子应用路由信息同步到 `history.state`，不污染地址栏，1.0 起接替 `search` 成为默认                     |
+| **native**       | 不做路由隔离，主、子应用同用浏览器 URL 渲染；子应用的 `location.origin` / `href` 指向主应用          |
+| **native-scope** | 与 `native` 唯一的差别：子应用的 `location.origin` / `href` 指向子应用自己，子应用内取原始域名更自然 |
+| **pure**         | 纯模式。子应用像组件一样使用，内部路由独立管理，既不写浏览器 URL 也不影响主应用路由                  |
+
+> 只有 `native` / `native-scope` 需要配合 `baseroute`（子应用用 `window.__MICRO_APP_BASE_ROUTE__` 取值设置基础路径），其余模式由微前端框架自行维护路由前缀。
 
 ```ts
 // 虚拟路由系统（iframe 沙箱内）
@@ -1038,6 +1096,8 @@ preFetch([{ name: 'order', url: 'http://localhost:7101/' }])
 
 预加载层级：
 
+[width(10,90)]
+
 | level | 说明                             |
 | ----- | -------------------------------- |
 | 1     | 只预加载 HTML，不解析 JS/CSS     |
@@ -1193,22 +1253,9 @@ if (!(window as any).__MICRO_APP_ENVIRONMENT__) {
 }
 ```
 
-## 13. 常见问题
+## 13. 落地建议
 
-| 问题                     | 处理方式                                                                     |
-| ------------------------ | ---------------------------------------------------------------------------- |
-| 子应用静态资源路径错误   | 检查 Vite `base` 或 Webpack `publicPath`，或使用 `__MICRO_APP_PUBLIC_PATH__` |
-| 刷新后 404               | 主应用 Nginx 配置 `try_files` fallback 到 `index.html`                       |
-| 样式污染                 | 确认 `disable-scopecss` 未设为 true；使用应用级 class 前缀                   |
-| 弹窗/浮层挂载异常        | 组件库 Portal/Teleport 指向子应用根容器，不要挂到 `document.body`            |
-| 第三方库样式被误加前缀   | 使用 `/* scopecss-disable */` / `/* scopecss-disable-next-line */`           |
-| 子应用切换后事件重复触发 | 确认 `keep-alive` 场景下保活策略正确；卸载时手动清理监听器                   |
-| 预加载应用内存占用高     | 非核心子应用使用 level=1/2 而非 level=3（预渲染）                            |
-| iframe 沙箱弹窗层级异常  | iframe 默认为 `display:none`，DOM 代理到主文档后弹窗需配置容器               |
-| 多个子应用共享相同依赖   | 通过 `globalAssets` 预缓存公共 CDN 资源，减少重复请求                        |
-| Vite 子应用 HMR 失效     | 在 `micro-app` 环境中禁用 HMR，或使用 `inline` 模式执行 JS                   |
-
-## 14. 落地建议
+[width(13,57,30)]
 
 | 架构维度         | 关键实践规范                                                                                       | 核心目的                                             |
 | ---------------- | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
@@ -1216,9 +1263,37 @@ if (!(window as any).__MICRO_APP_ENVIRONMENT__) {
 | **样式隔离**     | Scoped CSS（默认） + 应用级 class 前缀 + 组件库弹窗统一挂载容器，必要时用 `/* scopecss-disable */` | 多层级防御，既隔离全局污染又不破坏第三方库样式       |
 | **沙箱策略**     | 同域子应用用 Proxy 沙箱，跨域或高安全需求用 iframe 沙箱                                            | 在隔离强度与通信便捷性之间取得平衡                   |
 | **内存与副作用** | 不使用 `keep-alive` 的子应用必须在卸载时清理事件、定时器、WebSocket；沙箱的副作用自动清理是兜底    | 防止频繁切换导致内存泄漏和事件重复触发               |
-| **通信规范**     | 仅传递认证、权限、主题、语言等公共状态，业务数据优先通过后端 API 或 URL 解耦                       | 避免子应用与主应用形成"意大利面条"式耦合             |
+| **通信规范**     | 仅传递认证、权限、主题、语言等公共状态，业务数据优先通过后端 API 或 URL 解耦                       | 避免子应用与主应用形成“**意大利面条**”式耦合         |
 | **预加载策略**   | 核心高频子应用配置 `level=2` 预加载；需要秒开体感的配置 `level=3` 预渲染并严格评估内存成本         | 在首屏性能和内存占用之间取得平衡                     |
 | **公共依赖**     | React、Vue、组件库等通过 `globalAssets` 全局预缓存 + CDN Externals                                 | 避免公共库被重复打包下载，减少子应用体积和切换耗时   |
 | **性能优化**     | 大体积子应用启用 `fiber` 模式；非首屏应用使用预加载                                                | 避免 JS 执行阻塞主线程                               |
-| **工程化部署**   | 子应用独立仓库、独立 CI/CD、独立部署与回滚                                                         | 真正发挥微前端"**独立部署、独立容灾**"的架构优势     |
+| **工程化部署**   | 子应用独立仓库、独立 CI/CD、独立部署与回滚                                                         | 真正发挥微前端“**独立部署、独立容灾**”的架构优势     |
 | **监控与排查**   | 接入错误监控系统，通过 `window.__MICRO_APP_NAME__` 区分主子应用的错误来源                          | 在分布式前端架构中快速定位线上问题                   |
+
+### 13.1 高频落地场景
+
+[width(15,30,55)]
+
+| 场景                    | 典型诉求                                       | 关键配置                                                                                          |
+| ----------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **中后台聚合门户**      | 一个基座收纳多个业务子系统，菜单统一、切换要快 | 每个子应用分配 `baseroute` 前缀；高频子应用 `preFetch` level=2；菜单常驻项加 `keep-alive`         |
+| **老系统渐进式接入**    | jQuery / Vue2 老页面零改造嵌入，随用随删       | 老页面直接用 `<micro-app>` 包一层；同域可信时按需 `disable-sandbox`；先用 level=1 预加载          |
+| **多团队独立发版**      | 子应用独立仓库、独立 CI/CD、独立回滚           | 子应用独立部署；`globalAssets` 收敛 React/Vue 等公共依赖；错误按 `window.__MICRO_APP_NAME__` 打标 |
+| **多品牌 / 多地区站点** | 同一基座按地区裁剪子应用                       | `router-mode='pure'` 隔离子应用内部路由；用 `setGlobalData` 下发地域与语言                        |
+| **灰度发布**            | 只对部分用户切到新版本子应用                   | 基座按灰度规则改写 `url` 指向新版本，改写后调用 `microApp.reload(appName)` 重新渲染               |
+| **嵌入第三方黑盒系统**  | 页面里塞一个不受控的外部系统                   | 只为该应用打开 `iframe` 沙箱；按需用 `disable-patch-request` 关闭请求代理                         |
+
+## 14. 常见问题 (FAQ)
+
+[width(28,72)]
+
+| 问题                                | 处理方式                                                                                                                                                      |
+| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 子应用静态资源路径错误 / 刷新后 404 | 检查 Vite `base` 或 Webpack `publicPath`，或使用 `__MICRO_APP_PUBLIC_PATH__`；主应用 Nginx 配置 `try_files` fallback 到 `index.html`                          |
+| 样式污染 / 第三方库样式被误加前缀   | 确认 `disable-scopecss` 未设为 true，使用应用级 class 前缀；对特定文件用 `/* scopecss-disable */` / `/* scopecss-disable-next-line */` 局部关闭隔离           |
+| 弹窗 / 浮层挂载与层级异常           | 组件库 Portal/Teleport 指向子应用根容器，不要挂到 `document.body`；iframe 沙箱默认为 `display:none`，DOM 代理到主文档后弹窗需单独配置容器                     |
+| 子应用切换后事件重复触发            | 确认 `keep-alive` 场景下保活策略正确；卸载时手动清理监听器                                                                                                    |
+| 预加载不生效 / 内存占用高           | 预加载在 `requestIdleCallback` 空闲时串行执行，`navigator.onLine` 为 false 时跳过；非核心子应用用 level=1/2 而非 level=3（预渲染）                            |
+| 多个子应用共享相同依赖              | 通过 `globalAssets` 预缓存公共 CDN 资源，减少重复请求                                                                                                         |
+| 子应用首次渲染拿不到下发的数据      | 子应用在挂载前用 `window.microApp.getData()` 读取缓存；`addDataListener(cb, true)` 的 `autoTrigger` 会用缓存数据立即触发一次；确认卸载时没有设置 `clear-data` |
+| Vite 子应用 HMR 失效                | 在 `micro-app` 环境中禁用 HMR，或使用 `inline` 模式执行 JS                                                                                                    |
