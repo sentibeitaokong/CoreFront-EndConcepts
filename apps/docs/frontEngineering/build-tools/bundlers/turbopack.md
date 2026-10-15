@@ -281,47 +281,46 @@ module.exports = {
 
 ### 7.1 Turbopack 以后会完全取代 Webpack 吗？我的老 Webpack 项目能一键迁移吗？
 
-- **答**：Turbopack 的**终极目标**确实是成为 Webpack 的继任者。但目前（包括可预见的短期内），它**无法做到**旧有巨型 Webpack 项目的“**一键无缝迁移**”。
+- Turbopack 的**终极目标**确实是成为 Webpack 的继任者。但目前（包括可预见的短期内），它**无法做到**旧有巨型 Webpack 项目的“**一键无缝迁移**”。
 - Webpack 积攒了 10 年的复杂魔法配置和数以万计的野生社区插件，Turbopack 不可能也没必要用 Rust 全部重写一遍。它的最佳落地场景是从 0 到 1 的现代框架新项目（首选 Next.js）。旧有老项目如果饱受编译速度折磨，目前更推荐迁移至 **Rspack**（字节跳动开源的、高度兼容 Webpack API 的 Rust 打包器）。
 
 ### 7.2 Turbopack 和 Vite (Rolldown) 究竟谁更强？架构师该如何选型？
 
-- **答**：这是路线之争，没有绝对的弱者。
+- 这是路线之争，没有绝对的弱者。
 - **选 Vite + Rolldown**：如果你在做 Vue/React 的纯客户端单页应用（SPA）、企业级后台管理系统、或者开发跨框架的通用 UI 组件库。Vite 生态开放、插件机制对 JS 开发者极度友好、配置极其透明，依然是当下的不二之选。
 - **选 Turbopack**：如果你在构建大型的 **Next.js (React)** 应用，重度依赖 SSR（服务端渲染）和 React Server Components。此时 Turbopack 与框架的底层融合度极高，它的按需编译和极速热更会给你带来极其恐怖的开发体验。
 
 ### 7.3 为什么我第一次开启 `--turbo` 时，感觉启动反而有点慢？
 
-- **答**：Turbopack 宣称的“**极速**”建立在**缓存被建立之后**。第一次冷启动时，Turbo Engine 需要扫描硬盘、解析大量依赖并建立底层的增量计算图，这个过程需要消耗一定的计算资源。一旦初次计算完成，所有的中间状态被存入内存和硬盘的 `.next` 缓存目录，从第二次启动以及后续的任何热更新开始，你就会体验到真正的“**快到飞起**”。
+Turbopack 宣称的“**极速**”建立在**缓存被建立之后**。第一次冷启动时，Turbo Engine 需要扫描硬盘、解析大量依赖并建立底层的增量计算图，这个过程需要消耗一定的计算资源。一旦初次计算完成，所有的中间状态被存入内存和硬盘的 `.next` 缓存目录，从第二次启动以及后续的任何热更新开始，你就会体验到真正的“**快到飞起**”。
 
 ### 7.4 Turbopack 会支持 Vue 吗？
 
-- **答**：Vercel 官方并未在底层排斥任何框架。Turbopack 的架构被设计为“**框架无关（Framework-agnostic）**”。理论上，只要社区有人用 Rust 写出了解析 `.vue` 文件的 SWC/Turbopack 核心插件，Vue 项目同样能享受它的加持。但从商业逻辑和生态壁垒来看，Turbopack 的资源倾斜必然长期服务于 React 体系。Vue 生态的核心依然会牢牢绑定在 Vite 战车之上。
+Vercel 官方并未在底层排斥任何框架。Turbopack 的架构被设计为“**框架无关（Framework-agnostic）**”。理论上，只要社区有人用 Rust 写出了解析 `.vue` 文件的 SWC/Turbopack 核心插件，Vue 项目同样能享受它的加持。但从商业逻辑和生态壁垒来看，Turbopack 的资源倾斜必然长期服务于 React 体系。Vue 生态的核心依然会牢牢绑定在 Vite 战车之上。
 
 ### 7.5 Turbopack 和 Turborepo 是什么关系？
 
-- **答**：
-  - **区别**：它们是 Vercel 宇宙里的两兄弟，都基于相同的 **Turbo Engine (增量计算引擎)** 理念。
-  - **Turborepo**：负责**宏观**的项目管线。它是用来管理 Monorepo 中多个包（Packages）之间谁先 build、谁后 build 的任务编排工具。
-  - **Turbopack**：负责**微观**的代码管线。它是用来处理单个项目内部 `.js`, `.css` 文件之间如何解析、如何编译的打包器。
-  - **终极形态**：在企业级架构中，外层用 Turborepo 调度多项目，内层业务（Next.js）用 Turbopack 打包，这就是 Vercel 构想的前端性能终局。
+- **区别**：它们是 Vercel 宇宙里的两兄弟，都基于相同的 **Turbo Engine (增量计算引擎)** 理念。
+- **Turborepo**：负责**宏观**的项目管线。它是用来管理 Monorepo 中多个包（Packages）之间谁先 build、谁后 build 的任务编排工具。
+- **Turbopack**：负责**微观**的代码管线。它是用来处理单个项目内部 `.js`, `.css` 文件之间如何解析、如何编译的打包器。
+- **终极形态**：在企业级架构中，外层用 Turborepo 调度多项目，内层业务（Next.js）用 Turbopack 打包，这就是 Vercel 构想的前端性能终局。
 
 ### 7.6 `--turbo`、`--turbopack` 和顶层 `turbopack` 字段到底怎么对应？升级后配置为什么报错？
 
-- **答**：它们指的是同一套东西，只是版本演进中换过名字。
+- 它们指的是同一套东西，只是版本演进中换过名字。
   - **CLI 标志**：Next.js 14/15 用 `next dev --turbo`，后来统一成 `--turbopack`；到 Next.js 16，Turbopack 已是默认打包器，不需要再加标志，反而要回退 Webpack 时才传 `--webpack`。
   - **配置字段**：13.0～15.2 写在 `experimental.turbo`，15.3 起改名为顶层 `turbopack`，旧字段已废弃。
   - **升级姿势**：执行 `npx @next/codemod@latest next-experimental-turbo-to-turbopack .` 可以把配置自动挪到顶层，之后再删掉不再支持的字段即可。
 
 ### 7.7 我项目里的 Webpack Loader / Plugin 在 Turbopack 下没生效，怎么排查？
 
-- **答**：先明确边界——**Plugin 不被支持，Loader 只支持“返回 JS 代码”的子集**。
+- 先明确边界——**Plugin 不被支持，Loader 只支持“返回 JS 代码”的子集**：
   - **Plugin**：只要 `next.config.js` 里写了 `webpack()` 函数，Turbopack 会整段忽略，压缩 / CSS 抽取这类调优插件建议直接删除，Turbopack 已有等价的内置能力；确有硬需求的用 `next dev --webpack` 回退到 Webpack。
   - **Loader**：把需要的 Loader 搬进 `turbopack.rules`，只保留返回 JS 的那几个；依赖 `emitFile`、`importModule` 等 API 的 Loader 无法迁移，需要改写或寻找对应的 SWC 版本。
   - **Babel 插件**：优先改用 Next.js 的 `compiler` 选项（SWC 原生实现），比继续挂 Babel 插件更快。
 
 ### 7.8 Monorepo 里开启 Turbopack 后一直报模块找不到、或反复重新编译，怎么办？
 
-- **答**：十有八九是**工程根目录（root）**没有识别对。
+- 十有八九是**工程根目录（root）**没有识别对。
   - Next.js 默认靠在项目里向上查找 `pnpm-lock.yaml`、`package-lock.json`、`yarn.lock`、`bun.lock` 等锁文件来推断根目录；Monorepo 或 `npm link` / `pnpm link` 出来的软链依赖，经常落在这个推断范围之外。
   - **解决方案**：显式设置 `turbopack.root` 为包含所有相关包的父目录，例如 `root: path.join(__dirname, '..')`；同时确认 `resolveExtensions` 里保留了默认后缀，否则自有源码也会解析失败。

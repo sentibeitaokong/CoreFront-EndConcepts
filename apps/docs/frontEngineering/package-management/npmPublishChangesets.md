@@ -264,24 +264,24 @@ pnpm changeset publish
 
 ### 8.1 `pnpm changeset` 和 `changeset version` 分别在什么时候执行？
 
-- **答：** `changeset` 在开发/提 PR 阶段执行，生成一个描述“**这次改了哪个包、是 major/minor/patch**”的 Markdown 意图文件，需与代码一起提交；`changeset version` 在发布前夕执行，统一消耗这些意图文件、批量改写 `version` 和内部依赖、生成 `CHANGELOG.md`。前者只记录意图，后者才真正动版本号。
+`changeset` 在开发/提 PR 阶段执行，生成一个描述“**这次改了哪个包、是 major/minor/patch**”的 Markdown 意图文件，需与代码一起提交；`changeset version` 在发布前夕执行，统一消耗这些意图文件、批量改写 `version` 和内部依赖、生成 `CHANGELOG.md`。前者只记录意图，后者才真正动版本号。
 
 ### 8.2 为什么 `npm publish` 报 `EPRIVATE` 或提示需要付费？
 
-- **答：** scoped 包（`@scope/name`）默认按私有发布，而 npm 的私有包是收费的。开源或免费发布需显式声明公开：命令加 `--access public`，或在 `package.json` 里写 `"publishConfig": { "access": "public" }`。
+scoped 包（`@scope/name`）默认按私有发布，而 npm 的私有包是收费的。开源或免费发布需显式声明公开：命令加 `--access public`，或在 `package.json` 里写 `"publishConfig": { "access": "public" }`。
 
 ### 8.3 我明明配置了 `ignore`，为什么包还是被发布了？
 
-- **答：** `.changeset/config.json` 的 `ignore` 只影响版本计算与 `changeset status`，并不能阻止 `npm publish`。要让一个包彻底不可发布，必须在它的 `package.json` 里设置 `"private": true`，否则批量发布时仍会被推上去。
+`.changeset/config.json` 的 `ignore` 只影响版本计算与 `changeset status`，并不能阻止 `npm publish`。要让一个包彻底不可发布，必须在它的 `package.json` 里设置 `"private": true`，否则批量发布时仍会被推上去。
 
 ### 8.4 发错了版本，可以 `npm unpublish` 撤回吗？
 
-- **答：** 不建议。npm 对删除有严格的时间与次数限制（发布超过 72 小时或已被他人依赖后基本无法删除），且同一版本号终身不可复用。正确做法是向前修正：用 `npm deprecate` 标记问题版本，再发布一个修复的 patch 版本。
+不建议。npm 对删除有严格的时间与次数限制（发布超过 72 小时或已被他人依赖后基本无法删除），且同一版本号终身不可复用。正确做法是向前修正：用 `npm deprecate` 标记问题版本，再发布一个修复的 patch 版本。
 
 ### 8.5 怎么确认 `files` 白名单没有漏打包文件？
 
-- **答：** 发布前用 `npm publish --dry-run` 预览本次会包含哪些文件，它会列出 tarball 内容而不真正上传。`files` 是白名单，未匹配的目录（如 `src`、测试）会被自动排除，但 `README`、`LICENSE`、`package.json` 等始终包含。
+发布前用 `npm publish --dry-run` 预览本次会包含哪些文件，它会列出 tarball 内容而不真正上传。`files` 是白名单，未匹配的目录（如 `src`、测试）会被自动排除，但 `README`、`LICENSE`、`package.json` 等始终包含。
 
 ### 8.6 Monorepo 里只想发布某一个包，该怎么做？
 
-- **答：** Changesets 以“**有变更意图 + 版本被提升**”为准，不会无差别发布所有包。若只想动单个包，用 `pnpm changeset` 时只勾选该包；发布时 `changeset publish` 也只会推送版本号发生变化的包。对外部依赖它的兄弟包，按 `updateInternalDependencies` 策略决定是否连带升版。
+Changesets 以“**有变更意图 + 版本被提升**”为准，不会无差别发布所有包。若只想动单个包，用 `pnpm changeset` 时只勾选该包；发布时 `changeset publish` 也只会推送版本号发生变化的包。对外部依赖它的兄弟包，按 `updateInternalDependencies` 策略决定是否连带升版。

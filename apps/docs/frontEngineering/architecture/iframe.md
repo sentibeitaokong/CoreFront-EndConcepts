@@ -259,28 +259,28 @@ observer.observe(document.body)
 
 ### 7.1 `sandbox` 里同时写 `allow-scripts` 和 `allow-same-origin` 安全吗？
 
-- **答**：不安全。二者并存时，子文档既能执行脚本又保有同源身份，可以反向操作父级 DOM，甚至移除自身的 `sandbox` 属性，等同于没加沙箱。只有内容完全可信（同源且自研）时才适合这样配置。
+不安全。二者并存时，子文档既能执行脚本又保有同源身份，可以反向操作父级 DOM，甚至移除自身的 `sandbox` 属性，等同于没加沙箱。只有内容完全可信（同源且自研）时才适合这样配置。
 
 ### 7.2 跨域 iframe 能直接读父页面的 DOM 吗？
 
-- **答**：不能。跨域时 `iframe.contentDocument` 返回 `null`，访问 `contentWindow.document` 会抛 `SecurityError`。唯一合规的通道是 `postMessage`，且收发两端都必须校验 `event.origin`。
+不能。跨域时 `iframe.contentDocument` 返回 `null`，访问 `contentWindow.document` 会抛 `SecurityError`。唯一合规的通道是 `postMessage`，且收发两端都必须校验 `event.origin`。
 
 ### 7.3 `postMessage` 的 `targetOrigin` 写 `'*'` 有什么风险？
 
-- **答**：任何来源的窗口都能收到报文。一旦报文里带票据、Token 或用户信息，就可能被恶意页面窃取。生产代码必须写明确定来源，例如 `https://legacy.example.com`。
+任何来源的窗口都能收到报文。一旦报文里带票据、Token 或用户信息，就可能被恶意页面窃取。生产代码必须写明确定来源，例如 `https://legacy.example.com`。
 
 ### 7.4 为什么 iframe 里的 `alert`、文件下载、全屏都失效了？
 
-- **答**：这些都是 `sandbox` 默认关闭的能力。`alert` / `confirm` 需要 `allow-modals`，下载需要 `allow-downloads`，全屏需要 `allowfullscreen` 以及内部的 `allow="fullscreen"`。应按需逐项开放，而不是整包放开。
+这些都是 `sandbox` 默认关闭的能力。`alert` / `confirm` 需要 `allow-modals`，下载需要 `allow-downloads`，全屏需要 `allowfullscreen` 以及内部的 `allow="fullscreen"`。应按需逐项开放，而不是整包放开。
 
 ### 7.5 子应用加载成功却看不到内容、高度为 0 怎么办？
 
-- **答**：先确认宿主是否给 iframe 设了显式高度——iframe 默认是行内元素，高度只有 150px 左右；再排查 CSP 的 `frame-src` 是否把目标域名拦截。跨域下无法测量子文档高度，需要子应用用 `ResizeObserver` 把真实高度 `postMessage` 上报给宿主。
+先确认宿主是否给 iframe 设了显式高度——iframe 默认是行内元素，高度只有 150px 左右；再排查 CSP 的 `frame-src` 是否把目标域名拦截。跨域下无法测量子文档高度，需要子应用用 `ResizeObserver` 把真实高度 `postMessage` 上报给宿主。
 
 ### 7.6 iframe 里的链接为什么把整个宿主页面顶掉了？
 
-- **答**：多半是给 `sandbox` 开了 `allow-top-navigation`。移除该 token 后，子应用内的跳转只发生在 iframe 内部，不会影响宿主地址栏。
+多半是给 `sandbox` 开了 `allow-top-navigation`。移除该 token 后，子应用内的跳转只发生在 iframe 内部，不会影响宿主地址栏。
 
 ### 7.7 iframe 会造成内存泄漏吗？该怎么回收？
 
-- **答**：会。子文档里的定时器、事件监听与闭包不会随 DOM 隐藏而释放。销毁时应先把 `src` 置为 `about:blank`、解绑 `onload` / `onerror`，再移除节点，并清理 `message` 事件监听与 `MessagePort`。
+会。子文档里的定时器、事件监听与闭包不会随 DOM 隐藏而释放。销毁时应先把 `src` 置为 `about:blank`、解绑 `onload` / `onerror`，再移除节点，并清理 `message` 事件监听与 `MessagePort`。

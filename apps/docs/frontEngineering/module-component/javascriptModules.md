@@ -1,6 +1,6 @@
 # JavaScript 模块化
 
-JavaScript 模块化的演进史，不仅是一部前端技术从“**玩具脚本**”走向“**企业级工程**”的进化史，更是现代构建工具（Webpack、Vite、Rollup）底层架构的基石。彻底掌握模块化，是成为高级前端架构师不可或缺的硬核基本功。
+JavaScript模块化的演进史，不仅是一部前端技术从“**玩具脚本**”走向“**企业级工程**”的进化史，更是现代构建工具(Webpack、Vite、Rollup)底层架构的基石。彻底掌握模块化，是成为高级前端架构师不可或缺的硬核基本功。
 
 ## 1. 核心痛点与时代背景
 
@@ -102,9 +102,32 @@ define(['jquery', 'lodash'], function ($, _) {
 
 - **核心思想：** **依赖就近，延迟执行**。由国内开发者玉伯提出，语法更贴近 CommonJS，只有当代码真正运行到 `require` 时，才会去执行该模块。
 
+```js
+define(function (require, exports, module) {
+  var $ = require('jquery') // 走到这一行才去加载，也可以写在 if / 循环里
+  exports.init = function () {
+    $('body').show()
+  }
+})
+```
+
 ### 4.3 UMD (Universal Module Definition)
 
 - **核心思想：** 终极缝合怪。它是一段环境嗅探样板代码，判断当前环境支持哪种规范，实现一套代码通吃 Node.js、AMD 和老式全局变量。曾经的开源库（如 React 15、Lodash）必备的输出格式。
+
+```js
+;(function (root, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define(['jquery'], factory) // ① AMD：交给 RequireJS
+  } else if (typeof module === 'object' && module.exports) {
+    module.exports = factory(require('jquery')) // ② CJS：交给 Node
+  } else {
+    root.myLib = factory(root.jQuery) // ③ 都没有：挂到全局变量兜底
+  }
+})(typeof self !== 'undefined' ? self : this, function ($) {
+  return { init: function () {} } // 模块的真正实现，三种环境共用
+})
+```
 
 ## 5. 大一统时代：ES Modules (ESM)
 
@@ -140,40 +163,71 @@ console.log(count) // 输出: 1
 
 ### 5.3 导入导出的高频写法
 
-日常开发中真正高频出现的不过几种形态，记住它们能避开绝大多数“**导入报错**”：
+[width(11,49,40)]
 
-- **具名导出（Named Export）：** `export const api = ...`、`export function request() {}`，导入时名字必须一一对应，可用 `as` 重命名：`import { request as http } from './api'`。
-- **默认导出（Default Export）：** `export default function App() {}`，导入时名字自由：`import App from './App'`。一个模块**只能有一个**默认导出，但可同时存在多个具名导出。
-- **混合导入：** `import React, { useState, useEffect } from 'react'`，逗号前是默认导出，大括号内是具名导出。
-- **中转与聚合：** `export * from './utils'` 把子模块的所有具名导出再导出；`export { default as Button } from './button'` 可在中转时重命名，常用来搭建组件库统一出口 `index.ts`。
-- **命名空间导入：** `import * as utils from './utils'` 适合一次性引入一组工具函数，但不利于 Tree-Shaking，能用具名就别用星号。
+| 写法             | 语法                                                                        | 高频要点                                                            |
+| :--------------- | :-------------------------------------------------------------------------- | :------------------------------------------------------------------ |
+| **具名导出**     | `export const api = ...`<br>`import { request as http } from './api'`       | 导入名必须与原模块**一一对应**；可用 `as` 重命名                    |
+| **默认导出**     | `export default function App() {}`<br>`import App from './App'`             | 导入名随意；一个模块**只能有一个**默认导出，但可有多个具名导出      |
+| **混合导入**     | `import React, { useState, useEffect } from 'react'`                        | 逗号前是默认导出，大括号内是具名导出                                |
+| **中转与聚合**   | `export * from './utils'`<br>`export { default as Button } from './button'` | 构建组件库统一出口 `index.ts` 的常用手法                            |
+| **命名空间导入** | `import * as utils from './utils'`                                          | 一次性引入一组工具函数；**不利于 Tree-Shaking**，能用具名就别用星号 |
 
 ## 6. 史诗级对决：CommonJS vs ES Modules
 
-理解两者的差异，是排查现代工程编译 Bug、理解打包工具优化的关键：
-
 [width(27,33,40)]
 
-| 维度                       | CommonJS (CJS)                            | ES Modules (ESM)                           |
-| -------------------------- | ----------------------------------------- | ------------------------------------------ |
-| **标准制定者**             | Node.js 社区规范                          | ECMAScript 官方语言标准                    |
-| **加载与执行时机**         | **运行时**动态加载对象                    | **编译时**静态解析依赖图                   |
-| **导出机制**               | 值的浅层拷贝 (快照)                       | 内存地址的动态引用 (Live Bindings)         |
-| **`this` 指向**            | 当前模块的 `exports` 对象                 | 严格模式下永远是 `undefined`               |
-| **动态导入支持**           | 天然支持（到处写 `require`）              | 需通过 `import()` 函数实现动态加载         |
-| **循环依赖处理**           | 返回已执行的部分，易导致空对象或未定义    | 利用引用特性与变量提升安全处理（详见下文） |
-| **对 Tree-Shaking 的支持** | 极难支持（因 `exports` 属性可被动态修改） | **原生完美支持**（得益于确定的静态AST树）  |
+| 维度                       | CommonJS (CJS)                            | ES Modules (ESM)                   |
+| -------------------------- | ----------------------------------------- | ---------------------------------- |
+| **标准制定者**             | Node.js 社区规范                          | ECMAScript 官方语言标准            |
+| **加载与执行时机**         | **运行时**动态加载对象                    | **编译时**静态解析依赖图           |
+| **导出机制**               | 值的浅层拷贝 (快照)                       | 内存地址的动态引用 (Live Bindings) |
+| **`this` 指向**            | 当前模块的 `exports` 对象                 | 严格模式下永远是 `undefined`       |
+| **动态导入支持**           | 天然支持（到处写 `require`）              | 需通过 `import()` 函数实现动态加载 |
+| **循环依赖处理**           | 返回已执行的部分，易导致空对象或未定义    | 利用引用特性与变量提升安全处理     |
+| **对 Tree-Shaking 的支持** | 极难支持（因 `exports` 属性可被动态修改） | **原生完美支持**                   |
 
 ### 6.1 深度：循环依赖 (Circular Dependency) 应对机制
 
 当模块 A 依赖 B，模块 B 又依赖 A 时：
 
 - **CommonJS 的无奈：** CommonJS 是“**边加载、边执行、边缓存**”的动态同步模型，当 A 执行到一半去 `require(B)` 时，A 被挂起。B 执行时去 `require(A)`，此时 CJS 会从缓存中捞出 A **未执行完的半成品对象**（通常是一个空对象 `{}`）塞给 B。极易引发 `TypeError: x is not a function`。
-- **ESM 的从容：** 因为 ESM 构建的是是“**先解析、后链接内存、最后再执行**”的内存引用图谱，当产生循环引用时，如果在模块的顶层作用域（同步执行栈）直接去读取循环依赖引入的值，引擎在求值阶段（Evaluation）就会当场崩溃。“**规避死区**”的秘诀就在于不要去同步调用。把对外部依赖的读取，包裹在**函数**、**类方法**或**异步钩子**中，整个依赖网就可以完美建立并正常运行的，
+
+```js
+// a.js
+exports.done = false
+const b = require('./b.js') // 触发 b 执行，此刻 a 还没执行完
+exports.done = true
+
+// b.js
+const a = require('./a.js') // 缓存里只有 a 的半成品对象
+console.log(a.done) // false：读到的是快照，不是最终值
+```
+
+- **ESM 的从容：** 因为 ESM 构建的是“**先解析、后链接内存、最后再执行**”的内存引用图谱，当产生循环引用时，如果在模块的顶层作用域（同步执行栈）直接去读取循环依赖引入的值，引擎在求值阶段（Evaluation）就会当场崩溃。“**规避死区**”的秘诀就在于不要去同步调用。把对外部依赖的读取，包裹在**函数**、**类方法**或**异步钩子**中，整个依赖网就可以完美建立并正常运行。
+
+:::code-group
+
+```js[counter.mjs]
+import { log } from './logger.mjs'
+export let count = 0
+export function increment() {
+  count++
+  log()
+}
+```
+
+```js[logger.mjs]
+import { count } from './counter.mjs' // 循环引用：counter 此刻还没求值完
+// console.log(count) // ❌ 顶层直接读 → ReferenceError（死区）
+export function log() {
+  console.log(count) // ✅ 包进函数：调用时依赖图早已链接完毕，读到最新值
+}
+```
+
+:::
 
 ## 7. 现代工程化视角的模块化
-
-模块化规范直接催生了现代前端极速构建工具与极致代码优化的诞生。
 
 ### 7.1 Tree-Shaking（死代码消除）的底层逻辑
 
@@ -186,8 +240,6 @@ Tree-Shaking 这个词是由 Rollup 提出，并发扬光大的。
 
 当下的 Node.js 处于 CJS 到 ESM 的过渡期，最常见的地狱级报错莫过于：
 `Error [ERR_REQUIRE_ESM]: require() of ES Module not supported.`
-
-**互操作性铁律：**
 
 - **ESM 可以无缝导入 CJS：** 在 `type: "module"` 下，可以使用 `import x from './cjs-module.cjs'`。Node.js 会自动将 `module.exports` 包装成默认导出。
 - **CJS 绝对不能同步导入 ESM：** 因为 ESM 是异步编译解析的。如果你在 CommonJS 文件里必须用到一个纯 ESM 库，只能通过动态加载：`const pkg = await import('esm-package')`。
@@ -226,24 +278,30 @@ button.onclick = async () => {
 
 ### 8.1 CommonJS 的 `exports` 和 `module.exports` 有什么区别？
 
-- **答：** `exports` 只是 `module.exports` 的初始引用（`exports === module.exports`）。给 `exports.a = 1` 添加属性能生效；但一旦执行 `module.exports = {...}` 整体替换，`exports` 就指向了旧对象，之后的 `exports.x = 1` 全部失效。结论：要么一直用 `module.exports` 赋值，要么只用 `exports.xxx` 挂属性，别混着写。
+`exports` 只是 `module.exports` 的初始引用（`exports === module.exports`）。给 `exports.a = 1` 添加属性能生效；但一旦执行 `module.exports = {...}` 整体替换，`exports` 就指向了旧对象，之后的 `exports.x = 1` 全部失效。
+
+**结论**：要么一直用 `module.exports` 赋值，要么只用 `exports.xxx` 挂属性，别混着写。
 
 ### 8.2 为什么 `require` 拿到的值后来变了，`import` 却能拿到最新值？
 
-- **答：** CommonJS 导出的是值的浅层拷贝（快照），模块内部后续修改不会反映到外部；ES Modules 导出的是“**实时绑定**”（Live Bindings），拿到的是指向源变量内存地址的引用，所以能读到最新值。
+CommonJS 导出的是值的浅层拷贝（快照），模块内部后续修改不会反映到外部；ES Modules 导出的是“**实时绑定**”（Live Bindings），拿到的是指向源变量内存地址的引用，所以能读到最新值。
 
 ### 8.3 报错 `ERR_REQUIRE_ESM` 怎么解决？
 
-- **答：** 说明你在 CommonJS 文件中用 `require()` 加载了纯 ESM 包。ESM 是异步解析的，CJS 无法同步加载它。解法：改用动态导入 `const pkg = await import('esm-package')`；或把该文件升级为 ESM（设置 `"type": "module"` 或将后缀改为 `.mjs`）。
+说明你在 CommonJS 文件中用 `require()` 加载了纯 ESM 包。ESM 是异步解析的，CJS 无法同步加载它。
+
+**解法**：改用动态导入 `const pkg = await import('esm-package')`；或把该文件升级为 ESM（设置 `"type": "module"` 或将后缀改为 `.mjs`）。
 
 ### 8.4 同一个包里同时存在 `.cjs` 和 `.mjs` 是怎么回事？
 
-- **答：** 这是双格式（dual package）发布：`exports` 字段按 `import` / `require` 条件分别指向 `.mjs` 与 `.cjs` 入口，让 ESM 用户和 CJS 用户都能正确加载。文件后缀 `.mjs` / `.cjs` 只影响 Node.js 的解析方式，与文件里写什么语法无关。
+这是双格式（dual package）发布：`exports` 字段按 `import` / `require` 条件分别指向 `.mjs` 与 `.cjs` 入口，让 ESM 用户和 CJS 用户都能正确加载。文件后缀 `.mjs` / `.cjs` 只影响 Node.js 的解析方式，与文件里写什么语法无关。
 
 ### 8.5 为什么我的库被别人引入后 Tree-Shaking 失效了？
 
-- **答：** 常见三种原因：一是产物是 CommonJS 格式（动态 `exports` 无法静态分析）；二是模块顶层有副作用却未声明 `"sideEffects": false`；三是打包器把整个 `index` 桶文件都拉了进来。解法是同时提供 ESM 产物、正确声明 `sideEffects`、并避免无谓的星号聚合。
+- 产物是 CommonJS 格式（动态 `exports` 无法静态分析）；
+- 模块顶层有副作用却未声明 `"sideEffects": false`；
+- 打包器把整个 `index` 桶文件都拉了进来。解法是同时提供 ESM 产物、正确声明 `sideEffects`、并避免无谓的星号聚合。
 
 ### 8.6 静态 `import` 与动态 `import()` 该怎么选？
 
-- **答：** 首屏必需、依赖确定的模块用静态 `import`（利于 Tree-Shaking 与依赖图分析）；按路由、按条件或按交互才需要的大体积模块用 `import()`，它会返回 Promise 并把目标拆成独立 chunk。此外，`import()` 在 CommonJS 文件中同样可用，是 CJS 调用 ESM 的唯一通道。
+首屏必需、依赖确定的模块用静态 `import`（利于 Tree-Shaking 与依赖图分析）；按路由、按条件或按交互才需要的大体积模块用 `import()`，它会返回 Promise 并把目标拆成独立 chunk。此外，`import()` 在 CommonJS 文件中同样可用，是 CJS 调用 ESM 的唯一通道。

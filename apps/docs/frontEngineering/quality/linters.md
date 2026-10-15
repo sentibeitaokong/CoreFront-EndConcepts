@@ -258,45 +258,44 @@ _(如果你用的是 Windows，直接在 `.husky` 文件夹下手动新建一个
 
 ### 4.1 为什么我的同事克隆了项目，他 `git commit` 时完全没有触发 Husky 拦截？
 
-- **答**：这是使用 Husky 最常见的新手坑。
+- 这是使用 Husky 最常见的新手坑：
   - **原因**：Git Hooks 是存在于本地 `.git/hooks` 隐藏目录下的文件，这个目录是**不会被推送到远程代码仓库的**。同事 clone 代码后，他的电脑上并没有这些物理钩子文件。
   - **解法**：必须在 `package.json` 的 `scripts` 字段中配置 `"prepare": "husky install"`。`prepare` 是 npm 的内置生命周期脚本，当你的同事执行 `npm install` 安装依赖完毕后，它会自动运行，将项目中预设的钩子写入他的本地 `.git` 目录中，使拦截生效。
 
 ### 4.2 配置了 `lint-staged`，为什么它还是去检查了整个项目的所有文件，导致极其缓慢？
 
-- **答**：这是配置命令不当导致的。
+- 这是配置命令不当导致的：
   - **错误写法**：`"*.js": ["eslint . --fix"]`。注意那个 `.`。`lint-staged` 底层的机制是，它会把找出的变更文件列表，作为参数追加到你的命令后面。如果写了 `.`，命令就变成了 `eslint . --fix file1.js file2.js`，这会让 ESLint 去扫描整个目录 (`.`)，完全失去了 lint-staged 的意义。
   - **正确写法**：`"*.js": ["eslint --fix"]`。这样它只会精确地执行 `eslint --fix file1.js file2.js`。
 
 ### 4.3 有时候遇到紧急线上 Bug 需要修，ESLint 报错但我不想改，怎么强行绕过拦截提交代码？
 
-- **答**：
-  - 你可以使用 Git 原生提供的 `--no-verify` 参数（简写为 `-n`）来跳过所有的 `pre-commit` 和 `commit-msg` 钩子。
-  - **命令**：`git commit -m "fix: emergency hotfix" --no-verify`
-  - **警告**：这是一个**极其危险**的“**后门**”操作。作为技术规范，团队内部应当严格禁止滥用此命令，否则精心搭建的工程化防线将形同虚设。它仅用于十万火急且确保代码不会引起二次崩溃的线上救火场景。
+- 你可以使用 Git 原生提供的 `--no-verify` 参数（简写为 `-n`）来跳过所有的 `pre-commit` 和 `commit-msg` 钩子。
+- **命令**：`git commit -m "fix: emergency hotfix" --no-verify`
+- **警告**：这是一个**极其危险**的“**后门**”操作。作为技术规范，团队内部应当严格禁止滥用此命令，否则精心搭建的工程化防线将形同虚设。它仅用于十万火急且确保代码不会引起二次崩溃的线上救火场景。
 
 ### 4.4 为什么还要专门用 `commitlint` 规范提交信息？随便写一段描述不行吗？
 
-- **答**：随便写对个人小项目没问题，但对企业级项目是灾难。
+- 随便写对个人小项目没问题，但对企业级项目是灾难：
   - **自动化发版 (Semantic Versioning)**：规范的提交类型直接决定了自动计算的版本号。如果有 `feat` 提交，次版本号 (Minor) 自动加 1；如果有 `BREAKING CHANGE`，主版本号 (Major) 自动加 1。
   - **自动生成 Changelog**：发布新版本时，工具可以自动抓取所有的 `feat` 和 `fix` 提交，一键生成精美的 `CHANGELOG.md` 更新日志。如果随便乱写，后续溯源或交接工作将无法进行。
 
 ### 4.5 为什么 `plugins` 里加了插件，规则却没生效？
 
-- **答**：`plugins` 只是**注册**插件，让 ESLint 认识 `插件名/规则名` 这种规则标识，它不会自动启用任何规则。
+- `plugins` 只是**注册**插件，让 ESLint 认识 `插件名/规则名` 这种规则标识，它不会自动启用任何规则。
   - 必须在 `extends` 里引用插件提供的预设（如 `plugin:react/recommended`），或在 `rules` 里显式写 `'plugin-name/rule-name': 'error'`，规则才真正生效。
   - 另外在扁平配置里 `plugins` 是一个对象（`{ 'plugin-name': plugin }`），而不再是数组。
 
 ### 4.6 团队里有人用 VS Code，有人用 WebStorm，怎么保证格式化结果一致？
 
-- **答**：不要让编辑器各自为政，把规则的唯一事实来源锁定在项目根目录。
+- 不要让编辑器各自为政，把规则的唯一事实来源锁定在项目根目录：
   - 配置文件：Prettier 会从文件所在目录向上查找 `.prettierrc.*`，任何编辑器与 CI 都读同一份，结果自然一致。
   - VS Code：在 `.vscode/settings.json` 里设置 `"editor.defaultFormatter": "esbenp.prettier-vscode"` 与 `"editor.formatOnSave": true`。
   - WebStorm：在 `Settings → Languages & Frameworks → Prettier` 勾选保存时自动运行，并指向项目内的 Prettier 包。
 
 ### 4.7 lint 报错成千上万，一次性修不完怎么办？
 
-- **答**：分步走，切忌为了“**清零**”堆砌 `eslint-disable`，那是把债藏起来而不是还债。
+- 分步走，切忌为了“**清零**”堆砌 `eslint-disable`，那是把债藏起来而不是还债：
   1. 先用 `--fix` 让工具自动修可自动修复的部分（引号、分号、可推导的类型）。
   2. 对无法自动修复的规则，逐个从 `'error'` 降级为 `'warn'`，先不阻断提交。
   3. 用 `overrides` 按目录逐步收紧，一个模块一个模块地清零。
@@ -304,8 +303,7 @@ _(如果你用的是 Windows，直接在 `.husky` 文件夹下手动新建一个
 
 ### 4.8 ESLint 检查太慢，如何提速？
 
-- **答**：
-  - **只查改动文件**：本地交给 `lint-staged`，不要对全项目跑 `eslint .`。
-  - **开启缓存**：`eslint --cache` 会缓存已检查文件的结果，未改动的直接跳过（`.eslintcache` 记得写进 `.gitignore`）。
-  - **拆分昂贵规则**：`@typescript-eslint` 中带 `type-checked` 的规则要构建完整类型信息，最慢，可只在 CI 开启。
-  - **定位慢规则**：用 `TIMING=1 eslint .` 打印每条规则的耗时，优先优化最慢的那几条。
+- **只查改动文件**：本地交给 `lint-staged`，不要对全项目跑 `eslint .`。
+- **开启缓存**：`eslint --cache` 会缓存已检查文件的结果，未改动的直接跳过（`.eslintcache` 记得写进 `.gitignore`）。
+- **拆分昂贵规则**：`@typescript-eslint` 中带 `type-checked` 的规则要构建完整类型信息，最慢，可只在 CI 开启。
+- **定位慢规则**：用 `TIMING=1 eslint .` 打印每条规则的耗时，优先优化最慢的那几条。

@@ -622,24 +622,23 @@ export function autoZipDistPlugin(): Plugin {
 
 ### 7.1 为什么代码里写 `process.env.NODE_ENV` 突然报错了？怎么获取环境变量？
 
-- **答**：这是从 Webpack 迁移到 Vite 最常踩的坑。
+- 这是从 Webpack 迁移到 Vite 最常踩的坑：
   - **原因**：Vite 抛弃了 Node.js 的 `process.env`，全面拥抱标准的 ESM 环境变量注入方式。
   - **正确做法**：在业务代码中，必须使用 **`import.meta.env`** 来获取环境变量。例如 `import.meta.env.MODE`。
   - **安全限制**：为了防止将数据库密码等私密变量打包进前端代码，Vite 强制规定：**只有以 `VITE_` 开头的环境变量才会被暴露给前端代码**。例如你在 `.env` 中写了 `SECRET_KEY=123`，前端是绝对拿不到的；必须改成 `VITE_SECRET_KEY=123`。
 
 ### 7.2 为什么引入了包含 `require` 语法的第三方包，浏览器直接报错 `require is not defined`？
 
-- **答**：
-  - **原因**：浏览器根本不认识 CommonJS 的 `require` 和 `module.exports`。Webpack 之所以能跑，是因为 Webpack 在打包时注入了大量的胶水代码模拟了 `require` 环境。而 Vite 开发环境直接把源码丢给浏览器，浏览器当然会报错。
-  - **解决方案**：
-    1. 尽量寻找该包的 ESM 版本（通常带有 `-es` 后缀）。
-    2. 如果该包只在某一个特殊逻辑中用到，尽量不要直接引，让 Vite 的 `optimizeDeps` 去处理它。
-    3. 如果是自己写的本地文件，必须立刻将其重构为 `import/export` 语法。
-    4. 借助插件：安装 `@originjs/vite-plugin-commonjs`，强行让 Vite 在开发时转换 CJS（不得已而为之的下策）。
+- **原因**：浏览器根本不认识 CommonJS 的 `require` 和 `module.exports`。Webpack 之所以能跑，是因为 Webpack 在打包时注入了大量的胶水代码模拟了 `require` 环境。而 Vite 开发环境直接把源码丢给浏览器，浏览器当然会报错。
+- **解决方案**：
+  1. 尽量寻找该包的 ESM 版本（通常带有 `-es` 后缀）。
+  2. 如果该包只在某一个特殊逻辑中用到，尽量不要直接引，让 Vite 的 `optimizeDeps` 去处理它。
+  3. 如果是自己写的本地文件，必须立刻将其重构为 `import/export` 语法。
+  4. 借助插件：安装 `@originjs/vite-plugin-commonjs`，强行让 Vite 在开发时转换 CJS（不得已而为之的下策）。
 
 ### 7.3 `require.context` (批量导入文件) 在 Vite 里不能用了怎么办？
 
-- **答**：`require.context` 是 Webpack 独创的 API。在 Vite 中，你需要使用它的官方替代品：**`import.meta.glob`**。
+- `require.context` 是 Webpack 独创的 API。在 Vite 中，你需要使用它的官方替代品：**`import.meta.glob`**。
 
   ```js
   // Vite 批量导入某个目录下的所有 vue 组件
@@ -653,7 +652,7 @@ export function autoZipDistPlugin(): Plugin {
 
 ### 7.4 开发时感觉很快，为什么点开某个没访问过的路由页面，突然卡顿甚至整个页面刷新了？
 
-- **答**：这被称为**依赖预构建的“二次发现”问题**。
+- 这被称为**依赖预构建的“二次发现”问题**：
   - **现象原理**：当你点击跳转到新路由时，Vite 实时编译该路由文件。突然发现里面 `import` 了一个之前从来没见过的巨大且深层的 CommonJS 第三方包（比如某个富文本编辑器）。
   - 此时，Vite 被迫中断当前的编译，紧急启动 esbuild 对这个新包进行“**依赖预构建**”。为了保证模块图的绝对正确，Vite 预构建完成后会**强制刷新整个浏览器页面**。
   - **解决策略**：仔细观察控制台提示的重新构建的包名，将其手动加入到 `vite.config.js` 的 **`optimizeDeps.include`** 数组中。这样 Vite 在一开始启动时就会把它处理好，避免运行时的突然刷新。
@@ -706,14 +705,14 @@ export default function myPlugin() {
 
 ### 7.6 部署到 Nginx 子目录或 CDN 后，页面白屏、静态资源全部 404 怎么办？
 
-- **答**：这几乎 100% 是 `base` 没配对。Vite 打包时会把 `base` 的值写死到 `index.html` 的资源引用里（如 `/assets/index-xxx.js`）。
+- 这几乎 100% 是 `base` 没配对。Vite 打包时会把 `base` 的值写死到 `index.html` 的资源引用里（如 `/assets/index-xxx.js`）。
   - **现象**：本地 `vite preview` 一切正常，部署到 `https://cdn.com/admin/` 后，浏览器却去请求 `https://cdn.com/assets/index-xxx.js`（少了 `/admin/`），于是 404、白屏。
   - **解决方案**：把 `base` 改成 `'/admin/'`（首尾斜杠都不能少）后重新构建。若资源放在独立 CDN 域名上，直接写完整地址 `'https://cdn.example.com/admin/'`。
   - **别忘了路由**：使用 History 模式时，`createWebHistory()` 也要传入同样的前缀，否则刷新会跳到错误页面。
 
 ### 7.7 想用 Vite 打包一个组件库或工具库，应该怎么配置？
 
-- **答**：使用**库模式（Library Mode）**，核心是 `build.lib`。
+- 使用**库模式（Library Mode）**，核心是 `build.lib`。
   - **入口与格式**：配置 `build.lib.entry` 与 `build.lib.formats`（常用 `['es', 'umd']`），`name` 是 UMD 格式暴露到全局的变量名。
   - **排除外部依赖**：库不应该把 `vue`、`react` 打进去，必须用 `rollupOptions.external` 排除，并在 `package.json` 的 `peerDependencies` 中声明。
   - **同时产出 ESM 与 UMD** 时，`build.lib.fileName` 可以写成函数，按格式返回不同文件名。
@@ -741,7 +740,7 @@ export default function myPlugin() {
 
 ### 7.8 开发时 `server.proxy` 代理得好好的，为什么一上线又跨域了？
 
-- **答**：因为 `server.proxy` 是**开发服务器**的能力，只在本地生效；生产环境的前端产物是纯静态文件，内部没有任何代理逻辑。
+- 因为 `server.proxy` 是**开发服务器**的能力，只在本地生效；生产环境的前端产物是纯静态文件，内部没有任何代理逻辑。
   - **原因**：开发时请求 `/api/xxx` 由 Vite 服务器转发给后端，看起来“**没有跨域**”，其实是 Vite 替你发了这次请求。生产环境由浏览器直接请求后端域名，跨域问题原样复现。
   - **解决方案**：上线后由 **Nginx 反向代理**（`location /api/ { proxy_pass http://backend; }`）承担同样的转发职责，让前端依旧只请求同源的 `/api/xxx`；若后端已开放，也可改用 CORS + `import.meta.env.VITE_API_BASE` 直连。
   - **结论**：前端代码里永远不要写死后端地址，统一走相对路径，把跨域这件事交给部署层的代理解决。

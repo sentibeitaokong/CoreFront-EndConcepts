@@ -202,53 +202,45 @@ export default defineConfig({
 
 ### 4.1 既然 Vite (esbuild) 那么快，为什么生产环境打包还要用速度较慢的 Rollup，而不直接全用 esbuild？
 
-- **答**：
-  - **esbuild 的短板**：esbuild 追求的是绝对的速度，它的内部架构导致其在生产环境非常需要的 **代码分割（Code Splitting）**、**CSS 处理边界**、以及 **高级别 Tree-shaking** 方面，目前仍然无法做到像 Rollup 那样成熟和精细。此外，esbuild 的插件 API 设计非常底层且克制，无法支撑前端极其庞大复杂的打包定制需求。
-  - **Vite 的妥协**：为了保证生产环境产物（Bundle）的极度优化和稳定，Vite 选择了在生产环境切换回 Rollup。这就导致了目前的“**开发/生产不一致**”问题。
+- **esbuild 的短板**：esbuild 追求的是绝对的速度，它的内部架构导致其在生产环境非常需要的 **代码分割（Code Splitting）**、**CSS 处理边界**、以及 **高级别 Tree-shaking** 方面，目前仍然无法做到像 Rollup 那样成熟和精细。此外，esbuild 的插件 API 设计非常底层且克制，无法支撑前端极其庞大复杂的打包定制需求。
+- **Vite 的妥协**：为了保证生产环境产物（Bundle）的极度优化和稳定，Vite 选择了在生产环境切换回 Rollup。这就导致了目前的“**开发/生产不一致**”问题。
 
 ### 4.2 Rolldown 究竟是为了解决什么痛点诞生的？
 
-- **答**：
-  - **痛点**：正是上一题提到的“**Vite 开发环境用 esbuild，生产环境用 Rollup**”导致的“**精神分裂**”。偶尔会出现本地开发没问题，上线打包却报错的诡异 Bug。
-  - **Rolldown 的使命**：Vite 团队用 Rust 重新编写了一个打包器。它的目标是：**速度上对标 esbuild，API 和插件生态上 100% 兼容 Rollup**。一旦 Rolldown 成熟，它将彻底替换掉 Vite 底层的 esbuild 和 Rollup，实现前端基建真正的底层大一统。
+- **痛点**：正是上一题提到的“**Vite 开发环境用 esbuild，生产环境用 Rollup**”导致的“**精神分裂**”。偶尔会出现本地开发没问题，上线打包却报错的诡异 Bug。
+- **Rolldown 的使命**：Vite 团队用 Rust 重新编写了一个打包器。它的目标是：**速度上对标 esbuild，API 和插件生态上 100% 兼容 Rollup**。一旦 Rolldown 成熟，它将彻底替换掉 Vite 底层的 esbuild 和 Rollup，实现前端基建真正的底层大一统。
 
 ### 4.3 `tsc`、Babel、SWC、esbuild 都能编译 TypeScript，我到底该怎么选？
 
-- **答**：
-  - **类型检查**：不管你用什么工具编译代码，**类型检查永远只能交给 `tsc`**（运行 `tsc --noEmit`）。因为 Babel/SWC/esbuild 采取的都是“**暴力擦除**”策略，它们根本不认识类型对错，只会把 TS 类型当成注释删掉然后转换代码。
-  - **代码生成选型**：
-    - 新项目、大项目：**优先选择 SWC 或 esbuild**（通常通过接入 Vite/Rspack 间接使用），享受极致的构建速度。
-    - 沉重的历史老项目：**继续使用 Babel**。老项目中往往写了大量强依赖 JS AST 的自定义 Babel 插件，要用 Rust 重写这些插件的成本极高，不要盲目跟风替换。
+- **类型检查**：不管你用什么工具编译代码，**类型检查永远只能交给 `tsc`**（运行 `tsc --noEmit`）。因为 Babel/SWC/esbuild 采取的都是“**暴力擦除**”策略，它们根本不认识类型对错，只会把 TS 类型当成注释删掉然后转换代码。
+- **代码生成选型**：
+  - 新项目、大项目：**优先选择 SWC 或 esbuild**（通常通过接入 Vite/Rspack 间接使用），享受极致的构建速度。
+  - 沉重的历史老项目：**继续使用 Babel**。老项目中往往写了大量强依赖 JS AST 的自定义 Babel 插件，要用 Rust 重写这些插件的成本极高，不要盲目跟风替换。
 
 ### 4.4 什么是 `isolatedModules: true`？为什么用 Babel/SWC/esbuild 编译 TS 时必须在 `tsconfig.json` 中开启它？
 
-- **答**：
-  - **原因**：Babel、SWC 和 esbuild 都是**单文件编译器**，它们在编译一个文件时，是看不到其他文件长什么样的。如果你写了 `export { MyType } from './types'`，单文件编译器根本无法判断 `MyType` 是一个应该保留的值，还是一个必须删掉的 TS 类型。
-  - **避坑指南**：开启 `isolatedModules: true` 后，TS 会强迫你在代码里显式写清楚 `export type { MyType }`。这样 SWC/esbuild 一看到 `type` 关键字，就能安全且毫无歧义地把它擦除掉了。
+- **原因**：Babel、SWC 和 esbuild 都是**单文件编译器**，它们在编译一个文件时，是看不到其他文件长什么样的。如果你写了 `export { MyType } from './types'`，单文件编译器根本无法判断 `MyType` 是一个应该保留的值，还是一个必须删掉的 TS 类型。
+- **避坑指南**：开启 `isolatedModules: true` 后，TS 会强迫你在代码里显式写清楚 `export type { MyType }`。这样 SWC/esbuild 一看到 `type` 关键字，就能安全且毫无歧义地把它擦除掉了。
 
 ### 4.5 tsconfig 里的 `target` 和 `module` 到底该怎么配？
 
-- **答**：
-  - **`target` 只管语法**：它负责把高阶语法降级到目标版本（如可选链、类字段），**不负责补 API 层的 Polyfill**（`Promise.allSettled` 之类的缺失要靠 `core-js`）。
-  - **`module` 决定模块规范**：交给打包器处理时应写 `ESNext`，让 Tree-shaking 有迹可循；直接产出给 Node 运行（如 CLI）才写 `CommonJS`。
-  - **该由谁降级**：如果链路上已经有 SWC / esbuild，`tsc` 只做检查（`noEmit: true`），此时 `target` 写 `ESNext` 也无妨，真正的降级目标由打包器的 `target` 决定。
+- **`target` 只管语法**：它负责把高阶语法降级到目标版本（如可选链、类字段），**不负责补 API 层的 Polyfill**（`Promise.allSettled` 之类的缺失要靠 `core-js`）。
+- **`module` 决定模块规范**：交给打包器处理时应写 `ESNext`，让 Tree-shaking 有迹可循；直接产出给 Node 运行（如 CLI）才写 `CommonJS`。
+- **该由谁降级**：如果链路上已经有 SWC / esbuild，`tsc` 只做检查（`noEmit: true`），此时 `target` 写 `ESNext` 也无妨，真正的降级目标由打包器的 `target` 决定。
 
 ### 4.6 为什么装饰器（Decorator）在不同引擎下配置对不上？
 
-- **答**：
-  - **存在两套实现**：TypeScript 长期使用 `experimentalDecorators: true` 的“**旧版装饰器**”，而 Babel / SWC 默认走 TC39 的新标准装饰器，两者语义并不相同。
-  - **对齐方式**：如果项目用的是 TS 旧版装饰器（Angular、NestJS 风格），Babel 侧要打开对应的 `legacy` 选项；SWC 则需要同步开启 `jsc.parser.decorators`、`jsc.transform.legacyDecorator` 与 `decoratorMetadata`。
-  - **顺带的坑**：`useDefineForClassFields` 会改变类字段的赋值语义，与装饰器混用时容易出现“**字段被覆盖**”的诡异现象，需要与 `target` 一起确认。
+- **存在两套实现**：TypeScript 长期使用 `experimentalDecorators: true` 的“**旧版装饰器**”，而 Babel / SWC 默认走 TC39 的新标准装饰器，两者语义并不相同。
+- **对齐方式**：如果项目用的是 TS 旧版装饰器（Angular、NestJS 风格），Babel 侧要打开对应的 `legacy` 选项；SWC 则需要同步开启 `jsc.parser.decorators`、`jsc.transform.legacyDecorator` 与 `decoratorMetadata`。
+- **顺带的坑**：`useDefineForClassFields` 会改变类字段的赋值语义，与装饰器混用时容易出现“**字段被覆盖**”的诡异现象，需要与 `target` 一起确认。
 
 ### 4.7 为什么 `tsconfig` 的 `paths` 别名在 tsc 里能过，运行时却报模块找不到？
 
-- **答**：
-  - **原因**：`paths` 只影响 TypeScript 的**类型解析**，它不会去改写产物里的 `import` 路径。编译后代码里写的仍然是 `@/utils`，Node 或浏览器自然找不到。
-  - **解决**：运行时别名必须交给打包器处理——Vite 的 `resolve.alias`、Webpack 的 `resolve.alias`，或使用 `vite-tsconfig-paths` 一类插件让打包器直接读取 `paths` 配置。
+- **原因**：`paths` 只影响 TypeScript 的**类型解析**，它不会去改写产物里的 `import` 路径。编译后代码里写的仍然是 `@/utils`，Node 或浏览器自然找不到。
+- **解决**：运行时别名必须交给打包器处理——Vite 的 `resolve.alias`、Webpack 的 `resolve.alias`，或使用 `vite-tsconfig-paths` 一类插件让打包器直接读取 `paths` 配置。
 
 ### 4.8 `useBuiltIns: 'usage'` 和 `'entry'` 该怎么选？
 
-- **答**：
-  - **`usage`**：Babel 扫描代码里实际用到的新 API，只按需 `import` 对应的 `core-js` 模块，产物体积最优；代价是每个文件都可能重复注入 import，且对第三方库里未编译的用法无能为力。
-  - **`entry`**：你在入口手动 `import 'core-js/stable'`，Babel 再按 `targets` 把它拆成按需引入。它覆盖面更完整，适合需要兜底整个运行时的老项目。
-  - **前提**：两种策略都必须显式声明 `corejs: 3`，否则会退化成全量注入，把体积优势打回去。
+- **`usage`**：Babel 扫描代码里实际用到的新 API，只按需 `import` 对应的 `core-js` 模块，产物体积最优；代价是每个文件都可能重复注入 import，且对第三方库里未编译的用法无能为力。
+- **`entry`**：你在入口手动 `import 'core-js/stable'`，Babel 再按 `targets` 把它拆成按需引入。它覆盖面更完整，适合需要兜底整个运行时的老项目。
+- **前提**：两种策略都必须显式声明 `corejs: 3`，否则会退化成全量注入，把体积优势打回去。

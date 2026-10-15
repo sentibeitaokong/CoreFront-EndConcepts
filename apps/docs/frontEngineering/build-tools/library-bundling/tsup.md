@@ -126,10 +126,9 @@ export default defineConfig({
 
 ### 5.1 tsup 和 Rollup/esbuild 的区别是什么？怎么选？
 
-- **答**：
-  - **tsup**：是一个**更高阶的抽象工具**。它是为了“**快速交付 TS 类库**”设计的，底层用的是 `esbuild`。它的目标是：少写配置，快速打出包。
-  - **esbuild**：是底层的**构建引擎**。它速度最快，但缺乏插件生态，产物控制能力（如复杂的代码分包）较弱。
-  - **Rollup**：是**精细化的打包器**。它处理复杂产物（多种格式、复杂的 Tree-shaking、精细的 CSS 提取）的能力依然无可替代。
+- **tsup**：是一个**更高阶的抽象工具**。它是为了“**快速交付 TS 类库**”设计的，底层用的是 `esbuild`。它的目标是：少写配置，快速打出包。
+- **esbuild**：是底层的**构建引擎**。它速度最快，但缺乏插件生态，产物控制能力（如复杂的代码分包）较弱。
+- **Rollup**：是**精细化的打包器**。它处理复杂产物（多种格式、复杂的 Tree-shaking、精细的 CSS 提取）的能力依然无可替代。
 
 - **选型结论**：
   - 开发轻量级工具库、Hooks 库、小型组件库：**首选 tsup**。
@@ -137,37 +136,31 @@ export default defineConfig({
 
 ### 5.2 tsup 构建后，为什么我的 CSS 文件没有被打包进去？
 
-- **答**：
-  - **原因**：`tsup` 本质上是一个 JS 打包器，它的核心是处理 JS/TS。虽然它支持 CSS，但它默认将 CSS 处理为 JS 逻辑（通过 import 注入）。
-  - **避坑指南**：如果你希望输出独立的 CSS 文件，建议使用 `onSuccess` 钩子手动拷贝，或者配合 `PostCSS` 插件使用。如果 CSS 逻辑极其复杂（包含大量 Sass 变量），请果断放弃用打包工具处理 CSS，改用 Gulp 或脚本单独编译样式。
+- **原因**：`tsup` 本质上是一个 JS 打包器，它的核心是处理 JS/TS。虽然它支持 CSS，但它默认将 CSS 处理为 JS 逻辑（通过 import 注入）。
+- **避坑指南**：如果你希望输出独立的 CSS 文件，建议使用 `onSuccess` 钩子手动拷贝，或者配合 `PostCSS` 插件使用。如果 CSS 逻辑极其复杂（包含大量 Sass 变量），请果断放弃用打包工具处理 CSS，改用 Gulp 或脚本单独编译样式。
 
 ### 5.3 为什么 `tsup` 构建出来的代码在老版本浏览器里报错 `SyntaxError`？
 
-- **答**：
-  - **原因**：`esbuild` 默认的编译目标（Target）通常比较高（如 `es2020`）。如果你的用户群体依然在使用 IE11 或较旧的 Chrome，这些高阶语法无法被浏览器识别。
-  - **避坑指南**：在 `tsup.config.ts` 中明确指定 `target`，例如 `target: 'es6'` 或 `target: 'es2015'`。esbuild 会根据此目标自动进行语法降级。
+- **原因**：`esbuild` 默认的编译目标（Target）通常比较高（如 `es2020`）。如果你的用户群体依然在使用 IE11 或较旧的 Chrome，这些高阶语法无法被浏览器识别。
+- **避坑指南**：在 `tsup.config.ts` 中明确指定 `target`，例如 `target: 'es6'` 或 `target: 'es2015'`。esbuild 会根据此目标自动进行语法降级。
 
 ### 5.4 遇到 `tsup` 生成的 `.d.ts` 类型定义文件路径错误怎么办？
 
-- **答**：
-  - **原因**：这是 `tsup` 类型生成机制的常见限制，尤其是在 Monorepo 架构下，类型引用的相对路径容易解析混乱。
-  - **避坑指南**：检查你的 `tsconfig.json` 中的 `declarationDir` 和 `rootDir`。如果问题依旧，可以在 `tsup.config.ts` 中使用 `dts: { entry: 'src/index.ts' }` 明确指定入口，或使用 `--dts-resolve` 参数强制解析依赖路径。
+- **原因**：这是 `tsup` 类型生成机制的常见限制，尤其是在 Monorepo 架构下，类型引用的相对路径容易解析混乱。
+- **避坑指南**：检查你的 `tsconfig.json` 中的 `declarationDir` 和 `rootDir`。如果问题依旧，可以在 `tsup.config.ts` 中使用 `dts: { entry: 'src/index.ts' }` 明确指定入口，或使用 `--dts-resolve` 参数强制解析依赖路径。
 
 ### 5.5 `splitting` 要不要开？为什么 `cjs` 格式下代码分割不生效？
 
-- **答**：
-  - **原因**：代码分割依赖原生的动态 `import()`，而 CommonJS 没有对应的运行时机制，所以 `esbuild` 只对 `esm` 输出实现 `splitting`，对 `cjs` / `iife` 会直接忽略。
-  - **避坑指南**：库如果需要按需加载能力，就把 `splitting` 开在 `esm` 产物上；`cjs` 的使用者本就跑在 Node / SSR 环境，通常不依赖拆分。多入口场景下，在 `entry` 里声明多个文件同样是拆分的天然手段。
+- **原因**：代码分割依赖原生的动态 `import()`，而 CommonJS 没有对应的运行时机制，所以 `esbuild` 只对 `esm` 输出实现 `splitting`，对 `cjs` / `iife` 会直接忽略。
+- **避坑指南**：库如果需要按需加载能力，就把 `splitting` 开在 `esm` 产物上；`cjs` 的使用者本就跑在 Node / SSR 环境，通常不依赖拆分。多入口场景下，在 `entry` 里声明多个文件同样是拆分的天然手段。
 
 ### 5.6 用 tsup 打包 CLI 工具要注意什么？
 
-- **答**：
-  - **`platform`**：必须显式设为 `'node'`，否则默认的浏览器假设会让 `node:` 内置模块的处理出错。
-  - **shebang**：用 `banner: { js: '#!/usr/bin/env node' }` 注入，避免每次构建后手动补第一行。
-  - **依赖策略**：命令行工具的依赖一般随包安装（放在 `dependencies` 而非 `peerDependencies`），必要时再用 `noExternal` 强制把某些依赖内联进产物，减少使用者的安装体积。
+- **`platform`**：必须显式设为 `'node'`，否则默认的浏览器假设会让 `node:` 内置模块的处理出错。
+- **shebang**：用 `banner: { js: '#!/usr/bin/env node' }` 注入，避免每次构建后手动补第一行。
+- **依赖策略**：命令行工具的依赖一般随包安装（放在 `dependencies` 而非 `peerDependencies`），必要时再用 `noExternal` 强制把某些依赖内联进产物，减少使用者的安装体积。
 
 ### 5.7 为什么开启 `dts` 后构建突然变得很慢？
 
-- **答**：
-  - **原因**：类型声明生成并不走 `esbuild`，而是交给 `tsc`（或 `rollup-plugin-dts`）重新跑一遍类型推导，它天生就是单线程的慢活儿，和 esbuild 的毫秒级速度不是一回事。
-  - **优化方向**：把 `dts` 拆到独立的 `tsup --dts-only` 或单独的 `tsc` 脚本中，与 JS 打包并行执行；同时收紧 `tsconfig.json` 的 `include`，别让类型解析扫到大目录。
+- **原因**：类型声明生成并不走 `esbuild`，而是交给 `tsc`（或 `rollup-plugin-dts`）重新跑一遍类型推导，它天生就是单线程的慢活儿，和 esbuild 的毫秒级速度不是一回事。
+- **优化方向**：把 `dts` 拆到独立的 `tsup --dts-only` 或单独的 `tsc` 脚本中，与 JS 打包并行执行；同时收紧 `tsconfig.json` 的 `include`，别让类型解析扫到大目录。

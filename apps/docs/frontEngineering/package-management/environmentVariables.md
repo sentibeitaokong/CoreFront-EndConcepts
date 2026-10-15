@@ -228,12 +228,12 @@ export const env = {
 
 ### 8.6 `import.meta.env` 和 `process.env` 到底有什么区别？
 
-- **答：** `import.meta.env` 是 Vite / ESM 的原生方式，仅在模块代码中可用，构建时被静态替换；`process.env` 是 Node.js 的运行时对象，在 Vite 客户端代码里只有被显式 `define` 过的键（如 `process.env.NODE_ENV`）才有值，其余都是 `undefined`。在 `vite.config.ts` 这类 Node 配置文件里，则要用 `process.env` 或 `loadEnv`。
+`import.meta.env` 是 Vite / ESM 的原生方式，仅在模块代码中可用，构建时被静态替换；`process.env` 是 Node.js 的运行时对象，在 Vite 客户端代码里只有被显式 `define` 过的键（如 `process.env.NODE_ENV`）才有值，其余都是 `undefined`。在 `vite.config.ts` 这类 Node 配置文件里，则要用 `process.env` 或 `loadEnv`。
 
 ### 8.7 在 `vite.config.ts` 里怎么读到 `.env` 变量？
 
-- **答：** 配置文件运行在 Node 环境，此时 `.env` 还没被注入。需用 Vite 提供的 `loadEnv(mode, process.cwd(), '')` 手动加载：第二个参数是目录，第三个参数传 `''` 表示不加前缀限制（否则只返回 `VITE_` 开头的项）。
+配置文件运行在 Node 环境，此时 `.env` 还没被注入。需用 Vite 提供的 `loadEnv(mode, process.cwd(), '')` 手动加载：第二个参数是目录，第三个参数传 `''` 表示不加前缀限制（否则只返回 `VITE_` 开头的项）。
 
 ### 8.8 `index.html` 里能直接用环境变量吗？
 
-- **答：** 可以。Vite 支持在 `index.html` 中用 `%VITE_XXX%` 占位符，构建时会被替换为对应的环境变量值，常用于注入 `<title>`、埋点脚本的 key 等。
+可以。Vite 支持在 `index.html` 中用 `%VITE_XXX%` 占位符，构建时会被替换为对应的环境变量值，常用于注入 `<title>`、埋点脚本的 key 等。

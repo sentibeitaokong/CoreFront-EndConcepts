@@ -192,7 +192,7 @@ pnpm build
 
 ### 8.2 为什么映射定位发生了偏差（差了几行或指到了错误的文件）？
 
-- 链路断层：项目中引入了自研的 Babel/Rollup 插件、或是自定义的 Loader，该脚本擅自修改了 AST 代码，但没有同步计算并向下传递 Source Map。
+链路断层：项目中引入了自研的 Babel/Rollup 插件、或是自定义的 Loader，该脚本擅自修改了 AST 代码，但没有同步计算并向下传递 Source Map。
 
 ### 8.3 `source-map` 和 `hidden-source-map` 到底该选哪个？
 

@@ -504,28 +504,28 @@ catalog:
 
 ### 6.1 子包安装了却提示找不到本地包？
 
-- **答**：依次核对三处——`pnpm-workspace.yaml` 的 `packages` 是否覆盖该目录、子包 `package.json` 的 `name` 是否与引用一致、依赖是否写成 `workspace:*` 协议；改完执行 `pnpm install` 让 pnpm 重建软链。
+依次核对三处——`pnpm-workspace.yaml` 的 `packages` 是否覆盖该目录、子包 `package.json` 的 `name` 是否与引用一致、依赖是否写成 `workspace:*` 协议；改完执行 `pnpm install` 让 pnpm 重建软链。
 
 ### 6.2 两个子包互相引用，构建报循环依赖怎么办？
 
-- **答**：循环引用会让 pnpm 打印 cycle 警告，并让 Turborepo 的 `dependsOn: ["^build"]` 任务图出现环而无法收敛。先用 `pnpm turbo run build --graph` 可视化依赖图定位环，再把两者共用的部分下沉到第三个包（如 `packages/shared`）打破环。
+循环引用会让 pnpm 打印 cycle 警告，并让 Turborepo 的 `dependsOn: ["^build"]` 任务图出现环而无法收敛。先用 `pnpm turbo run build --graph` 可视化依赖图定位环，再把两者共用的部分下沉到第三个包（如 `packages/shared`）打破环。
 
 ### 6.3 团队成员依赖版本不一致导致 CI 失败？
 
-- **答**：在根 `package.json` 用 `packageManager` 字段配合 `corepack` 锁定 pnpm 版本，提交 `pnpm-lock.yaml`，CI 使用 `pnpm install --frozen-lockfile`；依赖版本再用 `catalog` 或 `pnpm.overrides` 收敛，避免各包各装一份。
+在根 `package.json` 用 `packageManager` 字段配合 `corepack` 锁定 pnpm 版本，提交 `pnpm-lock.yaml`，CI 使用 `pnpm install --frozen-lockfile`；依赖版本再用 `catalog` 或 `pnpm.overrides` 收敛，避免各包各装一份。
 
 ### 6.4 代码没改动，Turborepo 却每次都重新构建？
 
-- **答**：先确认 `outputs` 与真实产物目录一致、`inputs` 没有把频繁变化的文件纳入 hash、`env` 是否漏声明了影响产物的环境变量；用 `pnpm turbo run build --dry=json` 查看每个任务的 hash 与命中原因。另外注意 `pipeline` 在 Turborepo 2.0 起已更名为 `tasks`。
+先确认 `outputs` 与真实产物目录一致、`inputs` 没有把频繁变化的文件纳入 hash、`env` 是否漏声明了影响产物的环境变量；用 `pnpm turbo run build --dry=json` 查看每个任务的 hash 与命中原因。另外注意 `pipeline` 在 Turborepo 2.0 起已更名为 `tasks`。
 
 ### 6.5 改了公共包，其他包没有同步生效？
 
-- **答**：开发态建议让公共包 `package.json` 的 `main` / `exports` 直接指向 `src` 源文件，应用侧即可实时感知改动；若指向 `dist`，则需要先构建，或让公共包以 watch 模式持续产出。
+开发态建议让公共包 `package.json` 的 `main` / `exports` 直接指向 `src` 源文件，应用侧即可实时感知改动；若指向 `dist`，则需要先构建，或让公共包以 watch 模式持续产出。
 
 ### 6.6 如何只构建 / 测试受影响的包，而不是全仓？
 
-- **答**：用 `--filter` 的变更范围语法，例如 `pnpm turbo run build --filter="...[origin/main]"`（该包及其上游）或 `pnpm --filter "[origin/main]" test`；CI 中要先把 `origin/main` 拉全，否则 diff 范围计算会失准。
+用 `--filter` 的变更范围语法，例如 `pnpm turbo run build --filter="...[origin/main]"`（该包及其上游）或 `pnpm --filter "[origin/main]" test`；CI 中要先把 `origin/main` 拉全，否则 diff 范围计算会失准。
 
 ### 6.7 根包或内部包被误发布到 npm？
 
-- **答**：根 `package.json` 以及所有不需要发布的包都要加 `"private": true`，这是发布流程唯一的硬闸门；Changesets 的 `ignore` 配置只影响版本计算与发布编排，并不能替代 `private`。
+根 `package.json` 以及所有不需要发布的包都要加 `"private": true`，这是发布流程唯一的硬闸门；Changesets 的 `ignore` 配置只影响版本计算与发布编排，并不能替代 `private`。

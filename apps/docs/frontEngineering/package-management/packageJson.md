@@ -328,20 +328,20 @@ pnpm dev --port 3000
 
 ### 7.4 `main`、`module`、`exports` 到底该配哪个？
 
-- **答：** 三者面向不同消费者：`main` 是 CJS 入口（Node 与老工具），`module` 是 ESM 入口（仅打包工具识别），`exports` 是 Node 12+ 的官方入口路由，能按 `import` / `require` 条件分发。现代库推荐以 `exports` 为准，同时保留 `main` / `module` 作为兼容兜底。
+三者面向不同消费者：`main` 是 CJS 入口（Node 与老工具），`module` 是 ESM 入口（仅打包工具识别），`exports` 是 Node 12+ 的官方入口路由，能按 `import` / `require` 条件分发。现代库推荐以 `exports` 为准，同时保留 `main` / `module` 作为兼容兜底。
 
 ### 7.5 `packageManager` 字段和 `.npmrc` 有什么区别？
 
-- **答：** `packageManager` 声明的是“**本项目用哪个包管理器、哪个版本**”，Corepack 会据此自动切换并校验（写错版本时命令直接失败）；`.npmrc` 负责更细的仓库地址、镜像源、`engine-strict` 等配置。前者管“**用谁**”，后者管“**怎么用**”。
+`packageManager` 声明的是“**本项目用哪个包管理器、哪个版本**”，Corepack 会据此自动切换并校验（写错版本时命令直接失败）；`.npmrc` 负责更细的仓库地址、镜像源、`engine-strict` 等配置。前者管“**用谁**”，后者管“**怎么用**”。
 
 ### 7.6 `sideEffects: false` 写了之后样式丢了，为什么？
 
-- **答：** 因为 CSS 通常通过 `import './x.css'` 引入，这类导入本身只产生副作用、没有导出。一旦声明 `false`，打包器会认为整个模块可安全删除，把样式一并摇掉。含样式的库必须写成 `"sideEffects": ["**/*.css"]` 来保留。
+因为 CSS 通常通过 `import './x.css'` 引入，这类导入本身只产生副作用、没有导出。一旦声明 `false`，打包器会认为整个模块可安全删除，把样式一并摇掉。含样式的库必须写成 `"sideEffects": ["**/*.css"]` 来保留。
 
 ### 7.7 `scripts` 里的 `pre` / `post` 钩子在哪几个生命周期会触发？
 
-- **答：** npm 会为 `scripts` 中的每个命令自动挂载 `pre<name>` 与 `post<name>`：执行 `npm run build` 前先跑 `prebuild`、成功后跑 `postbuild`。此外 `prepare` 在本地 `npm install` 之后以及发布之前都会触发（Husky 安装就靠它），`prepublishOnly` 则只在发布前触发。
+npm 会为 `scripts` 中的每个命令自动挂载 `pre<name>` 与 `post<name>`：执行 `npm run build` 前先跑 `prebuild`、成功后跑 `postbuild`。此外 `prepare` 在本地 `npm install` 之后以及发布之前都会触发（Husky 安装就靠它），`prepublishOnly` 则只在发布前触发。
 
 ### 7.8 `exports` 里的条件顺序有讲究吗？
 
-- **答：** 有，且顺序敏感。Node.js 与打包器会自上而下匹配第一个命中的条件，所以 `types` 必须排在 `import` / `require` 之前，`import` / `require` 也要按更具体的优先，`default` 永远放最后兜底。顺序写反会导致类型提示丢失或加载到错误的产物。
+有，且顺序敏感。Node.js 与打包器会自上而下匹配第一个命中的条件，所以 `types` 必须排在 `import` / `require` 之前，`import` / `require` 也要按更具体的优先，`default` 永远放最后兜底。顺序写反会导致类型提示丢失或加载到错误的产物。

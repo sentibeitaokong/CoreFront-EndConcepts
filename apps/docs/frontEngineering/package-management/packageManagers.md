@@ -104,42 +104,41 @@ pnpm 之所以在 Monorepo 场景胜出，很大程度上靠下面这几个专�
 
 ### 4.1 `package-lock.json` 或 `yarn.lock` 到底要不要提交到 Git 仓库？
 
-- **答：绝对必须提交！这是工程化的底线。**
+- **绝对必须提交！这是工程化的底线。**
   - **原因**：`package.json` 里的版本号通常带有 `^` 或 `~`（如 `"vue": "^3.2.0"`），意思是允许安装 `3.x.x` 的最新次版本。如果你不提交 Lock 文件，今天你 `npm i` 安装的是 3.2.0，代码跑得完美；下个月新同事拉取代码执行 `npm i`，可能会自动下载并安装带有隐患的 3.5.0，导致项目跑不起来（即著名的“**在我的电脑上是好的**”）。
   - **作用**：Lock 文件会像拍快照一样，精准锁定一棵包含所有主依赖和深层子依赖的**绝对精确版本树**及其文件哈希值。只要 Lock 文件在，任何人在任何机器上装出来的 `node_modules` 都是 100% 字节级一致的。
 
 ### 4.2 持续集成 (CI/CD) 服务器上，用 `npm install` 还是 `npm ci`？
 
-- **答：必须使用 `npm ci`。**
+- **必须使用 `npm ci`。**
   - `npm install`：在安装时，如果发现有符合 `package.json` 范围的更新版本，它**有可能会去修改** `package-lock.json`。这会导致线上部署的版本和你在本地测试的版本不一致。
   - `npm ci` (Clean Install)：它是专门为自动化环境设计的。它会**完全无视 `package.json` 的范围，严格只读取 `package-lock.json` 中锁死的确切版本**。如果 Lock 文件和 package.json 不匹配，它会直接报错，而不是擅自修改。此外，它在安装前会先暴力删掉现有的 `node_modules`，保证环境的绝对纯净。
 
 ### 4.3 公司的老项目原本用的是 npm/Yarn，现在觉得太慢了，能直接一键换成 pnpm 吗？
 
-- **答：绝对不能“一键无脑切换”，极其容易引发生产事故。**
+- **绝对不能“一键无脑切换”，极其容易引发生产事故。**
   - **风险所在**：如上文所述，老项目在 npm/Yarn 的“**扁平化架构**”下，极大概率存在**幽灵依赖**（偷偷引用了没有在 package.json 里声明的库）。
   - **后果**：一旦切换为 pnpm，由于 pnpm 极其严格的隔离机制，这些幽灵依赖会瞬间暴露，导致代码报出大量的 `Module not found` 错误。
   - **迁移指南**：必须经历严格的迁移测试。删除旧的 lock 文件和 node_modules -> 运行 `pnpm install` 生成 `pnpm-lock.yaml` -> 全面运行项目的单元测试和本地启动 -> 手动将报错找不到的“**幽灵依赖**”一个个补全到 `package.json` 中，直到项目完全跑通。
 
 ### 4.4 `dependencies` 和 `devDependencies` 到底有什么本质区别？
 
-- **答**：
-  - **概念区别**：`dependencies` 是**生产环境**（代码运行在用户浏览器里）必须要用到的库，比如 React, Vue, Axios, Lodash。`devDependencies` 是**开发环境**（写代码和打包时）才需要的库，比如 Vite, Webpack, ESLint, TypeScript。
-  - **实际打包时的区别**：这是一个经典的新手误区。**在使用 Webpack/Vite 打包前端页面（SPA）时，这两者没有任何区别！** 构建工具根本不在乎你的包写在哪个字段里，它只看你代码里有没有 `import` 它。
-  - **何时有严格区别**：如果你在开发一个**要发布到 npm 的第三方 Node.js 库**（比如开发一个脚手架工具）。当别人 `npm install 你的库` 时，npm **只会**自动下载你声明在 `dependencies` 里的包，绝对不会下载 `devDependencies` 里的包。写错会导致别人的项目崩盘。
+- **概念区别**：`dependencies` 是**生产环境**（代码运行在用户浏览器里）必须要用到的库，比如 React, Vue, Axios, Lodash。`devDependencies` 是**开发环境**（写代码和打包时）才需要的库，比如 Vite, Webpack, ESLint, TypeScript。
+- **实际打包时的区别**：这是一个经典的新手误区。**在使用 Webpack/Vite 打包前端页面（SPA）时，这两者没有任何区别！** 构建工具根本不在乎你的包写在哪个字段里，它只看你代码里有没有 `import` 它。
+- **何时有严格区别**：如果你在开发一个**要发布到 npm 的第三方 Node.js 库**（比如开发一个脚手架工具）。当别人 `npm install 你的库` 时，npm **只会**自动下载你声明在 `dependencies` 里的包，绝对不会下载 `devDependencies` 里的包。写错会导致别人的项目崩盘。
 
 ### 4.5 npm、Yarn、pnpm 的 lock 文件能混用吗？
 
-- **答：不能。** `package-lock.json`、`yarn.lock`、`pnpm-lock.yaml` 三者的格式与解析算法完全不同，互不兼容。同一个仓库同时存在多份 lock 文件会让人无法判断哪份才是“**真相**”，极易造成本地与 CI 装出不同的依赖树。工程规范是**一个仓库只保留一种 lock 文件**，并在 `.gitignore` 里忽略其余。
+**不能。** `package-lock.json`、`yarn.lock`、`pnpm-lock.yaml` 三者的格式与解析算法完全不同，互不兼容。同一个仓库同时存在多份 lock 文件会让人无法判断哪份才是“**真相**”，极易造成本地与 CI 装出不同的依赖树。工程规范是**一个仓库只保留一种 lock 文件**，并在 `.gitignore` 里忽略其余。
 
 ### 4.6 Yarn 1 和 Yarn Berry (v2+) 有什么区别？
 
-- **答：** Yarn 1（Classic）是 2016 年的初代版本，已被官方停止维护；Yarn Berry 是重写后的体系，引入了 Plug'n'Play（PnP，用 `.pnp.cjs` 替代 `node_modules`）、零安装（把 `.yarn/cache` 一起提交）以及 `yarn dlx` 等能力。升级需要迁移配置，不是无缝替换。
+Yarn 1（Classic）是 2016 年的初代版本，已被官方停止维护；Yarn Berry 是重写后的体系，引入了 Plug'n'Play（PnP，用 `.pnp.cjs` 替代 `node_modules`）、零安装（把 `.yarn/cache` 一起提交）以及 `yarn dlx` 等能力。升级需要迁移配置，不是无缝替换。
 
 ### 4.7 在 Monorepo 里执行 `pnpm -r build` 会不会重复构建？
 
-- **答：** `-r`（recursive）会遍历所有工作区包，并按依赖拓扑顺序依次执行，是“**全量**”而非“**增量**”。它不会重复构建同一个包，但也不会跳过没改动的包。若只想跑受影响的包，用 `pnpm --filter <包名或路径> build` 缩小范围，避免全仓重跑浪费时间。
+`-r`（recursive）会遍历所有工作区包，并按依赖拓扑顺序依次执行，是“**全量**”而非“**增量**”。它不会重复构建同一个包，但也不会跳过没改动的包。若只想跑受影响的包，用 `pnpm --filter <包名或路径> build` 缩小范围，避免全仓重跑浪费时间。
 
 ### 4.8 Corepack 是什么，和包管理器有什么关系？
 
-- **答：** Corepack 是 Node.js 内置的包管理器版本管理工具（Node 16.9+）。当 `package.json` 里声明了 `"packageManager": "pnpm@9.0.0"` 时，它会按需下载并使用该版本，团队成员无需手动全局安装。用它可以把“**用什么包管理器、什么版本**”固化进仓库，杜绝版本不一致导致的 lock 漂移。
+Corepack 是 Node.js 内置的包管理器版本管理工具（Node 16.9+）。当 `package.json` 里声明了 `"packageManager": "pnpm@9.0.0"` 时，它会按需下载并使用该版本，团队成员无需手动全局安装。用它可以把“**用什么包管理器、什么版本**”固化进仓库，杜绝版本不一致导致的 lock 漂移。

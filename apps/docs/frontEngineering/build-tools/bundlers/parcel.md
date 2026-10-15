@@ -204,7 +204,7 @@ root.render(<App />)
 
 ### 5.1 开发时如何配置跨域代理 (Proxy) 解决跨域报错？
 
-- **答**：**使用 `.proxyrc` 文件。**
+- **使用 `.proxyrc` 文件。**
   - 在项目根目录创建一个 `.proxyrc` 或 `.proxyrc.json` 文件。Parcel 内置了 `http-proxy-middleware`。
   - **避坑方案**：
     ```json
@@ -221,13 +221,13 @@ root.render(<App />)
 
 ### 5.2 为什么我改了代码，浏览器刷新了，但页面效果没变？好像卡在了旧版本？
 
-- **答**：**这是由于 Parcel 激进的磁盘缓存机制 (Caching) 导致的偶发性 Bug。**
+- **这是由于 Parcel 激进的磁盘缓存机制 (Caching) 导致的偶发性 Bug。**
   - 为了实现极速的二次启动，Parcel 会在根目录生成一个 `.parcel-cache` 文件夹。当某些特殊配置文件改变或发生异常中断时，缓存可能会失效/错乱。
   - **避坑方案**：直接删除项目根目录下的 `.parcel-cache` 文件夹，然后重新运行 `npm start` 即可恢复正常。建议在 `.gitignore` 中加入 `.parcel-cache`。
 
 ### 5.3 我的项目里有一些不用编译的静态资源（比如 favicon.ico、大型 PDF），如何原封不动地复制到 dist 目录？
 
-- **答**：**使用 `@parcel/reporter-static-files-copy` 插件配合 `.parcelrc`。**
+- **使用 `@parcel/reporter-static-files-copy` 插件配合 `.parcelrc`。**
   - 默认情况下，Parcel 只会打包被 HTML/JS/CSS 显式引用的文件。对于需要静态拷贝的文件，需要扩展 Parcel 的行为。
   - **避坑方案**：
     1. 安装依赖：`npm install -D @parcel/reporter-static-files-copy`
@@ -312,7 +312,7 @@ console.log(process.env.API_KEY);
 
 ### 5.8 如何在 Parcel 里处理 SVG 或自定义资源（比如把 SVG 变成 React 组件）？
 
-- **答**：**通过 `.parcelrc` 覆写 `transformers`，而不是把配置写死。**
+- **通过 `.parcelrc` 覆写 `transformers`，而不是把配置写死。**
   - Parcel 默认用内置转换器处理 `.svg`。要把它转成 React 组件，安装 `@parcel/transformer-svg-react` 后覆盖该后缀的转换器：
     ```json
     {

@@ -341,14 +341,14 @@ module.exports = {
 
 ### 5.1 经典面试题：既然 Vite 那么快，为什么字节还要去造一个 Rspack？它们怎么选？
 
-- **答**：这是底层架构理念的区别。
+- 这是底层架构理念的区别：
   - **Vite 的局限**：Vite 在开发环境使用 `ESM + Bundleless`。对于几百个文件的中小型项目极其丝滑。但字节内部有成千上万个模块的**史诗级巨型项目**，如果用 Vite，浏览器在刷新时瞬间发起上万个 HTTP 请求，会导致浏览器网络层直接崩溃（请求瀑布流）。且 Vite 开发环境（不打包）和生产环境（Rollup 打包）机制不同，容易产生“**开发好好的，上线全挂了**”的隐患。
   - **Rspack 的破局**：Rspack 和 Webpack 一样，坚持 **Bundle-based (必须打包)**。它保证了开发和生产环境产物行为的一致性，同时利用 Rust 暴力拉升了打包速度。
   - **选型建议**：中小型项目、Vue 生态优先选 **Vite**；巨型企业级项目、极其沉重的 Webpack 历史老项目迁移、微前端（Module Federation）重度用户优先选 **Rspack**。
 
 ### 5.2 我有一个很老的 Webpack 项目，可以直接把 `webpack` 命令换成 `rspack` 吗？深度依赖自研的 Babel 插件怎么办？
 
-- **答**：**不能做到 100% 零成本一键切换，但迁移成本极低；真正难啃的只有自研 Babel 插件。**
+- **不能做到 100% 零成本一键切换，但迁移成本极低；真正难啃的只有自研 Babel 插件。**
   - **兼容部分**：核心的 `entry`, `output`, `resolve`, 以及绝大多数标准的 Loader（如 `less-loader`, `vue-loader`）都是直接兼容的。
   - **需要修改的部分**：
     1. 必须移除 Babel 相关的 loader，替换为 `builtin:swc-loader`。
@@ -361,19 +361,19 @@ module.exports = {
 
 ### 5.3 Rspack 的 `builtin` 属性为什么在最新的文档里找不到了？
 
-- **答**：**历史演进遗留问题。**
+- **历史演进遗留问题：**
   - 在 Rspack 早期版本（0.x），团队试图通过一个巨大的 `builtins` 对象来包揽所有的功能（如 html 压缩、css 提取），从而区别于 Webpack。
   - 但随着版本迭代，为了实现**对 Webpack 终极完美的兼容**，Rspack 团队在接近 1.0 版本时转变了方向。他们废弃了 `builtins` 顶层配置，转而鼓励使用更加 Webpack-native 的方式：即通过 `module.rules` 中的 `builtin:swc-loader` 和各种原生的 `RspackPlugin` 来配置。编写现代 Rspack 配置时，请**坚决拥抱 Webpack 的心智模型**。
 
 ### 5.4 为什么 Rspack 不需要安装 `css-loader` 和 `style-loader`？
 
-- **答**：这是 Rspack 相较于 Webpack 的巨大体验提升。
+- 这是 Rspack 相较于 Webpack 的巨大体验提升：
   - **Webpack 痛点**：Webpack 本质上只懂 JS。要把 CSS 塞进页面，必须经过 `css-loader`（解析 CSS 语法）和 `style-loader`（生成 `<style>` 标签插入 DOM）这两道繁琐的工序。
   - **Rspack 优势**：Rspack 在其 Rust 底层直接将 CSS 设计为**一等公民**。当你配置 `type: 'css'` 时，Rspack 内部会自动处理 CSS 的导入、热更新，甚至在生产环境（`mode: 'production'`）下自动将 CSS 物理抽离为单独的 `.css` 文件。这一切都无需任何外挂 Loader 和 Plugin。
 
 ### 5.5 如果 Rspack 默认只用 `builtin:swc-loader`，那遇到老旧浏览器的兼容性要求怎么办？
 
-- **答**：`swc-loader` 完全具备类似于 Babel 的语法降级能力。
+- `swc-loader` 完全具备类似于 Babel 的语法降级能力。
   - 你只需在 `swc-loader` 的 `options` 中配置 `env: { targets: "..." }` 属性。
   ```js
   use: {
@@ -390,18 +390,17 @@ module.exports = {
 
 ### 5.6 Rspack 既然原生支持 CSS，为什么有时还需要配置 PostCSS？
 
-- **答**：Rspack 的原生 CSS 支持（`type: 'css'`）主要负责 CSS 模块的引入、HMR 热更新以及物理提取打包。
+- Rspack 的原生 CSS 支持（`type: 'css'`）主要负责 CSS 模块的引入、HMR 热更新以及物理提取打包。
   - **它的盲区**：原生功能目前无法执行复杂的 CSS 降级转换（比如自动添加浏览器前缀 `-webkit-`），也无法处理像 Tailwind CSS 这种基于编译的原子化样式框架。
   - **应对策略**：如果你需要处理兼容性前缀或使用 Tailwind，你仍然需要在 Rspack 中配置传统的 `postcss-loader`，并传入相应的 PostCSS 插件。
 
 ### 5.7 为什么开启了 `SwcJsMinimizerRspackPlugin`，我的代码依然没有被压缩？
 
-- **答**：
-  - **原理**：在 Webpack/Rspack 的架构设计中，压缩插件是挂载在 `optimization.minimizer` 数组中的。但是，这个数组里的插件**只会在 `optimization.minimize` 为 `true` 时才会被触发执行**。
-  - **避坑指南**：很多开发者只配置了插件，却忘记了打开总开关。必须确保 `mode: 'production'`（这会自动开启 minimize）或者显式声明 `minimize: true`。
+- **原理**：在 Webpack/Rspack 的架构设计中，压缩插件是挂载在 `optimization.minimizer` 数组中的。但是，这个数组里的插件**只会在 `optimization.minimize` 为 `true` 时才会被触发执行**。
+- **避坑指南**：很多开发者只配置了插件，却忘记了打开总开关。必须确保 `mode: 'production'`（这会自动开启 minimize）或者显式声明 `minimize: true`。
 
 ### 5.8 在微前端 Module Federation 中，`shared: { singleton: true }` 到底有什么用？
 
-- **答**：这是微前端架构中极其关键的防崩溃配置。
+- 这是微前端架构中极其关键的防崩溃配置：
   - **痛点**：假设你的基座应用自带了一份 `React v18`，它动态加载了一个微应用，微应用里也打包了一份 `React v18`。当微应用渲染时，页面上同时存在两个 React 实例的上下文。由于 React 的底层机制限制（特别是 Hooks），跨实例的状态共享会瞬间导致程序抛出红色致命错误。
   - **作用**：配置 `singleton: true` 会强制 Rspack 在运行时进行仲裁。如果基座已经加载了 React，微应用就会**放弃使用自己的 React**，直接共享并挂载到基座的 React 实例上。这保证了全局上下文的绝对纯净和单一。
