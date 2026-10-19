@@ -1,5 +1,11 @@
 # xb-element
 
+## 1.0.30
+
+### Patch Changes
+
+- 615bee5: update
+
 ## 1.0.29
 
 ### Patch Changes
