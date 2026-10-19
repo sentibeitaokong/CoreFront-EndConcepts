@@ -4,7 +4,7 @@
 
 **一句话理解**：**「环境变量 = 把环境相关的配置（接口地址、密钥、开关）从代码里剥离出来，交给运行时或构建时注入。」**
 
-> 本文聚焦**环境变量机制本身**；多环境（DEV/QA/UAT/PROD）的架构设计见 [多环境与部署架构](/frontEngineering/ci-cd/deploymentEnvironments)。
+> 本文聚焦**环境变量机制本身**；多环境的架构设计见 [多环境与部署架构](/frontEngineering/ci-cd/deploymentEnvironments)。
 
 ## 1. 为什么需要环境变量
 
@@ -42,8 +42,6 @@ import.meta.env.BASE_URL // 部署基础路径（vite.config 的 base）
 // 自定义变量（须 VITE_ 前缀）
 import.meta.env.VITE_API_BASE
 ```
-
-除了以上内置变量，还有几个高频机制需要区分：
 
 - **`process.env.NODE_ENV`：** Node.js 与打包工具（Webpack）沿用的环境标识，取值 `development` / `production`。Vite 会把它静态替换为对应值，是 React、Vue 等库判断开发/生产分支的依据。
 - **`MODE` 与 `NODE_ENV` 不完全等价：** `MODE` 由 `--mode` 决定（可以是 `staging` 等自定义值），而 `NODE_ENV` 只有 development / production 两值；`vite build` 默认把 `NODE_ENV` 设为 `production`。
@@ -125,26 +123,60 @@ export default defineConfig({
 
 ### 4.2 统一导出，避免散落
 
+`import.meta.env` 在任何文件里都能直接读，真正的代价是**同一份解析逻辑到处重复**：
+
 ```typescript
-// src/env.ts —— 集中管理，类型安全
+// 散落各处：谁用到谁自己读一遍
+// a.ts
+const base = import.meta.env.VITE_API_BASE // 忘了兜底，某个环境漏配就是 undefined
+
+// b.ts
+if (import.meta.env.VITE_ENABLE_MOCK === 'true') {
+  /* 转换逻辑又写一遍 */
+}
+
+// c.ts
+fetch(`${import.meta.env.VITE_API_BASE}/list`) // 拼错变量名也不报错，直接拼出 /undefined/list
+```
+
+收敛到一个模块里只读一次，兜底、类型转换和缺失校验就都有地方管了：
+
+:::code-group
+
+```typescript [src/env.ts]
+// 全局只在这里碰 import.meta.env
+const raw = import.meta.env
+
+// 缺失即报错：必需变量在启动阶段就抛错，而不是线上跑一半才发现地址是 undefined
+function required(key: keyof ImportMetaEnv): string {
+  const value = raw[key]
+  if (!value) {
+    throw new Error(`缺少环境变量 ${key}，请检查 .env.${raw.MODE}`)
+  }
+  return value
+}
+
 export const env = {
-  apiBase: import.meta.env.VITE_API_BASE as string,
-  enableMock: import.meta.env.VITE_ENABLE_MOCK === 'true',
-  isProd: import.meta.env.PROD,
+  apiBase: required('VITE_API_BASE'), // 必需项：没配就直接启动失败
+  featureFlag: raw.VITE_FEATURE_FLAG ?? 'off', // 可选项：统一兜底
+  enableMock: raw.VITE_ENABLE_MOCK === 'true', // 布尔：字符串 'false' 是 truthy，必须显式转换
+  isProd: raw.PROD,
 }
 ```
 
-集中导出时建议顺手处理三件事：
+:::
 
-- **统一兜底：** 给关键变量提供默认值（`import.meta.env.VITE_API_BASE ?? '/api'`），避免某个环境漏配后 `undefined` 拼出错误地址。
+业务代码从此只认一个入口：`import { env } from '@/env'`，不再直接碰 `import.meta.env`。
+
+- **统一兜底：** 给非必需的变量提供默认值（`import.meta.env.VITE_FEATURE_FLAG ?? 'off'`），避免某个环境漏配后 `undefined` 混进业务逻辑。
 - **类型转换集中处理：** 字符串 `'false'` 是 truthy 值，布尔开关务必在这里转成真正的 `boolean`（`=== 'true'`），数字同样要包一层 `Number(...)`。
 - **缺失即报错：** 对必需变量做校验，缺失时在启动阶段就直接抛错，比线上运行到一半才发现地址是 `undefined` 更安全。
 
 ### 4.3 为 `import.meta.env` 补全类型提示
 
-新建 `src/env.d.ts`，让 TypeScript 智能提示所有自定义变量：
+:::code-group
 
-```typescript
+```typescript [src/env.d.ts]
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
@@ -158,28 +190,34 @@ interface ImportMeta {
 }
 ```
 
+:::
+
 ## 5. 运行时注入（一次构建，随处部署）
 
 构建时注入的产物把地址「写死」了，改环境必须重新打包。要真正「一次构建、多环境部署」，可在 `public/` 下放一个**运行时配置文件**，启动时动态读取：
 
-```html
-<!-- index.html 里先加载 config.js -->
+:::code-group
+
+```html [index.html]
+<!-- 加载 config.js -->
 <script src="/config.js"></script>
 ```
 
-```javascript
-// public/config.js —— 由部署脚本/容器在启动时按环境生成
+```javascript [public/config.js]
+//由部署脚本/容器在启动时按环境生成
 window.__APP_CONFIG__ = {
   apiBase: 'https://api.example.com',
 }
 ```
 
-```javascript
-// src/env.ts —— 优先读运行时配置，兜底用构建时变量
+```javascript [src/env.ts]
+//优先读运行时配置，兜底用构建时变量
 export const env = {
   apiBase: window.__APP_CONFIG__?.apiBase ?? import.meta.env.VITE_API_BASE,
 }
 ```
+
+:::
 
 这样同一份 dist 产物，部署到测试/生产环境时只需替换 `config.js` 内容。
 
@@ -196,44 +234,37 @@ export const env = {
 .env.*.local
 ```
 
-## 7. 总结
+## 7. 常见问题 (FAQ)
 
-- 环境变量把「随环境变化的配置」从代码中剥离，分构建时注入与运行时注入。
-- Vite 用 `import.meta.env.VITE_*` 读取，按 `--mode` 加载对应 `.env` 文件，`.local` 优先级最高且不提交。
-- 一次构建多环境部署靠「运行时 `config.js` + `window`」实现。
-- 安全红线：前端变量不保密，密钥放后端，`.env.*.local` 不进仓库。
-
-## 8. 常见问题 (FAQ)
-
-### 8.1 为什么我定义的变量在代码里是 `undefined`？
+### 7.1 为什么我定义的变量在代码里是 `undefined`？
 
 大概率是**前缀不对**。Vite 只暴露 `VITE_` 前缀变量；CRA 只暴露 `REACT_APP_` 前缀。检查变量名是否符合当前工具的约定。
 
-### 8.2 修改了 `.env` 为什么没生效？
+### 7.2 修改了 `.env` 为什么没生效？
 
 环境变量在**构建/启动时**读取，修改后需**重启 dev server** 或**重新构建**才能生效。
 
-### 8.3 前端能安全地隐藏密钥吗？
+### 7.3 前端能安全地隐藏密钥吗？
 
 **不能**。所有打进前端的变量（无论怎么混淆）最终都能被用户从产物中读到。涉及敏感操作的密钥，必须在后端服务端处理。
 
-### 8.4 构建时注入 vs 运行时注入怎么选？
+### 7.4 构建时注入 vs 运行时注入怎么选？
 
 - 需要「一次构建、多环境部署」、或环境经常切换 → **运行时注入**（`config.js` + `window`）。
 - 环境固定、追求简单与摇树优化 → **构建时注入**（`import.meta.env`）。
 
-### 8.5 `.env` 里的布尔值为什么是字符串？
+### 7.5 `.env` 里的布尔值为什么是字符串？
 
 环境变量本质是字符串，`VITE_ENABLE_MOCK=true` 里的 `true` 是字符串 `"true"`。判断时要显式比较 `=== 'true'`，或统一在 `env.ts` 里做类型转换。
 
-### 8.6 `import.meta.env` 和 `process.env` 到底有什么区别？
+### 7.6 `import.meta.env` 和 `process.env` 到底有什么区别？
 
 `import.meta.env` 是 Vite / ESM 的原生方式，仅在模块代码中可用，构建时被静态替换；`process.env` 是 Node.js 的运行时对象，在 Vite 客户端代码里只有被显式 `define` 过的键（如 `process.env.NODE_ENV`）才有值，其余都是 `undefined`。在 `vite.config.ts` 这类 Node 配置文件里，则要用 `process.env` 或 `loadEnv`。
 
-### 8.7 在 `vite.config.ts` 里怎么读到 `.env` 变量？
+### 7.7 在 `vite.config.ts` 里怎么读到 `.env` 变量？
 
 配置文件运行在 Node 环境，此时 `.env` 还没被注入。需用 Vite 提供的 `loadEnv(mode, process.cwd(), '')` 手动加载：第二个参数是目录，第三个参数传 `''` 表示不加前缀限制（否则只返回 `VITE_` 开头的项）。
 
-### 8.8 `index.html` 里能直接用环境变量吗？
+### 7.8 `index.html` 里能直接用环境变量吗？
 
 可以。Vite 支持在 `index.html` 中用 `%VITE_XXX%` 占位符，构建时会被替换为对应的环境变量值，常用于注入 `<title>`、埋点脚本的 key 等。

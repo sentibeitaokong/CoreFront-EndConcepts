@@ -20,8 +20,6 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ## 2. 核心工作机制深度对比 (npm vs pnpm)
 
-要理解包管理器，必须理解它们是如何在硬盘上组织 `node_modules` 目录的。这是高级前端面试的必考题。
-
 ### 2.1 扁平化架构与“**幽灵依赖**” (npm / Yarn)
 
 早期的 npm (v2) 采用嵌套结构，A 依赖 B，B 依赖 C，会导致目录极深，在 Windows 上经常触发文件路径过长的报错。
@@ -90,7 +88,7 @@ pnpm dev        # pnpm 允许省略 run
 | CI 精确安装  | `npm ci`                  | `yarn install --frozen-lockfile` | `pnpm install --frozen-lockfile` |
 | 只装生产依赖 | `npm ci --omit=dev`       | `yarn install --production`      | `pnpm install --prod`            |
 
-### 3.2 pnpm 的高频高级用法
+### 3.2 pnpm 的高级用法
 
 pnpm 之所以在 Monorepo 场景胜出，很大程度上靠下面这几个专属能力：
 
@@ -106,7 +104,7 @@ pnpm 之所以在 Monorepo 场景胜出，很大程度上靠下面这几个专�
 
 - **绝对必须提交！这是工程化的底线。**
   - **原因**：`package.json` 里的版本号通常带有 `^` 或 `~`（如 `"vue": "^3.2.0"`），意思是允许安装 `3.x.x` 的最新次版本。如果你不提交 Lock 文件，今天你 `npm i` 安装的是 3.2.0，代码跑得完美；下个月新同事拉取代码执行 `npm i`，可能会自动下载并安装带有隐患的 3.5.0，导致项目跑不起来（即著名的“**在我的电脑上是好的**”）。
-  - **作用**：Lock 文件会像拍快照一样，精准锁定一棵包含所有主依赖和深层子依赖的**绝对精确版本树**及其文件哈希值。只要 Lock 文件在，任何人在任何机器上装出来的 `node_modules` 都是 100% 字节级一致的。
+  - **作用**：Lock 文件会像拍快照一样，精准锁定一棵包含所有主依赖和深层子依赖的**绝对精确版本树**及其文件哈希值。只要 Lock 文件在，任何人在任何机器上装出来的`node_modules`都是 100% 字节级一致的。
 
 ### 4.2 持续集成 (CI/CD) 服务器上，用 `npm install` 还是 `npm ci`？
 
@@ -124,21 +122,50 @@ pnpm 之所以在 Monorepo 场景胜出，很大程度上靠下面这几个专�
 ### 4.4 `dependencies` 和 `devDependencies` 到底有什么本质区别？
 
 - **概念区别**：`dependencies` 是**生产环境**（代码运行在用户浏览器里）必须要用到的库，比如 React, Vue, Axios, Lodash。`devDependencies` 是**开发环境**（写代码和打包时）才需要的库，比如 Vite, Webpack, ESLint, TypeScript。
-- **实际打包时的区别**：这是一个经典的新手误区。**在使用 Webpack/Vite 打包前端页面（SPA）时，这两者没有任何区别！** 构建工具根本不在乎你的包写在哪个字段里，它只看你代码里有没有 `import` 它。
+- **实际打包时的区别**：**在使用 Webpack/Vite 打包前端页面（SPA）时，这两者没有任何区别！** 构建工具根本不在乎你的包写在哪个字段里，它只看你代码里有没有 `import` 它。
 - **何时有严格区别**：如果你在开发一个**要发布到 npm 的第三方 Node.js 库**（比如开发一个脚手架工具）。当别人 `npm install 你的库` 时，npm **只会**自动下载你声明在 `dependencies` 里的包，绝对不会下载 `devDependencies` 里的包。写错会导致别人的项目崩盘。
 
 ### 4.5 npm、Yarn、pnpm 的 lock 文件能混用吗？
 
 **不能。** `package-lock.json`、`yarn.lock`、`pnpm-lock.yaml` 三者的格式与解析算法完全不同，互不兼容。同一个仓库同时存在多份 lock 文件会让人无法判断哪份才是“**真相**”，极易造成本地与 CI 装出不同的依赖树。工程规范是**一个仓库只保留一种 lock 文件**，并在 `.gitignore` 里忽略其余。
 
-### 4.6 Yarn 1 和 Yarn Berry (v2+) 有什么区别？
-
-Yarn 1（Classic）是 2016 年的初代版本，已被官方停止维护；Yarn Berry 是重写后的体系，引入了 Plug'n'Play（PnP，用 `.pnp.cjs` 替代 `node_modules`）、零安装（把 `.yarn/cache` 一起提交）以及 `yarn dlx` 等能力。升级需要迁移配置，不是无缝替换。
-
-### 4.7 在 Monorepo 里执行 `pnpm -r build` 会不会重复构建？
+### 4.6 在 Monorepo 里执行 `pnpm -r build` 会不会重复构建？
 
 `-r`（recursive）会遍历所有工作区包，并按依赖拓扑顺序依次执行，是“**全量**”而非“**增量**”。它不会重复构建同一个包，但也不会跳过没改动的包。若只想跑受影响的包，用 `pnpm --filter <包名或路径> build` 缩小范围，避免全仓重跑浪费时间。
 
-### 4.8 Corepack 是什么，和包管理器有什么关系？
+### 4.7 Corepack 是什么，和包管理器有什么关系？
 
 Corepack 是 Node.js 内置的包管理器版本管理工具（Node 16.9+）。当 `package.json` 里声明了 `"packageManager": "pnpm@9.0.0"` 时，它会按需下载并使用该版本，团队成员无需手动全局安装。用它可以把“**用什么包管理器、什么版本**”固化进仓库，杜绝版本不一致导致的 lock 漂移。
+
+### 4.8 pnpm 是怎么做到“**同一个包在磁盘上只存一份**”的？
+
+- **全局 store：唯一存放数据的地方。** 所有项目的包文件都按内容存进这里，文件名就是内容的 SHA-512（`files/<哈希前两位>/<哈希剩余部分>`），**同内容必然同名**，所以全局天然只存一份。
+- **硬链接 / 克隆：让项目里的文件指向 store，而不是再复制一份。** macOS 上默认走 APFS 克隆（写时复制），不支持克隆时才退化为硬链接，效果一致：不占第二份磁盘。
+- **软链接：只负责“谁能被找到”。** `node_modules/` 根目录下，只有 `package.json` 里显式声明过的包才有软链——幽灵依赖报 `Module not found`，就是缺了这条链。
+
+`store/` 即 `pnpm store path` 的输出（macOS 上默认是 `~/Library/pnpm/store/v11`）：
+
+```markdown
+~/pnpm/store/ ← 全局store
+└── v11/files/
+├── ab/cdef... ← 实际文件内容（按内容哈希命名）
+└── 12/3456... ← 另一个实际文件内容
+
+项目/
+├── node_modules/
+│ ├── .pnpm/ ← 虚拟 store（实际包目录）
+│ │ ├── foo@1.0.0/
+│ │ │ └── node_modules/
+│ │ │ └── foo/
+│ │ │ ├── index.js ← 硬链接到全局 store
+│ │ │ └── package.json ← 硬链接到全局 store
+│ │ └── bar@2.0.0/
+│ │ └── node_modules/
+│ │ └── bar/
+│ │ └── index.js ← 硬链接到全局 store
+│ ├── foo → .pnpm/foo@1.0.0/node_modules/foo ← 软链接
+│ └── bar → .pnpm/bar@2.0.0/node_modules/bar ← 软链接
+└── package.json
+```
+
+**结论**：**软链接只管“谁能被找到”，硬链/克隆只管“不复制数据”**，数据始终只落在全局 store 的那一份上——store 用内容哈希天然去重，项目侧用链接代替复制，所以同一个文件内容在磁盘上永远只有一份。

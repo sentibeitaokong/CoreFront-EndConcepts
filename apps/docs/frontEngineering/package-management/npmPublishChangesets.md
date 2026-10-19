@@ -14,42 +14,30 @@
 - **安全与控制**：私有包务必配置 `publishConfig.access = "restricted"` 和正确的 `registry`。
 - **自动化防线**：在 `prepublishOnly` 钩子中强制执行测试与构建。
 
----
-
 ## 2. package.json 核心发布字段
 
 ```json
 {
-  "name": "@acme/button",
-  "version": "1.2.3",
-  "type": "module",
-  "files": ["dist"],
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "name": "@acme/button", // 包名带 scope，配合私有源使用
+  "version": "1.2.3", // 由 Changesets 统一计算并改写，不要手改
+  "type": "module", // 让 Node 把 .js 按 ESM 解析
+  "files": ["dist"], // 上传白名单：只发产物，源码与测试不进包
+  "main": "./dist/index.cjs", // 老工具与 Node 的兜底入口（CJS）
+  "module": "./dist/index.mjs", // 打包工具的 ESM 入口，非官方规范，Node 不认
+  "types": "./dist/index.d.ts", // 类型声明入口，缺了调用方就没有提示
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.cjs"
+      "types": "./dist/index.d.ts", // 条件顺序敏感，types 必须排第一
+      "import": "./dist/index.mjs", // ESM 使用者走这里
+      "require": "./dist/index.cjs" // CJS 使用者走这里
     },
-    "./style.css": "./dist/style.css"
+    "./style.css": "./dist/style.css" // 显式放行的子路径，未声明的外部一律 import 不到
   },
-  "sideEffects": ["**/*.css"],
-  "publishConfig": { "access": "public" },
-  "scripts": { "prepublishOnly": "pnpm test && pnpm build" }
+  "sideEffects": ["**/*.css"], // 含独立 CSS 时不能写 false，否则样式会被摇掉
+  "publishConfig": { "access": "public" }, // scope 包默认私有，公开发布要显式声明
+  "scripts": { "prepublishOnly": "pnpm test && pnpm build" } // 发布前最后一道防线
 }
 ```
-
-[width(22,78)]
-
-| 字段                 | 核心作用与避坑指南                                                                             |
-| -------------------- | ---------------------------------------------------------------------------------------------- |
-| **`files`**          | 上传白名单。只填需要发布的目录（如 `dist`），极大减少包体积。                                  |
-| **`exports`**        | 现代包入口路由。未在此处声明的路径，外部业务代码严格禁止 `import`。                            |
-| **`types`**          | TypeScript 声明文件入口，缺失会导致调用方无代码提示。                                          |
-| **`sideEffects`**    | 影响打包器 Tree Shaking。若包含独立 CSS 文件，**绝不能**粗暴设为 `false`，需填入样式文件路径。 |
-| **`prepublishOnly`** | 真正发布前执行，适合作为最后防线。                                                             |
 
 ## 3. SemVer 语义化版本与 dist-tag 策略
 
@@ -68,18 +56,14 @@
 
 `dist-tag` 决定了用户执行 `npm install` 时默认拉取哪个版本。
 
-[width(13,87)]
+[width(13,22,65)]
 
-| tag      | 用途               |
-| -------- | ------------------ |
-| `latest` | 默认稳定版本       |
-| `beta`   | 外部或内部试用版本 |
-| `alpha`  | 更早期的实验版本   |
-| `next`   | 下一代大版本预览   |
-
-- **常规发布**：默认打上 `latest` 标签。
-- **内测发布**：`npm publish --tag beta`（用户需显式执行 `pnpm add pkg@beta` 安装）。
-- **版本提升**：若 beta 测试稳定，直接执行 `npm dist-tag add @acme/button@1.3.0 latest` 提升标签，而非重新打包发布。
+| tag      | 用途               | 发布与提升                                                                                                                           |
+| -------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `latest` | 默认稳定版本       | `npm publish`（不传 `--tag`，默认就打上 `latest`）                                                                                   |
+| `beta`   | 外部或内部试用版本 | `npm publish --tag beta`，用户需显式 `pnpm add pkg@beta`；测稳后 `npm dist-tag add @acme/button@1.3.0 latest` 直接提升，不必重新发布 |
+| `alpha`  | 更早期的实验版本   | `npm publish --tag alpha`                                                                                                            |
+| `next`   | 下一代大版本预览   | `npm publish --tag next`                                                                                                             |
 
 ### 3.2 `npm publish` 的高频参数
 
@@ -106,9 +90,9 @@ pnpm changeset init
 
 **初始化后会生成：**
 
-```txt
+```markdown
 .changeset/
-  config.json
+config.json
 ```
 
 **典型配置：**
@@ -126,8 +110,6 @@ pnpm changeset init
   "ignore": []
 }
 ```
-
-配置项速览（`.changeset/config.json`）：
 
 - **`access`：** 发布包的默认可见性，`public` 为公开、`restricted` 为私有，等价于命令行加 `npm publish --access public`。
 - **`baseBranch`：** 主分支名，Changesets 用它比对变更、生成版本 PR 的目标基线。

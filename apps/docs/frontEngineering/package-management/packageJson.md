@@ -1,8 +1,12 @@
+---
+outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
+---
+
 # package.json 工程化
 
 在现代前端与 Node.js 工程化的宏大版图中，如果说 Webpack/Vite 是流水线的“**引擎**”，TypeScript 是保证质量的“**法律**”，那么 `package.json` 就是整个工程的“**DNA 与宪法**”。
 
-它不仅仅是一个记录包名的静态 JSON 文件，而是决定了**依赖拓扑结构、模块寻址策略、任务调度生命周期以及跨环境兼容性**的底层控制中心。彻底读懂 `package.json`，是跨越基础开发、迈向工程化架构师的关键一步。
+它不仅仅是一个记录包名的静态 JSON 文件,而是决定了**依赖拓扑结构、模块寻址策略、任务调度生命周期以及跨环境兼容性**的底层控制中心。彻底读懂 `package.json`，是跨越基础开发、迈向工程化架构师的关键一步。
 
 ## 1. 核心痛点与时代背景
 
@@ -18,7 +22,7 @@
 
 ### 2.1 核心元数据
 
-- **`name`：** 包的唯一标识符。在企业级开发中，通常结合 Scope（作用域）使用，如 `@xunbei-vue/button`，这能有效避免命名冲突，并方便配置私有镜像源。
+- **`name`：** 包的唯一标识符。在企业级开发中，通常结合 Scope（作用域）使用，如 `@xbElement/button`，这能有效避免命名冲突，并方便配置私有镜像源。
 - **`version`：** 严格遵循 **SemVer（语义化版本控制规范）**。
 - **`private`：** 设为 `true` 是一道**绝对的物理防线**，防止企业内部的业务项目被意外执行 `npm publish` 泄露到公网。
 
@@ -36,9 +40,7 @@
 - `"vue": "~3.2.0"`：锁定次版本。允许安装 `3.2.x` 中的最新版本，但绝不会升级到 `3.3.0`。
 - `"vue": "3.2.0"`：**（强锁定）** 必须且只能安装这个精确版本。
 
-### 2.3 高频字段补充：发布与工具链约束
-
-除身份标识外，以下字段在日常工程与发布中最常出现在 `package.json` 里：
+### 2.3 发布与工具链约束
 
 [width(14,36,50)]
 
@@ -72,18 +74,19 @@
 
 Node.js 面临着 CJS 与 ESM 互操作的巨大历史包袱。
 
-- **默认行为：** 如果不写，Node.js 默认将项目下所有 `.js` 文件视为 CommonJS（`require/module.exports`）。
+- **默认行为：** 如果不写，Node.js 默认将项目下所有`.js`文件视为CommonJS(`require/module.exports`)。
 - **拥抱现代：** 设置 `"type": "module"`。这会强制 Node.js 将所有 `.js` 文件按原生 ES Modules 解析。如果此时还需要写 CJS，必须显式将文件后缀改为 `.cjs`。
 
 ### 4.2 历史遗留入口：`main` 与 `module`
 
 > 早期，由于只有 CommonJS，一切都很简单。后来为了兼容构建工具，增加了 `module`。
 
-- **`"main": "dist/index.js"`**
-  - 这是最古老、最标准的入口。Node.js 和早期的 Webpack 默认会读取这个字段，通常指向一个 **CommonJS** 格式的文件。
+[width(23,13,21,43)]
 
-- **`"module": "dist/index.mjs"`**
-  - 这是一个**非官方规范**，由 Rollup 提出。当 Webpack/Vite 等现代工具打包时，如果发现库的 `package.json` 里有 `"module"` 字段，会**优先读取这个指向 ESM 格式的入口**，从而实现完美的 Tree-Shaking。但 Node.js 原生并不认识它。
+| 字段                             | 产物格式     | 谁读它                        | 说明                                                                                                                    |
+| :------------------------------- | :----------- | :---------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| **`"main": "dist/index.js"`**    | **CommonJS** | Node.js、早期的 Webpack       | 最古老、最标准的入口。                                                                                                  |
+| **`"module": "dist/index.mjs"`** | **ESM**      | Webpack / Vite 等现代打包工具 | **非官方规范**，由 Rollup 提出；打包器会**优先读取这个 ESM 入口**以实现完美的 Tree-Shaking，但 Node.js 原生并不认识它。 |
 
 ### 4.3 终极形态：`"exports"` 字段 (Node 12+)
 
@@ -109,7 +112,7 @@ Node.js 面临着 CJS 与 ESM 互操作的巨大历史包袱。
 
 ## 5. 任务编排与生命周期 (Scripts)
 
-在前端工程化体系中，`package.json` 里的 `scripts` 字段扮演着“**中央控制台**”**或**“**自动化任务编排引擎**”的角色。
+在前端工程化体系中,`package.json`里的`scripts`字段扮演着“**中央控制台**”**或**“**自动化任务编排引擎**”的角色。
 
 ### 5.1 `scripts` 字段的核心作用
 
@@ -129,58 +132,52 @@ Node.js 面临着 CJS 与 ESM 互操作的巨大历史包袱。
 
 ### 5.2 深度解密：为什么 `pnpm dev` 能把项目跑起来？
 
-在前端工程化的底层世界中，当你在终端敲下 `pnpm dev` 并按下回车的那一瞬间，看似毫无波澜的 0.5 秒内，实际上触发了一场横跨**操作系统内核（OS Kernel）**、**Shell 解释器**、**Node.js** 运行时（Runtime）以及**文件系统**（File System）的史诗级接力赛。
+从敲下 `pnpm dev` 到 Vite 真正跑起来，中间要穿过 **Shell → Node（pnpm）→ 子 Shell → Node（Vite）** 四层进程，并完成一次软链穿透。
 
 #### 5.2.1 Shell 唤醒与指令捕获 (OS & Shell Level)
 
-一切的起点，发生在你的操作系统终端（Zsh / Bash / PowerShell）里。
-
-- **词法解析与环境寻址：** 终端首先接收到你输入的字符串 `pnpm dev`。它会将 `pnpm` 视为主命令，`dev` 视为参数。此时，操作系统会去全局的 `$PATH` 环境变量（一长串以冒号或分号分隔的目录路径）中，从左到右依次寻找名为 `pnpm` 的可执行文件。
-- **Node 进程的首次繁衍：** 找到全局安装的 `pnpm` 脚本后，操作系统发现其头部包含 Node 环境声明，于是调用底层 API（如 POSIX 系统下的 `fork` 和 `exec`），启动一个全新的 Node.js 宿主进程来运行 pnpm 的核心源码。至此，控制权正式由操作系统交接给了 pnpm 引擎。
+- **环境寻址：** 终端把`pnpm`当主命令、`dev`当参数，沿`$PATH`从左到右找到全局安装的`pnpm`可执行文件。
+- **启动 pnpm 进程：** 该脚本头部声明了 Node 环境，系统据此启动一个 Node 进程来运行 pnpm 源码，控制权正式交接给 pnpm。
 
 #### 5.2.2 配置解析与生命周期编排 (Manifest Parsing)
 
-pnpm 引擎启动后的第一件事，是确定当前的工作上下文。
+pnpm 启动后先确定当前的工作上下文：
 
-- **向上寻址算法：** pnpm 会从当前终端所在的目录开始，向上级目录逐层递归，寻找 `package.json` 文件（以及 `pnpm-workspace.yaml` 以判断是否处于 Monorepo 环境）。
-- **脚本映射解析：** 找到 `package.json` 后，解析内部的 `"scripts"` 字段。发现 `"dev": "vite"` 的映射关系。
-- **钩子编排 (Hook Orchestration)：** 在准备执行 `vite` 之前，pnpm 会检查是否存在前置钩子 `"predev"`。如果存在，会将其推入执行队列的最前端，保证任务的绝对原子性与顺序。
+- **向上寻址：** 从当前目录逐层向上找 `package.json`（以及 `pnpm-workspace.yaml`，用于判断是否处于 Monorepo）。
+- **解析脚本映射：** 读取 `scripts` 字段，拿到 `"dev": "vite"` 这条映射。
+- **挂前置钩子：** 执行 `vite` 前先检查是否声明了 `"predev"`，存在则插到执行队列最前端。
 
 #### 5.2.3 环境变量劫持与子 Shell 衍生 (PATH Hijacking)
 
-这是包管理器最精妙的架构设计，也是为什么你不需要全局安装 Vite 就能直接运行它的根本原因。
+这是“**不用全局安装 Vite 也能跑**”的根本原因。
 
-- **克隆环境副本：** pnpm 不会直接在当前终端执行命令，而是通过 Node.js 的 `child_process` 模块，衍生出一个**子 Shell 进程**。它会复制当前操作系统所有的环境变量作为基础镜像。
-- **沙箱环境变量注入：** 在启动子 Shell 之前，pnpm 会进行一次“**环境劫持**”。它将当前项目根目录下的 `node_modules/.bin` 绝对路径（如果是在 Monorepo 中，还会包含根目录的 `.bin`），**强行拼接在这个子 Shell 的 `$PATH` 变量的最前方**。
+- **衍生子 Shell：** pnpm 不直接在终端里执行命令，而是用 `child_process` 衍生一个**子 Shell 进程**，继承当前的环境变量。
+- **环境劫持：** 启动子 Shell 前，把项目根目录的 `node_modules/.bin` 绝对路径（Monorepo 下还会带上根目录的 `.bin`）**拼到子 Shell `$PATH` 的最前方**。
   - **原环境 `$PATH`：** `/usr/local/bin:/usr/bin:/bin`
   - **被劫持后 `$PATH`：** `/你的项目路径/node_modules/.bin:/usr/local/bin:/usr/bin:/bin`
-- **子 Shell 寻址：** 当在这个子 Shell 中真正执行 `vite` 命令时，系统会优先去我们刚刚注入的 `node_modules/.bin` 目录里找，从而精准命中了本地项目安装的版本。
+- **命中本地版本：** 子 Shell 执行 `vite` 时，最先扫到的就是项目自己装的那份。
 
 #### 5.2.4 物理与虚拟的交织-软链穿透 (Symlink Resolution)
 
-当子 Shell 在 `node_modules/.bin` 目录下找到了名为 `vite` 的文件时，它发现这并不是一个真实的二进制可执行文件，而是一个**幽灵般的软链接（Symlink）**。
+`node_modules/.bin/vite` 并不是真的可执行文件，而是一个**软链接**，跟着它要走三层：
 
-- **第一层穿透（破除局域限制）：** 操作系统跟随这个软链接，跳转到了 `node_modules/vite/bin/vite.js`。
-- **第二层穿透（进入虚拟存储层）：** 由于 pnpm 采用严格的非扁平化架构，`node_modules/vite` 实际上又是一个链接！系统再次跟随指引，被导向了 pnpm 隐藏在根目录的虚拟存储区：`node_modules/.pnpm/vite@x.x.x/node_modules/vite/bin/vite.js`。
-- **第三层穿透（触达硬链接）：** 最终，这个虚拟存储区里的文件，是一个指向你电脑全局硬盘（如 `~/.local/share/pnpm/store`）中唯一物理实体的**硬链接（Hardlink）**。
-
-- _架构收益：极速解析，且同一台电脑上无论创建多少个项目，Vite 源码在硬盘上永远只占用一份存储空间。_
+- **第一层：** `.bin/vite` → `node_modules/vite/bin/vite.js`。
+- **第二层：** `node_modules/vite` 本身又是软链，被导向 pnpm 的虚拟存储：`node_modules/.pnpm/vite@x.x.x/node_modules/vite/bin/vite.js`。
+- **第三层：** 虚拟存储里的这个文件是**硬链接**，指向全局 store（如 `~/.local/share/pnpm/store`）里唯一的物理实体。
 
 #### 5.2.5 Shebang 唤醒与进程派生 (Process Spawning)
 
-当操作系统最终触达了那个真实的物理文件 `vite.js` 时，它要决定如何运行这段文本。
+触达真实的 `vite.js` 后，内核还要知道用什么来运行这段文本。
 
-- **Shebang (释伴) 解析：** 系统内核读取文件绝对的第一行代码：`#!/usr/bin/env node`。
-- **解释器路由：** 这行神秘的代码告诉内核：“**请去环境变量里找一个叫 `node` 的程序，用它来执行我下面的所有代码**”。
-- **二次进程繁衍：** 操作系统再次发力，启动一个全新的 Node.js 进程。这一次，这个进程承载的不再是 pnpm，而是真真正正的 Vite 核心引擎。此时，本地开发服务器（如基于 Koa/Connect 的 HTTP Server）正式监听物理端口。
+- **读 Shebang：** 文件第一行是 `#!/usr/bin/env node`，意思是“**去环境变量里找一个叫 `node` 的程序来执行我**”。
+- **启动 Vite 进程：** 于是再起一个 Node 进程，这次跑的不再是 pnpm，而是 Vite 核心引擎，本地开发服务器随之开始监听端口。
 
 #### 5.2.6 IPC 通道与信号透传 (Signal & Stream Piping)
 
-Vite 虽然在后台跑起来了，但它和我们面前的黑框框（终端）之间隔着厚厚的进程壁垒。
+Vite 在子进程里跑起来了，还要和你的终端接上。
 
-- **Stdio 管道建立：** pnpm 作为父进程，在衍生 Vite 子进程时，会建立三根通信管道：`stdin`（标准输入）、`stdout`（标准输出）和 `stderr`（标准错误）。Vite 打印出的彩色日志 `Vite ready in 300ms`，就是通过 `stdout` 管道泵送回 pnpm，再由 pnpm 渲染在你的屏幕上。
-- **信号保镖 (Signal Forwarding)：** 当你想要停止服务，按下键盘上的 `Ctrl + C` 时，操作系统内核会向最外层的 pnpm 进程发送一个极其暴力的 `SIGINT`（中断信号）。
-- **优雅降级 (Graceful Shutdown)：** 优秀的工程化设计在于，pnpm 捕获到这个致命信号后不会立刻自杀，而是将这个信号**向下透传**给 Vite 子进程。Vite 接到通知后，会优雅地断开所有 WebSocket 链接、清理内存缓存、释放占用的 8080 端口，然后安全退出。Vite 退出后，pnpm 才随之退出，将干净的终端控制权交还于你。
+- **三根管道：** pnpm 衍生 Vite 时建立 `stdin` / `stdout` / `stderr`，你看到的 `Vite ready in 300ms` 就是从 `stdout` 泵回来再渲染到屏幕上的。
+- **信号透传：** 按下 `Ctrl + C` 时，内核把 `SIGINT` 发给最外层的 pnpm；pnpm 不立刻退出，而是把它**向下透传**给 Vite，让 Vite 先断开 WebSocket、释放端口，Vite 退出后 pnpm 才退出，把干净的终端还给你。
 
 #### 5.2.7 完整流程图
 
@@ -314,7 +311,7 @@ pnpm dev --port 3000
 
 ### 7.2 既然有了 `package.json`，为什么还需要 `package-lock.json` 或 `pnpm-lock.yaml`？
 
-`package.json` 里的 `^` 号意味着每次别人 `npm install` 时，底层的版本其实是不确定的（都在随时间推移暗自升级）。
+`package.json` 里的 `^` 号意味着每次别人 `npm install` 时，底层的版本其实是不确定的。
 
 - **锁文件的存在意义**：它不仅记录了项目直接依赖的**绝对精准版本号**，还记录了“**依赖的依赖**”的精准版本及其对应文件的哈希摘要（integrity）。
 - **架构铁律**：`lock` 文件必须被提交进 Git 仓库。它保证了张三、李四和云端 CI 部署服务器下载下来的数百个依赖包的**每一个字节都绝对一致**。
@@ -323,7 +320,7 @@ pnpm dev --port 3000
 
 - **现象**：你的 `package.json` 里根本没有安装 `axios`，但你的代码里写了 `import axios from 'axios'` 居然能正常运行和打包！
 - **原因**：历史设计缺陷。老版 npm 采用“**扁平化**”提升结构。你安装了 A，A 依赖了 `axios`。npm 会把 `axios` 提取到顶层 `node_modules` 下。于是你的业务代码“**非法越权**”访问到了它。
-- **核弹级隐患**：一旦哪天包 A 升级了，去掉了对 `axios` 的依赖，你的项目将在没有任何预警的情况下线上爆炸。
+- **隐患**：一旦哪天包 A 升级了，去掉了对 `axios` 的依赖，你的项目将在没有任何预警的情况下线上爆炸。
 - **解药**：使用 **`pnpm`**。其独特的符号链接（Symlink）架构在物理层面上实施了严格的包访问隔离，彻底消灭了幻影依赖。
 
 ### 7.4 `main`、`module`、`exports` 到底该配哪个？

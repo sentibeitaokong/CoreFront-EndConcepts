@@ -38,7 +38,22 @@ CSS 工程化，本质上就是利用**编译思想、工具链和架构设计**
 - **`@use`（推荐）：** Sass 的新模块系统。每次加载都会生成独立命名空间，默认以文件名作前缀，用 `@use '@/styles/mixins' as *` 可去掉前缀；成员不再泄漏到全局。
 - **`@forward`：** 用于封装库入口，把多个内部模块的成员聚合后再统一对外暴露，是搭建项目级 `styles/index.scss` 的标准手法。
 - **`@import`（已废弃）：** Sass 官方已标记为 Deprecated，新项目不应再使用。
-- **只输出一份：** 同一模块无论被 `@use` 多少次，最终只编译出一份 CSS，天然避免产物冗余。
+
+```scss
+// 旧写法：@import 把成员注入全局，重名即覆盖
+@import '@/styles/variables';
+
+.button {
+  color: $primary;
+}
+
+// 新写法：@use 生成独立命名空间，默认以文件名作前缀
+@use '@/styles/variables';
+
+.button {
+  color: variables.$primary;
+}
+```
 
 ## 3. 作用域隔离与编译拦截
 
@@ -49,7 +64,7 @@ CSS 工程化，本质上就是利用**编译思想、工具链和架构设计**
 > 基于 Vue 等单文件组件（SFC）的底层编译魔法，实现组件级别的样式隔离。
 
 - **DOM 转换：** 编译器给该组件模板内的所有 DOM 节点挂载一个唯一的哈希属性（如 `<div data-v-f3f3eg9></div>`）。
-- **CSS 重写：** 利用 PostCSS 将样式选择器重写，加上属性选择器后缀（如 `.btn[data-v-f3f3eg9] { ... }`）。
+- **CSS 重写：** 利用PostCSS将样式选择器重写,加上属性选择器后缀（如`.btn[data-v-f3f3eg9]{ ... }`）。
 - **样式穿透：** 针对需要覆盖子组件内部样式的场景，提供 `:deep()` 伪类作为安全的“**逃生舱**”。
 
 ### 3.2 工程层劫持：模块化 CSS (CSS Modules)
@@ -64,21 +79,24 @@ CSS 工程化，本质上就是利用**编译思想、工具链和架构设计**
 - **`composes` 组合复用：** 让一个类名继承另一个类（`composes: base from './base.module.css'`），等价于编译期的 Mixin，且不会产生 CSS 重复。
 - **`:export` 导出变量：** 除类名外，还能把颜色、断点等值通过 `:export { primary: #1677ff }` 导出到 JS，实现样式与逻辑共享同一份 Token。
 
-```css
-/* card.module.css */
+:::code-group
+
+```css[card.module.css]
 .card {
   padding: 16px;
   border-radius: 8px;
 }
 ```
 
-```js
+```js[card.js]
 import styles from './card.module.css'
 
 export function Card() {
   return <div className={styles.card}>Card</div>
 }
 ```
+
+:::
 
 ### 3.3 运行时劫持：CSS-in-JS
 
@@ -136,9 +154,7 @@ Atomic CSS 则把样式拆成很多单一职责的工具类：
 - **JIT (Just-In-Time) 引擎：** 扫描模板源码，只提取用到的类名，实时编译出极小体积的最终 CSS 产物，完美实现样式的 Tree-Shaking。
 - **设计约束：** Tailwind 的价值不只是工具类，而是通过 `tailwind.config.js` 约束颜色、间距、字号、断点等设计 Token，避免团队随意写魔法值。
 
-因此，Tailwind 可以理解为 Atomic CSS 思想的一种完整工程化实现：它提供了约束体系、JIT 引擎、插件生态和默认设计系统。
-
-### 4.3 UnoCSS (Vite 生态性能怪兽) 🌟
+### 4.3 UnoCSS (Vite 生态性能怪兽)
 
 > 由 Vue 核心团队成员 Anthony Fu 打造的极致性能原子化引擎。
 
@@ -175,14 +191,6 @@ Atomic CSS 则把样式拆成很多单一职责的工具类：
 | **Tailwind CSS** | Atomic CSS 的完整工程化实现，内置设计 Token、JIT 和插件体系 | 原子类全局共享，但命名稳定可控 | 闭源业务应用、中后台、营销页、Headless UI 搭配    | 组件库强绑定 Tailwind 会污染宿主构建   |
 | **UnoCSS**       | 按需生成的原子化 CSS 引擎，规则高度可定制                   | 原子类全局共享，可自定义规则   | Vite 项目、追求极致 HMR、需要自定义原子规则的团队 | 规则过度自定义后会降低团队迁移成本优势 |
 
-简单判断：
-
-- **要发 npm 基础组件库：** 优先 BEM + CSS Variables，产物稳定，使用者可覆盖。
-- **要写项目内部业务组件：** CSS Modules 更平衡，隔离明确，运行时成本低。
-- **组件样式强依赖运行时状态：** 可以考虑 CSS-in-JS，但要评估 SSR 和性能。
-- **要快速搭业务页面：** Tailwind / UnoCSS 更高效，尤其适合和 Headless UI 搭配。
-- **Atomic CSS 是思想，Tailwind / UnoCSS 是实现：** 不要把这两个概念混为一谈。
-
 ### 6.2 架构师级组件库构建策略 (Theming Architecture)
 
 在构建现代企业级 Vue 组件库时，最优雅的样式架构往往采用 **BEM 规范 + CSS Variables (自定义属性)** 的融合模式：
@@ -217,7 +225,7 @@ Atomic CSS 则把样式拆成很多单一职责的工具类：
 
 ### 7.5 Tailwind 生成的 CSS 为什么没有随类名膨胀？
 
-- **排查点：** Tailwind / UnoCSS 默认扫描源码，只生成模板里真正出现过的原子类，未使用的类名不会进入产物。
+- **排查点：** **Tailwind/UnoCSS**默认扫描源码,只生成模板里真正出现过的原子类,未使用的类名不会进入产物。
 - **解决方案：** 确保 `content` 扫描路径覆盖所有模板文件；动态拼接类名（如 `text-${color}-500`）会导致引擎扫不到，应改为完整类名的映射表。
 
 ### 7.6 组件库如何做到“**使用者可自由覆盖样式**”？
