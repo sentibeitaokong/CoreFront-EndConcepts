@@ -1,3 +1,10 @@
+# 依赖平铺安装，确保依赖图谱与 Vite 预构建逻辑完全吻合
+nodeLinker: hoisted
+# 将依赖全部提升到根 node_modules，防止 FontAwesome 等包在 Node 22 下找不到依赖
+shamefullyHoist: true
+# 自动安装 peerDependencies
+autoInstallPeers: true
+
 allowBuilds:
   '@parcel/watcher': false
   '@sentry/cli': false
