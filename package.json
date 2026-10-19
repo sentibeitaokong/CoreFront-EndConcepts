@@ -22,7 +22,7 @@
       "prettier --write"
     ]
   },
-  "packageManager": "pnpm@11.2.2",
+  "packageManager": "pnpm@11.5.3",
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
@@ -46,7 +46,7 @@
     "version-packages": "changeset version",
     "release": "run-s test:xb release:build changeset:publish",
     "release:build": "pnpm --filter xb-element run build",
-    "changeset:publish": "changeset publish",
+    "changeset:publish": "pnpm -r publish --access public --no-git-checks --provenance",
     "preview": "vite preview",
     "test": "run-s test:vue test:xb",
     "test:vue": "vitest run packages/vue",
