@@ -1,5 +1,11 @@
 # xb-element
 
+## 1.0.26
+
+### Patch Changes
+
+- a3eda06: update
+
 ## 1.0.25
 
 ### Patch Changes
