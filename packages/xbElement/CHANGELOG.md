@@ -1,5 +1,11 @@
 # xb-element
 
+## 1.0.29
+
+### Patch Changes
+
+- 7d3dace: 更新组件库
+
 ## 1.0.28
 
 ### Patch Changes
