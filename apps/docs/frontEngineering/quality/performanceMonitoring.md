@@ -23,11 +23,49 @@
 - **`window.onerror`：** 捕获绝大多数的 JS 运行时同步错误和部分异步错误。它能拿到出错的行号、列号和错误堆栈（Stack Trace）。
 - **`unhandledrejection`：** 专门填补 Promise 的盲区。当一个 Promise 失败（reject）且没有写 `.catch()` 时，错误会漏掉，必须通过监听操作系统的这个事件来兜底。
 
+:::code-group
+
+```js [src/monitor/error.js]
+// 统一上报入口，具体传输策略（sendBeacon / 1x1 GIF）见第 5 节
+function report(payload) {
+  console.warn('[monitor]', payload)
+}
+
+// 1. 同步错误与普通异步错误
+window.onerror = (message, source, lineno, colno, error) => {
+  report({
+    type: 'js-error',
+    message,
+    source,
+    lineno,
+    colno,
+    stack: error?.stack,
+  })
+
+  // 不要返回 true：否则浏览器控制台不再打印原始错误，本地排查会更困难
+}
+
+// 2. Promise 未捕获的拒绝
+window.addEventListener('unhandledrejection', event => {
+  const reason = event.reason
+
+  report({
+    type: 'unhandledrejection',
+    message: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  })
+})
+```
+
+:::
+
+> 跨域脚本报错只会拿到 `Script error.`，需要给 `<script>` 加上 `crossorigin` 属性，并让 CDN 返回 `Access-Control-Allow-Origin` 响应头。
+
 ### 2.2 静态资源加载异常
 
 当图片、CSS 或远程 JS 加载失败时（比如 CDN 节点挂了），`window.onerror` 是捕获不到的，因为这类错误不会冒泡。
 
-- **架构解法：** 使用事件捕获机制。在 SDK 初始化时，最先注册 `window.addEventListener('error', handler, true)`（注意第三个参数 `true` 开启捕获阶段），就能精准拦截到 `<img src="404.png">` 的崩溃。
+**架构解法：** 使用事件捕获机制。在 SDK 初始化时，最先注册 `window.addEventListener('error', handler, true)`（注意第三个参数 `true` 开启捕获阶段），就能精准拦截到 `<img src="404.png">` 的崩溃。
 
 ### 2.3 框架层面的隔离区 (Error Boundaries)
 
@@ -41,6 +79,75 @@
 单独一个错误堆栈往往不够。优秀的监控 SDK（如 Sentry）会劫持 `console.log`、`XMLHttpRequest`、`fetch` 以及用户的 `click` 事件。
 当发生报错时，SDK 会把报错前 10 秒内用户的所有“**点击动作**”、“**接口请求头**”和“**打印日志**”像面包屑一样串起来一起上报，完美还原案发现场。
 
+:::code-group
+
+```js [src/monitor/breadcrumbs.js]
+const MAX_BREADCRUMBS = 20 // 环形缓冲区上限，避免内存无限增长
+const MAX_AGE = 10_000 // 只保留报错前 10 秒内的记录
+
+const breadcrumbs = []
+
+function addBreadcrumb(category, message, data = {}) {
+  breadcrumbs.push({ category, message, data, timestamp: Date.now() })
+
+  if (breadcrumbs.length > MAX_BREADCRUMBS) {
+    breadcrumbs.shift()
+  }
+}
+
+// 1. 劫持 console：先记录再调用原始方法，不破坏本地调试
+for (const level of ['log', 'warn', 'error']) {
+  const original = console[level]
+
+  console[level] = (...args) => {
+    addBreadcrumb('console', level, { args: args.map(String) })
+    original.apply(console, args)
+  }
+}
+
+// 2. 劫持 fetch：只记录方法、URL、状态码，不要记录请求体与鉴权头
+const originalFetch = window.fetch
+
+window.fetch = async (...args) => {
+  const [input, init] = args
+  const url = typeof input === 'string' ? input : input.url
+  const method = init?.method ?? 'GET'
+
+  try {
+    const response = await originalFetch(...args)
+    addBreadcrumb('fetch', `${method} ${url}`, { status: response.status })
+    return response
+  } catch (error) {
+    addBreadcrumb('fetch', `${method} ${url}`, { error: String(error) })
+    throw error // 别吞掉原始错误，交给全局防线继续处理
+  }
+}
+
+// 3. 记录用户点击：用捕获阶段，即使业务代码 stopPropagation 也能收到
+window.addEventListener(
+  'click',
+  event => {
+    const target = event.target
+
+    addBreadcrumb('ui.click', target?.tagName?.toLowerCase(), {
+      text: target?.textContent?.trim().slice(0, 50),
+    })
+  },
+  true,
+)
+
+// 4. 上报错误时取出时间窗口内的面包屑，拼进 2.1 的 report 里
+export function getBreadcrumbs() {
+  const since = Date.now() - MAX_AGE
+
+  return breadcrumbs.filter(item => item.timestamp >= since)
+}
+```
+
+:::
+
+> 面包屑很容易无意中收集敏感信息。请求体、`Cookie`、`Authorization` 头和表单值都不应进入上报内容；必要时在 `addBreadcrumb` 里统一做脱敏。
+
 ## 3. SourceMap：加密代码的反向破译引擎
 
 线上上报的错误堆栈是高度混淆的：`at app.8f3a.js:1:4532`。如何将其还原为人类可读的源码？
@@ -50,15 +157,48 @@
 在执行 `pnpm run build` 时，如果你开启了 sourcemap，构建工具会生成一个额外的 `.map` 文件。这个文件本质上是一个庞大的 JSON，其核心是 `mappings` 字段。
 `mappings` 使用了 **VLQ (Variable-length quantity) 编码**，它记录了混淆代码的行/列与原始 `xxx.vue` 文件行/列的绝对映射关系。
 
+:::code-group
+
+```json [dist/app.8f3a.js.map]
+{
+  "version": 3,
+  "file": "app.8f3a.js",
+  "sources": ["webpack:///./src/views/Login.vue"],
+  "sourcesContent": ["const handleSubmit = () => {}"],
+  "names": ["handleSubmit"],
+  "mappings": "AAAA,SAASA,GAAG,CAACC,QAAQ,CAACC,YAAY"
+}
+```
+
+```js [scripts/resolve-sourcemap.js]
+import { originalPositionFor, TraceMap } from '@jridgewell/trace-mapping'
+import { readFileSync } from 'node:fs'
+
+const rawMap = JSON.parse(readFileSync('dist/app.8f3a.js.map', 'utf8'))
+const map = new TraceMap(rawMap)
+
+// 线上堆栈：at app.8f3a.js:1:4532
+const position = originalPositionFor(map, {
+  line: 1,
+  // 堆栈列号从 1 开始，source map 的列号从 0 开始
+  column: 4532 - 1,
+})
+
+console.log(position)
+// { source: 'webpack:///./src/views/Login.vue', line: 42, column: 8, name: 'handleSubmit' }
+```
+
+:::
+
 ### 3.2 企业级架构的 SourceMap 运作流转
 
-**绝对不能将 `.map` 文件部署到线上的公网 CDN！** 否则竞争对手可以直接反编译出你公司的所有前端核心源码。
+**绝对不能将`.map`文件部署到线上的公网CDN！** 否则竞争对手可以直接反编译出你公司的所有前端核心源码。
 
 **正确的工程化闭环架构：**
 
 - **编译期上传：** 在 CI/CD 流水线中，`pnpm build` 产出 `.js` 和 `.map` 文件。
 - **分离与分发：** 自动化脚本将 `.js` 推送到公网 CDN。同时，将 `.map` 文件通过内网 API 秘密推送到你们的异常监控服务器（如自建的 Sentry Server），随后立即删除服务器上的 `.map` 文件。
-- **运行时反解：** 用户在线上遇到报错，SDK 将混淆的堆栈上报给监控服务器。监控服务器拿出私密存储的 `.map` 文件，在服务端进行 AST 解析和映射定位，最终在后台面板向开发者展示出带有上下文的真实源码行。
+- **运行时反解：** 用户在线上遇到报错，SDK将混淆的堆栈上报给监控服务器。监控服务器拿出私密存储的`.map`文件,在服务端进行AST解析和映射定位,最终在后台面板向开发者展示出带有上下文的真实源码行。
 
 ## 4. 性能度量体系：从 Load 到 Core Web Vitals
 
@@ -107,8 +247,6 @@ onFCP(metric => report('FCP', metric))
 onTTFB(metric => report('TTFB', metric))
 ```
 
-各指标对应的底层 `PerformanceObserver` 事件与取值方式：
-
 [width(15,46,39)]
 
 | 指标 / 事件 | 采集方式                                        | 说明                                   |
@@ -135,9 +273,7 @@ onTTFB(metric => report('TTFB', metric))
 
 ### 5.2 终极解法：`navigator.sendBeacon()`
 
-这是现代浏览器专门为数据上报设计的“**特权 API**”。
-
-- **底层机制：** 它将数据交给操作系统的底层网络队列去发送。即使页面已经被关闭（Unload），操作系统依然会在后台默默把这条请求发完。**它是页面卸载时数据绝对不丢失的唯一保障。**
+**底层机制：** 它将数据交给操作系统的底层网络队列去发送。即使页面已经被关闭（Unload），操作系统依然会在后台默默把这条请求发完。**它是页面卸载时数据绝对不丢失的唯一保障。**
 
 ### 5.3 优雅降级：1x1 像素 GIF 魔法
 
@@ -169,10 +305,9 @@ pnpm add -D @unlighthouse/vite @unlighthouse/cli puppeteer
 
 _(注：显式安装 `puppeteer` 是为了确保无头浏览器的底层依赖在你的 Mac 或后续的 CI 环境中都能稳定获取。)_
 
-**注入 Vite 插件**
-打开 `vite.config.ts`，进行极其简练的侵入：
+:::code-group
 
-```typescript
+```typescript [vite.config.ts]
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import Unlighthouse from '@unlighthouse/vite'
@@ -190,6 +325,8 @@ export default defineConfig({
 })
 ```
 
+:::
+
 配置好后，只需像平时一样运行 `pnpm run dev`，你的终端就会额外输出一个本地 URL（通常是 `http://localhost:5678`）。打开它，这就是你的全站性能仪表盘。
 
 ### 6.2 企业级独立配置 (unlighthouse.config.ts)
@@ -198,7 +335,9 @@ export default defineConfig({
 
 在项目根目录新建一个 `unlighthouse.config.ts` 文件。这是企业级配置的心脏：
 
-```typescript
+:::code-group
+
+```typescript [unlighthouse.config.ts]
 import { defineConfig } from 'unlighthouse'
 
 export default defineConfig({
@@ -259,22 +398,22 @@ export default defineConfig({
 })
 ```
 
+:::
+
 ### 6.3 自动化流水线接入 (CI/CD 质检)
 
 本地调优完成后，我们要把它搬到远端。因为 `Unlighthouse` 跑起来需要拉起多个无头浏览器实例，对机器性能要求较高。
 
-在你的 `package.json` 中添加 CI 专属命令：
+:::code-group
 
-```json
+```json [package.json]
 "scripts": {
   "build": "vite build",
   "test:perf": "unlighthouse --ci --site https://your-staging-env.com"
 }
 ```
 
-**GitHub Actions 示例 (`.github/workflows/perf.yml`)**
-
-```yaml
+```yaml [.github/workflows/perf.yml]
 name: Unlighthouse Site Scan
 
 on:
@@ -310,6 +449,8 @@ jobs:
         run: pnpm run test:perf
 ```
 
+:::
+
 ## 7. 企业级性能监控实战
 
 在企业级前端工程化体系中，将 Sentry 性能监控与 CI/CD（持续集成/持续部署）流水线深度融合，是实现“**从代码提交到线上报警**”全链路闭环的终极形态。
@@ -320,9 +461,9 @@ jobs:
 
 在代码层面，不能简单地调用初始化方法。必须封装一个独立的监控基座，根据环境变量实行严格的隔离，并针对 `Performance`（性能）和 `Session Replay`（录屏）制定动态采样策略。
 
-**核心初始化基座 (`src/utils/sentry.ts`)**
+:::code-group
 
-```typescript
+```typescript [src/utils/sentry.ts]
 import * as Sentry from '@sentry/vue'
 import type { App } from 'vue'
 
@@ -390,6 +531,8 @@ export function initPerformanceMonitoring(app: App) {
   })
 }
 ```
+
+:::
 
 ### 7.2 构建流入侵与 SourceMap 安全管控
 
@@ -516,13 +659,13 @@ jobs:
 
 - **核心体验层 (Core Web Vitals)**：LCP、INP、CLS，直接反映终端用户的真实体感。
 - **工程诊断层 (Diagnostics)**：Long Task 长任务、Resource 瀑布流、JS Error Rate、Bundle 产物核心包体积，提供精确到代码行的排障线索。
-- **链路追踪层 (Tracing)**：首屏 TTFB、BFF/微服务 API 响应时长、CDN 命中率，横跨前后端定位全链路瓶颈。
+- **链路追踪层 (Tracing)**：首屏 TTFB、BFF/微服务 API 响应时长、CDN 命中率,横跨前后端定位全链路瓶颈。
 - **业务水位层 (Business Impact)**：跳出率、核心路径转化率，用以向业务方量化性能优化的商业 ROI。
 - **发布溯源指标**：Release 版本号、构建批次、灰度标签，精准定界。
 
 ### 8.2 性能预算与流水线集成
 
-缺乏预算机制的优化必然面临退化。预算规则必须以 JSON/YAML 形式沉淀为代码库的一部分，并与 PR 强绑定：
+缺乏预算机制的优化必然面临退化。预算规则必须以`JSON/YAML`形式沉淀为代码库的一部分,并与 PR 强绑定：
 
 ```json
 {
@@ -543,7 +686,7 @@ jobs:
 
 - **红线阻断 (Hard Blocking)**：核心主干合并时，一旦核心 JS 产物超标或关键页面 LCP 退化超过 10%，直接 Fail Pipeline。
 - **温和告警 (Soft Warning)**：非核心指标的轻微退化，通过企业微信或 Slack 推送，并自动生成优化排期 Issue。
-- **版本基线 (Baseline Diff)**：不看绝对值，强制对比 `Current Release` 与 `Previous Stable` 的 P75 差距。
+- **版本基线 (Baseline Diff)**：不看绝对值，强制对比`Current Release`与`Previous Stable`的 P75 差距。
 
 ### 8.3 性能异动排查
 
@@ -569,47 +712,85 @@ jobs:
 - **线上白屏告警**：同时监听 `window.onerror`、`unhandledrejection`、资源加载失败与 Sentry 的 Crash Free Sessions，任一指标突变即告警，而不是等客服反馈。
 - **交互卡顿排查**：用 `longtask` 采集主线程阻塞，定位到具体的长任务及其触发组件，指导拆包、惰性渲染或用 `requestIdleCallback` 分片。
 - **第三方脚本审计**：单独统计第三方域名的 `resource` 耗时与体积，揪出拖后腿的广告/统计脚本并做异步化或延迟加载。
-- **发布回归对比**：每次 Release 绑定版本号，对比新旧版本的 Core Web Vitals P75，超过阈值自动触发回滚评估。
+- **发布回归对比**：每次Release绑定版本号,对比新旧版本的Core Web Vitals P75,超过阈值自动触发回滚评估。
 
 ## 9. 常见问题 (FAQ) 与架构级避坑指南
 
-### 8.1 报错日志里全都是神秘的 `Script error.`，完全没有堆栈，怎么办？
+### 9.1 报错日志里全都是神秘的 `Script error.`，完全没有堆栈，怎么办？
 
 - **根因：** 这是浏览器的同源安全策略（CORS）防线。如果你的前端 HTML 部署在 `www.a.com`，而你的 JS 文件部署在 CDN 域名 `cdn.b.com` 下。一旦 JS 发生报错，浏览器为了防止隐私泄露，会故意隐藏真实错误，只抛出一个没有任何参考价值的 `Script error.`。
 - **架构解法（缺一不可）：**
   - 前端：在引入 JS 资源的 `<script>` 标签上增加 `crossorigin="anonymous"` 属性。
   - 运维端：确保 CDN 服务器对该 JS 文件响应 `Access-Control-Allow-Origin: *` 的 HTTP 头。
 
-### 8.2 引入监控 SDK 后，大促期间 PV 暴涨，监控服务器直接被打挂了？
+### 9.2 引入监控 SDK 后，大促期间 PV 暴涨，监控服务器直接被打挂了？
 
 - **根因：** 巨量用户的每一次点击、每一个微小的性能事件都发起网络请求，这相当于对你自己的监控服务器发起了 DDoS 攻击。
 - **架构解法（采样率与合并上报）：**
   - **采样率 (Sample Rate)：** 在 SDK 初始化时配置 `sampleRate: 0.1`，意味着只有 10% 的用户开启上报。在庞大的基数下，10% 的数据足以反映宏观趋势。
   - **批量合并 (Batching)：** 不要在发生错误时立刻发请求。将数据存入内存队列（利用 `requestIdleCallback` 等待浏览器空闲），每攒够 10 条，或经过 3 秒钟，合并成一个大型 JSON 请求发送。
 
-### 8.3 性能测试在本地跑分 100 分，为什么线上真实数据一塌糊涂？
+### 9.3 性能测试在本地跑分 100 分，为什么线上真实数据一塌糊涂？
 
 - **认知的鸿沟：Lighthouse 不是银弹。** 开发者在本地用 Lighthouse 跑出的叫**实验室数据 (Lab Data)**（千兆网速、顶配 MacBook）。而线上收集回来的叫**真实用户数据 (RUM - Real User Monitoring)**。
 - 真实用户可能在坐地铁信号极差，可能用的是 5 年前的千元安卓机。**RUM 数据才是衡量系统架构质量的唯一真理。** 监控系统的核心使命，就是去捕获那真实世界中 90 分位（P90）长尾用户的痛点，并指导架构师进行极致的性能重构。
 
-### 8.4 为什么 `window.onerror` 抓不到图片、JS 加载失败这类错误？
+### 9.4 为什么 `window.onerror` 抓不到图片、JS 加载失败这类错误？
 
 - **根因：** 资源加载错误不会冒泡到 `window`，所以常规（冒泡阶段）的 `window.onerror` 收不到。
 - **解法：** 用事件捕获阶段监听——`window.addEventListener('error', handler, true)`，第三个参数 `true` 是关键；同时配合 `window.addEventListener('unhandledrejection', handler)` 兜住未处理的 Promise。
-- **补充：** 在监控 SDK 初始化时就要**最先**注册这两个监听，否则会漏掉页面早期发生的错误。
 
-### 8.5 FID 为什么被 INP 取代？采集上要注意什么？
+:::code-group
+
+```js [src/monitor/resource-error.js]
+// report() 沿用 2.1 的统一上报入口
+
+window.addEventListener(
+  'error',
+  event => {
+    const target = event.target
+
+    // 只处理资源错误。JS 运行时错误继续交给 2.1 的 window.onerror，
+    // 否则同一个错误会被上报两次
+    if (!(target instanceof HTMLElement)) return
+
+    report({
+      type: 'resource-error',
+      tag: target.tagName.toLowerCase(),
+      url: target.src || target.href || target.currentSrc || 'unknown',
+    })
+  },
+  true, // 关键：资源错误不冒泡，只有捕获阶段能收到
+)
+
+// Promise 未处理拒绝：error 事件收不到，必须单独监听
+window.addEventListener('unhandledrejection', event => {
+  const reason = event.reason
+
+  report({
+    type: 'unhandledrejection',
+    message: reason instanceof Error ? reason.message : String(reason),
+    stack: reason instanceof Error ? reason.stack : undefined,
+  })
+})
+```
+
+:::
+
+资源错误和 JS 错误都会触发 `error` 事件，用 `event.target` 就能区分：前者是具体的元素，后者是 `window`。如果团队不用 `window.onerror`，也可以在这个捕获监听里统一处理两类错误，但**只能选一种**，否则会重复上报。
+
+### 9.5 FID 为什么被 INP 取代？采集上要注意什么？
 
 - **区别：** FID 只测量**第一次**交互的输入延迟，且只算到“**浏览器开始响应**”为止；INP 测量**整个生命周期内所有交互**，并一直算到“**下一帧真正绘制出来**”。因此 INP 更能反映用户全程的卡顿体感，也能揪出“**第一次点击很快、后面越用越卡**”的性能劣化。
 - **采集：** 用 `web-vitals` 的 `onINP` 即可，它内部会处理交互筛选与 P98 取值；自研 SDK 则需监听 `event` 条目并按交互分组取高分位，不要用平均值。
 
-### 8.6 Sentry 的 `tracesSampleRate` 设成多少合适？
+### 9.6 Sentry 的 `tracesSampleRate` 设成多少合适？
 
 - **原则：** 采样率不是越高越好，要在**数据代表性**与**费用/性能开销**之间权衡。
 - **推荐值：** 生产环境性能数据通常控制在 5% - 10%（如 `tracesSampleRate: 0.05`），既能反映宏观趋势又不会压垮 Sentry 配额；预发/测试环境可设 `1.0` 全量采集。
 - **降低成本：** 会话录屏用 `replaysSessionSampleRate: 0.0` 平时不录、`replaysOnErrorSampleRate: 1.0` 只在报错时录制，能在保留排障能力的同时省下大量存储。
 
-### 8.7 线上突然大面积白屏，如何第一时间告警而不是等客诉？
+### 9.7 线上突然大面积白屏，如何第一时间告警而不是等客诉？
 
 - **告警信号：** 组合监控几个信号——JS 错误率突增、`unhandledrejection` 飙升、Sentry 的 Crash Free Sessions 跌破阈值、以及关键资源（入口 `index.html`、主 JS）加载失败率上升。
 - **关联发布：** 把告警与 `release` 版本绑定，出现异常时立刻能判断“**是不是刚刚这次发布引起的**”，从而果断回滚。

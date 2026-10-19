@@ -299,6 +299,10 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
                             text: '模块打包器实践',
                             link: 'https://github.com/sentibeitaokong/moduleBundles'
                         },
+                        {
+                            text: 'Vitest测试框架实践',
+                            link:'https://github.com/sentibeitaokong/vitest'
+                        }
                     ]
                 },
                 {
