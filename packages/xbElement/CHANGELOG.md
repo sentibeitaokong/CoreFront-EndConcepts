@@ -1,5 +1,11 @@
 # xb-element
 
+## 1.0.25
+
+### Patch Changes
+
+- e107309: 组件库更改
+
 ## 1.0.24
 
 ### Patch Changes
