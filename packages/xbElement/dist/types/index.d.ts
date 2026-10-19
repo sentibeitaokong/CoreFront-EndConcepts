@@ -22,7 +22,7 @@ export * from './components/Tooltip';
 export * from './components/Progress';
 export * from './components/Button';
 declare const install: (app: App) => void;
-export { install, Button, Collapse, CollapseItem, Dropdown, Form, FormItem, Icon, Message, Input, Select, Switch, Tooltip, Progress, createMessage, closeAll };
+export { install, Button, Collapse, CollapseItem, Dropdown, Form, FormItem, Icon, Message, Input, Select, Switch, Tooltip, Progress, createMessage, closeAll, };
 declare const _default: {
     install: (app: App) => void;
 };

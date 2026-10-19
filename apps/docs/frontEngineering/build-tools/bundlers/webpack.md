@@ -278,8 +278,6 @@ module.exports = {
 
 ### 2.8 高频 Loader / Plugin / 配置字段速查
 
-Webpack 配置的字段成百上千，但真正高频使用的其实很集中。先看配置字段：
-
 [width(26,13,61)]
 
 | 字段                                       | 作用         | 高频实践                                                                                                        |
@@ -292,8 +290,6 @@ Webpack 配置的字段成百上千，但真正高频使用的其实很集中。
 | **`devServer.proxy`**                      | 开发代理     | 解决本地跨域，`changeOrigin` 改写 Host，`pathRewrite` 抹掉前缀；**只在开发环境生效**。                          |
 | **`cache`**                                | 构建缓存     | `{ type: 'filesystem' }` 是 Webpack 5 二次构建提速的关键，记得同时声明 `buildDependencies.config`。             |
 | **`devtool`**                              | Source Map   | 开发用 `'eval-cheap-module-source-map'`（快），生产用 `false` 或独立的 `'source-map'`（慢但精度高）。           |
-
-再看高频 Loader 与 Plugin：
 
 [width(29,13,58)]
 
@@ -320,7 +316,7 @@ Webpack 配置的字段成百上千，但真正高频使用的其实很集中。
 - **小图内联**：用 Asset Modules 的 `dataUrlCondition.maxSize` 把小于阈值的图片转成 Base64，减少 HTTP 请求。
 - **开发期跨域联调**：`devServer.proxy` 转发接口，并配合 `historyApiFallback` 解决 History 路由刷新 404。
 - **构建速度治理**：大项目开启 `cache: { type: 'filesystem' }` 持久化缓存，再对耗时的 Babel 转换叠加 `thread-loader` 或改用它编译器。
-- **产物体积体检**：用 `webpack-bundle-analyzer` 出图，揪出被误全量引入的大包（如 `moment`、`lodash`）。
+- **产物体积体检**：用 `webpack-bundle-analyzer` 出图，揪出全量引入的大包（如 `moment`、`lodash`）。
 
 ## 3. 核心性能优化方案
 
@@ -330,12 +326,12 @@ Webpack 的优化可以明确划分为两个方向：**让打包速度更快（�
 
 | 优化维度                       | 核心目标                                                        | 常用优化策略大纲                                                                          |
 | :----------------------------- | :-------------------------------------------------------------- | :---------------------------------------------------------------------------------------- |
-| **构建速度优化 (Build Time)**  | 降低 `npm run dev` 和 `npm run build` 的耗时，提升 CI/CD 效率。 | 持久化缓存、多进程打包、缩小 Loader 搜索范围、替换更快的底层编译器 (esbuild/swc)。        |
+| **构建速度优化 (Build Time)**  | 降低 `npm run dev` 和 `npm run build` 的耗时，提升 CI/CD 效率。 | 持久化缓存、多进程打包、缩小Loader搜索范围、替换更快的底层编译器(esbuild/swc)。           |
 | **产物加载优化 (Bundle Size)** | 减小最终输出文件的体积，提高浏览器首屏渲染速度 (FCP/TTI)。      | 代码分割 (SplitChunks)、摇树优化 (Tree Shaking)、路由懒加载、资源物理压缩 (Gzip/Brotli)。 |
 
 ### 3.1 构建速度优化 (提升开发与部署效率)
 
-#### 1. Webpack 5 杀手锏：持久化缓存 (Persistent Cache)
+#### 3.1.1 持久化缓存 (Persistent Cache)
 
 在 Webpack 5 之前，开发者常利用 `hard-source-webpack-plugin` 来做缓存，极易引发玄学 Bug。Webpack 5 引入了原生文件系统缓存，**能将二次构建速度提升 90% 以上**。
 
@@ -352,7 +348,7 @@ module.exports = {
 }
 ```
 
-#### 2. 开启多进程构建 (Thread Loader)
+#### 3.1.2 开启多进程构建 (Thread Loader)
 
 JavaScript 是单线程的，而 Babel 转换 AST 是极其消耗 CPU 的 CPU-Intensive 任务。利用 `thread-loader` 可以将耗时的 Loader 任务分发给 Node.js 的多个 Worker 进程并发执行。
 
@@ -376,7 +372,7 @@ module.exports = {
 }
 ```
 
-#### 3. 拥抱下一代编译器 (esbuild-loader / swc-loader)
+#### 3.1.3 拥抱下一代编译器 (esbuild-loader / swc-loader)
 
 如果你觉得 Babel 还是太慢，可以使用 Go 或 Rust 编写的编译器来彻底替换 `babel-loader` 和 `TerserPlugin`，实现降维打击。
 
@@ -402,7 +398,7 @@ module.exports = {
 
 这是前端架构师的核心 KPI，决定了用户打开网页的速度。
 
-#### 1. 极致的代码分割 (Code Splitting - SplitChunksPlugin)
+#### 3.2.1 极致的代码分割 (Code Splitting - SplitChunksPlugin)
 
 默认情况下，Webpack 会把所有代码打进一个巨大的 `main.js` 里。我们需要利用 `splitChunks` 将几乎不怎么变动的第三方库（React、Vue、Lodash）单独剥离出来，利用浏览器的并发下载和强缓存。
 
@@ -439,7 +435,7 @@ module.exports = {
 }
 ```
 
-#### 2. 路由懒加载 (按需加载)
+#### 3.2.2 路由懒加载 (按需加载)
 
 配合前端框架（Vue/React）的动态导入语法 `import()`，Webpack 会自动将这些页面组件切分为独立的 chunk。只有用户点击跳转到该页面时，浏览器才会发起 HTTP 请求下载对应 JS。
 
@@ -458,7 +454,7 @@ function App() {
 }
 ```
 
-#### 3. 开启 Gzip 物理压缩
+#### 3.2.3 开启 Gzip 物理压缩
 
 不仅要用 Terser 去除空格和注释，还要在构建时直接生成 `.gz` 文件。Nginx 服务器直接返回 `.gz` 文件，可将传输体积骤降 70% 左右，极大缓解带宽压力。
 
@@ -481,8 +477,6 @@ module.exports = {
 
 ### 4.1 Loader 和 Plugin 的本质区别是什么？
 
-这是 Webpack 面试中最核心、必考的问题。
-
 - **职责层面**：`Loader` 是“**翻译官/转换器**”，它工作在模块加载层面，专注于对某种特定类型的文件（如 CSS、Vue、图片）进行内容转换。`Plugin` 是“**监听器/扩展器**”，它工作在 Webpack 的整个生命周期中，可以执行范围更广的任务（如打包优化、注入环境变量、自动生成 HTML）。
 - **配置层面**：Loader 在 `module.rules` 中配置，通常以数组形式存在。Plugin 在 `plugins` 数组中配置，通常需要 `new` 一个该插件的实例并传入配置参数。
 
@@ -496,17 +490,17 @@ module.exports = {
 
 ### 4.3 Webpack 构建速度太慢，有哪些核心的性能优化手段？
 
-1.  **缩小搜索范围**：配置 Loader 的 `include` 或 `exclude`（如 `exclude: /node_modules/`），避免 Babel 费时费力去编译第三方库。设置 `resolve.alias` 别名，减少模块寻址时间。
-2.  **开启持久化缓存 (Webpack 5 杀手锏)**：Webpack 5 内置了物理缓存机制。配置 `cache: { type: 'filesystem' }`，二次构建速度将有十倍以上的跨越式提升（取代了过去繁琐的 `hard-source-webpack-plugin`）。
-3.  **多进程/多线程构建**：对于极其耗时的 Babel 转换，使用 `thread-loader` 将任务分发给多个 Node.js 工作进程并发执行（小项目不建议，因为开启线程本身也有开销）。
+- **缩小搜索范围**：配置 Loader 的 `include` 或 `exclude`（如 `exclude: /node_modules/`），避免 Babel 费时费力去编译第三方库。设置 `resolve.alias` 别名，减少模块寻址时间。
+- **开启持久化缓存 (Webpack 5 杀手锏)**：Webpack 5 内置了物理缓存机制。配置 `cache: { type: 'filesystem' }`，二次构建速度将有十倍以上的跨越式提升（取代了过去繁琐的 `hard-source-webpack-plugin`）。
+- **多进程/多线程构建**：对于极其耗时的 Babel 转换，使用 `thread-loader` 将任务分发给多个 Node.js 工作进程并发执行（小项目不建议，因为开启线程本身也有开销）。
 
 ### 4.4 为什么我的 Tree-shaking 没有生效？
 
 Tree-shaking 是指摇掉代码中没有用到的死代码。如果它失效了，通常是以下原因：
 
-1.  **没有使用 ES Modules (ESM)**：Tree-shaking 的底层原理依赖于 ESM 的静态分析特性（`import/export`）。如果在 Babel 配置中，不小心把模块编译成了 CommonJS（例如 `@babel/preset-env` 中的 `modules: 'commonjs'`），静态分析就会失效，Tree-shaking 彻底瘫痪。
-2.  **副作用 (Side Effects) 阻挠**：Webpack 不敢随意删除看起来没被引用的代码，因为它怕这段代码有“**副作用**”（比如它偷偷向全局 `window` 注入了变量，或者它是一个纯粹用来引入全局样式的 `import './style.css'`）。
-3.  **解决方案**：在项目的 `package.json` 中配置 `"sideEffects": false`，明确告诉 Webpack 这个项目里的模块都是纯净的，放心大胆地删。如果要保留样式文件，配置为 `"sideEffects": ["*.css", "*.less"]`。
+- **没有使用 ES Modules (ESM)**：Tree-shaking 的底层原理依赖于 ESM 的静态分析特性（`import/export`）。如果在 Babel 配置中，不小心把模块编译成了 CommonJS（例如 `@babel/preset-env` 中的 `modules: 'commonjs'`），静态分析就会失效，Tree-shaking 彻底瘫痪。
+- **副作用 (Side Effects) 阻挠**：Webpack不敢随意删除看起来没被引用的代码，因为它怕这段代码有“**副作用**”（比如向全局 `window` 注入了变量，或者它是一个纯粹用来引入全局样式的 `import './style.css'`）。
+- **解决方案**：在项目的 `package.json` 中配置 `"sideEffects": false`，明确告诉 Webpack 这个项目里的模块都是纯净的，放心大胆地删。如果要保留样式文件，配置为 `"sideEffects": ["*.css", "*.less"]`。
 
 ### 4.5 如何精准定位是哪一步拖慢了 Webpack 的打包速度，又是哪个包导致了体积过大？
 
@@ -522,7 +516,7 @@ Tree-shaking 是指摇掉代码中没有用到的死代码。如果它失效了�
 
 ### 4.7 什么是 Runtime Chunk？为什么优化长期缓存必须抽离它？
 
-- **背景**：Webpack 打包后，会生成一段管理模块间依赖关系和加载逻辑的底层引导代码，这就是 Runtime 代码。
+- **背景**：Webpack打包后,会生成一段管理模块间依赖关系和加载逻辑的底层引导代码,这就是 Runtime 代码。
 - **痛点**：如果你修改了 `app.js` 的业务代码，它的 chunkhash 会变。因为 `app.js` 的名字变了，记录所有模块映射关系的 Runtime 代码也会跟着变。如果 Runtime 代码恰好被打包在了 `vendors.js`（第三方库）中，就会导致哪怕第三方库一行没改，`vendors.js` 的 hash 也会被迫改变，从而导致用户浏览器中的巨大的 Vendors 缓存无辜失效。
 - **解决方案**：在 `optimization` 中配置 `runtimeChunk: 'single'`。强行把这段极其微小但频繁变动的 Runtime 逻辑剥离成一个独立的 `runtime.js` 文件，从而彻底保护 `vendors.js` 的长期缓存。
 
@@ -531,4 +525,4 @@ Tree-shaking 是指摇掉代码中没有用到的死代码。如果它失效了�
 - 因为 **Webpack 与 TypeScript 各自维护着一套独立的模块解析逻辑**，`webpack.config.js` 里的 `alias` 只对 Webpack 生效。
   - **原因**：编辑器（VS Code）和 `tsc` 走的是 TypeScript 自己的解析流程，它不认识 `resolve.alias`，所以 `import Button from '@/components/Button'` 在编译期会报 `Cannot find module`。
   - **解决方案**：在 `tsconfig.json` 中同步配置 `baseUrl` 与 `paths`（如 `"@/*": ["src/*"]`），把同一套别名再声明一遍。若在 CSS 中使用了别名，还需要给 `css-loader` 配置 `alias` 选项。
-  - **避坑**：两处配置必须保持同步，否则会出现“**命令行能打包、IDE 满屏红线**”的割裂感，也让新同学难以判断到底哪个才是可信的。
+  - **避坑**：两处配置必须保持同步，否则会出现“**命令行能打包、IDE 满屏红线**”的割裂感。

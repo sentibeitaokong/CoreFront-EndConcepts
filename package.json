@@ -22,6 +22,11 @@
       "prettier --write"
     ]
   },
+  "config": {
+    "commitizen": {
+      "path": "cz-conventional-changelog"
+    }
+  },
   "packageManager": "pnpm@11.2.2",
   "scripts": {
     "dev": "turbo run dev",
@@ -43,6 +48,7 @@
     "xb:test": "vitest run packages/xbElement",
     "xb:release": "pnpm --filter xb-element release",
     "changeset": "changeset",
+    "commit": "cz",
     "version-packages": "changeset version",
     "release": "run-s test:xb release:build changeset:publish",
     "release:build": "pnpm --filter xb-element run build",
@@ -80,8 +86,10 @@
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.8.1",
     "autoprefixer": "^10.4.23",
+    "commitizen": "^4.3.2",
     "cross-env": "^10.1.0",
     "cssnano": "^7.1.2",
+    "cz-conventional-changelog": "^3.3.0",
     "esbuild": "^0.28.0",
     "eslint": "^9.39.4",
     "eslint-plugin-vue": "~10.5.1",

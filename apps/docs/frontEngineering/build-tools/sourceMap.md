@@ -35,8 +35,6 @@
 | `names`                      | 源码中被提取的符号表（变量名、函数名）。混淆后的 `a` 会通过此表被映射回真实的 `msg`。            |
 | `mappings`                   | **核心引擎**：经过 Base64 VLQ (Variable-length quantity) 编码的映射字符串矩阵。                  |
 
-**架构深度：Base64 VLQ 的极致压缩**
-
 `mappings` 并没有傻瓜式地记录绝对坐标（如 `原文件行号,列号 -> 生成文件行号,列号`），这种方式会导致 `.map` 文件极大。
 **VLQ 算法**记录的是**增量（Delta）**。即当前节点相对于上一个节点移动了多少行/列，随后将该数字转换为 Base64 字符。这使得庞大复杂的源码映射最终被压缩成一串极短的字符 `AAAA,MAAMA...`。
 
@@ -48,7 +46,7 @@
 
 **链路融合原则**：构建工具必须具备“**继承**”能力。Rollup 或 Webpack 在每一步转换时，不仅要处理 AST 代码，还要将当前插件生成的 Map 与上一级传入的 Map 进行矩阵合并计算。
 
-- **断层隐患**：如果链路中某个自定义插件只返回了 `code` 而丢弃了 `map`，整条映射链将被物理切断，最终的线上报错将只能还原到编译过程中的某个中间态（如变成了无意义的 `render` 函数块），无法追溯回 `.ts`。
+**断层隐患**：如果链路中某个自定义插件只返回了 `code` 而丢弃了 `map`，整条映射链将被物理切断，最终的线上报错将只能还原到编译过程中的某个中间态（如变成了无意义的 `render` 函数块），无法追溯回 `.ts`。
 
 ## 4. 产物关联与加载策略
 
@@ -56,13 +54,13 @@
 
 - **文件尾部注释（最常用）**：在被压缩的 `.js` 产物最后一行插入魔法注释。
 
-```js
+```markdown
 //# sourceMappingURL=index.js.map
 ```
 
 - **HTTP Header（隐蔽式）**：在 Nginx 或 CDN 侧配置响应头。此方案无需侵入 JS 产物。
 
-```txt
+```markdown
 SourceMap: /assets/index.js.map
 ```
 
@@ -84,8 +82,6 @@ SourceMap: /assets/index.js.map
 | `cheap-module-source-map`      | 独立文件，无列信息   | **生产可接受的折中**。包含源码内容但只映射到行，体积与构建耗时都优于完整 `source-map`。                    |
 | `inline-source-map`            | 内联进产物           | **免额外文件**。以 base64 Data URL 写进 JS 尾部，会把产物体积撑大数倍，仅限本地开发或体积极小的 SDK。      |
 | `hidden-nosources-source-map`  | 独立文件，无源码内容 | **最严生产配置**。既不写 `//#` 注释、也不含 `sourcesContent`，只有拿到 `.map` 的监控平台能还原路径与行号。 |
-
----
 
 ## 6. 工程化配置实战
 
@@ -128,7 +124,7 @@ module.exports = {
 }
 ```
 
-### 6.3 Vite `build.sourcemap` 的高频取值
+### 6.3 Vite `sourcemap` 的高频取值
 
 Vite 把这层抽象收敛成了几个值，取舍比 Webpack 的 `devtool` 简单得多：
 
@@ -148,8 +144,6 @@ Vite 把这层抽象收敛成了几个值，取舍比 Webpack 的 `devtool` 简�
 - **生产隐藏源码**：改用 `nosources-source-map` 或 `hidden-nosources-source-map`，即便 `.map` 被人拿到也点不开源码内容。
 - **本地开发调试**：Webpack 用 `eval-cheap-module-source-map` 换取秒级重建；只关心行号、不需要列级精度时，选 `cheap` 系列最划算。
 - **第三方 SDK / 埋点脚本**：以 `inline` 方式随产物分发，使用者接入后开箱即可调试，但要接受体积膨胀的代价。
-
----
 
 ## 7. 生产环境安全与规范基准
 

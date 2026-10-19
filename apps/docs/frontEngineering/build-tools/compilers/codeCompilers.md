@@ -1,3 +1,7 @@
+---
+outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
+---
+
 # 编译与打包引擎
 
 ## 1. 核心概念与特性
@@ -164,7 +168,7 @@ export default defineConfig({
 
 ### 3.6 高频配置项速查（Babel 与 tsconfig）
 
-**Babel（`.babelrc` / `babel.config.js`）**
+#### 3.6.1 **Babel（`.babelrc` / `babel.config.js`）**
 
 [width(15,36,49)]
 
@@ -177,7 +181,7 @@ export default defineConfig({
 | `corejs`      | `3`                                                        | 配合 `useBuiltIns` 指定 core-js 主版本        |
 | `loose`       | `true` / `false`                                           | 宽松模式，产物更小但与规范有偏差，谨慎开启    |
 
-**tsconfig（`compilerOptions`）**
+#### 3.6.2 **tsconfig（`compilerOptions`）**
 
 [width(15,38,47)]
 
@@ -214,7 +218,7 @@ export default defineConfig({
 
 - **类型检查**：不管你用什么工具编译代码，**类型检查永远只能交给 `tsc`**（运行 `tsc --noEmit`）。因为 Babel/SWC/esbuild 采取的都是“**暴力擦除**”策略，它们根本不认识类型对错，只会把 TS 类型当成注释删掉然后转换代码。
 - **代码生成选型**：
-  - 新项目、大项目：**优先选择 SWC 或 esbuild**（通常通过接入 Vite/Rspack 间接使用），享受极致的构建速度。
+  - 新项目、大项目：**优先选择SWC或esbuild**(通常通过接入Vite/Rspack间接使用），享受极致的构建速度。
   - 沉重的历史老项目：**继续使用 Babel**。老项目中往往写了大量强依赖 JS AST 的自定义 Babel 插件，要用 Rust 重写这些插件的成本极高，不要盲目跟风替换。
 
 ### 4.4 什么是 `isolatedModules: true`？为什么用 Babel/SWC/esbuild 编译 TS 时必须在 `tsconfig.json` 中开启它？
@@ -232,15 +236,8 @@ export default defineConfig({
 
 - **存在两套实现**：TypeScript 长期使用 `experimentalDecorators: true` 的“**旧版装饰器**”，而 Babel / SWC 默认走 TC39 的新标准装饰器，两者语义并不相同。
 - **对齐方式**：如果项目用的是 TS 旧版装饰器（Angular、NestJS 风格），Babel 侧要打开对应的 `legacy` 选项；SWC 则需要同步开启 `jsc.parser.decorators`、`jsc.transform.legacyDecorator` 与 `decoratorMetadata`。
-- **顺带的坑**：`useDefineForClassFields` 会改变类字段的赋值语义，与装饰器混用时容易出现“**字段被覆盖**”的诡异现象，需要与 `target` 一起确认。
 
 ### 4.7 为什么 `tsconfig` 的 `paths` 别名在 tsc 里能过，运行时却报模块找不到？
 
 - **原因**：`paths` 只影响 TypeScript 的**类型解析**，它不会去改写产物里的 `import` 路径。编译后代码里写的仍然是 `@/utils`，Node 或浏览器自然找不到。
 - **解决**：运行时别名必须交给打包器处理——Vite 的 `resolve.alias`、Webpack 的 `resolve.alias`，或使用 `vite-tsconfig-paths` 一类插件让打包器直接读取 `paths` 配置。
-
-### 4.8 `useBuiltIns: 'usage'` 和 `'entry'` 该怎么选？
-
-- **`usage`**：Babel 扫描代码里实际用到的新 API，只按需 `import` 对应的 `core-js` 模块，产物体积最优；代价是每个文件都可能重复注入 import，且对第三方库里未编译的用法无能为力。
-- **`entry`**：你在入口手动 `import 'core-js/stable'`，Babel 再按 `targets` 把它拆成按需引入。它覆盖面更完整，适合需要兜底整个运行时的老项目。
-- **前提**：两种策略都必须显式声明 `corejs: 3`，否则会退化成全量注入，把体积优势打回去。

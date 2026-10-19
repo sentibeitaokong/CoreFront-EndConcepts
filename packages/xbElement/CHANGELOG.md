@@ -1,5 +1,11 @@
 # xb-element
 
+## 1.0.31
+
+### Patch Changes
+
+- 更新
+
 ## 1.0.30
 
 ### Patch Changes
