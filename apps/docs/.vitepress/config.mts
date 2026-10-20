@@ -184,6 +184,13 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
                 light: 'github-dark',
                 dark: 'github-dark',
             },
+            // Shiki 内置的 plaintext 语法不产出任何 token，text 代码块会退化成单一前景色。
+            // 给目录树、忽略清单注册别名并借用 yaml 的着色规则，让它们也有颜色；
+            // 别名不能覆盖内置语言（text / txt 本身就是 plaintext 的别名），所以要使用新名字。
+            languageAlias: {
+                tree: 'yaml',
+                gitignore: 'yaml',
+            },
             config(md: any) {
                 // 注册插件，让 VitePress 认识 :::preview 和 <preview>
                 md.use(containerPreview)
@@ -1211,10 +1218,6 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
                                     ]
                                 },
                                 {
-                                    text: '前端架构中的状态分类',
-                                    link: '/frontEngineering/architecture/stateClassification'
-                                },
-                                {
                                     text: '微前端',
                                     collapsed: true, // 初始状态为“展开”
                                     items: [
@@ -1228,6 +1231,16 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
                                             link: '/frontEngineering/architecture/moduleFederation'
                                         },
                                     ]
+                                },
+                            ]
+                        },
+                        {
+                            text: '状态管理',
+                            collapsed: true, // 初始状态为“展开”
+                            items: [
+                                {
+                                    text: '前端架构中的状态分类',
+                                    link: '/frontEngineering/architecture/stateClassification'
                                 },
                             ]
                         },

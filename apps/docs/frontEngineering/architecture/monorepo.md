@@ -24,7 +24,7 @@ Monorepo（单一仓库）是一种将多个项目或包集中存放在一个版
 - **统一依赖管理**：共享同一份依赖锁定文件（如 `pnpm-lock.yaml`），避免版本冲突和重复安装。
 - **便于重构**：影响多个包的改动可以同步进行，编译器/类型检查能立即暴露不兼容之处。
 
-### 2.2 挑战(劣势)
+### 2.2 劣势
 
 - **仓库体积庞大**：检出速度、CI/CD 耗时可能增加。
 - **权限控制复杂**：难以按包粒度设置访问权限（可由工具辅助解决）。
@@ -45,8 +45,6 @@ Monorepo（单一仓库）是一种将多个项目或包集中存放在一个版
 - **包边界混乱**：严格限制 `package.json` 的 `exports` 字段，禁止跨包引用深层未暴露的文件，保证架构的清晰。
 
 ### 3.3 高频落地场景
-
-企业里真正高频的落地形态，基本都落在下面几类：
 
 [width(18,24,58)]
 
@@ -70,26 +68,32 @@ Monorepo（单一仓库）是一种将多个项目或包集中存放在一个版
 
 ## 5. 企业级 Monorepo 项目架构
 
-```
+```tree
 my-monorepo/
 ├── apps/
 │   └── web/
 │       ├── src/
-│       │   └── index.ts          # 应用入口，引用 shared 包
+│       │   └── index.ts          # 应用入口，引用 @my-monorepo/shared
+│       ├── .eslintrc.js          # 继承根配置，可追加应用级规则
+│       ├── .prettierrc.cjs       # 展开根配置，覆盖应用侧格式
 │       ├── package.json
-│       └── tsconfig.json
+│       └── tsconfig.json         # extends 根 tsconfig.base.json
 ├── packages/
 │   └── shared/
 │       ├── src/
-│       │   └── index.ts          # 公共库的导出
+│       │   └── index.ts          # 公共库导出（hello 函数）
+│       ├── .eslintrc.js          # 继承根配置，可追加公共库规则
+│       ├── .prettierrc.cjs       # 展开根配置，覆盖公共库格式
 │       ├── package.json
-│       └── tsconfig.json
-├── turbo.json                    # Turborepo 任务编排配置
-├── pnpm-workspace.yaml           # pnpm 工作空间定义
-├── tsconfig.base.json            # TypeScript 基础配置，所有包继承
-├── .eslintrc.js                  # 共享 ESLint 配置
-├── package.json                  # 根 package.json（包含 turbo 脚本）
-├── .gitignore                    # git 忽略提交文件
+│       └── tsconfig.json         # extends 根 tsconfig.base.json
+├── .eslintrc.js                  # 共享 ESLint 基线（TypeScript + Prettier）
+├── .prettierignore               # 格式化忽略清单
+├── .prettierrc.json              # 共享 Prettier 基线，子包展开后覆盖
+├── tsconfig.base.json            # 共享 TypeScript 基线，所有包继承
+├── pnpm-workspace.yaml           # 工作空间与子包声明
+├── turbo.json                    # 任务编排与缓存
+├── package.json                  # 根脚本（build / lint / type-check / format）
+├── .gitignore                    # 忽略 node_modules、dist、.turbo
 └── pnpm-lock.yaml                # 依赖锁定文件（自动生成）
 ```
 
@@ -130,8 +134,8 @@ pnpm init
 
 ```yaml [pnpm-workspace.yaml]
 packages:
-  - 'apps/*' 。       # 存放具体的业务应用 (如 web, api)
-  - 'packages/*'     # 存放公共包 (如 ui, utils, 配置文件)
+  - 'apps/*' # 存放具体的业务应用 (如 web, api)
+  - 'packages/*' # 存放公共包 (如 ui, utils, 配置文件)
 ```
 
 :::
@@ -155,19 +159,13 @@ pnpm init
 
 ```
 
-**创建公共库子包基本代码**
+**创建公共库子包**
 
 :::code-group
 
 ```typescript [packages/shared/src/index.ts]
 export const hello = (name: string) => `Hello, ${name}!`
 ```
-
-:::
-
-**修改公共库子包package.json名称**
-
-:::code-group
 
 ```json [packages/shared/package.json]
 {
@@ -180,6 +178,12 @@ export const hello = (name: string) => `Hello, ${name}!`
 
 :::
 
+**应用库子包添加公共库子包依赖**
+
+```bash
+pnpm --filter @my-monorepo/web add @my-monorepo/shared -D
+```
+
 **应用库子包引入公共库子包函数并调用**
 
 :::code-group
@@ -191,12 +195,6 @@ console.log(hello('World'))
 ```
 
 :::
-
-**应用库子包添加公共库子包依赖**
-
-```bash
-pnpm --filter @my-monorepo/web add @my-monorepo/shared -D
-```
 
 :::code-group
 
@@ -221,16 +219,16 @@ pnpm --filter @my-monorepo/web add @my-monorepo/shared -D
 ```json
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true
+    "target": "ES2022", // 编译目标：Node 18+ 与现代浏览器均原生支持
+    "module": "ESNext", // 保留 ESM 语法，交给打包工具处理
+    "moduleResolution": "bundler", // 按打包器规则解析依赖，支持 package.json 的 exports
+    "strict": true, // 开启全部严格类型检查，共享基线必须从严
+    "esModuleInterop": true, // 允许默认导入 CommonJS 包
+    "skipLibCheck": true, // 跳过第三方 .d.ts 检查，显著加快类型检查
+    "forceConsistentCasingInFileNames": true, // 强制文件名大小写一致，避免 Linux CI 上报错
+    "declaration": true, // 产出 .d.ts，供其他包引用公共库类型
+    "declarationMap": true, // 声明文件映射回源码，方便 IDE 跳转
+    "sourceMap": true // 产出 sourcemap，便于线上排查
   }
 }
 ```
@@ -241,12 +239,12 @@ pnpm --filter @my-monorepo/web add @my-monorepo/shared -D
 
 ```json [packages/shared/tsconfig.json]
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.base.json", // 继承全仓共享基线
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src"
+    "outDir": "dist", // 编译产物输出到本包 dist
+    "rootDir": "src" // 以 src 为根，保持产物内的目录结构
   },
-  "include": ["src"]
+  "include": ["src"] // 只编译 src 下的源码
 }
 ```
 
@@ -258,16 +256,93 @@ pnpm --filter @my-monorepo/web add @my-monorepo/shared -D
 
 ```json [apps/web/tsconfig.json]
 {
-  "extends": "../../tsconfig.base.json",
+  "extends": "../../tsconfig.base.json", // 继承全仓共享基线
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src"
+    "outDir": "dist", // 编译产物输出到本包 dist
+    "rootDir": "src" // 以 src 为根，保持产物内的目录结构
   },
-  "include": ["src"]
+  "include": ["src"] // 只编译 src 下的源码
 }
 ```
 
 :::
+
+### 5.6 统一 Prettier 配置
+
+ESLint 负责“**代码写得对不对**”，Prettier 负责“**代码长得好不好看**”，两者职责分离：格式问题交给 Prettier，代码质量交给 ESLint。
+
+**在根目录安装 Prettier：**
+
+```bash
+# -D 写入 devDependencies，-w 表示安装到 workspace 根目录
+pnpm add -Dw prettier
+```
+
+**创建根 `.prettierrc.json`，作为全仓共享基线：**
+
+:::code-group
+
+```json [.prettierrc.json]
+{
+  "semi": false, // 行尾不写分号
+  "singleQuote": true, // 字符串统一使用单引号
+  "printWidth": 100, // 单行超过 100 列时换行
+  "trailingComma": "all" // 多行结构统一补尾逗号，减少 diff 噪音
+}
+```
+
+:::
+
+**创建 `.prettierignore`，跳过产物、依赖和锁文件：**
+
+:::code-group
+
+```gitignore [.prettierignore]
+# 第三方依赖
+node_modules
+# 构建产物与 Turbo 缓存
+dist
+.turbo
+# 锁文件由 pnpm 生成，不参与格式化
+pnpm-lock.yaml
+```
+
+:::
+
+**子包自定义配置：Prettier 只加载距离目标文件最近的一份配置，不会自动合并根配置。** 因此子包用 `.prettierrc.cjs` 先展开根配置，再覆盖差异项：
+
+:::code-group
+
+```js [packages/shared/.prettierrc.cjs]
+/** @type {import('prettier').Config} */
+module.exports = {
+  // 先展开根配置，继承共享规则（Prettier 本身不会自动合并）
+  ...require('../../.prettierrc.json'),
+  printWidth: 80, // 公共库源码保持紧凑，方便阅读对外 API
+}
+```
+
+```js [apps/web/.prettierrc.cjs]
+/** @type {import('prettier').Config} */
+module.exports = {
+  // 先展开根配置，继承共享规则（Prettier 本身不会自动合并）
+  ...require('../../.prettierrc.json'),
+  printWidth: 120, // 应用侧模板与样式代码较长，放宽换行宽度
+}
+```
+
+:::
+
+**在根 `package.json` 中添加 format 脚本：**
+
+```json
+{
+  "scripts": {
+    // 嵌套文件会按就近的 .prettierrc 生效
+    "format": "prettier --write ."
+  }
+}
+```
 
 ### 5.7 统一 ESLint 配置
 
@@ -302,6 +377,10 @@ module.exports = {
 ```js [packages/shared/.eslintrc.js]
 module.exports = {
   extends: '../../.eslintrc.js',
+  rules: {
+    // 公共库对外暴露的函数必须显式标注返回类型
+    '@typescript-eslint/explicit-module-boundary-types': 'error',
+  },
 }
 ```
 
@@ -314,6 +393,10 @@ module.exports = {
 ```js [apps/web/.eslintrc.js]
 module.exports = {
   extends: '../../.eslintrc.js',
+  rules: {
+    // 应用入口允许打印调试日志
+    'no-console': 'off',
+  },
 }
 ```
 
@@ -399,7 +482,7 @@ pnpm add -Dw turbo
 
 ### 5.9 添加 .gitignore
 
-```
+```gitignore
 node_modules/
 dist/
 .turbo/
@@ -411,6 +494,9 @@ dist/
 ```bash
 # 安装所有依赖（已执行过）
 pnpm install
+
+# 全局格式化
+pnpm format
 
 # 全局 lint
 pnpm lint
@@ -426,39 +512,42 @@ pnpm build
 
 ### 5.11 pnpm workspace 高频字段与依赖协议
 
-`pnpm-workspace.yaml` 只有几个字段，配合依赖协议就能覆盖绝大多数场景：
-
 [width(23,27,50)]
 
-| 字段 / 协议         | 位置                  | 作用与示例                                                                     |
-| ------------------- | --------------------- | ------------------------------------------------------------------------------ |
-| `packages`          | `pnpm-workspace.yaml` | 声明工作空间包含哪些目录，支持 glob，如 `- 'apps/*'`、`- 'packages/*'`         |
-| `catalog`           | `pnpm-workspace.yaml` | 集中声明一批依赖的版本，各包用 `catalog:` 引用，实现全仓统一版本（pnpm ≥ 9.5） |
-| `catalogs`          | `pnpm-workspace.yaml` | 命名分组目录，包内用 `catalog:group` 引用，例如给不同大版本分组                |
-| `workspace:*`       | 子包 `package.json`   | 引用工作空间内的本地包，安装时创建软链，发布时替换为真实版本号                 |
-| `workspace:^` / `~` | 子包 `package.json`   | 同上，但发布时按 `^` / `~` 语义替换为实际版本                                  |
-| `pnpm.overrides`    | 根 `package.json`     | 强制指定某个依赖（含传递依赖）在全仓使用的版本，用于抹平版本冲突               |
+| 字段 / 协议         | 位置                  | 作用与示例                                                                                    |
+| ------------------- | --------------------- | --------------------------------------------------------------------------------------------- |
+| `packages`          | `pnpm-workspace.yaml` | 声明工作空间包含哪些目录，支持 glob，如 `- 'apps/*'`、`- 'packages/*'`                        |
+| `catalog`           | `pnpm-workspace.yaml` | 集中声明一批依赖的版本，各包用 `catalog:` 引用，实现全仓统一版本（pnpm ≥ 9.5）                |
+| `catalogs`          | `pnpm-workspace.yaml` | 命名分组目录，包内用 `catalog:group` 引用，例如给不同大版本分组                               |
+| `workspace:*`       | 子包 `package.json`   | 引用工作空间内的本地包，安装时创建软链，发布时替换为真实版本号                                |
+| `workspace:^` / `~` | 子包 `package.json`   | 同上，但发布时按 `^` / `~` 语义替换为实际版本                                                 |
+| `overrides`         | `pnpm-workspace.yaml` | 强制依赖（含传递依赖）在全仓使用同一版本；pnpm ≤ 10 写作根 `package.json` 的 `pnpm.overrides` |
 
 `catalog` 的典型用法是：在 `pnpm-workspace.yaml` 里集中声明版本，各子包只写 `catalog:` 引用。
 
-```yaml
-# pnpm-workspace.yaml
+:::code-group
+
+```yaml [pnpm-workspace.yaml]
 packages:
   - 'apps/*'
   - 'packages/*'
+overrides:
+  # 全仓统一 lodash 版本（含所有传递依赖）
+  lodash: ^4.17.21
 catalog:
   vue: ^3.5.0
   typescript: ^5.6.0
 ```
 
-```json
-// apps/web/package.json
+```json [apps/web/package.json]
 {
   "dependencies": {
     "vue": "catalog:"
   }
 }
 ```
+
+:::
 
 ### 5.12 Turborepo `turbo.json` 高频字段
 
@@ -473,8 +562,6 @@ catalog:
 | `env` / `globalEnv`  | 声明参与 hash 的环境变量，漏声明会导致“**改了环境变量却命中旧缓存**”                              |
 | `persistent`         | 标记长驻任务（如 dev server），不可被其他任务 `dependsOn`                                         |
 | `globalDependencies` | 根级公共文件（如根 `tsconfig.json`），任一变化都会使所有任务缓存失效                              |
-
-> **版本差异：** Turborepo 2.0 起顶层字段由 `pipeline` 更名为 `tasks`，二者语义一致。新项目建议直接使用 `tasks`。
 
 ### 5.13 `--filter` 语法与常用命令
 
@@ -516,7 +603,7 @@ catalog:
 
 ### 6.4 代码没改动，Turborepo 却每次都重新构建？
 
-先确认 `outputs` 与真实产物目录一致、`inputs` 没有把频繁变化的文件纳入 hash、`env` 是否漏声明了影响产物的环境变量；用 `pnpm turbo run build --dry=json` 查看每个任务的 hash 与命中原因。另外注意 `pipeline` 在 Turborepo 2.0 起已更名为 `tasks`。
+先确认 `outputs` 与真实产物目录一致、`inputs` 没有把频繁变化的文件纳入 hash、`env` 是否漏声明了影响产物的环境变量；用 `pnpm turbo run build --dry=json` 查看每个任务的 hash 与命中原因。
 
 ### 6.5 改了公共包，其他包没有同步生效？
 
@@ -524,7 +611,7 @@ catalog:
 
 ### 6.6 如何只构建 / 测试受影响的包，而不是全仓？
 
-用 `--filter` 的变更范围语法，例如 `pnpm turbo run build --filter="...[origin/main]"`（该包及其上游）或 `pnpm --filter "[origin/main]" test`；CI 中要先把 `origin/main` 拉全，否则 diff 范围计算会失准。
+用 `--filter` 的变更范围语法，例如 `pnpm turbo run build --filter="...[origin/main]"`(该包及其上游)或 `pnpm --filter "[origin/main]" test`；CI中要先把`origin/main`拉全，否则 diff 范围计算会失准。
 
 ### 6.7 根包或内部包被误发布到 npm？
 
