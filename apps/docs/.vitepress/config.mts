@@ -6,6 +6,7 @@ import footnote from 'markdown-it-footnote'
 import taskLists from 'markdown-it-task-lists'
 import {ab_mdit, jsdom_init} from 'markdown-it-any-block/node'
 import {fileURLToPath, URL} from 'node:url'
+import {createRequire} from 'node:module'
 import {loadEnv} from 'vite'
 import {sentryVitePlugin} from "@sentry/vite-plugin"
 // import { ViteImageOptimizer } from 'vite-plugin-image-optimizer'
@@ -14,6 +15,12 @@ import path from 'path'
 import {visualizer} from 'rollup-plugin-visualizer';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const require = createRequire(import.meta.url)
+
+// markdown-it-any-block 的 exports 没有暴露 ./styles.css，
+// 通过包入口反推包根目录，避免写死 node_modules 的相对路径
+// （hoisted 与 isolated 两种安装布局下 node_modules 结构不同）
+const anyBlockStyles = path.resolve(path.dirname(require.resolve('markdown-it-any-block')), '../styles.css')
 
 const isTruthyFlag = (value: string | undefined) => {
     return value === 'true' || value === '1'
@@ -137,6 +144,9 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
             resolve: {
                 alias: {
                     '@': fileURLToPath(new URL('../../src', import.meta.url)),
+                    // AnyBlock 的 exports 只声明了 "." 和 "./node"，裸导入子路径会被拒绝，
+                    // 这里显式映射到包内实际文件
+                    'markdown-it-any-block/styles.css': anyBlockStyles,
                     // 当代码中尝试引入这个被禁止的路径时
                     // 直接强行将其映射到真实的物理文件路径上
                     // 注意：这里的相对路径('../../node_modules/...')需要根据你的项目结构调整
