@@ -182,8 +182,6 @@ steps:
 
 ### 4.4 高频配置字段速查
 
-写流水线时，日常真正反复调整的就是下面这些字段，先混个脸熟再深入细节：
-
 [width(26,14,60)]
 
 | 字段                              | 层级     | 作用                                                              |
@@ -217,9 +215,9 @@ steps:
 
 ### 5.2 标准实战：极速构建基线模板
 
-在项目根目录创建 `.github/workflows/deploy.yml`。这份模板展示了如何优雅地配置 pnpm 及其缓存引擎。
+:::code-group
 
-```yaml
+```yaml [.github/workflows/deploy.yml]
 name: Frontend CI Pipeline
 
 on:
@@ -234,11 +232,11 @@ jobs:
 
     steps:
       # Step 1: 检出源码
-      - name: 📦 Checkout Source Code
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
       # Step 2: 核心魔法 —— 独立安装并配置 pnpm
-      - name: 🛠️ Setup pnpm
+      - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
           version: 8 # 锁定你团队使用的 pnpm 版本
@@ -246,27 +244,29 @@ jobs:
           run_install: false
 
       # Step 3: 配置 Node.js 并自动激活 pnpm 缓存机制
-      - name: ⚙️ Setup Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          # 🌟 这里是神来之笔：setup-node 原生支持 pnpm 缓存
+          # 这里是神来之笔：setup-node 原生支持 pnpm 缓存
           # 它会自动寻找 pnpm-lock.yaml 的哈希值作为 Cache Key，并挂载全局 Store
           cache: 'pnpm'
 
       # Step 4: 执行依赖安装（严禁修改 lock 文件）
-      - name: 📥 Install Dependencies
+      - name: Install Dependencies
         # 使用 --frozen-lockfile 等同于 npm ci
         run: pnpm install --frozen-lockfile
 
       # Step 5: 执行类型检查（如果是 TS 项目）
-      - name: 🔎 Type Check
+      - name: Type Check
         run: pnpm run type-check # 假设你的 script 里配了 vue-tsc --noEmit
 
       # Step 6: 生产环境打包
-      - name: 🔨 Build Vite App
+      - name: Build Vite App
         run: pnpm run build
 ```
+
+:::
 
 ### 5.3 进阶实战：Monorepo 架构下的 pnpm 流水线
 
@@ -294,12 +294,12 @@ jobs:
           node-version: '18'
           cache: 'pnpm'
 
-      - name: 📥 Install Workspace Dependencies
+      - name: Install Workspace Dependencies
         run: pnpm install --frozen-lockfile
 
       # Monorepo 专属：利用 Turborepo 的云缓存和并行能力
       # 这行命令会自动根据拓扑图，先打包底层的组件库包，再打包依赖它的业务应用
-      - name: 🚀 Turbo Build
+      - name: Turbo Build
         run: pnpm dlx turbo run build --filter=...[origin/main]
 ```
 
@@ -317,27 +317,25 @@ pnpm 的核心优势在于“**全局 Store 存储与硬链接**”，但这在�
 
 ```yaml
 # 核心配置片段
-- name: 🛠️ 安装 pnpm
+- name: 安装 pnpm
   uses: pnpm/action-setup@v3
   with:
     version: 8
     run_install: false # 禁用自动安装，交由后续精细控制
 
-- name: ⚙️ 设置 Node.js 并挂载 pnpm 缓存
+- name: 设置 Node.js 并挂载 pnpm 缓存
   uses: actions/setup-node@v4
   with:
     node-version: '18'
     cache: 'pnpm' # 自动根据 pnpm-lock.yaml 寻找或生成云缓存
 
-- name: 📥 锁定版本安装依赖
+- name: 锁定版本安装依赖
   run: pnpm install --frozen-lockfile
 ```
 
 ### 6.2 密钥与资产隔离防线 (Secrets Vault)
 
-**严禁将服务器密码、云服务 AccessKey 等敏感信息硬编码在源码或 YAML 文件中。** 这是极其严重的架构级生产事故。
-
-正确的隔离与注入机制：
+**严禁将服务器密码、云服务 AccessKey 等敏感信息硬编码在源码或 YAML 文件中。** 这是极其严重的架构级生产事故，正确的隔离与注入机制：
 
 - **控制台存储：** 在 GitHub 仓库的 `Settings -> Secrets and variables -> Actions` 中配置键值对（例如 `SERVER_PASSWORD`）。这些数据在物理层面被严格加密。
 - **运行时读取：** 在 YAML 脚本中，通过 <span v-pre>${{ secrets.SERVER_PASSWORD }}</span> 语法作为环境变量安全读取。
@@ -348,10 +346,10 @@ pnpm 的核心优势在于“**全局 Store 存储与硬链接**”，但这在�
 如果在真实企业场景下，你需要将 `pnpm run build` 打包出的产物部署到公司自建的 CentOS 阿里云服务器，Step 6 的部署逻辑通常会被替换为**安全隧道传输（SCP / Rsync + SSH）**：
 
 ```yaml
-- name: 🔨 执行打包
+- name: 执行打包
   run: pnpm run build # 产出 dist 目录
 
-- name: 🚀 通过 SSH 将 dist 目录推送到企业私有服务器
+- name: 通过 SSH 将 dist 目录推送到企业私有服务器
   uses: easingthemes/ssh-deploy@v5.0.3
   env:
     SSH_PRIVATE_KEY: ${{ secrets.ALIYUN_SSH_KEY }} # 注入服务器私钥
@@ -369,6 +367,38 @@ pnpm 的核心优势在于“**全局 Store 存储与硬链接**”，但这在�
 - **定时任务**：`on: schedule` 跑依赖安全扫描（如 `pnpm audit`）或每日构建，发现漏洞和新警告时及时处理。
 - **矩阵测试**：用 `strategy.matrix` 让一套配置覆盖多个 Node 版本 / 操作系统，保证类库的兼容性。
 - **并发取消**：用 `concurrency` 让同一分支的新推送自动取消上一次仍在跑的任务，既省额度又能更快拿到最新结果。
+
+```yaml
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  pull_request: # PR 校验门禁
+  push:
+    branches: [main] # 主干发布
+
+concurrency: # 同一分支的新推送取消上一次运行
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run lint && pnpm run type-check && pnpm run test && pnpm run build
+      # 仅主干 push 执行发布，PR 时自动跳过
+      - if: github.event_name == 'push'
+        run: echo "推送构建产物 / 通知 Sentry" # 替换为 6.3 的 SSH 部署
+```
 
 ## 7. 常见问题 (FAQ) 与高级避坑指南
 
@@ -389,7 +419,7 @@ pnpm 的核心优势在于“**全局 Store 存储与硬链接**”，但这在�
 
 ### 7.4 为什么要严格使用 `--frozen-lockfile`？
 
-在本地开发时，你可能习惯用 `pnpm install`。但在 CI 环境中，**必须使用 `pnpm install --frozen-lockfile**`。
+在本地开发时，你可能习惯用 `pnpm install`。但在 CI 环境中，必须使用 `pnpm install --frozen-lockfile`。
 
 - **原因：** 如果有人手动修改了 `package.json`，但忘记提交 `pnpm-lock.yaml`，普通的 `install` 命令会在云端默默更新 lock 文件并下载新版本的包，导致 CI 环境和本地环境出现致命偏差。
 - **效果：** `--frozen-lockfile` 如果发现 `package.json` 与现有的 lock 文件不匹配，会当场抛出错误（Exit Code 1）强行阻断流水线，倒逼开发者规范提交。
@@ -406,13 +436,11 @@ pnpm 的核心优势在于“**全局 Store 存储与硬链接**”，但这在�
 在使用 Vite 构建时，构建产物往往需要依赖诸如 `VITE_API_BASE_URL` 的环境变量。在流水线中，务必在 `build` 步骤前注入：
 
 ```yaml
-- name: 🔨 Build Vite App
+- name: Build Vite App
   run: pnpm run build
   env:
     VITE_API_BASE_URL: ${{ secrets.PRODUCTION_API_URL }}
 ```
-
-_Vite 会在编译阶段拦截并在 AST 层面替换这些带有 `VITE_` 前缀的环境变量，生成纯静态的 JS 产物。\_
 
 ### 7.7 为什么同一分支连推两次，前一次的流水线被取消了？
 

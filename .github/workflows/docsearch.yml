@@ -12,6 +12,11 @@ on:
       - 'pnpm-lock.yaml'
   workflow_dispatch: # 允许你在 GitHub 网页上手动点击运行按钮
 
+# 同一分支的新推送自动取消上一次仍在运行的任务
+concurrency:
+  group: docsearch-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
