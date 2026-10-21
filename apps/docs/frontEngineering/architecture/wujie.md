@@ -66,6 +66,7 @@ startApp(config)
 :::code-group
 
 ```ts [iframe.ts]
+// 创建隐藏 iframe：同源沙箱 + 独立执行环境
 function iframeGenerator(sandbox: WuJie) {
   const iframe = document.createElement('iframe')
 
@@ -190,6 +191,7 @@ const proxyDocument = new Proxy(
 劫持 `location` 对象，让子应用感知到的是自己的 URL 而非 iframe 的主应用 URL：
 
 ```ts
+// proxyLocation：把 iframe 的真实 location 映射为子应用域名
 const proxyLocation = new Proxy(
   {},
   {
@@ -231,6 +233,7 @@ const proxyLocation = new Proxy(
 :::code-group
 
 ```js [sandbox.ts]
+// 将子应用脚本包装成 IIFE，绑定到 Proxy 沙箱对象
 const code = `
   (function(window, self, global, location, history, document, eval) {
     ${scriptContent}
@@ -515,6 +518,7 @@ joint session history 自动作用
 ## 7. 保活与预加载
 
 ```vue
+<!-- 最简用法：name + url，:alive 开启保活 -->
 <WujieVue name="order" url="http://localhost:7101/" :alive="true" />
 ```
 
@@ -545,6 +549,7 @@ joint session history 自动作用
 | `refreshApp(name)`    | 刷新子应用，等价于销毁后重建                             | 子应用发了新版本，需要强制拉取最新资源       |
 
 ```ts
+// 空闲时预加载，退出或超限时回收
 import { preloadApp, destroyApp } from 'wujie'
 
 // 登录完成后空闲预热，首次打开几乎无白屏
@@ -563,6 +568,7 @@ destroyApp('order')
 ## 8. 主应用接入
 
 ```ts
+// main.ts：注册 wujie-vue3 插件
 import { createApp } from 'vue'
 import WujieVue from 'wujie-vue3'
 import App from './App.vue'
@@ -571,6 +577,7 @@ createApp(App).use(WujieVue).mount('#app')
 ```
 
 ```vue
+<!-- 主应用中嵌入子应用，开启路由同步、保活并下发 props -->
 <template>
   <WujieVue
     width="100%"
@@ -630,6 +637,7 @@ location /order/ {
 多数情况下子应用无需改造，能独立访问即可。如需感知 Wujie 环境：
 
 ```ts
+// 子应用内：判断是否由无界加载，并读取主应用 props
 const isInWujie = Boolean(window.__POWERED_BY_WUJIE__)
 
 if (isInWujie) {
@@ -676,13 +684,26 @@ if (isInWujie) {
 
 ## 12. 常见问题 (FAQ)
 
-[width(32,68)]
+### 12.1 弹窗层级不符合预期怎么办？
 
-| 问题                                                 | 原因与处理                                                                                                                                                   |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 弹窗层级不符合预期                                   | 弹窗挂载到 Shadow DOM 内部而非 `document.body`；检查 UI 库的 `getPopupContainer` 配置                                                                        |
-| 页面内存持续增长                                     | 保活模式下未清理全局副作用；检查定时器、事件订阅、WebSocket                                                                                                  |
-| 子应用刷新丢状态                                     | 未配置路由同步（`:sync="true"`）；关键状态放 URL 或后端                                                                                                      |
-| 跨域资源加载失败                                     | 子应用服务未配置 CORS                                                                                                                                        |
-| 预加载未生效 / 首次打开仍白屏                        | `preloadApp` 与 `startApp` 的 `name` / `alive` / `degrade` / `fetch` 必须一致，否则缓存不命中；可加 `exec: true`                                             |
-| iframe 环境差异（`location` 不正确、空闲回调不触发） | ESM 代码无法包装 IIFE，`location` 指向 iframe 真实 location 而非 proxyLocation；`requestIdleCallback` 在 iframe 中可能延迟或不触发，可在嵌套场景关闭 `fiber` |
+弹窗被挂载到了 Shadow DOM 内部，而不是 `document.body`。检查 UI 组件库的 `getPopupContainer`（或 `append-to`）配置，把弹层挂到约定容器上。
+
+### 12.2 页面内存持续增长怎么办？
+
+多半是保活模式下没有清理全局副作用。检查定时器、事件订阅与 WebSocket，在子应用失活或销毁时显式释放（见 11）。
+
+### 12.3 子应用刷新后状态丢失怎么办？
+
+没有配置路由同步。给 `<WujieVue>` 加上 `:sync="true"`，并把需要跨刷新保留的关键状态放进 URL 或后端。
+
+### 12.4 跨域资源加载失败怎么办？
+
+子应用服务没有配置 CORS。开发环境在 Vite 中开启 `server.cors: true`，生产环境由 Nginx 或 CDN 返回正确的 `Access-Control-Allow-Origin`（见 11）。
+
+### 12.5 预加载没有生效、首次打开仍然白屏怎么办？
+
+`preloadApp` 与 `startApp` 的 `name` / `alive` / `degrade` / `fetch` 必须完全一致，否则缓存不命中；需要立即执行时再加 `exec: true`（见 7.1）。
+
+### 12.6 iframe 环境下 `location` 不正确、空闲回调不触发怎么办？
+
+ESM 代码无法被包装成 IIFE，`location` 指向 iframe 的真实 location 而非 `proxyLocation`；`requestIdleCallback` 在 iframe 中可能延迟或不触发，嵌套场景可以关闭 `fiber`（见 3.3.3）。

@@ -1,3 +1,7 @@
+---
+outline: [2, 3]
+---
+
 # qiankun 微前端方案
 
 `qiankun` 是蚂蚁金服基于 `single-spa` 封装的企业级微前端框架。其核心贡献在于引入了 **HTML Entry** 加载机制与**完备的运行时沙箱（JS/CSS 隔离）**，将微前端的接入成本降至接近原生 SPA，尤其契合存量大型中后台系统的平滑重构与模块拆分。
@@ -18,6 +22,7 @@ qiankun 的运行链路本质是一个受控的路由调度状态机与资源加
 `registerMicroApps` 是 qiankun 的入口，核心逻辑是将子应用配置存入内部注册表 `appRegistry`（一个数组），并为每个应用关联全局生命周期钩子。
 
 ```ts
+// 注册子应用：name / entry / container / activeRule 四件套
 import { registerMicroApps, start } from 'qiankun'
 
 registerMicroApps([
@@ -59,6 +64,7 @@ export function registerMicroApps(apps, lifeCycles = {}) {
 事件，每次路由变化都会重新匹配子应用。
 
 ```ts
+// 启动配置：实验性样式隔离 + 全量预加载
 start({
   sandbox: {
     strictStyleIsolation: false,
@@ -110,6 +116,7 @@ export function start(options = {}) {
 再挂载命中应用 (mount)”** 的流水线执行，确保同一容器内不会发生 DOM 堆叠或内存态冲突。
 
 ```js
+// 路由变化时的调度核心：匹配 → 卸载 → 加载 → 挂载
 async function reroute() {
   if (!started) {
     return
@@ -138,6 +145,7 @@ async function reroute() {
 路由匹配支持字符串前缀和函数两种方式。日常最常用的是路径前缀匹配。
 
 ```js
+// activeRule 支持字符串前缀或自定义函数
 function matchActiveRule(activeRule) {
   if (typeof activeRule === 'function') {
     return activeRule(location)
@@ -153,7 +161,7 @@ function matchActiveRule(activeRule) {
 
 接入 qiankun 时真正需要反复调整的只有两处：写在 `registerMicroApps` 里的**应用级字段**，与写在 `start` 里的**框架级策略**。前者决定单个子应用怎么加载，后者决定全局调度行为。
 
-`registerMicroApps` 注册项的常用字段：
+#### 2.5.1 `registerMicroApps` 注册项的常用字段：
 
 [width(18,36,10,36)]
 
@@ -167,7 +175,7 @@ function matchActiveRule(activeRule) {
 | `loader`     | `(loading: boolean) => void`          | 否   | 加载态回调，用于切换子应用时显示 / 隐藏 loading             |
 | `sandbox`    | `boolean \| object`                   | 否   | 按子应用粒度覆盖全局沙箱配置（样式隔离等）                  |
 
-`start` 的常用启动选项：
+#### 2.5.2 `start` 的常用启动选项：
 
 [width(21,27,11,41)]
 
@@ -191,6 +199,7 @@ qiankun 的核心创新之一是 **HTML Entry** —— 子应用不需要像 sin
 地址。qiankun 通过 fetch 拉取 HTML，解析后提取 JS 和 CSS 资源动态加载。
 
 ```js
+// 加载子应用：生命周期 → 沙箱 → HTML Entry → 挂载 (伪源码)
 async function loadApp(app) {
   try {
     // ----- 步骤 0：触发 beforeLoad 生命周期钩子 -----
@@ -290,6 +299,7 @@ function resolveAssetUrl(entry, assetPath) {
 对于 `<script>` 标签，qiankun 不会直接用 `<script>` 插入 DOM，而是通过 `fetch` 获取源码后，使用 `new Function` 在沙箱中执行：
 
 ```js
+// 在沙箱或真实 window 上执行子应用脚本
 async function execScript(url, sandbox = null) {
   if (!url) {
     return
@@ -322,6 +332,7 @@ async function execScript(url, sandbox = null) {
 qiankun 动态创建 `<link>` 标签插入到 `document.head` 来加载样式，并通过 CSS 隔离机制（选择器前缀或 Shadow DOM）防止样式污染。
 
 ```js
+// 动态插入 <link> 加载样式表
 function loadStyle(url) {
   return new Promise((resolve, reject) => {
     const link = document.createElement('link')
@@ -339,6 +350,7 @@ function loadStyle(url) {
 `prefetch` 配置项可以让 qiankun 在空闲时提前拉取子应用资源，加快后续切换速度。
 
 ```ts
+// 预加载策略：all / lazy / 指定子应用列表
 start({
   prefetch: 'all', // 预加载所有注册的子应用
   // prefetch: 'lazy' // 只在空闲时预加载
@@ -349,6 +361,7 @@ start({
 :::details 预加载策略
 
 ```js
+// 预加载实现：提前请求子应用 HTML
 export function prefetchApps(apps) {
   apps.forEach(app => fetch(app.entry).catch(callErrorHandlers))
 }
@@ -363,6 +376,7 @@ export function prefetchApps(apps) {
 子应用必须导出三个生命周期函数：
 
 ```ts
+// 子应用需暴露的标准生命周期
 let app: ReturnType<typeof createApp> | null = null
 
 function render(props: any = {}) {
@@ -395,6 +409,7 @@ export async function unmount() {
 qiankun 允许在 `registerMicroApps` 时传入全局生命周期钩子，所有子应用的加载/挂载/卸载都会触发：
 
 ```ts
+// 全局生命周期钩子：统一处理 loading 与资源清理
 registerMicroApps(apps, {
   beforeLoad: [
     async app => {
@@ -429,6 +444,7 @@ registerMicroApps(apps, {
 子应用通过 `__POWERED_BY_QIANKUN__` 标记判断是否运行在 qiankun 中。独立开发时不启动主应用也能直接访问子应用：
 
 ```ts
+// 独立运行（非 qiankun 环境）时才渲染
 if (!(window as any).__POWERED_BY_QIANKUN__) {
   render()
 }
@@ -439,6 +455,7 @@ if (!(window as any).__POWERED_BY_QIANKUN__) {
 除了基于路由的自动挂载，qiankun 还提供 `loadMicroApp` 用于手动控制子应用的加载和卸载，适合在非路由场景下使用：
 
 ```ts
+// 手动挂载：不走路由匹配，返回控制句柄
 export async function loadMicroApp(app, lifeCycles = {}) {
   // 不走路由匹配，直接加载并挂载
   const microApp = await loadApp({
@@ -612,87 +629,91 @@ class ProxySandbox {
 子应用在运行时注册的事件监听、定时器等需要在卸载时清理，否则会造成内存泄漏和事件重复绑定。
 
 ```js
-class proxySandbox{
-    createSideEffectProxy(key) {
-        // 为每个副作用 API 创建一个代理函数，记录执行痕迹
-        // 这样子应用卸载时可以自动清理，防止内存泄漏
-        const sideEffectHandlers = {
-            addEventListener: (type, listener, options) => {
-                // 真实注册到 window，同时记录以便卸载时移除
-                window.addEventListener(type, listener, options);
-                this.eventListeners.add({ type, listener, options });
-            },
-            removeEventListener: (type, listener, options) => {
-                // 移除真实监听，同时删除记录
-                window.removeEventListener(type, listener, options);
-                this.removeRecordedEventListener(type, listener, options);
-            },
-            setTimeout: (handler, timeout, ...args) => {
-                // 包装回调，执行时自动从记录中移除已完成的任务
-                const timerId = window.setTimeout(() => {
-                    this.timeoutIds.delete(timerId);
-                    if (typeof handler === "function") {
-                        handler(...args);
-                    } else {
-                        // setTimeout 也支持字符串代码
-                        new Function(String(handler))();
-                    }
-                }, timeout);
-                this.timeoutIds.add(timerId);
-                return timerId;
-            },
-            clearTimeout: (timerId) => {
-                window.clearTimeout(timerId);
-                this.timeoutIds.delete(timerId);
-            },
-            setInterval: (handler, timeout, ...args) => {
-                const timerId = window.setInterval(handler, timeout, ...args);
-                this.intervalIds.add(timerId);
-                return timerId;
-            },
-            clearInterval: (timerId) => {
-                window.clearInterval(timerId);
-                this.intervalIds.delete(timerId);
-            },
-            requestAnimationFrame: (callback) => {
-                // 包装回调，执行时自动从记录中移除已完成的帧
-                const frameId = window.requestAnimationFrame((time) => {
-                    this.animationFrameIds.delete(frameId);
-                    callback(time);
-                });
-                this.animationFrameIds.add(frameId);
-                return frameId;
-            },
-            cancelAnimationFrame: (frameId) => {
-                window.cancelAnimationFrame(frameId);
-                this.animationFrameIds.delete(frameId);
-            },
-        };
-        return sideEffectHandlers[key];
-    },
-    clearSideEffects() {
-        // 移除所有通过沙箱注册的事件监听
-        this.eventListeners.forEach(({ type, listener, options }) => {
-            window.removeEventListener(type, listener, options);
-        });
-        this.eventListeners.clear();
-
-        // 清除所有尚未执行的定时器
-        this.timeoutIds.forEach((timerId) => window.clearTimeout(timerId));
-        this.timeoutIds.clear();
-
-        this.intervalIds.forEach((timerId) => window.clearInterval(timerId));
-        this.intervalIds.clear();
-
-        this.animationFrameIds.forEach((frameId) => window.cancelAnimationFrame(frameId));
-        this.animationFrameIds.clear();
+// Proxy 沙箱的副作用自动回收：事件、定时器、动画帧
+class proxySandbox {
+  createSideEffectProxy(key) {
+    // 为每个副作用 API 创建一个代理函数，记录执行痕迹
+    // 这样子应用卸载时可以自动清理，防止内存泄漏
+    const sideEffectHandlers = {
+      addEventListener: (type, listener, options) => {
+        // 真实注册到 window，同时记录以便卸载时移除
+        window.addEventListener(type, listener, options)
+        this.eventListeners.add({ type, listener, options })
+      },
+      removeEventListener: (type, listener, options) => {
+        // 移除真实监听，同时删除记录
+        window.removeEventListener(type, listener, options)
+        this.removeRecordedEventListener(type, listener, options)
+      },
+      setTimeout: (handler, timeout, ...args) => {
+        // 包装回调，执行时自动从记录中移除已完成的任务
+        const timerId = window.setTimeout(() => {
+          this.timeoutIds.delete(timerId)
+          if (typeof handler === 'function') {
+            handler(...args)
+          } else {
+            // setTimeout 也支持字符串代码
+            new Function(String(handler))()
+          }
+        }, timeout)
+        this.timeoutIds.add(timerId)
+        return timerId
+      },
+      clearTimeout: timerId => {
+        window.clearTimeout(timerId)
+        this.timeoutIds.delete(timerId)
+      },
+      setInterval: (handler, timeout, ...args) => {
+        const timerId = window.setInterval(handler, timeout, ...args)
+        this.intervalIds.add(timerId)
+        return timerId
+      },
+      clearInterval: timerId => {
+        window.clearInterval(timerId)
+        this.intervalIds.delete(timerId)
+      },
+      requestAnimationFrame: callback => {
+        // 包装回调，执行时自动从记录中移除已完成的帧
+        const frameId = window.requestAnimationFrame(time => {
+          this.animationFrameIds.delete(frameId)
+          callback(time)
+        })
+        this.animationFrameIds.add(frameId)
+        return frameId
+      },
+      cancelAnimationFrame: frameId => {
+        window.cancelAnimationFrame(frameId)
+        this.animationFrameIds.delete(frameId)
+      },
     }
+    return sideEffectHandlers[key]
+  }
+  clearSideEffects() {
+    // 移除所有通过沙箱注册的事件监听
+    this.eventListeners.forEach(({ type, listener, options }) => {
+      window.removeEventListener(type, listener, options)
+    })
+    this.eventListeners.clear()
+
+    // 清除所有尚未执行的定时器
+    this.timeoutIds.forEach(timerId => window.clearTimeout(timerId))
+    this.timeoutIds.clear()
+
+    this.intervalIds.forEach(timerId => window.clearInterval(timerId))
+    this.intervalIds.clear()
+
+    this.animationFrameIds.forEach(frameId =>
+      window.cancelAnimationFrame(frameId),
+    )
+    this.animationFrameIds.clear()
+  }
 }
 ```
 
 ### 5.4 沙箱生命周期
 
 ```js
+// 沙箱激活与停用
 class proxySandbox {
   //激活沙箱
   active() {
@@ -754,6 +775,7 @@ class proxySandbox {
 Webpack 子应用需要输出 `umd` 格式，并保证 `jsonpFunction` 或 `chunkLoadingGlobal` 唯一，避免多个子应用冲突：
 
 ```js
+// 子应用 Webpack 配置：UMD 输出 + 允许跨域
 module.exports = {
   output: {
     library: 'order', // 全局命名空间，与子应用 name 一致
@@ -817,56 +839,62 @@ export default defineConfig(({ mode }) => {
 })
 ```
 
-```js [src/main.ts]
-import { createApp, App as VueApp } from 'vue';
-import App from './App.vue';
-import router from './router';
-import { renderWithQiankun, qiankunWindow } from 'vite-plugin-qiankun/dist/helper';
+```ts [src/main.ts]
+// Vite 子应用接入 qiankun 的完整入口
+import { createApp, App as VueApp } from 'vue'
+import App from './App.vue'
+import router from './router'
+import {
+  renderWithQiankun,
+  qiankunWindow,
+} from 'vite-plugin-qiankun/dist/helper'
 
-let app: VueApp<Element> | null = null;
+let app: VueApp<Element> | null = null
 
 // 1. 抽离独立的渲染函数
 function render(props: any = {}) {
-  const { container } = props;
+  const { container } = props
 
-  app = createApp(App);
-  app.use(router);
+  app = createApp(App)
+  app.use(router)
 
   // 智能寻找挂载点：如果作为子应用运行，挂载到基座分配的 DOM 内；否则挂载到自身的 #app
-  const targetNode = container ? container.querySelector('#app') : '#app';
-  app.mount(targetNode);
+  const targetNode = container ? container.querySelector('#app') : '#app'
+  app.mount(targetNode)
 }
 
 // 2. 注入 qiankun 标准生命周期
 renderWithQiankun({
   bootstrap() {
-    console.log(`[${qiankunWindow.__POWERED_BY_QIANKUN__ ? 'qiankun' : '独立运行'}] bootstrap`);
+    console.log(
+      `[${qiankunWindow.__POWERED_BY_QIANKUN__ ? 'qiankun' : '独立运行'}] bootstrap`,
+    )
   },
 
   mount(props) {
-    console.log('[vite-app] 成功挂载', props);
-    render(props);
+    console.log('[vite-app] 成功挂载', props)
+    render(props)
   },
 
   update(props: any) {
-    console.log('[vite-app] 接收到新的 props', props);
+    console.log('[vite-app] 接收到新的 props', props)
   },
 
   unmount(props: any) {
-    console.log('[vite-app] 开始卸载');
+    console.log('[vite-app] 开始卸载')
     // 极其关键的内存回收：切断 Vue 3 effectScope 依赖树，清理所有事件监听
     if (app) {
-      app.unmount();
-      app._container.innerHTML = '';
-      app = null;
+      app.unmount()
+      app._container.innerHTML = ''
+      app = null
     }
-  }
-});
+  },
+})
 
 // 3. 独立运行态判断
 // qiankunWindow 取代了传统的 window，提供更安全的运行环境探测
 if (!qiankunWindow.__POWERED_BY_QIANKUN__) {
-  render();
+  render()
 }
 ```
 
@@ -932,6 +960,7 @@ export async function mount(props: any) {
 qiankun 提供 `initGlobalState`，设计上只适用于主题色、语言、登录用户这类少量公共状态。复杂业务状态应通过后端 API 或 URL 解耦。
 
 ```ts
+// 全局状态：初始化 → 监听 → 更新
 import { initGlobalState } from 'qiankun'
 
 const actions = initGlobalState({ theme: 'light' })
@@ -945,7 +974,7 @@ actions.onGlobalStateChange((state, prev) => {
 actions.setGlobalState({ theme: 'dark' })
 ```
 
-:::details 全局状态
+:::details 全局状态(极简源码)
 
 ```js
 /** 全局共享状态对象 */
@@ -999,8 +1028,6 @@ export function initGlobalState(initialState = {}) {
 
 :::
 
-`initGlobalState` 返回的句柄还有几个高频细节：
-
 - `onGlobalStateChange(callback, fireImmediately)` 的第二个参数设为 `true` 时，注册后会立即触发一次回调，适合子应用初始化时直接同步当前状态；该方法返回的是取消监听的函数。
 - `offGlobalStateChange()` 会移除当前应用注册的全部状态监听，适合在 `unmount` 里统一清理，避免保活 / 反复挂载后监听器叠加。
 - `setGlobalState` 是**浅合并**，嵌套对象需要整体替换；而且没有按 key 细粒度订阅的能力，所以状态总量要自己控制，只放主题、语言、登录用户这类全局量。
@@ -1041,13 +1068,26 @@ export function initGlobalState(initialState = {}) {
 
 ## 9. 常见问题 (FAQ)
 
-[width(32,68)]
+### 9.1 子应用资源 404 怎么办？
 
-| 问题                                      | 处理方式                                                                                        |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| 子应用资源 404                            | 检查 `publicPath` 和部署路径                                                                    |
-| 切换后事件重复触发 / 卸载后定时器仍在执行 | 在 `unmount` 清理事件监听、全局订阅、定时器；同时启用沙箱的副作用自动回收                       |
-| 样式串扰 / 弹窗位置异常                   | 应用前缀 + CSS Modules + 样式隔离配置组合使用；弹窗统一挂载容器，不要默认挂到 `document.body`   |
-| 子应用间全局变量污染                      | 启用 Proxy 沙箱，检查是否有白名单遗漏                                                           |
-| Vite 子应用加载异常                       | 使用适配插件，或优先评估 Wujie、Micro-app、Module Federation                                    |
-| 路由未同步 / 生命周期未导出               | 确保子应用路由加了前缀 base、与 activeRule 一致；构建输出须为 umd，`library` 名称与 `name` 一致 |
+检查子应用的 `publicPath`（Webpack 的 `output.publicPath` 或 Vite 的 `base`）是否与真实部署路径一致；基座与子应用分域部署、或子应用挂在非根路径下时最容易漏掉。
+
+### 9.2 切换后事件重复触发、卸载后定时器仍在执行怎么办？
+
+在子应用的 `unmount` 中清理事件监听、全局订阅与定时器；同时启用沙箱的副作用自动回收作为兜底，防止清理遗漏。
+
+### 9.3 样式互相串扰、弹窗位置异常怎么办？
+
+应用级前缀 + CSS Modules 负责编译期隔离，再配合 qiankun 的样式隔离配置兜底；弹窗统一挂载到约定容器，不要默认挂到 `document.body`。
+
+### 9.4 子应用之间的全局变量互相污染怎么办？
+
+启用 Proxy 沙箱，并检查 `sandbox` 配置里是否有白名单遗漏，导致某些变量被直接写回 `window`。
+
+### 9.5 Vite 子应用加载异常怎么办？
+
+使用 Vite 适配插件；如果改造收益不大，优先评估 Wujie、Micro-app 或 Module Federation 等方案。
+
+### 9.6 路由没有同步、生命周期没有导出怎么办？
+
+确保子应用路由加了前缀 `base`、并与基座的 `activeRule` 对齐；构建输出必须是 umd，`library` 名称要与注册时的 `name` 一致。

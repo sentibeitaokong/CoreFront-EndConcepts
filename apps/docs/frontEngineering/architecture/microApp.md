@@ -35,6 +35,7 @@ DOM 挂载到 <micro-app> 容器（Shadow DOM 可选）
 `microApp.start()` 是框架的唯一切入点。核心逻辑是：初始化全局运行环境 → 注册自定义元素 → 处理预加载与全局插件配置。
 
 ```ts
+// 启动配置：沙箱、样式隔离、预加载与全局资源
 import microApp from '@micro-zoe/micro-app'
 
 microApp.start({
@@ -135,6 +136,7 @@ export default microApp
 ### 2.2 主应用页面中使用
 
 ```vue
+<!-- 主应用模板中嵌入子应用，并监听完整生命周期 -->
 <template>
   <micro-app
     name="order"
@@ -157,6 +159,7 @@ const microData = { token: 'access-token', theme: 'light' }
 也可以通过 JS API 命令式渲染：
 
 ```ts
+// 函数式渲染：手动指定容器与路由前缀
 import { renderApp } from '@micro-zoe/micro-app'
 
 renderApp({
@@ -200,6 +203,7 @@ Micro-app 的核心是继承 `HTMLElement` 的 `MicroAppElement` 类。子应用
 Micro-app 只监听 `name` 和 `url` 两个属性：
 
 ```js
+// 自定义元素：监听 name / url 属性变化
 class MicroAppElement extends HTMLElement {
   static get observedAttributes() {
     return ['name', 'url']
@@ -228,6 +232,7 @@ class MicroAppElement extends HTMLElement {
 元素插入 DOM 时触发。为防止框架内部短暂 insert/remove（如 Vue 的 keep-alive 机制），使用了 `connectStateMap` + `defer` 异步防抖：
 
 ```js
+// 自定义元素：插入文档时触发加载
 class MicroAppElement extends HTMLElement {
   //元素插入文档
   connectedCallback() {
@@ -254,6 +259,7 @@ class MicroAppElement extends HTMLElement {
 元素从 DOM 移除时触发。根据 `keep-alive` 属性决定是隐藏保活还是彻底卸载：
 
 ```js
+// 自定义元素：移出文档时卸载或保活
 class MicroAppElement extends HTMLElement {
   //元素从文档移除
   disconnectedCallback() {
@@ -279,6 +285,7 @@ class MicroAppElement extends HTMLElement {
 `handleConnected` 是 Micro-app 的“**路由分发中心**”。它判断当前 appName 是否已存在实例，根据实例状态决定复用、唤醒还是重新创建：
 
 ```js
+// 自定义元素：根据实例状态选择显示 / 挂载 / 新建
 class MicroAppElement extends HTMLElement {
   handleConnected() {
     if (!this.appName || !this.appUrl) return
@@ -326,12 +333,10 @@ class MicroAppElement extends HTMLElement {
 | `disable-scopecss`      | boolean | 关闭 Scoped CSS 前缀重写                           |
 | `disable-sandbox`       | boolean | 关闭 JS 沙箱，子应用直接操作真实 `window`          |
 | `ssr`                   | string  | 声明子应用是 SSR 应用，按 SSR 模式加载             |
-| `router-mode`           | string  | 虚拟路由模式，取值见第 8 节                        |
+| `router-mode`           | string  | 虚拟路由模式                                       |
 | `fiber`                 | boolean | 异步执行子应用 JS，减少对主应用渲染的阻塞          |
 | `iframe`                | boolean | 只为当前子应用启用 iframe 沙箱                     |
 | `disable-patch-request` | boolean | 关闭请求代理，子应用直接使用原生 `fetch`           |
-
-> 记忆顺序：加载看 `name` / `url` / `baseroute` / `data`，隔离看 `shadowDOM` / `disable-scopecss` / `disable-sandbox` / `iframe`，缓存看 `keep-alive` / `destroy` / `clear-data`，路由看 `router-mode`。
 
 ## 4. 资源加载机制
 
@@ -340,6 +345,7 @@ class MicroAppElement extends HTMLElement {
 Micro-app 同样使用 HTML Entry 方式加载子应用。`HTMLLoader` 负责 fetch HTML 并做初步处理：
 
 ```js
+// HTML Loader：拉取入口 HTML 并改写 head / body
 class HTMLLoader {
   run(app, successCb) {
     const htmlUrl = app.ssrUrl || app.url
@@ -395,6 +401,7 @@ class HTMLLoader {
 `extractSourceDom` 是 HTML 解析后的下一步：将解析后的 DOM 拆解为 link、style、script 三类资源，并行加载。
 
 ```js
+// 从入口 HTML 中提取 style / link / script 资源
 function extractSourceDom(htmlStr, app) {
   const wrapElement = app.parseHtmlString(htmlStr)
   const microAppHead = wrapElement.querySelector('micro-app-head')
@@ -449,6 +456,7 @@ function getEffectivePath(url) {
 Micro-app 使用全局的 `sourceCenter` 管理所有 HTML、JS、CSS 资源的缓存和共享：
 
 ```js
+// 资源中心：缓存 CSS / JS 源码，供各子应用复用
 function createSourceCenter() {
   const linkList = new Map() // CSS 地址 → { code, appSpace: {} }
   const scriptList = new Map() // JS 地址  → { code, isExternal, appSpace: {} }
@@ -489,6 +497,7 @@ function createSourceCenter() {
 Micro-app 区分同步脚本和 `defer/async` 脚本，保证执行顺序：
 
 ```js
+// 执行脚本：同步立即执行，defer/async 先加载后按序执行
 function execScripts(app, initHook) {
   const scriptList = Array.from(app.source.scripts)
   const deferScriptPromise = [] // defer/async 脚本的 fetch 队列
@@ -539,6 +548,7 @@ function execScripts(app, initHook) {
 每个脚本在沙箱中执行前，都会通过 `bindScope` 包裹一层 `with(window)` 作用域：
 
 ```js
+// 脚本作用域绑定：with(window) + IIFE
 function bindScope(address, app, code, scriptInfo) {
   // 如果禁用了沙箱 → 直接返回原始代码
   if (scriptInfo.isGlobal) return code
@@ -557,6 +567,7 @@ function bindScope(address, app, code, scriptInfo) {
 ### 5.3 执行模式
 
 ```js
+// 执行脚本：内联模式或 new Function 模式
 function runScript(address, app, scriptInfo, callback) {
   const sandboxType = getSandboxType(app, scriptInfo)
 
@@ -620,6 +631,7 @@ Micro-app 提供两套沙箱方案，通过 `iframe` 配置切换：
 核心逻辑：创建一个 `microAppWindow` 作为子应用的“**假 window**”，通过 `new Proxy(microAppWindow, handler)` 拦截所有读写。
 
 ```js
+// Proxy 沙箱：get / set / has 拦截，隔离全局变量
 function createProxyWindow(appName, microAppWindow, sandbox) {
   const rawWindow = globalEnv.rawWindow
   const descriptorTargetMap = new Map()
@@ -706,6 +718,7 @@ function createProxyWindow(appName, microAppWindow, sandbox) {
 iframe 沙箱为每个子应用创建一个隐藏的 `<iframe id="appName">`，在 iframe 内部执行子应用代码：
 
 ```js
+// iframe 沙箱：创建隐藏 iframe 并 patch window / document
 class IframeSandbox {
   constructor(appName, url, options) {
     // 1. 创建隐藏 iframe → 插入 body
@@ -771,6 +784,7 @@ class IframeSandbox {
 无论哪种沙箱模式，都会拦截子应用的副作用调用，在卸载时自动清理：
 
 ```js
+// 记录 window 副作用，卸载时统一清理
 function patchWindowEffect(microAppWindow, appName) {
   // 拦截 addEventListener → 记录 (type, listener, options)
   // 拦截 removeEventListener → 移除记录
@@ -789,6 +803,7 @@ Micro-app 的 CSS 隔离采用 **“**样式前缀重写**”** 方案（Scoped 
 ### 7.1 Scoped CSS 原理
 
 ```js
+// Scoped CSS：为所有选择器加上 micro-app[name=xxx] 前缀
 function scopedCSS(styleElement, app, linkPath) {
   if (!app.scopecss) return styleElement
 
@@ -812,6 +827,7 @@ function scopedCSS(styleElement, app, linkPath) {
 CSSParser 处理的关键环节：
 
 ```js
+// CSS 解析器：处理选择器前缀、嵌套规则与禁用语法
 class CSSParser {
   // 处理 CSS Rule，在根选择器前插入前缀
   // body → micro-app[name=order] body
@@ -887,6 +903,7 @@ Micro-app 的通信基于内置的 `EventCenter`，提供**主→子(setData)** 
 ### 9.1 主应用下发数据
 
 ```html
+<!-- 主应用模板中嵌入子应用，并通过 data 下发数据 -->
 <micro-app name="order" url="http://localhost:7101/" :data="microData" />
 ```
 
@@ -915,12 +932,14 @@ window.microApp?.removeDataListener(cb)
 ### 9.3 子应用向主应用发送数据
 
 ```ts
+// 子应用向主应用发送数据
 window.microApp?.dispatch({ type: 'ORDER_CREATED', payload: { id: '10001' } })
 ```
 
 ### 9.4 主应用接收子应用数据
 
 ```ts
+// 主应用监听子应用数据
 microApp.addDataListener('order', data => {
   console.log('data from child app order:', data)
 })
@@ -938,9 +957,10 @@ window.microApp?.addGlobalDataListener(data => {
 })
 ```
 
-### 9.6 EventCenter 实现原理
+### 9.6 底层实现原理
 
 ```js
+// EventCenter：事件入队 + 异步批量派发
 class EventCenter {
   // dispatch 时不直接触发回调，而是入队 + defer 异步统一执行
   dispatch(name, data, nextStep, force) {
@@ -986,6 +1006,7 @@ class EventCenter {
 Micro-app 通过自定义事件在 `<micro-app>` 元素上派发生命周期通知：
 
 ```html
+<!-- 监听子应用生命周期事件 -->
 <micro-app
   name="order"
   url="http://localhost:7101/"
@@ -1011,6 +1032,7 @@ window.addEventListener('unmount', () => {
 或通过 window 上的钩子函数：
 
 ```ts
+// 子应用全局钩子：挂载 / 卸载完成时触发
 window.onmount = () => {
   console.log('子应用挂载完成')
 }
@@ -1024,6 +1046,7 @@ window.onunmount = () => {
 子应用可通过自定义事件监听内部状态变化：
 
 ```ts
+// 监听子应用状态变化
 window.addEventListener('appstate-change', e => {
   console.log('state:', e.detail.appState) // LOADING / MOUNTING / MOUNTED / UNMOUNT
 })
@@ -1032,6 +1055,7 @@ window.addEventListener('appstate-change', e => {
 ### 10.4 应用内部状态机
 
 ```js
+// 子应用状态机与流转路径
 const appStates = {
   CREATED: 'CREATED', // 应用实例创建
   LOADING: 'LOADING', // 加载 HTML 资源中
@@ -1053,6 +1077,7 @@ const appStates = {
 ### 11.1 Keep-alive 保活
 
 ```html
+<!-- 保活：切换路由时不销毁子应用 -->
 <micro-app name="order" url="http://localhost:7101/" keep-alive />
 ```
 
@@ -1081,6 +1106,9 @@ handleShowKeepAliveApp(oldApp)
 
 ```ts
 // start() 时全局配置
+// level:1  只预加载 HTML，不解析 JS/CSS
+// level:2  预加载并解析 JS/CSS（默认）
+// level:3  预渲染：在后台完整渲染子应用
 microApp.start({
   preFetchApps: [
     { name: 'order', url: 'http://localhost:7101/', level: 2 },
@@ -1094,17 +1122,10 @@ import { preFetch } from '@micro-zoe/micro-app'
 preFetch([{ name: 'order', url: 'http://localhost:7101/' }])
 ```
 
-预加载层级：
-
-[width(10,90)]
-
-| level | 说明                             |
-| ----- | -------------------------------- |
-| 1     | 只预加载 HTML，不解析 JS/CSS     |
-| 2     | 预加载并解析 JS/CSS（默认）      |
-| 3     | **预渲染**：在后台完整渲染子应用 |
+:::details 预加载(极简源码)
 
 ```js
+// 预加载：空闲时串行拉取子应用资源
 function preFetch(apps, delay) {
   if (!isBrowser) return
   requestIdleCallback(() => {
@@ -1149,9 +1170,12 @@ function preFetchAction(options) {
 }
 ```
 
+:::
+
 ### 11.3 全局公共资源预缓存
 
 ```ts
+// 全局公共资源：所有子应用共享同一份 CDN 依赖
 microApp.start({
   globalAssets: {
     js: ['https://cdn.example.com/react.umd.js'],
@@ -1168,8 +1192,9 @@ microApp.start({
 
 Vite 子应用对 Micro-app 最友好，几乎零改造：
 
-```ts
-// vite.config.ts
+:::code-group
+
+```ts [vite.config.ts]
 export default defineConfig({
   server: {
     port: 7101,
@@ -1178,17 +1203,19 @@ export default defineConfig({
 })
 ```
 
-```ts
-// router
+```ts [router.ts]
 const router = createRouter({
   history: createWebHistory(window.__MICRO_APP_BASE_ROUTE__ || '/'),
   routes,
 })
 ```
 
+:::
+
 ### 12.2 Webpack 子应用
 
 ```js
+// 子应用 Webpack 配置：资源路径 + 允许跨域
 module.exports = {
   output: {
     publicPath: 'http://localhost:7101/', // 或由 __MICRO_APP_PUBLIC_PATH__ 动态设置
@@ -1285,15 +1312,34 @@ if (!(window as any).__MICRO_APP_ENVIRONMENT__) {
 
 ## 14. 常见问题 (FAQ)
 
-[width(28,72)]
+### 14.1 子应用静态资源路径错误、刷新后 404 怎么办？
 
-| 问题                                | 处理方式                                                                                                                                                      |
-| ----------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 子应用静态资源路径错误 / 刷新后 404 | 检查 Vite `base` 或 Webpack `publicPath`，或使用 `__MICRO_APP_PUBLIC_PATH__`；主应用 Nginx 配置 `try_files` fallback 到 `index.html`                          |
-| 样式污染 / 第三方库样式被误加前缀   | 确认 `disable-scopecss` 未设为 true，使用应用级 class 前缀；对特定文件用 `/* scopecss-disable */` / `/* scopecss-disable-next-line */` 局部关闭隔离           |
-| 弹窗 / 浮层挂载与层级异常           | 组件库 Portal/Teleport 指向子应用根容器，不要挂到 `document.body`；iframe 沙箱默认为 `display:none`，DOM 代理到主文档后弹窗需单独配置容器                     |
-| 子应用切换后事件重复触发            | 确认 `keep-alive` 场景下保活策略正确；卸载时手动清理监听器                                                                                                    |
-| 预加载不生效 / 内存占用高           | 预加载在 `requestIdleCallback` 空闲时串行执行，`navigator.onLine` 为 false 时跳过；非核心子应用用 level=1/2 而非 level=3（预渲染）                            |
-| 多个子应用共享相同依赖              | 通过 `globalAssets` 预缓存公共 CDN 资源，减少重复请求                                                                                                         |
-| 子应用首次渲染拿不到下发的数据      | 子应用在挂载前用 `window.microApp.getData()` 读取缓存；`addDataListener(cb, true)` 的 `autoTrigger` 会用缓存数据立即触发一次；确认卸载时没有设置 `clear-data` |
-| Vite 子应用 HMR 失效                | 在 `micro-app` 环境中禁用 HMR，或使用 `inline` 模式执行 JS                                                                                                    |
+检查 Vite 的 `base` 或 Webpack 的 `publicPath` 是否与真实部署路径一致，也可以在运行时用 `__MICRO_APP_PUBLIC_PATH__` 指定；主应用的 Nginx 要配置 `try_files`，把非静态资源请求 fallback 到 `index.html`。
+
+### 14.2 样式污染、第三方库样式被误加前缀怎么办？
+
+先确认 `disable-scopecss` 没有被设为 `true`，再给子应用的全局 class 加上应用级前缀；确实不能改类名的第三方库或特定文件，用 `/* scopecss-disable */` / `/* scopecss-disable-next-line */` 局部关闭 Scoped CSS。
+
+### 14.3 弹窗、浮层挂载位置和层级异常怎么办？
+
+让组件库的 Portal / Teleport 指向子应用的根容器，不要挂到 `document.body`；iframe 沙箱默认为 `display:none`，DOM 被代理到主文档后，弹窗还需要单独配置挂载容器。
+
+### 14.4 子应用切换后事件被重复触发怎么办？
+
+先确认 `keep-alive` 场景下的保活策略是否正确；不使用保活时，必须在卸载阶段手动清理事件监听、定时器与全局订阅）。
+
+### 14.5 预加载不生效、内存占用高怎么办？
+
+预加载只在 `requestIdleCallback` 的空闲时段串行执行，`navigator.onLine` 为 `false` 时会跳过；非核心子应用用 `level=1` / `level=2`，不要用 `level=3`（预渲染），否则内存占用会明显上升。
+
+### 14.6 多个子应用依赖同一份库，怎么避免重复加载？
+
+通过 `globalAssets` 预缓存公共 CDN 资源，让各子应用共用同一份 React / Vue / 组件库，减少重复请求。
+
+### 14.7 子应用首次渲染拿不到主应用下发的数据怎么办？
+
+子应用在挂载前先用 `window.microApp.getData()` 读取缓存；`addDataListener(cb, true)` 的 `autoTrigger` 参数会用缓存数据立即触发一次回调；同时确认卸载时没有设置 `clear-data`，否则缓存会被清空。
+
+### 14.8 Vite 子应用的 HMR 为什么失效了？
+
+`micro-app` 接管子应用后，HMR 的模块更新通道会失效；可以在 `micro-app` 环境中禁用 HMR，或改用 `inline` 模式执行 JS。
