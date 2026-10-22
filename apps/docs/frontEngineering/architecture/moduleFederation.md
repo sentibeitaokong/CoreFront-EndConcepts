@@ -304,8 +304,6 @@ new ModuleFederationPlugin({
 
 ### 3.6 ModuleFederationPlugin 高频配置字段
 
-`ModuleFederationPlugin` 的配置项不多，但每一个都直接影响运行时行为。以下是日常最高频的字段：
-
 [width(13,23,15,49)]
 
 | 字段         | 类型               | 默认值             | 作用与注意事项                                                                               |
@@ -314,16 +312,16 @@ new ModuleFederationPlugin({
 | `filename`   | `string`           | `'remoteEntry.js'` | 远程入口产物名，部署后 Host 通过该文件发现模块清单与共享依赖元信息                           |
 | `exposes`    | `object`           | —                  | 对外暴露的模块，key **必须显式以 `./` 开头**（如 `'./OrderApp'`），否则报 `Module not found` |
 | `remotes`    | `object`           | —                  | 消费的远程应用，值为 `'name@url'`，`name` 对应远端 `name`，`url` 指向其 `remoteEntry.js`     |
-| `shared`     | `object` / `array` | —                  | 共享依赖及协商策略，字段详见 6.2 节                                                          |
+| `shared`     | `object` / `array` | —                  | 共享依赖及协商策略                                                                           |
 | `library`    | `object`           | —                  | 产物模块格式，需要以 ESM 输出时设为 `{ type: 'module' }`                                     |
 | `runtime`    | `string` / `false` | —                  | 指定联邦运行时的 chunk 名，多个入口共用同一 `runtime` 可避免运行时被重复注入                 |
 | `shareScope` | `string`           | `'default'`        | 共享作用域名称，多套依赖体系并存时可用不同 scope 做隔离                                      |
 
-> **提示：** `remotes` 的值除 `'name@url'` 字符串外，还支持 `promise new Promise(...)` 的动态写法，可在运行时才决定远程地址，对应 3.4 节的动态 Remote 方案。
+> **提示：** `remotes` 的值除 `'name@url'` 字符串外，还支持 `promise new Promise(...)` 的动态写法，可在运行时才决定远程地址。
 
 ### 3.7 运行时 API 与手动加载
 
-除了在配置里静态声明 `remotes`，也可以在运行时用 Webpack 注入的全局 API 手动加载远程应用（3.4 节的 `loadRemote` 就是这么实现的）。排查联邦问题时，这几个全局量是关键抓手：
+除了在配置里静态声明 `remotes`，也可以在运行时用 Webpack 注入的全局 API 手动加载远程应用。排查联邦问题时，这几个全局量是关键抓手：
 
 [width(40,17,43)]
 
@@ -440,7 +438,88 @@ export default defineConfig({
 
 :::
 
-### 4.4 Vite 模块联邦的注意事项
+### 4.4 Host 消费远程模块
+
+Host 在 `remotes` 里声明远程应用后，业务代码里的消费方式与 Webpack 5 基本一致：把 `import('order/OrderApp')` 当作普通的异步模块直接使用，插件会在构建阶段把它替换成远程容器的加载逻辑。
+
+```ts
+// 方式一：Vue 异步组件
+import { defineAsyncComponent } from 'vue'
+
+const OrderApp = defineAsyncComponent(() => import('order/OrderApp'))
+
+// 方式二：路由级懒加载
+const routes = [
+  {
+    path: '/order',
+    component: () => import('order/OrderApp'),
+  },
+]
+```
+
+#### 4.4.1 动态注册远程路由
+
+Vite / Rollup 只能在构建时静态分析 `import()` 的字面量参数，模块名一旦是运行时拼接的，就不会被联邦插件处理：
+
+```ts
+// Vite 无法静态分析，运行时导入会失败
+const { default: routes } = await import(`${app.scope}/${app.module}`)
+```
+
+正确做法是为每个 Remote 写死一条静态 `import()`，再用映射表统一遍历：
+
+```ts
+const remoteModules = {
+  order: () => import('order/routes'),
+  user: () => import('user/routes'),
+}
+
+async function registerRemoteRoutes(router) {
+  for (const [name, load] of Object.entries(remoteModules)) {
+    try {
+      const { default: routes } = await load()
+      router.addRoute({ path: `/${name}`, children: routes })
+    } catch (err) {
+      console.error(`远程应用 ${name} 不可用，跳过路由注册`, err)
+    }
+  }
+}
+```
+
+#### 4.4.2 **运行时动态 Remote。**
+
+Webpack 场景下可以用 `window[name]` 和 `__webpack_init_sharing__` 手动加载，Vite 没有这套全局量，插件改为提供 `__federation__` 虚拟模块：
+
+```ts
+import {
+  __federation_method_getRemote,
+  __federation_method_setRemote,
+  __federation_method_unwrapDefault,
+} from '__federation__'
+
+// 注册远程应用；url 支持字符串或返回 Promise 的函数，便于从配置中心取值
+__federation_method_setRemote('order', {
+  url: async () => {
+    const config = await fetch('/api/config/remotes').then(res => res.json())
+    return config.order
+  },
+  format: 'esm', // Vite 产物统一为 ESM
+  from: 'vite', // 按 Vite 的共享依赖格式协商
+})
+
+async function loadRemote<T = any>(scope: string, module: string): Promise<T> {
+  const mod = await __federation_method_getRemote(scope, module)
+  return __federation_method_unwrapDefault(mod)
+}
+
+const OrderApp = defineAsyncComponent(() => loadRemote('order', './OrderApp'))
+```
+
+- Remote 的 `remoteEntry.js` 是构建产物，`vite` 开发服务器并不提供它。联调时 Remote 需要先 `vite build`（可加 `--watch`），再用 `vite preview` 起服务，Host 的 `remotes` 指向 preview 地址（如 `http://localhost:3002/assets/remoteEntry.js`）。
+- Remote 的 preview 服务必须开启 CORS（`preview: { cors: true }`），否则 Host 跨域拉取 `remoteEntry.js` 会失败。
+- Host 与 Remote 都必须设置 `build.target: 'esnext'`，联邦运行时代码依赖现代 ESM 与顶层 await，旧浏览器需要额外的降级方案。
+
+### 4.5 Vite 模块联邦的注意事项
 
 Vite 的模块联邦实现与 Webpack 5 存在一些关键差异，落地时必须关注：
 
@@ -554,18 +633,6 @@ shared: {
 | `shareKey`        | `string`  | 包名        | 共享模块在共享作用域中的注册键，默认等于包名。需要同一包的不同版本并存时，可显式指一个不同的 key。                      |
 | `packageName`     | `string`  | —           | 共享子路径模块（如 `@scope/ui/es/button`）时，指定其归属的包名，让版本协商按整包进行。                                  |
 | `shareScope`      | `string`  | `'default'` | 该共享依赖注册到哪个作用域。用多个 scope 可以让两套依赖体系互不干扰。                                                   |
-
-### 6.3 常见 shared 问题
-
-[width(26,31,43)]
-
-| 问题现象                                   | 根因分析                                                          | 解决方案                                                                  |
-| ------------------------------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| 页面同时出现两套 Vue 实例，`ref()` 不共享  | `singleton: true` 未设置或设置不一致                              | 全部应用统一设置 `singleton: true` + `requiredVersion`                    |
-| Remote 加载后 Host 的 UI 组件库样式丢失    | 大型 UI 库的 CSS 被 Remote 重复注入，覆盖了 Host 的样式变量       | CSS Modules / CSS 变量命名空间前缀 / 构建时 `additionalData` 注入前缀     |
-| `remoteEntry.js` 体积过大                  | 大量 `eager: true` 的共享依赖被打进了入口文件                     | 将非必需同步加载的库设为 `eager: false`                                   |
-| 开发环境正常，生产环境报“**版本不兼容**”   | 开发时用了 `*` 或宽泛的版本范围，生产环境 `package.json` 版本收紧 | 统一使用 `pnpm overrides` 锁定版本，CI 中加 `pnpm ls --json` 做版本审计   |
-| Remote 的 Pinia store 在 Host 中 undefined | Pinia 实例在 Remote 初始化时机早于 Host 的共享注入                | 确保 Host 先初始化共享依赖，或 Remote 延迟创建 store 直到 Host 完成初始化 |
 
 ## 7. 路由与组合模式
 
@@ -695,8 +762,6 @@ const GlobalFooter = defineAsyncComponent(() => import('shared/GlobalFooter'))
 
 ### 7.4 高频应用场景
 
-不同诉求对应不同的组合方式，下面是最常见的几类落地场景：
-
 [width(15,35,26,24)]
 
 | 场景                 | 典型做法                                                                         | 关键点                                             | 注意事项                                 |
@@ -716,10 +781,10 @@ Module Federation 的最大工程风险是**运行时版本不一致**。Host �
 ```markdown
 推荐方案：Remote 按版本部署，remoteEntry.js 的 URL 包含版本号。
 
-❌ 错误做法：https://cdn.example.com/order/remoteEntry.js
+错误做法：https://cdn.example.com/order/remoteEntry.js
 → Remote 发布后直接覆盖旧文件，所有在线 Host 立刻受到影响
 
-✅ 正确做法：https://cdn.example.com/order/1.8.0/remoteEntry.js
+正确做法：https://cdn.example.com/order/1.8.0/remoteEntry.js
 → 每个版本独立部署，Host 通过配置中心控制使用哪个版本
 ```
 
@@ -867,19 +932,18 @@ Module Federation 不是“**替代**”其他微前端方案，它们可以**�
 - **解决：** ① 将对应的 shared 依赖设为 `eager: true`；② 或者将 Host 中对共享模块的引用改为异步加载（推荐）。推荐在 Host 入口使用动态 `import()` 来 bootstrap，而非同步引用。
 
 ```ts
-// ❌ 错误写法 — main.ts 中同步 import
+// 错误写法 — main.ts 中同步 import
 import { createApp } from 'vue' // vue 在 shared 中且 eager: false
 import App from './App.vue'
 createApp(App).mount('#app')
 
-// ✅ 正确写法 — 异步 bootstrap
+// 正确写法 — 异步 bootstrap
 import('./bootstrap') // bootstrap.ts 中再 import vue 和 mount
 ```
 
 ### 11.2 Remote 组件类型缺失
 
 - **问题：** `import('order/OrderApp')` 的返回值是 `any`，无法享受类型提示。
-- **解决方案：**
 
 :::code-group
 
@@ -990,10 +1054,10 @@ devServer: {
 
 - **现象：** Remote 已重新部署，页面行为却没变化，监控里仍是旧版本号。
 - **原因：** `remoteEntry.js` 被浏览器或 CDN 长缓存；或 Host 指向的是固定 URL，没有随版本更新。
-- **解决：** 给 `remoteEntry.js` 设短缓存（`Cache-Control: max-age=300`），只有带 content hash 的 chunk 才用长缓存；把远程地址换成版本化 URL（如 `/order/1.8.0/remoteEntry.js`），并通过配置中心下发（见 8.1、8.2）。
+- **解决：** 给 `remoteEntry.js` 设短缓存（`Cache-Control: max-age=300`），只有带 content hash 的 chunk 才用长缓存；把远程地址换成版本化 URL（如 `/order/1.8.0/remoteEntry.js`），并通过配置中心下发。
 
 ### 11.8 远程模块拿到的不是组件，要再取 `.default`
 
 - **现象：** `await import('order/OrderApp')` 的结果不能直接当组件用，必须取 `.default`。
 - **原因：** `import()` 返回的是模块命名空间对象。Remote 若用 `export default` 导出，真正的组件挂在 `namespace.default` 上。
-- **解决：** 手动 `import()` 时解构取默认导出（`const { default: Comp } = await import('order/OrderApp')`）；用 `defineAsyncComponent(() => import('order/OrderApp'))` 时会自动解包 `default`，推荐优先使用（见 3.3）。
+- **解决：** 手动 `import()` 时解构取默认导出（`const { default: Comp } = await import('order/OrderApp')`）；用 `defineAsyncComponent(() => import('order/OrderApp'))` 时会自动解包 `default`。
