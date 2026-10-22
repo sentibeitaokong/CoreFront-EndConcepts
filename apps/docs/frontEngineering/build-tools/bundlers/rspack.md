@@ -152,9 +152,7 @@ module.exports = {
 }
 ```
 
-### 2.3 高频配置项：Webpack 写法在 Rspack 中的对应关系
-
-这是迁移时最需要对照的一张表。凡是表里没提到的（如 `entry`、`output`、`resolve.alias`、`resolve.extensions`、`optimization.splitChunks`），**写法与 Webpack 完全一致，照搬即可**。
+### 2.3 高频配置项
 
 [width(13,29,58)]
 
@@ -169,8 +167,6 @@ module.exports = {
 | 模块联邦 (MF)      | `webpack.container.ModuleFederationPlugin`             | `require('@rspack/core').container.ModuleFederationPlugin`，API 100% 兼容。                                                |
 | 开发服务器         | `webpack-dev-server`                                   | `@rspack/dev-server`，`devServer` 各项配置几乎 100% 兼容。                                                                 |
 | 构建分析           | `webpack-bundle-analyzer`                              | `RsdoctorRspackPlugin`（`@rsdoctor/rspack-plugin`），字节自家分析器，可同时给出产物体积与构建各阶段耗时诊断。              |
-
-下面这个片段展示了 CSS Modules 与 Rsdoctor 这两个高频配置项的接入方式：
 
 ```js
 const rspack = require('@rspack/core')
@@ -277,46 +273,73 @@ module.exports = {
 
 **模块联邦 (Module Federation, 简称 MF)** 是 Webpack 5 推出的一项革命性技术，它允许不同的独立构建之间在运行时动态地共享模块。**Rspack 对 MF 提供了一等公民级别的原生支持，且 API 100% 兼容 Webpack。**
 
-这也是字节跳动等巨型企业选择研发 Rspack 的核心原因之一：Vite 在微前端领域的表现并不尽如人意，而 Rspack 完美继承了 MF 的强大能力，同时赋予了它闪电般的构建速度。
-
 ### 4.1 模块联邦实战配置
 
-假设我们有两个独立的项目：`Host`（基座应用）和 `Remote`（微应用）。`Remote` 想暴露出一个 `Button` 组件给 `Host` 使用。
+假设我们有两个独立的项目：`Host`（基座应用）和 `Remote`（微应用）。`Remote` 想暴露一个 Vue 组件给 `Host` 使用。
 
-**1. 远程应用 (Remote) 配置：暴露组件**
+#### 4.1.1 **微应用 (Remote)：暴露组件**
 
-```js
-// remote/rspack.config.js
+:::code-group
+
+```js [remote/rspack.config.js]
+// 远程应用 (Remote) 配置：暴露 Vue 组件
 const { ModuleFederationPlugin } = require('@rspack/core').container
 
 module.exports = {
-  // ... 基础配置
+  // ... 基础配置（含 vue-loader）
   plugins: [
     new ModuleFederationPlugin({
       name: 'remote_app', // 远程应用的唯一名称
       filename: 'remoteEntry.js', // 暴露给外部加载的清单文件
       // 声明对外暴露的模块
       exposes: {
-        './Button': './src/components/Button.jsx',
+        './Button': './src/components/Button.vue',
       },
-      // 声明依赖共享，避免 Host 和 Remote 重复加载两份 React 导致崩溃
+      // 声明依赖共享，避免 Host 和 Remote 各加载一份 Vue 导致响应式失效
       shared: {
-        react: { singleton: true, requiredVersion: '^18.0.0' },
-        'react-dom': { singleton: true },
+        vue: { singleton: true, requiredVersion: '^3.5.0' },
       },
     }),
   ],
 }
 ```
 
-**2. 基座应用 (Host) 配置：消费组件**
+```vue [remote/src/components/Button.vue]
+<!-- Remote 对外暴露的 Vue 组件 -->
+<template>
+  <button class="remote-button" @click="emit('click')">
+    <slot>Remote Button</slot>
+  </button>
+</template>
 
-```js
-// host/rspack.config.js
+<script setup>
+const emit = defineEmits(['click'])
+</script>
+
+<style scoped>
+.remote-button {
+  padding: 8px 16px;
+  color: #fff;
+  background: #2b6de5;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+</style>
+```
+
+:::
+
+#### 4.1.2 **基座应用 (Host)：消费组件**
+
+:::code-group
+
+```js [host/rspack.config.js]
+// 基座应用 (Host) 配置：消费组件
 const { ModuleFederationPlugin } = require('@rspack/core').container
 
 module.exports = {
-  // ... 基础配置
+  // ... 基础配置（含 vue-loader）
   plugins: [
     new ModuleFederationPlugin({
       name: 'host_app',
@@ -326,16 +349,35 @@ module.exports = {
         remoteApp: 'remote_app@http://localhost:3001/remoteEntry.js',
       },
       shared: {
-        react: { singleton: true },
-        'react-dom': { singleton: true },
+        vue: { singleton: true, requiredVersion: '^3.5.0' },
       },
     }),
   ],
 }
 ```
 
-在 Host 的业务代码中，只需动态导入即可使用跨项目的组件：
-`const RemoteButton = React.lazy(() => import('remoteApp/Button'));`
+```vue [host/src/App.vue]
+<!-- Host 动态导入远程组件 -->
+<template>
+  <RemoteButton @click="handleClick">来自 Remote 的按钮</RemoteButton>
+</template>
+
+<script setup>
+import { defineAsyncComponent } from 'vue'
+
+// 运行时才加载 Remote 暴露的 Button 组件
+const RemoteButton = defineAsyncComponent(() => import('remoteApp/Button'))
+
+function handleClick() {
+  console.log('Remote Button clicked')
+}
+</script>
+```
+
+:::
+
+> [!TIP] 注意点
+> 组件只有在 `<RemoteButton>` 真正渲染时才会被加载，Host 构建阶段并不需要知道 Remote 的实现，双方只约定 `remoteApp/Button` 这一个模块路径。
 
 ## 5. 常见问题 (FAQ) 与避坑指南
 

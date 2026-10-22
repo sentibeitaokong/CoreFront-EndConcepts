@@ -19,18 +19,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ### 1.1 什么是 Bundleless（无包构建）？
 
-在 Webpack 时代，当项目启动（`npm run dev`）时，构建工具必须从入口文件开始，构建完整的依赖图（Module Graph），并将所有的业务代码和第三方库转换、拼装成一个或几个巨大的 Bundle，最后才启动本地服务器。项目越大，冷启动和热更新（HMR）就越慢。
-
-**Bundleless 的核心思想是：将模块解析的工作交还给浏览器。**
-
-现代浏览器原生支持了 ES Modules (`<script type="module">`)。当浏览器遇到 `import` 时，它会自己向服务器发起 HTTP 请求获取模块。
-
-Vite 在开发环境下的 Bundleless 流程如下：
-
-- **秒级冷启动**：Vite 启动一个轻量级的开发服务器（基于 Connect），**不编译任何业务代码**，直接 ready。时间复杂度是 O(1)。
-- **按需拦截与编译**：当浏览器解析到 `import { ref } from 'vue'` 或 `import App from './App.vue'` 时，会向 Vite 服务器发送 HTTP 请求。
-- **即时转换（Transform）**：Vite 拦截到请求后，通过内部的插件流水线（Plugin Pipeline），**即时**将请求的文件编译成浏览器能看懂的原生 JavaScript，并返回。
-- **极致的热更新**：修改某个文件时，Vite 只需要让浏览器重新请求这一个文件，而不需要像 Webpack 那样重新构建相关的整个依赖链。
+在 Webpack 时代，当项目启动（`npm run dev`）时，构建工具必须从入口文件开始，构建完整的依赖图（Module Graph），并将所有的业务代码和第三方库转换、拼装成一个或几个巨大的 Bundle，最后才启动本地服务器。项目越大，冷启动和热更新（HMR）就越慢，**Bundleless 的核心思想是：将模块解析的工作交还给浏览器。**
 
 ### 1.2 vite实现原理
 
@@ -61,7 +50,7 @@ Vite 在开发环境下的 Bundleless 流程如下：
 - **文件系统监听**：服务端基于 `chokidar` 实时且精准地监听本地物理文件的增删改动作。
 - **精准失效与 WebSocket 推送**：服务端与客户端（浏览器中注入的轻量级 HMR runtime）通过 `WebSocket` 保持长连接。当监听到文件变更时，Vite 会迅速计算出模块失效边界（HMR Boundary），并通过 WebSocket 向客户端发送更新指令。客户端仅需重新拉取受影响的极少部分模块代码并替换，实现了复杂度始终保持在 O(1) 级别的超快热更体验。
 
-### 1.3 Vite 的完整生产构建过程 (Build Process)
+### 1.3 Vite 的构建过程
 
 在执行 `npm run build` 时，Vite **完全抛弃了 Bundleless，转向了传统的打包模式**。
 
@@ -76,9 +65,9 @@ Vite 通常以 `index.html` 作为入口。它内部使用了一个插件来解�
 
 #### 1.3.2 构建模块图 (Module Graph Construction)
 
-Rollup 从入口开始，递归解析每一个文件。对于每一个文件，都会依次触发 Vite 插件系统的核心生命周期钩子：
+Rollup 从入口开始，递归解析每一个文件。对于每一个文件，都会依次触发Vite插件系统的核心生命周期钩子：
 
-- **`resolveId`**：解析模块的绝对路径（比如将 `@/components/Button` 映射为 `/src/components/Button.vue`）。
+- **`resolveId`**：解析模块的绝对路(比如将`@/components/Button`映射为`/src/components/Button.vue`)。
 - **`load`**：读取文件系统中的源码内容。
 - **`transform`**：**这是最核心的环节**。源码在这里被转化为 AST，进行各种魔改。比如 `@vitejs/plugin-vue` 会在这里将 Vue 的单文件组件（SFC）拆解、编译，转译成 JS 渲染函数；Babel 或 Esbuild 也会在这里将 TypeScript 降级为 JavaScript。
 
@@ -103,7 +92,7 @@ Rollup 从入口开始，递归解析每一个文件。对于每一个文件，�
 
 ## 2.Vite 凭什么这么快？
 
-Vite（法语“**快**”的意思）之所以能在毫秒级启动，核心在于它在开发环境和生产环境采用了**两套完全不同的架构模型**。
+Vite之所以能在毫秒级启动，核心在于它在开发环境和生产环境采用了**两套完全不同的架构模型**。
 
 ### 2.1 开发服务器的“**按需编译**” (Native ESM)
 
@@ -117,7 +106,7 @@ Vite（法语“**快**”的意思）之所以能在毫秒级启动，核心在
 
 - **CommonJS/UMD 转换**：浏览器不支持 `require`，Vite 必须将旧规范的包转化为 ESM。
 - **性能优化（减少 HTTP 请求）**：有些包（如 `lodash-es`）内部有多达 600 个内部模块的互相 `import`。如果让浏览器直接发请求，瞬间 600 个网络请求会让浏览器直接卡死。
-- **Esbuild 的降维打击**：Vite 在首次冷启动前，会使用用 **Go 语言**编写的 `Esbuild`（速度比 JS 编写的打包器快 10-100 倍）扫描所有的依赖，并将它们预先打包成单个或少数几个模块，缓存在 `node_modules/.vite` 中。
+- **Esbuild 的降维打击**：Vite 在首次冷启动前，会使用用 **Go语言**编写的`Esbuild`(速度比 JS 编写的打包器快 10-100 倍)扫描所有的依赖，并将它们预先打包成单个或少数几个模块，缓存在 `node_modules/.vite` 中。
 
 ### 2.3 生产环境的稳健打包 (Rollup)
 
@@ -225,8 +214,6 @@ export default defineConfig(({ command, mode }) => {
 
 ### 3.1 高频配置项速查
 
-上面的配置模板覆盖了大部分字段，但日常开发中真正天天打交道的，其实是下面这几个。
-
 [width(19,16,65)]
 
 | 配置项                        | 作用                | 高频实践                                                                                                                      |
@@ -245,8 +232,6 @@ export default defineConfig(({ command, mode }) => {
 | **`plugins`**                 | 插件数组            | 所有能力的入口，用 `enforce: 'pre'` / `'post'` 控制执行顺序。                                                                 |
 
 ### 3.2 高频 CLI 命令
-
-Vite 的脚手架命令极其精简，日常高频使用的只有下面四条。
 
 [width(32,68)]
 
@@ -268,7 +253,7 @@ Vite 的脚手架命令极其精简，日常高频使用的只有下面四条。
 ### 3.3 高频应用场景
 
 - **SPA 开发期跨域联调**：后端接口不开放 CORS，用 `server.proxy` 把 `/api` 转发到测试环境地址，前端代码里始终只写 `/api/xxx`，上线后交由 Nginx 反向代理。
-- **多环境变量打包**：用 `.env.development` / `.env.staging` / `.env.production` 存放不同环境的变量，配合 `vite build --mode staging` 产出对应环境包；业务代码里统一用 `import.meta.env.VITE_XXX` 读取。
+- **多环境变量打包**：用 `.env.development` / `.env.staging` / `.env.production` 存放不同环境的变量，配合`vite build --mode staging`产出对应环境包;业务代码里统一用 `import.meta.env.VITE_XXX` 读取。
 - **静态资源部署到子目录或 CDN**：`base` 配成 `'/admin/'` 或 CDN 域名，同时保证路由使用 `createWebHistory('/admin/')`。
 - **三方库预构建报错 / 页面莫名刷新**：把报错或动态引入的库加进 `optimizeDeps.include`；若某个本地软链库要保留实时热更新，则放进 `exclude`。
 - **开发组件库 / 工具库（Library Mode）**：用 `build.lib` 指定入口与产物格式，把 `vue`、`react` 等 peer 依赖放进 `rollupOptions.external`，产出 ESM + UMD 双格式供业务方消费。
@@ -381,7 +366,7 @@ export default defineConfig({
 
 ### 5.2 核心钩子解构：从微内核“**系统调用**”视角审视
 
-Vite 的流水线本质上就是内核向外广播的“**系统中断（Interrupts）**”和“**系统调用（System Calls）**”。架构师必须深刻理解以下 5 个核心钩子在系统底层的真正含义。
+Vite 的流水线本质上就是内核向外广播的“**系统中断（Interrupts）**”和“**系统调用（System Calls）**”。
 
 #### 5.2.1 `resolveId` —— 地址空间映射 (Address Translation)
 
@@ -391,12 +376,34 @@ Vite 的流水线本质上就是内核向外广播的“**系统中断（Interru
   当业务代码发起 `import { ref } from 'vue'` 时，内核并不知道 `vue` 在哪。内核通过触发 `resolveId` 询问所有的插件：“**谁能帮我解析这个地址？**”。
   插件可以将其映射为物理硬盘上的绝对路径（如 `node_modules/...`），也可以将其映射为一个不存在的“**虚拟地址**”（如 `\0virtual:module`），从而实现**虚拟文件系统**的能力。
 
+```ts
+const plugin = {
+  // 把 import 'virtual:app-info' 指向一个虚构的地址
+  resolveId(id) {
+    if (id === 'virtual:app-info') {
+      return '\0virtual:app-info' // \0 前缀避免被其他插件再次解析
+    }
+  },
+}
+```
+
 #### 5.2.2 `load` —— 硬件 I/O 抽象 (Virtual I/O)
 
 - **前端含义：** 根据 `resolveId` 确定的路径，读取模块的内容。
 - **微内核视角：** 相当于操作系统的**磁盘 I/O 驱动**。
 - **深度解构：**
   内核本身不关心文件是怎么读出来的。默认情况下，内核会去读硬盘。但如果某个插件拦截了 `load` 钩子，它就可以直接在内存中生成一段字符串返回给内核。这种设计彻底**解耦了“模块”与“物理硬盘”的绑定关系**。你可以通过它把数据库里的一条记录，伪装成一个正常的 JS 模块加载进来。
+
+```ts
+const plugin = {
+  // 该地址没有对应的物理文件，直接由插件在内存中生成模块源码
+  load(id) {
+    if (id === '\0virtual:app-info') {
+      return "export default { version: '1.0.0' }"
+    }
+  },
+}
+```
 
 #### 5.2.3 `transform` —— 指令集翻译 (Instruction Translation)
 
@@ -405,6 +412,17 @@ Vite 的流水线本质上就是内核向外广播的“**系统中断（Interru
 - **深度解构：**
   这是插件做“**微创手术**”的核心战场。不管是 TypeScript、JSX 还是 Vue Template，在内核看来都是无法执行的“**异构指令**”。插件在此钩子中接管源码，利用 AST（抽象语法树）将其翻译为标准的 ECMAScript。这种设计让 Vite 内核具备了**无限的跨语言扩展能力**。
 
+```ts
+const plugin = {
+  // 把自定义宏 __VERSION__ 翻译成浏览器可执行的字面量
+  transform(code, id) {
+    if (id.endsWith('.ts')) {
+      return code.replaceAll('__VERSION__', "'1.0.0'")
+    }
+  },
+}
+```
+
 #### 5.2.4 `configureServer` —— 内核空间提权 (Kernel Space Extension)
 
 - **前端含义：** 访问并配置 Vite 底层的开发服务器实例（Connect 实例）。
@@ -412,12 +430,35 @@ Vite 的流水线本质上就是内核向外广播的“**系统中断（Interru
 - **深度解构：**
   这是权限极高的一个钩子。通过它，插件不仅是在处理代码，而是直接干预了网络请求的分发协议。你可以挂载自定义的 API 路由（用于本地 Mock），也可以劫持 WebSocket 连接。这使得 Vite 不仅是一个打包工具，更是一个**高可扩展的网关服务器**。
 
+```ts
+const plugin = {
+  // 直接向开发服务器的中间件栈注入一条 API 路由
+  configureServer(server) {
+    server.middlewares.use('/api/mock', (_req, res) => {
+      res.end(JSON.stringify({ ok: true }))
+    })
+  },
+}
+```
+
 #### 5.2.5 `handleHotUpdate` —— 进程间通信与中断处理 (IPC & Interrupts)
 
 - **前端含义：** 拦截文件的热更新事件，决定客户端页面如何刷新。
 - **微内核视角：** 相当于操作系统的**中断处理程序（Interrupt Handler）**与**消息总线（Message Bus）**。
 - **深度解构：**
   当物理文件发生改变时（硬件中断），内核触发该钩子。插件作为“**中断处理程序**”，可以精确计算出受影响的模块边界（Boundary），然后决定：是静默吞掉这个中断、局部更新某个模块，还是向客户端发送自定义的 IPC 消息（通过 WebSocket），要求客户端执行特定的恢复逻辑。
+
+```ts
+const plugin = {
+  // 只让配置文件触发整页刷新，其余文件交给默认的 HMR
+  handleHotUpdate(ctx) {
+    if (ctx.file.endsWith('config.ts')) {
+      ctx.server.ws.send({ type: 'full-reload' })
+      return [] // 返回空数组，跳过默认的模块更新
+    }
+  },
+}
+```
 
 ### 5.3. 调度优先级：微内核的特权级别控制 (`enforce`)
 
@@ -441,8 +482,6 @@ Vite 的流水线本质上就是内核向外广播的“**系统中断（Interru
 **场景：** 你的业务代码需要在运行时获取当前的**打包时间**、**Git Commit Hash** 或**部署环境版本号**，用于展示在控制台或发给监控系统。你不想每次都手动去改 `.env` 文件。
 
 **解决思路：** 利用 `config` 钩子，在 Vite 解析完配置后、真正开始构建前，动态修改配置中的 `define` 字段。
-
-**实战代码：**
 
 ```typescript
 import type { Plugin } from 'vite'
@@ -478,8 +517,6 @@ export function injectBuildInfoPlugin(): Plugin {
 **场景：** 你的团队在写组件库文档，希望能直接在 Vue 文件中 `import doc from './readme.md'`，并且希望这个 Markdown 文件能直接被当成一个 Vue 组件渲染出来，而不是当作普通字符串。
 
 **解决思路：** 利用 `transform` 钩子。当 Vite 遇到 `.md` 文件时，拦截它，用 Markdown 解析器把它变成 HTML，然后再强行包装成一个 Vue 组件的 JavaScript 代码。
-
-**实战代码：**
 
 ```typescript
 import type { Plugin } from 'vite'
@@ -525,8 +562,6 @@ export function markdownToVuePlugin(): Plugin {
 
 **解决思路：** 重点利用 Vite 独有的 `configureServer` 钩子。它可以拿到 Vite 底层 HTTP 服务器（Connect 实例）的最高控制权，允许你插入自定义的中间件。
 
-**实战代码：**
-
 ```typescript
 import type { Plugin } from 'vite'
 
@@ -565,8 +600,6 @@ export function localMockServerPlugin(): Plugin {
 **场景：** 公司运维要求前端在执行完 `pnpm build` 后，必须把 `dist` 文件夹打成一个 `.zip` 压缩包，并且在控制台输出“**打包成功，耗时 X 秒**”的炫酷提示。
 
 **解决思路：** 利用 Rollup 生命周期的终点钩子 `closeBundle`。当这个钩子触发时，意味着所有的文件都已经完完整整地写入了物理硬盘。
-
-**实战代码：**
 
 ```typescript
 import type { Plugin } from 'vite'
@@ -611,30 +644,22 @@ export function autoZipDistPlugin(): Plugin {
 }
 ```
 
-**写 Vite 插件的关键，在于在正确的时间做正确的事。**
-
-- 如果你想改配置参数：找 `config` 或 `configResolved`。
-- 如果你想拦截物理文件或造假文件：找 `resolveId` 和 `load`。
-- 如果你想修改源码（宏替换/编译）：找 `transform`。
-- 如果你想操作生成的产物文件：找 `generateBundle`（生成字典但还没写入）或 `closeBundle`（已经写入物理硬盘）。
-
 ## 7. 常见问题 (FAQ) 与避坑指南
 
 ### 7.1 为什么代码里写 `process.env.NODE_ENV` 突然报错了？怎么获取环境变量？
 
-- 这是从 Webpack 迁移到 Vite 最常踩的坑：
-  - **原因**：Vite 抛弃了 Node.js 的 `process.env`，全面拥抱标准的 ESM 环境变量注入方式。
-  - **正确做法**：在业务代码中，必须使用 **`import.meta.env`** 来获取环境变量。例如 `import.meta.env.MODE`。
-  - **安全限制**：为了防止将数据库密码等私密变量打包进前端代码，Vite 强制规定：**只有以 `VITE_` 开头的环境变量才会被暴露给前端代码**。例如你在 `.env` 中写了 `SECRET_KEY=123`，前端是绝对拿不到的；必须改成 `VITE_SECRET_KEY=123`。
+- **原因**：Vite 抛弃了 Node.js 的 `process.env`，全面拥抱标准的 ESM 环境变量注入方式。
+- **正确做法**：在业务代码中，必须使用 **`import.meta.env`** 来获取环境变量。例如 `import.meta.env.MODE`。
+- **安全限制**：为了防止将数据库密码等私密变量打包进前端代码，Vite 强制规定：**只有以 `VITE_` 开头的环境变量才会被暴露给前端代码**。例如你在 `.env` 中写了 `SECRET_KEY=123`，前端是绝对拿不到的；必须改成 `VITE_SECRET_KEY=123`。
 
 ### 7.2 为什么引入了包含 `require` 语法的第三方包，浏览器直接报错 `require is not defined`？
 
 - **原因**：浏览器根本不认识 CommonJS 的 `require` 和 `module.exports`。Webpack 之所以能跑，是因为 Webpack 在打包时注入了大量的胶水代码模拟了 `require` 环境。而 Vite 开发环境直接把源码丢给浏览器，浏览器当然会报错。
 - **解决方案**：
-  1. 尽量寻找该包的 ESM 版本（通常带有 `-es` 后缀）。
-  2. 如果该包只在某一个特殊逻辑中用到，尽量不要直接引，让 Vite 的 `optimizeDeps` 去处理它。
-  3. 如果是自己写的本地文件，必须立刻将其重构为 `import/export` 语法。
-  4. 借助插件：安装 `@originjs/vite-plugin-commonjs`，强行让 Vite 在开发时转换 CJS（不得已而为之的下策）。
+  - 尽量寻找该包的 ESM 版本（通常带有 `-es` 后缀）。
+  - 如果该包只在某一个特殊逻辑中用到，尽量不要直接引，让 Vite 的 `optimizeDeps` 去处理它。
+  - 如果是自己写的本地文件，必须立刻将其重构为 `import/export` 语法。
+  - 借助插件：安装 `@originjs/vite-plugin-commonjs`，强行让 Vite 在开发时转换 CJS（不得已而为之的下策）。
 
 ### 7.3 `require.context` (批量导入文件) 在 Vite 里不能用了怎么办？
 
@@ -657,51 +682,56 @@ export function autoZipDistPlugin(): Plugin {
   - 此时，Vite 被迫中断当前的编译，紧急启动 esbuild 对这个新包进行“**依赖预构建**”。为了保证模块图的绝对正确，Vite 预构建完成后会**强制刷新整个浏览器页面**。
   - **解决策略**：仔细观察控制台提示的重新构建的包名，将其手动加入到 `vite.config.js` 的 **`optimizeDeps.include`** 数组中。这样 Vite 在一开始启动时就会把它处理好，避免运行时的突然刷新。
 
-### 7.5 开发环境和生产环境使用两套不同的底层引擎，vite底层具体是怎么保证两端的一致性和稳定性的？
+### 7.5 开发环境和生产环境使用两套不同的底层引擎，Vite 底层具体是怎么保证两端的一致性和稳定性的？
 
-#### 1. 最核心的魔法：实现一个“**Rollup 插件容器 (Plugin Container)**”
+开发环境按需编译、生产环境全量打包，两端物理形态不同。Vite 通过四层设计，把这种差异收敛到最小：
 
-这是 Vite 解决两端差异的“**撒手锏**”。
-由于生产环境用的是 Rollup，Vite 希望开发者只写一套 Rollup 风格的插件。但在开发环境下（esbuild + Koa/Connect Server），根本没有 Rollup 在运行。
-怎么办？**Vite 在自己的开发服务器内部，用代码硬写了一个模拟的 Rollup 运行环境（Plugin Container）**。
-当浏览器在开发模式下请求一个文件时，Vite 的服务器会拦截请求，并按照 Rollup 的生命周期 API 规范，依次调用插件的 `resolveId`、`load`、`transform` 等钩子。
+#### 7.5.1 Plugin Container：开发环境里的 Rollup 插件容器
 
-- **结果**：你写的一个 Rollup 插件，在生产环境由原生的 Rollup 调用；在开发环境，由 Vite 的模拟容器“**骗**”它在执行。两端输入输出的数据结构完全一致。
+Vite 的插件生态直接复用 Rollup 的插件 API，但开发环境并没有 Rollup 在运行。
 
-#### 2. 生产环境中，esbuild 依然在出大力
+Vite 的解法是在 Dev Server 内部实现一个 **Plugin Container**：浏览器每请求一个模块，容器就按 Rollup 的生命周期规范，依次调用插件的 `resolveId`、`load`、`transform` 等钩子，再把结果返回给浏览器。
 
-很多人误以为“**开发用 esbuild，生产纯用 Rollup**”。其实不然。
-在生产环境进行 Rollup 打包时，Rollup 本身只负责**依赖分析、Chunk 拆分和构建图流转**。而在最耗时的**单文件代码编译**（把 TypeScript 编译成 JS，把 JSX 编译成 JS）和**代码压缩**（Minify）环节，Vite 依然悄悄地把这些脏活交给了 esbuild。
+- 同一个插件，生产构建时由 Rollup 原生调用，开发时由 Plugin Container 调用。
+- 两端拿到的钩子参数、返回值和上下文对象遵循同一套规范。
 
-- **结果**：因为两端的 TS/JSX 编译和压缩核心都使用了同一套 esbuild 引擎，极大地消除了因 Babel/Terser 与 esbuild 编译策略不同而产生的运行时差异。
+#### 7.5.2 生产构建也不是“纯 Rollup”
 
-#### 3. 高度统一的配置源与默认预设 (One Config to Rule Them All)
+很多人误以为“**开发用 esbuild，生产纯用 Rollup**”。实际上生产构建同样是分工协作：
 
-传统 Webpack 时代，我们经常要维护 `webpack.dev.js` 和 `webpack.prod.js` 两个差异巨大的配置文件。
-Vite 强制所有的环境共享同一个 `vite.config.ts`。在这个配置里：
+- **Rollup** 负责依赖分析、Tree-shaking、Chunk 拆分和构建图流转。
+- **esbuild** 负责单文件编译（TS/JSX → JS）和代码压缩（Minify）。
+
+开发环境的 TS/JSX 转换同样交给 esbuild。两端共用同一套编译内核，就不会出现 Babel 与 esbuild 编译策略不同而导致的运行时差异。
+
+#### 7.5.3 单一配置源与统一预设
+
+传统 Webpack 项目常常要维护 `webpack.dev.js` 和 `webpack.prod.js` 两份差异巨大的配置。Vite 默认只使用一份 `vite.config.ts`，两端共享同一套基础规则：
 
 - CSS 预处理器行为（PostCSS）
 - 路径别名解析（Alias）
 - 环境变量注入（Define）
-  这些影响代码执行逻辑的基础设施，Vite 内部都做了严格的对齐，确保 esbuild 的解析路径和 Rollup 的解析路径是同一套正则和映射规则。
 
-#### 4. 显式的环境逃生舱（Escape Hatches）
+这些直接影响代码执行结果的基础设施，Vite 内部都做了对齐，保证开发时的解析路径与生产构建一致。确实需要区分环境时，用 `defineConfig(({ mode }) => ...)` 按 `mode` 分支，而不是复制两份配置。
 
-尽管 Vite 做了 99% 的抹平工作，但开发（按需流式）和生产（全量打包）在物理形态上终究不同。有些插件确实只能在特定环境下运行（比如开发环境的全局错误弹窗插件，生产环境的 Gzip 压缩插件）。
-为此，Vite 提供了一个优雅的兜底方案 —— 插件属性 `apply`。
+#### 7.5.4 `apply`：显式的环境逃生舱
 
-```javascript
+前面三层抹平了 99% 的差异，但按需编译和全量打包终究是两种形态。有些插件只能在某一端工作（如开发环境的错误弹窗、生产环境的 Gzip 压缩），这时用插件属性 `apply` 声明生效环境：
+
+```js
 export default function myPlugin() {
   return {
     name: 'my-plugin',
-    apply: 'build', // 显式声明：这个插件只在生产环境 (Rollup) 运行
-    // apply: 'serve' 则表示只在开发环境运行
+    apply: 'build', // 只在 vite build（生产构建）时启用
+    // apply: 'serve' 则只在 vite dev 时启用
     transform(code) {
       /* ... */
     },
   }
 }
 ```
+
+**一句话总结：** 同一套插件 API、同一份配置、同一批编译内核，Vite 把两端差异收敛到“**按需编译 vs 全量打包**”这一点上。
 
 ### 7.6 部署到 Nginx 子目录或 CDN 后，页面白屏、静态资源全部 404 怎么办？
 

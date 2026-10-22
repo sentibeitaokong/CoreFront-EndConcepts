@@ -145,26 +145,26 @@ Corepack 是 Node.js 内置的包管理器版本管理工具（Node 16.9+）。�
 
 `store/` 即 `pnpm store path` 的输出（macOS 上默认是 `~/Library/pnpm/store/v11`）：
 
-```markdown
+```tree
 ~/pnpm/store/ ← 全局store
 └── v11/files/
-├── ab/cdef... ← 实际文件内容（按内容哈希命名）
-└── 12/3456... ← 另一个实际文件内容
+    ├── ab/cdef... ← 实际文件内容（按内容哈希命名）
+    └── 12/3456... ← 另一个实际文件内容
 
 项目/
 ├── node_modules/
-│ ├── .pnpm/ ← 虚拟 store（实际包目录）
-│ │ ├── foo@1.0.0/
-│ │ │ └── node_modules/
-│ │ │ └── foo/
-│ │ │ ├── index.js ← 硬链接到全局 store
-│ │ │ └── package.json ← 硬链接到全局 store
-│ │ └── bar@2.0.0/
-│ │ └── node_modules/
-│ │ └── bar/
-│ │ └── index.js ← 硬链接到全局 store
-│ ├── foo → .pnpm/foo@1.0.0/node_modules/foo ← 软链接
-│ └── bar → .pnpm/bar@2.0.0/node_modules/bar ← 软链接
+│   ├── .pnpm/                         ← 虚拟 store（实际包目录）
+│   │   ├── foo@1.0.0/
+│   │   │   └── node_modules/
+│   │   │       └── foo/
+│   │   │           ├── index.js       ← 硬链接到全局 store
+│   │   │           └── package.json   ← 硬链接到全局 store
+│   │   └── bar@2.0.0/
+│   │       └── node_modules/
+│   │           └── bar/
+│   │               └── index.js       ← 硬链接到全局 store
+│   ├── foo  → .pnpm/foo@1.0.0/node_modules/foo   ← 软链接
+│   └── bar  → .pnpm/bar@2.0.0/node_modules/bar   ← 软链接
 └── package.json
 ```
 

@@ -473,14 +473,182 @@ module.exports = {
 }
 ```
 
-## 4. 常见问题 (FAQ) 与避坑指南
+## 4. 微前端与模块联邦
 
-### 4.1 Loader 和 Plugin 的本质区别是什么？
+### 4.1 什么是微前端
+
+**微前端（Micro Frontends）** 是一种把单体前端拆成多个可独立开发、独立测试、独立部署的子应用的架构风格，思路借鉴自微服务：按业务域划分边界，让不同团队各自迭代，最后再组合成一个完整产品。
+
+**模块联邦（Module Federation，简称 MF）** 是 Webpack 5 提供的模块级方案：多个独立构建、独立部署的应用，可以在浏览器中互相加载对方暴露的模块，并共享同一份公共依赖。`splitChunks` 拆分的是同一次构建内部的 chunk，模块联邦跨越的则是不同构建产物之间的边界。
+
+### 4.2 核心属性
+
+[width(16,14,70)]
+
+| 属性       | 类型               | 作用与注意事项                                                                              |
+| ---------- | ------------------ | ------------------------------------------------------------------------------------------- |
+| `name`     | `string`           | 容器名，`remoteEntry.js` 会把容器挂到这个全局变量上；`remotes` 值里的 `name@` 必须与它一致  |
+| `filename` | `string`           | 远程入口产物名，默认 `remoteEntry.js`；基座通过它发现模块清单                               |
+| `exposes`  | `object`           | 微应用暴露的模块，key **必须以 `./` 开头**，否则基座导入时会报 `Module not found`           |
+| `remotes`  | `object`           | 基座消费的远程应用，值为 `'name@remoteEntry.js 的 URL'`；key 是 `import()` 时使用的模块前缀 |
+| `shared`   | `object` / `array` | 共享依赖；Vue、React、状态管理库必须设 `singleton: true`，否则会出现多实例                  |
+
+### 4.3 典型应用场景
+
+- **基座 + 业务子应用**：Host 统一布局、登录与菜单，每个业务域各自一个 Remote，按路由动态加载。
+- **跨团队组件共享**：设计系统、Header、鉴权按钮等抽成一个 `shared` Remote，供所有应用按需引用。
+- **大模块按需加载**：富文本、图表、地图、低代码引擎等体积大、使用频率低的模块独立成 Remote，命中路由时才 `import()`。
+- **渐进式迁移**：新页面走模块联邦，旧系统保持独立部署，由 Host 统一编排路由，逐步替换。
+- **多团队独立发版**：每个业务域独立 CI/CD、独立域名部署，发版节奏互不阻塞。
+
+### 4.4 实战配置
+
+假设有两个独立项目：`Host`(基座应用)和 `Remote`(微应用)，`Remote` 暴露一个商品卡片组件 `ProductCard` 给 `Host` 使用。
+
+#### 4.4.1 **微应用 (Remote)：暴露组件**
+
+:::code-group
+
+```js [remote/webpack.config.js]
+// 远程应用 (Remote) 配置：暴露 Vue 组件
+const { ModuleFederationPlugin } = require('webpack').container
+
+module.exports = {
+  // ... 基础配置（含 vue-loader）
+  plugins: [
+    new ModuleFederationPlugin({
+      name: 'remote_app', // 远程应用的唯一名称
+      filename: 'remoteEntry.js', // 暴露给外部加载的清单文件
+      // 声明对外暴露的模块
+      exposes: {
+        './ProductCard': './src/components/ProductCard.vue',
+      },
+      // 声明依赖共享，避免 Host 和 Remote 各加载一份 Vue 导致响应式失效
+      shared: {
+        vue: {
+          singleton: true,
+          requiredVersion: '^3.5.0',
+          eager: false, // 默认值：首次 import 时才加载，减小 remoteEntry 体积
+        },
+      },
+    }),
+  ],
+}
+```
+
+```vue [remote/src/components/ProductCard.vue]
+<!-- Remote 对外暴露的商品卡片组件 -->
+<template>
+  <article class="product-card">
+    <h3>{{ product.name }}</h3>
+    <p class="price">¥{{ product.price }}</p>
+    <button @click="emit('add-to-cart', product)">加入购物车</button>
+  </article>
+</template>
+
+<script setup>
+defineProps({
+  product: {
+    type: Object,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['add-to-cart'])
+</script>
+
+<style scoped>
+.product-card {
+  padding: 16px;
+  border: 1px solid #e3e8ef;
+  border-radius: 8px;
+}
+
+.price {
+  color: #d9480f;
+  font-weight: 600;
+}
+</style>
+```
+
+:::
+
+#### 4.4.2 **基座应用 (Host)：消费组件**
+
+:::code-group
+
+```js [host/webpack.config.js]
+// 基座应用 (Host) 配置：消费组件
+const { ModuleFederationPlugin } = require('webpack').container
+
+module.exports = {
+  // ... 基础配置（含 vue-loader）
+  plugins: [
+    new ModuleFederationPlugin({
+      name: 'host_app',
+      // 声明要从哪些远端加载资源
+      remotes: {
+        // remote_app 是对方定义的 name，后面的 URL 是对方服务的地址
+        remoteApp: 'remote_app@http://localhost:3001/remoteEntry.js',
+      },
+      shared: {
+        vue: {
+          singleton: true,
+          requiredVersion: '^3.5.0',
+          eager: false,
+        },
+      },
+    }),
+  ],
+}
+```
+
+```vue [host/src/App.vue]
+<!-- Host 动态导入远程组件 -->
+<template>
+  <ProductCard :product="product" @add-to-cart="handleAdd" />
+  <p>购物车：{{ cartCount }} 件</p>
+</template>
+
+<script setup>
+import { defineAsyncComponent, ref } from 'vue'
+
+// 运行时才加载 Remote 暴露的 ProductCard 组件
+const ProductCard = defineAsyncComponent(() => import('remoteApp/ProductCard'))
+
+const product = { name: 'Aurora 无线耳机', price: 899 }
+const cartCount = ref(0)
+
+function handleAdd() {
+  cartCount.value += 1
+}
+</script>
+```
+
+:::
+
+> [!TIP] 注意点
+> 组件只有在 `<ProductCard>` 真正渲染时才会被加载，Host 构建阶段并不需要知道 Remote 的实现，双方只约定 `remoteApp/ProductCard` 这一个模块路径。props 和事件也能正常跨应用传递：`Host` 传入商品数据，`Remote` 通过 `add-to-cart` 事件把用户操作交回 `Host`。
+
+### 4.5 注意事项
+
+[width(19,45,36)]
+
+| 注意点                        | 触发场景与原因                                                                                                                                          | 处理方式                                                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| 基座入口同步引用共享依赖      | `main.js` 同步 `import { createApp } from 'vue'`，而 `vue` 在 `shared` 中且 `eager: false`，会报 `Shared module is not available for eager consumption` | 入口改为异步 bootstrap：`main.js` 只写 `import('./bootstrap')`，在 `bootstrap.js` 中再加载 Vue 并挂载应用                                   |
+| Remote 发版后基座仍加载旧模块 | `remoteEntry.js` 被浏览器或 CDN 长期缓存                                                                                                                | 给 `remoteEntry.js` 设短缓存（如 `max-age=300`），带 content hash 的 chunk 才用长缓存；远程地址按版本部署，如 `/order/1.8.0/remoteEntry.js` |
+| Remote 的全局样式污染 Host    | 模块联邦不提供 CSS 隔离，多个应用的样式会进入同一个文档                                                                                                 | 用 CSS Modules、类名前缀或 Shadow DOM 做隔离                                                                                                |
+| 运行时出现多份依赖实例        | 两端 `shared` 中同一依赖的 `requiredVersion` 不一致，协商后各自保留一份                                                                                 | 统一版本区间，并用 `pnpm overrides` / `resolutions` 锁定版本                                                                                |
+
+## 5. 常见问题 (FAQ) 与避坑指南
+
+### 5.1 Loader 和 Plugin 的本质区别是什么？
 
 - **职责层面**：`Loader` 是“**翻译官/转换器**”，它工作在模块加载层面，专注于对某种特定类型的文件（如 CSS、Vue、图片）进行内容转换。`Plugin` 是“**监听器/扩展器**”，它工作在 Webpack 的整个生命周期中，可以执行范围更广的任务（如打包优化、注入环境变量、自动生成 HTML）。
 - **配置层面**：Loader 在 `module.rules` 中配置，通常以数组形式存在。Plugin 在 `plugins` 数组中配置，通常需要 `new` 一个该插件的实例并传入配置参数。
 
-### 4.2 彻底搞懂 Hash、Chunkhash 和 Contenthash 的区别？
+### 5.2 彻底搞懂 Hash、Chunkhash 和 Contenthash 的区别？
 
 我们在配置 output 文件名时，常常为了解决浏览器强缓存问题而加上 hash 值。这三者有极大的区别：
 
@@ -488,13 +656,13 @@ module.exports = {
 - **`chunkhash`**：与 **Webpack 打包的 chunk** 相关。只要同一个入口（Entry）对应的 chunk 内容改变，该 chunk 的 hash 就会变。**（缺点：如果 JS 里引入了 CSS，JS 改了，CSS 虽然没改，但由于同属一个 chunk，CSS 的 hash 也会变）**。
 - **`contenthash`**：**（最优解）** 根据**文件自身的内容**计算出 hash。只有文件内容真的变了，hash 才会变。对于提取出来的 CSS 和 JS，通常全部使用 `contenthash`。
 
-### 4.3 Webpack 构建速度太慢，有哪些核心的性能优化手段？
+### 5.3 Webpack 构建速度太慢，有哪些核心的性能优化手段？
 
 - **缩小搜索范围**：配置 Loader 的 `include` 或 `exclude`（如 `exclude: /node_modules/`），避免 Babel 费时费力去编译第三方库。设置 `resolve.alias` 别名，减少模块寻址时间。
 - **开启持久化缓存 (Webpack 5 杀手锏)**：Webpack 5 内置了物理缓存机制。配置 `cache: { type: 'filesystem' }`，二次构建速度将有十倍以上的跨越式提升（取代了过去繁琐的 `hard-source-webpack-plugin`）。
 - **多进程/多线程构建**：对于极其耗时的 Babel 转换，使用 `thread-loader` 将任务分发给多个 Node.js 工作进程并发执行（小项目不建议，因为开启线程本身也有开销）。
 
-### 4.4 为什么我的 Tree-shaking 没有生效？
+### 5.4 为什么我的 Tree-shaking 没有生效？
 
 Tree-shaking 是指摇掉代码中没有用到的死代码。如果它失效了，通常是以下原因：
 
@@ -502,25 +670,25 @@ Tree-shaking 是指摇掉代码中没有用到的死代码。如果它失效了�
 - **副作用 (Side Effects) 阻挠**：Webpack不敢随意删除看起来没被引用的代码，因为它怕这段代码有“**副作用**”（比如向全局 `window` 注入了变量，或者它是一个纯粹用来引入全局样式的 `import './style.css'`）。
 - **解决方案**：在项目的 `package.json` 中配置 `"sideEffects": false`，明确告诉 Webpack 这个项目里的模块都是纯净的，放心大胆地删。如果要保留样式文件，配置为 `"sideEffects": ["*.css", "*.less"]`。
 
-### 4.5 如何精准定位是哪一步拖慢了 Webpack 的打包速度，又是哪个包导致了体积过大？
+### 5.5 如何精准定位是哪一步拖慢了 Webpack 的打包速度，又是哪个包导致了体积过大？
 
 - 在做性能优化前，**切忌盲目猜测**，必须依赖分析工具：
   - **体积分析 (Bundle Size)**：使用 `webpack-bundle-analyzer` 插件。它会在构建完成后打开一个可视化网页，用矩形树图清晰地展示每一个文件的体积占比。你一眼就能看出是不是不小心把整个 `echarts` 或 `moment.js` 全量打包进去了。
   - **速度分析 (Build Speed)**：使用 `speed-measure-webpack-plugin`。它会精确测算并打印出每一个 Loader 和 Plugin 的执行耗时，帮你揪出构建过程中的“**性能刺客**”。
 
-### 4.6 `thread-loader` (多进程) 是不是只要配了就一定会变快？
+### 5.6 `thread-loader` (多进程) 是不是只要配了就一定会变快？
 
 - **绝对不是，有时反而会变慢！**
   - **原因**：Node.js 开启工作进程（Worker）以及在主进程与子进程之间进行跨进程通信（IPC），本身是有极大性能开销的（大概需要 600ms 的启动时间）。
   - **避坑指南**：对于小型项目，或者处理极少量文件的 Loader 规则上，开启多线程的消耗远远大于收益，会导致构建更慢。只有针对**超大型项目的 Babel 转换、Terser 压缩等极度消耗 CPU 的操作**，才建议开启。
 
-### 4.7 什么是 Runtime Chunk？为什么优化长期缓存必须抽离它？
+### 5.7 什么是 Runtime Chunk？为什么优化长期缓存必须抽离它？
 
 - **背景**：Webpack打包后,会生成一段管理模块间依赖关系和加载逻辑的底层引导代码,这就是 Runtime 代码。
 - **痛点**：如果你修改了 `app.js` 的业务代码，它的 chunkhash 会变。因为 `app.js` 的名字变了，记录所有模块映射关系的 Runtime 代码也会跟着变。如果 Runtime 代码恰好被打包在了 `vendors.js`（第三方库）中，就会导致哪怕第三方库一行没改，`vendors.js` 的 hash 也会被迫改变，从而导致用户浏览器中的巨大的 Vendors 缓存无辜失效。
 - **解决方案**：在 `optimization` 中配置 `runtimeChunk: 'single'`。强行把这段极其微小但频繁变动的 Runtime 逻辑剥离成一个独立的 `runtime.js` 文件，从而彻底保护 `vendors.js` 的长期缓存。
 
-### 4.8 为什么 `resolve.alias` 配好了，命令行能打包，TypeScript 和 IDE 却报找不到模块？
+### 5.8 为什么 `resolve.alias` 配好了，命令行能打包，TypeScript 和 IDE 却报找不到模块？
 
 - 因为 **Webpack 与 TypeScript 各自维护着一套独立的模块解析逻辑**，`webpack.config.js` 里的 `alias` 只对 Webpack 生效。
   - **原因**：编辑器（VS Code）和 `tsc` 走的是 TypeScript 自己的解析流程，它不认识 `resolve.alias`，所以 `import Button from '@/components/Button'` 在编译期会报 `Cannot find module`。
