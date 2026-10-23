@@ -123,7 +123,7 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
                     '@fortawesome/vue-fontawesome',
                     '@fortawesome/free-solid-svg-icons',
                 ],
-                // 🌟 强行让 Vite 处理 xb-element，利用 Vite 的后缀补全机制绕过 Node.js 的死板规则！
+                // 强行让 Vite 处理 xb-element，利用 Vite 的后缀补全机制绕过 Node.js 的死板规则！
                 noExternal: ['xb-element']
             },
             optimizeDeps: {
@@ -169,20 +169,41 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
             //性能优化：预连接，预加载
             ['link', {rel: 'preconnect', href: 'https://lq0zts4skc-dsn.algolia.net', crossorigin: ''}],
             ['link', {rel: 'icon', href: '/CoreFront-EndConcepts/img/myAddress.svg'}],
-            ['link', {
-                rel: 'preload',
-                href: '/CoreFront-EndConcepts/img/xunbei.svg',
-                as: 'image',
-                fetchpriority: 'high'
-            }],
             ['meta', {name: 'docsearch:lang', content: 'zh-CN'}],
         ], //要在页面 HTML 的 <head> 标签中呈现的其他元素
+        // 首屏优化（一）：hero 图只有首页渲染，全站预取它等于让每篇文章都白下载一张图。
+        // transformHead 的返回值是「追加」到已有 head 上的（mergeHead 只对 <meta> 去重），
+        transformHead({page, siteData}) {
+            if (page !== 'index.md') return []
+            return [['link', {
+                rel: 'preload',
+                href: `${siteData.base || '/'}img/xunbei.svg`,
+                as: 'image',
+                fetchpriority: 'high'
+            }]]
+        },
+        // 首屏优化（二）：withMermaid 把 <Mermaid> 静态挂进了 app 入口，VitePress 会把
+        // app chunk 的 dynamicImports 一并写成 modulepreload，于是每个页面（含首页）都以
+        // 高优先级预取 ~600KB 的 mermaid.core，真正带图表的页面只有十几个
+        // transformHead 删不掉 VitePress 预生成的 link（只会被 mergeHead 合并回来），
+        transformHtml(html) {
+            return html.replace(
+                /\s*<link rel="modulepreload" href="[^"]*(?:mermaid\.core|virtual_mermaid-config)[^"]*\.js">/g,
+                ''
+            )
+        },
         cleanUrls: true,         //生成简洁的url
         // 🚨 2. 必须配置 markdown 字段
         markdown: {
             theme: {
                 light: 'github-dark',
                 dark: 'github-dark',
+            },
+            // 首屏优化：正文图片大多在首屏之外，默认 eager 会让一篇文章的所有 PNG
+            // 跟首屏资源抢带宽（public/img 里有不少 100KB+ 的图）。浏览器对
+            // loading="lazy" 的图片在进入视口时仍会立即加载，首屏内的图不受影响。
+            image: {
+                lazyLoading: true,
             },
             // Shiki 内置的 plaintext 语法不产出任何 token，text 代码块会退化成单一前景色。
             // 给目录树、忽略清单注册别名并借用 yaml 的着色规则，让它们也有颜色；
