@@ -4,8 +4,6 @@
 
 在前端工程化领域，Webpack 统治了长达十年的基建江山，而 Vite 则通过 ESM 实现了开发体验的弯道超车。然而，Webpack 的生父 Tobias Koppers 加入 Vercel 后，并没有选择修补 Webpack，也没有盲从 Vite 的路线，而是用 Rust 语言彻底推倒重来，打造了 **Turbopack**。
 
-理解 Turbopack，必须跳出“**打包器**”的固有思维，将其视为一个**极速的增量计算引擎**。
-
 [width(20,24,28,28)]
 
 | 核心差异点         | Webpack (Legacy Bundle)  | Vite (Bundleless / ESM)                                      | Turbopack (Incremental Bundle)                                     |
@@ -151,8 +149,6 @@ module.exports = nextConfig
 
 ### 3.1 高频配置项速查
 
-真正需要日常动手的配置项其实很固定。这里有一个必须先记住的版本变化：`experimental.turbo` 是 Next.js 13.0～15.2 的写法，15.3 起改名为顶层 `turbopack` 字段；到 Next.js 16，Turbopack 已经是默认打包器，配置统一收敛到顶层 `turbopack` 下。
-
 [width(23,36,41)]
 
 | 配置项 / 标志                 | 作用                                                      | 典型值 / 用法                                            |
@@ -168,8 +164,6 @@ module.exports = nextConfig
 默认的模块解析后缀是 `.tsx`、`.ts`、`.jsx`、`.js`、`.mjs`、`.json`（服务端额外带 `.node`）；一旦覆写 `resolveExtensions`，必须把默认值一并写回，否则自有源码会解析失败。
 
 ### 3.2 Turbopack 的 Webpack 兼容边界 (Loader 与 Plugin)
-
-迁移时最容易踩的坑是“**原来那堆插件还能不能用**”。结论很明确：
 
 - **Plugin 基本不支持**：Turbopack 会直接忽略 `next.config.js` 里的 `webpack()` 函数，`DefinePlugin`、`MiniCssExtractPlugin`、`CopyWebpackPlugin` 这类依赖 Webpack 内部钩子的插件都无法运行。
 - **Loader 只支持子集**：只有“**最终返回 JavaScript 代码**”的 Loader（如 `@svgr/webpack`）才能在 `turbopack.rules` 下工作；负责输出样式、图片等非 JS 产物的 Loader 不受支持。
@@ -286,7 +280,6 @@ module.exports = {
 
 ### 7.2 Turbopack 和 Vite (Rolldown) 究竟谁更强？架构师该如何选型？
 
-- 这是路线之争，没有绝对的弱者。
 - **选 Vite + Rolldown**：如果你在做 Vue/React 的纯客户端单页应用（SPA）、企业级后台管理系统、或者开发跨框架的通用 UI 组件库。Vite 生态开放、插件机制对 JS 开发者极度友好、配置极其透明，依然是当下的不二之选。
 - **选 Turbopack**：如果你在构建大型的 **Next.js (React)** 应用，重度依赖 SSR（服务端渲染）和 React Server Components。此时 Turbopack 与框架的底层融合度极高，它的按需编译和极速热更会给你带来极其恐怖的开发体验。
 
@@ -321,6 +314,6 @@ Vercel 官方并未在底层排斥任何框架。Turbopack 的架构被设计为
 
 ### 7.8 Monorepo 里开启 Turbopack 后一直报模块找不到、或反复重新编译，怎么办？
 
-- 十有八九是**工程根目录（root）**没有识别对。
+- 十有八九是 **工程根目录（root）** 没有识别对。
   - Next.js 默认靠在项目里向上查找 `pnpm-lock.yaml`、`package-lock.json`、`yarn.lock`、`bun.lock` 等锁文件来推断根目录；Monorepo 或 `npm link` / `pnpm link` 出来的软链依赖，经常落在这个推断范围之外。
   - **解决方案**：显式设置 `turbopack.root` 为包含所有相关包的父目录，例如 `root: path.join(__dirname, '..')`；同时确认 `resolveExtensions` 里保留了默认后缀，否则自有源码也会解析失败。

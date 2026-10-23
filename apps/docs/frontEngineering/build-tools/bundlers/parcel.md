@@ -2,9 +2,7 @@
 
 ## 1. 什么是 Parcel？
 
-Parcel 是一个 **零配置（Zero Configuration）** 的 Web 应用打包构建工具。它的设计哲学是提供极致的开箱即用体验，开发者无需编写和维护复杂的配置文件（如 `webpack.config.js`），即可获得一个功能强大且性能优越的构建系统。
-
-你只需告诉 Parcel 你的**入口**文件（通常是一个 HTML 文件），它会自动分析依赖、转换代码、打包资源，并提供一个带有**热模块替换**（`HMR`）功能的开发服务器。
+Parcel 是一个 **零配置（Zero Configuration）** 的 Web 应用打包构建工具。它的设计哲学是提供极致的开箱即用体验，开发者无需编写和维护复杂的配置文件（如 `webpack.config.js`），即可获得一个功能强大且性能优越的构建系统，你只需告诉 Parcel 你的**入口**文件（通常是一个 HTML 文件），它会自动分析依赖、转换代码、打包资源，并提供一个带有**热模块替换**（`HMR`）功能的开发服务器。
 
 ## 2. Parcel 的核心概念
 
@@ -29,18 +27,16 @@ Parcel 是一个 **零配置（Zero Configuration）** 的 Web 应用打包构�
 - `<img src="./hero.png">`
 - CSS 中的 `url(...)`
 
-然后，它会递归地分析这些资源内部的依赖（例如，JS 文件中的 `import`），最终构建出一个完整的依赖关系图。
+然后，它会递归地分析这些资源内部的依赖(例如，JS 文件中的 `import`),最终构建出一个完整的依赖关系图。
 
 ### 2.3 资源与转换器 (Assets & Transformers)
 
-在 Parcel 的世界里，**一切皆资源（Asset）**。JavaScript, CSS, HTML, 图片, 字体, Sass, TypeScript, Vue, React (JSX) 等文件都是资源。
+在 Parcel 的世界里，**一切皆资源（Asset）**。JavaScript, CSS, HTML, 图片, 字体, Sass, TypeScript, Vue, React (JSX) 等文件都是资源，Parcel 通过一个插件化的 **转换器（Transformer）** 系统来处理这些资源。当 Parcel 遇到一个文件时，它会：
 
-Parcel 通过一个插件化的 **转换器（Transformer）** 系统来处理这些资源。当 Parcel 遇到一个文件时，它会：
-
-1.  根据文件名（如 `.scss`）匹配一个或多个转换器。
-2.  使用匹配到的转换器（如 `parcel-transformer-sass`）对文件内容进行处理（如将 Sass 编译成 CSS）。
-3.  分析转换后文件中的依赖关系。
-4.  重复此过程，直到所有依赖都被处理完毕。
+- 根据文件名（如 `.scss`）匹配一个或多个转换器。
+- 使用匹配到的转换器（如 `parcel-transformer-sass`）对文件内容进行处理（如将 Sass 编译成 CSS）。
+- 分析转换后文件中的依赖关系。
+- 重复此过程，直到所有依赖都被处理完毕。
 
 ### 2.4 开发模式 (Development)
 
@@ -62,16 +58,15 @@ Parcel 通过一个插件化的 **转换器（Transformer）** 系统来处理�
 
 ### 2.6 扩展性 (Configuration When Needed)
 
-虽然 Parcel 是零配置的，但它仍然提供了清晰的扩展方式。当默认行为不满足需求时，可以通过在项目根目录创建 `.parcelrc` 文件来定制转换器、优化器等插件。
-
-例如，要添加 PostCSS 插件，你只需安装 `autoprefixer` 和 `postcss`，然后在项目根目录创建一个 `postcss.config.js` 文件即可，Parcel 会自动检测并使用它。
+虽然 Parcel 是零配置的，但它仍然提供了清晰的扩展方式。当默认行为不满足需求时，可以通过在项目根目录创建 `.parcelrc` 文件来定制转换器、优化器等插件，例如，要添加 PostCSS 插件，你只需安装 `autoprefixer` 和 `postcss`，然后在项目根目录创建一个 `postcss.config.js` 文件即可，Parcel 会自动检测并使用它。
 
 ### 2.7 基础结构与极简命令
 
 你不需要编写任何 `webpack.config.js` 或 `vite.config.js`，只需要准备最基础的 Web 结构。
 
-```html
-<!-- src/index.html -->
+:::code-group
+
+```html [src/index.html]
 <!DOCTYPE html>
 <html lang="zh-CN">
   <head>
@@ -88,8 +83,7 @@ Parcel 通过一个插件化的 **转换器（Transformer）** 系统来处理�
 </html>
 ```
 
-```json
-// package.json
+```json [package.json]
 {
   "name": "parcel-demo",
   "scripts": {
@@ -100,6 +94,8 @@ Parcel 通过一个插件化的 **转换器（Transformer）** 系统来处理�
   }
 }
 ```
+
+:::
 
 ### 2.8 高频配置项与常用命令速查
 
@@ -148,10 +144,10 @@ Parcel 通过一个插件化的 **转换器（Transformer）** 系统来处理�
 **解决原则**：**将一切交给 Parcel 的自动推断引擎。你只需书写现代代码，缺少的依赖 Parcel 会在后台自动为你 `npm install`。**
 
 ```tsx
-// ❌ 错误示范 (传统工具链思维)：
+//  错误示范 (传统工具链思维)：
 // 试图去寻找 parcel.config.js 来配置 JSX 的解析规则，这在 Parcel 中完全是多此一举。
 
-// ✅ 黄金法则 (Parcel 的极简美学)：
+// 黄金法则 (Parcel 的极简美学)：
 // 1. 直接编写你的 src/App.tsx
 import { createRoot } from 'react-dom/client'
 
@@ -177,47 +173,53 @@ root.render(<App />)
 
 **解决原则**：**利用 Parcel 的 `Targets` 机制。在 `package.json` 中声明你期望的输出格式，Parcel 会自动生成多份构建产物。**
 
-```json
+:::code-group
+
+```json [package.json]
 {
   "name": "my-awesome-lib",
   "version": "1.0.0",
-  // ✅ 黄金法则 1：指定你的源码入口 (不要再用 build src/index.ts 命令了)
+  // 黄金法则 1：指定你的源码入口 (不要再用 build src/index.ts 命令了)
   "source": "src/index.ts",
 
-  // ✅ 黄金法则 2：声明 CommonJS 的输出路径
+  // 黄金法则 2：声明 CommonJS 的输出路径
   "main": "dist/main.js",
 
-  // ✅ 黄金法则 3：声明 ES Module 的输出路径
+  // 黄金法则 3：声明 ES Module 的输出路径
   "module": "dist/module.js",
 
-  // ✅ 黄金法则 4：声明 TypeScript 类型声明文件的输出路径 (Parcel 会自动生成 .d.ts)
+  // 黄金法则 4：声明 TypeScript 类型声明文件的输出路径 (Parcel 会自动生成 .d.ts)
   "types": "dist/types.d.ts",
 
   "scripts": {
-    // ✅ 黄金法则 5：此时直接运行 parcel build 即可，它会读取上面的配置并同时输出三份文件！
+    // 黄金法则 5：此时直接运行 parcel build 即可，它会读取上面的配置并同时输出三份文件！
     "build": "parcel build"
   }
 }
 ```
 
+:::
+
 ## 5. 常见问题 (FAQ) 与避坑指南
 
 ### 5.1 开发时如何配置跨域代理 (Proxy) 解决跨域报错？
 
-- **使用 `.proxyrc` 文件。**
-  - 在项目根目录创建一个 `.proxyrc` 或 `.proxyrc.json` 文件。Parcel 内置了 `http-proxy-middleware`。
-  - **避坑方案**：
-    ```json
-    {
-      "/api": {
-        "target": "http://localhost:8080",
-        "pathRewrite": {
-          "^/api": ""
-        }
-      }
+- 在项目根目录创建一个 `.proxyrc` 或 `.proxyrc.json` 文件。Parcel 内置了 `http-proxy-middleware`。
+
+:::code-group
+
+```json [.proxyrc]
+{
+  "/api": {
+    "target": "http://localhost:8080",
+    "pathRewrite": {
+      "^/api": ""
     }
-    ```
-    这样所有发往 `/api` 的请求就会被自动代理到后端服务，完美解决开发期的 CORS 问题。
+  }
+}
+```
+
+:::
 
 ### 5.2 为什么我改了代码，浏览器刷新了，但页面效果没变？好像卡在了旧版本？
 
@@ -227,34 +229,43 @@ root.render(<App />)
 
 ### 5.3 我的项目里有一些不用编译的静态资源（比如 favicon.ico、大型 PDF），如何原封不动地复制到 dist 目录？
 
-- **使用 `@parcel/reporter-static-files-copy` 插件配合 `.parcelrc`。**
-  - 默认情况下，Parcel 只会打包被 HTML/JS/CSS 显式引用的文件。对于需要静态拷贝的文件，需要扩展 Parcel 的行为。
-  - **避坑方案**：
-    1. 安装依赖：`npm install -D @parcel/reporter-static-files-copy`
-    2. 在根目录创建 `.parcelrc` 文件，扩展 reporters：
-    ```json
-    {
-      "extends": ["@parcel/config-default"],
-      "reporters": ["...", "@parcel/reporter-static-files-copy"]
-    }
-    ```
-    3. 在 `package.json` 中配置静态目录（例如将 `public` 文件夹原样拷贝）：
-    ```json
-    "staticFiles": {
-      "staticPath": "public",
-      "staticOutDir": ""
-    }
-    ```
+- 安装依赖：`npm install -D @parcel/reporter-static-files-copy`
+
+```bash
+npm install -D @parcel/reporter-static-files-copy
+```
+
+- 在根目录创建 `.parcelrc` 文件，扩展 reporters：
+
+:::code-group
+
+```json [.parcelrc]
+{
+  "extends": ["@parcel/config-default"],
+  "reporters": ["...", "@parcel/reporter-static-files-copy"]
+}
+```
+
+:::
+
+- 在 `package.json` 中配置静态目录（例如将 `public` 文件夹原样拷贝）：
+
+:::code-group
+
+```json [package.json]
+"staticFiles": {
+ "staticPath": "public",
+ "staticOutDir": ""
+}
+```
+
+:::
 
 ### 5.4 “**零配置**” 是不是意味着完全不能配置？
 
 **不是。** “**零配置**” 指的是 **开箱即用**，对于绝大多数常见场景，你不需要任何配置。但当你需要深度定制时，Parcel 提供了强大的插件 API 和配置文件（`.parcelrc`）。
 
-例如，你需要为 Babel 添加一个特定的插件，你可以创建一个 `babel.config.json` 文件；需要配置 PostCSS，可以创建 `postcss.config.js`。Parcel 会自动发现并尊重这些配置文件。
-
 ### 5.5 Parcel 和 Webpack 有什么区别？
-
-这是一个非常常见的问题。
 
 [width(13,38,49)]
 
@@ -267,25 +278,30 @@ root.render(<App />)
 | **生态系统** | 插件较少，但核心功能都已内置           | **极其庞大**，几乎所有你能想到的功能都有对应的 loader 或 plugin |
 | **适用场景** | 中小型项目、静态网站、快速原型、库打包 | 大型、复杂、需要深度定制构建流程的企业级项目                    |
 
-**总结**：选择 Parcel 意味着你相信它的默认最佳实践，并希望快速投入开发；选择 Webpack 意味着你希望对构建过程的每一个细节都有完全的控制权。
-
 ### 5.6 如何在 Parcel 中使用环境变量？
 
 Parcel 内置了对 `.env` 文件的支持，并且会自动注入 `process.env.NODE_ENV`。
 
-1.  在项目根目录创建 `.env` 文件：
-    ```
-    API_KEY=your_secret_key
-    BASE_URL=https://api.example.com
-    ```
-2.  在你的 JavaScript 代码中直接访问：
-    `javascript
+- 在项目根目录创建 `.env` 文件：
+
+:::code-group
+
+```markdown [.env]
+API_KEY=your_secret_key
+BASE_URL=https://api.example.com
+```
+
+:::
+
+- 在你的 JavaScript 代码中直接访问：
+  `javascript
 console.log(process.env.API_KEY);
 `
-    **重要**：默认情况下，出于安全考虑，只有以 `PARCEL_` 开头的环境变量会被注入到前端代码中。如果你想暴露其他变量，需要在 `package.json` 中明确指定：
+  **重要**：默认情况下，出于安全考虑，只有以 `PARCEL_` 开头的环境变量会被注入到前端代码中。如果你想暴露其他变量，需要在 `package.json` 中明确指定：
 
-```json
-// package.json
+:::code-group
+
+```json [package.json]
 "targets": {
   "default": {
     "context": "browser",
@@ -297,6 +313,8 @@ console.log(process.env.API_KEY);
   }
 }
 ```
+
+:::
 
 ### 5.7 为什么我的图片或资源路径在生产构建后失效了？
 
@@ -312,15 +330,17 @@ console.log(process.env.API_KEY);
 
 ### 5.8 如何在 Parcel 里处理 SVG 或自定义资源（比如把 SVG 变成 React 组件）？
 
-- **通过 `.parcelrc` 覆写 `transformers`，而不是把配置写死。**
-  - Parcel 默认用内置转换器处理 `.svg`。要把它转成 React 组件，安装 `@parcel/transformer-svg-react` 后覆盖该后缀的转换器：
-    ```json
-    {
-      "extends": ["@parcel/config-default"],
-      "transformers": {
-        "*.svg": ["@parcel/transformer-svg-react"]
-      }
-    }
-    ```
-  - 只想把文件内容当字符串引入（比如 Markdown、GLSL 着色器），用 `@parcel/transformer-inline-string` 同理覆盖即可。
-  - 需要在构建期做类型检查就加上 `@parcel/validator-typescript`；想看产物体积，用 `parcel build --reporter @parcel/reporter-bundle-analyzer`。
+- **通过 `.parcelrc` 覆写 `transformers`，Parcel 默认用内置转换器处理 `.svg`。要把它转成 React 组件，安装 `@parcel/transformer-svg-react` 后覆盖该后缀的转换器**
+
+:::code-group
+
+```json [.parcelrc]
+{
+  "extends": ["@parcel/config-default"],
+  "transformers": {
+    "*.svg": ["@parcel/transformer-svg-react"]
+  }
+}
+```
+
+:::

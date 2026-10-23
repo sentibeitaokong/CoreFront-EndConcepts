@@ -6,9 +6,7 @@ Gulp 是一个基于 **Node.js 流（Stream）** 的前端自动化构建工具�
 
 Gulp 的核心理念是 “**代码优于配置**”（Code over Configuration）。与 Grunt 等工具通过复杂的 JSON 配置文件来定义任务不同，Gulp 允许你使用简洁的 JavaScript 代码来编写构建任务，这使得任务定义更加直观、灵活和强大。
 
-## 2. 四个核心 API
-
-Gulp 的 API 非常精简，你只需要掌握四个核心 API 就可以开始工作。
+## 2. 核心 API
 
 [width(20,80)]
 
@@ -30,8 +28,6 @@ Gulp 的 API 非常精简，你只需要掌握四个核心 API 就可以开始�
 - **终点**：`gulp.dest()` 接收最终处理过的文件流，并将它们写回到文件系统中。
 
 **优点**：基于流的操作极其高效，因为它不需要频繁地读写磁盘。文件在内存中被一次性读取，经过一系列插件处理后，最后一次性写入，大大减少了 I/O 开销。
-
-**示例：**
 
 ```javascript
 // gulpfile.js
@@ -70,8 +66,6 @@ Gulp 4.x 引入了两个强大的任务组合工具，用于控制任务的执�
 - **`gulp.series(...tasks)`**: **串行执行**。任务会按照排列的顺序依次执行，前一个任务完成后，后一个任务才会开始。适用于有依赖关系的任务（例如，必须先 `clean` 清理目录，然后才能 `build`）。
 - **`gulp.parallel(...tasks)`**: **并行执行**。所有任务会同时开始执行，没有顺序保证。适用于没有相互依赖的任务（例如，可以同时处理 `javascript` 和 `css`），能极大地提升构建速度。
 
-**示例：**
-
 ```javascript
 const { series, parallel } = require('gulp')
 
@@ -91,17 +85,11 @@ const build = series(clean, parallel(javascript, css))
 exports.build = build
 ```
 
-现在，运行 `gulp build` 就会按照你定义的顺序来执行任务。
-
 ### 3.4 插件 (Plugins)
 
-Gulp 拥有一个庞大且活跃的生态系统，包含数千个插件。每个插件通常只做一件小事（例如，`gulp-rename` 只负责重命名文件），并遵循 Gulp 的流式处理机制。
-
-使用插件非常简单，通常只需 `npm install` 安装，然后在 `gulpfile.js` 中 `require`，并用 `.pipe()` 将其插入到处理流中即可。
+Gulp 拥有一个庞大且活跃的生态系统，包含数千个插件。每个插件通常只做一件小事（例如，`gulp-rename` 只负责重命名文件），并遵循 Gulp 的流式处理机制，使用插件非常简单，通常只需 `npm install` 安装，然后在 `gulpfile.js` 中 `require`，并用 `.pipe()` 将其插入到处理流中即可。
 
 ### 3.5 高频 API 与常用参数速查
-
-除了四个基础 API，日常真正高频使用的就是 `series` / `parallel` 两个组合器，以及 `src`、`dest`、`watch` 的常用选项。
 
 [width(27,34,39)]
 
@@ -115,15 +103,11 @@ Gulp 拥有一个庞大且活跃的生态系统，包含数千个插件。每个
 | `gulp.lastRun(taskName)`           | 返回上次成功完成的时间戳                                                 | 配合 `src` 的 `since` 选项做增量构建                                                  |
 | `gulp.task(name, fn)`              | Gulp 3.x 的旧写法                                                        | 4.x 中仍可用，但推荐直接写 `exports.taskName = fn`                                    |
 
-另外，`gulp.src` 返回的流本身就是 Node.js 的 `Stream`，所以 `.pipe()`、`.on('error')` 这些原生能力可以直接用；需要把多个流合并后再统一 `dest` 时，常见做法是借助 `merge-stream` 把若干子任务的流合并成一个。
-
 ## 4. 核心实战
 
 在实际项目中，我们通常需要处理 HTML、编译 Sass/Less、转译最新的 JavaScript 语法（如你最近在研究的 ES6+ 高级特性），并且需要一个本地服务器来实时预览。
 
 ### 4.1 插件清单
-
-在搭建完整工作流时，以下插件是你的得力助手：
 
 [width(25,22,53)]
 
@@ -210,7 +194,7 @@ Gulp 4.x 要求所有任务都必须明确地告知 Gulp 它们何时完成，�
 **原因**:
 Gulp 任务本质上是异步的，尤其是那些涉及文件 I/O 的操作（如 `gulp.src` 和 `gulp.dest`）。
 
-**解决方案** (三选一即可):
+**解决方案**:
 
 - **返回一个流 (Stream)**：这是最常见、最推荐的方式。如果你的任务以 `gulp.dest()` 结束，只需 `return` 这个流即可。
   ```javascript
@@ -294,21 +278,19 @@ Gulp 4.x 的 API 发生了重大变化，旧的 `gulpfile.js` 不再兼容。
 在 `watch` 任务中，如果一个被监视的文件在处理过程中发生错误（例如，Sass 语法错误），`watch` 进程可能会因为未捕获的异常而崩溃。
 
 **解决方案**:
-在你的管道（pipe）中添加错误处理机制，最常用的是 `plumber` 插件，或者直接监听流的 `error` 事件。
+**使用 `gulp-plumber`**: 这是一个专门用来防止 Gulp 因插件错误而崩溃的插件。
 
-- **使用 `gulp-plumber`**: 这是一个专门用来防止 Gulp 因插件错误而崩溃的插件。
+```javascript
+const plumber = require('gulp-plumber')
 
-  ```javascript
-  const plumber = require('gulp-plumber')
-
-  function css() {
-    return gulp
-      .src('src/scss/*.scss')
-      .pipe(plumber()) // 在出错时保持流的畅通
-      .pipe(sass().on('error', sass.logError)) // sass 插件本身的错误日志
-      .pipe(gulp.dest('dist/css'))
-  }
-  ```
+function css() {
+  return gulp
+    .src('src/scss/*.scss')
+    .pipe(plumber()) // 在出错时保持流的畅通
+    .pipe(sass().on('error', sass.logError)) // sass 插件本身的错误日志
+    .pipe(gulp.dest('dist/css'))
+}
+```
 
 ### 5.5 `gulp.watch` 下如何只处理改动过的文件（增量构建）？
 
