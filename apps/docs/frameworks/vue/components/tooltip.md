@@ -5,13 +5,13 @@ description: Tooltip 组件的文档
 
 # Tooltip 文字提示
 
-常用于展示鼠标 `hover` 时的提示信息。
+常用于展示鼠标悬停或点击时的提示信息。
 
 ## 基础用法
 
 在这里我们提供 4 种不同方向的展示方式，可以通过以下完整示例来理解，选择你要的效果。
 
-使用 `content` 属性来决定 `hover` 时的提示信息。 由 `placement` 属性决定展示效果： `placement`属性值为：[方向]；四个方向：top、left、right、bottom；
+使用 `content` 属性来决定提示信息的内容。 由 `placement` 属性决定展示效果： `placement`属性值为：[方向]；四个方向：top、left、right、bottom；
 
 <preview path="../../../components/Tooltip/BasicTooltip.vue" title="基础用法" description="Tooltip 组件的基础用法"></preview>
 
@@ -51,11 +51,13 @@ description: Tooltip 组件的文档
 
 ### Tooltip Attributes
 
+[width(23,33,33,11)]
+
 | 属性名        | 说明                                             | 类型                                           | 默认值 |
 | ------------- | ------------------------------------------------ | ---------------------------------------------- | ------ |
 | content       | 显示的内容，也可被 `slot#content` 覆盖           | `string`                                       | ""     |
 | placement     | `Tooltip` 组件出现的位置                         | `enum` - `'left'\| 'top'\| 'right'\| 'bottom'` | right  |
-| trigger       | 提示框的触发方式（用于显示），在受控模式下无效。 | `enum` - `'hover'\| 'click'`                   | hover  |
+| trigger       | 提示框的触发方式（用于显示），在受控模式下无效。 | `enum` - `'hover'\| 'click'`                   | click  |
 | manual        | 手动触发                                         | `boolean`                                      | false  |
 | popperOptions | `popper.js` 参数                                 | `object`                                       | {}     |
 | transition    | 动画名称                                         | `string`                                       | -      |
@@ -64,14 +66,16 @@ description: Tooltip 组件的文档
 
 ### Tooltip Events
 
+[width(19,60,21)]
+
 | 事件名         | 说明                                                   | 类型       |
 | -------------- | ------------------------------------------------------ | ---------- |
 | visible-change | 切换提示框显示时和关闭时触发，将触发原因作为参数传入。 | `Function` |
 | click-outside  | 在提示框隐藏时触发。 将触发原因作为参数传入。          | `Function` |
-| show           | 在提示框显示时触发。 将触发原因作为参数传入。          | `Function` |
-| hide           | 在提示框隐藏时触发。 将触发原因作为参数传入。          | `Function` |
 
 ### Tooltip Slots
+
+[width(12,88)]
 
 | 插槽名  | 描述                                     |
 | ------- | ---------------------------------------- |
@@ -79,6 +83,8 @@ description: Tooltip 组件的文档
 | content | 自定义内容                               |
 
 ### Tooltip Exposes
+
+[width(11,21,68)]
 
 | 方法名 | 说明             | 类型       |
 | ------ | ---------------- | ---------- |

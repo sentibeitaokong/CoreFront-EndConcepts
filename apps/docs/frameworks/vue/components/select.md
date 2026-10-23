@@ -61,6 +61,8 @@ description: Select 组件的文档
 
 ### Select Attributes
 
+[width(19,54,16,11)]
+
 | 属性名                | 说明                                                                                             | 类型       | 默认值 |
 | --------------------- | ------------------------------------------------------------------------------------------------ | ---------- | ------ |
 | model-value / v-model | 绑定值                                                                                           | `'string'` | —      |
@@ -76,18 +78,19 @@ description: Select 组件的文档
 
 ### Select Events
 
+[width(19,46,35)]
+
 | 事件名         | 说明                                     | 类型       |
 | -------------- | ---------------------------------------- | ---------- |
 | change         | 选中值发生变化时触发                     | `Function` |
-| blur           | 当 `input`失去焦点时触发                 | `Function` |
-| focus          | 当 `input` 获得焦点时触发                | `Function` |
-| input          | 在 `input` 值改变时触发                  | `Function` |
 | clear          | 可清空的单选模式下用户点击清空按钮时触发 | `Function` |
 | visible-change | 下拉框出现/隐藏时触发                    | `Function` |
 
 ## Option API
 
 ### Option Attributes
+
+[width(13,28,18,41)]
 
 | 属性名   | 说明               | 类型      | 默认值 |
 | -------- | ------------------ | --------- | ------ |

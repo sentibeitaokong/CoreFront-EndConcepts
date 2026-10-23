@@ -9,9 +9,9 @@ description: DropDown 组件的文档
 
 ## 基础用法
 
-悬停在下拉菜单上以展开更多操作。
+点击触发元素以下拉菜单展示更多操作。
 
-通过组件 `slot` 来设置下拉触发的元素,默认情况下，只需要悬停在触发菜单的元素上即可，无需点击也会显示下拉菜单。
+通过组件 `slot` 来设置下拉触发的元素。默认情况下，点击触发元素即可显示下拉菜单，也可以通过 `trigger` 属性切换为 `hover` 触发。
 
 <preview path="../../../components/DropDown/BasicDropDown.vue" title="基础用法" description="DropDown 组件的基础用法"></preview>
 
@@ -51,31 +51,39 @@ description: DropDown 组件的文档
 
 ### DropDown Attributes
 
-| 属性名        | 说明                                             | 类型                                           | 默认值 |
-| ------------- | ------------------------------------------------ | ---------------------------------------------- | ------ |
-| placement     | `Tooltip` 出现的位置                             | `enum` - `'left'\| 'top'\| 'right'\| 'bottom'` | right  |
-| trigger       | 下拉框的触发方式（用于显示），在受控模式下无效。 | `enum` - `'hover'\| 'click'`                   | hover  |
-| manual        | 手动触发                                         | `boolean`                                      | false  |
-| popperOptions | `popper.js` 参数                                 | `object`                                       | {}     |
-| openDelay     | 延迟显示时间（以毫秒为单位），在受控模式下无效。 | `number`                                       | 0      |
-| closeDelay    | 消失延迟时间（以毫秒为单位），在受控模式下无效。 | `number`                                       | 0      |
+[width(21,35,33,11)]
+
+| 属性名         | 说明                                                     | 类型                                           | 默认值 |
+| -------------- | -------------------------------------------------------- | ---------------------------------------------- | ------ |
+| placement      | `Tooltip` 出现的位置                                     | `enum` - `'left'\| 'top'\| 'right'\| 'bottom'` | right  |
+| trigger        | 下拉框的触发方式（用于显示），在受控模式下无效。         | `enum` - `'hover'\| 'click'`                   | click  |
+| menuOptions    | 菜单选项，每项包含 `label`、`key`、`disabled`、`divided` | `array`                                        | —      |
+| hideAfterClick | 点击菜单项后是否隐藏下拉菜单                             | `boolean`                                      | true   |
+| manual         | 手动触发                                                 | `boolean`                                      | false  |
+| popperOptions  | `popper.js` 参数                                         | `object`                                       | {}     |
+| openDelay      | 延迟显示时间（以毫秒为单位），在受控模式下无效。         | `number`                                       | 0      |
+| closeDelay     | 消失延迟时间（以毫秒为单位），在受控模式下无效。         | `number`                                       | 0      |
 
 ### DropDown Events
+
+[width(19,60,21)]
 
 | 事件名         | 说明                                                   | 类型       |
 | -------------- | ------------------------------------------------------ | ---------- |
 | visible-change | 切换下拉框显示时和关闭时触发，将触发原因作为参数传入。 | `Function` |
 | select         | 在选择下拉框时触发。 将触发原因作为参数传入。          | `Function` |
-| show           | 在下拉框显示时触发。 将触发原因作为参数传入。          | `Function` |
-| hide           | 在下拉框隐藏时触发。 将触发原因作为参数传入。          | `Function` |
 
 ### DropDown Slots
+
+[width(12,88)]
 
 | 插槽名  | 描述                                     |
 | ------- | ---------------------------------------- |
 | default | 下拉框触发及参考元素，只接受单个根元素。 |
 
 ### DropDown Exposes
+
+[width(11,21,68)]
 
 | 方法名 | 说明             | 类型       |
 | ------ | ---------------- | ---------- |
@@ -85,6 +93,8 @@ description: DropDown 组件的文档
 ## Dropdown-Item API
 
 ### Dropdown-Item Attributes
+
+[width(13,23,18,46)]
 
 | 属性名   | 说明           | 类型      | 默认值 |
 | -------- | -------------- | --------- | ------ |

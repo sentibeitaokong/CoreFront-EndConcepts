@@ -1,6 +1,6 @@
 {
   "name": "xb-element",
-  "version": "1.0.31",
+  "version": "1.0.32",
   "description": "Vue3 components library",
   "author": "Xun Bei",
   "license": "MIT",
@@ -58,23 +58,12 @@
   "dependencies": {
     "@floating-ui/vue": "^1.1.11",
     "async-validator": "^4.2.5",
-    "lodash-es": "^4.17.23"
-  },
-  "peerDependencies": {
+    "lodash-es": "^4.17.23",
     "@fortawesome/fontawesome-svg-core": "^7.1.0",
     "@fortawesome/free-solid-svg-icons": "^7.1.0",
-    "@fortawesome/vue-fontawesome": "^3.1.2",
-    "vue": "^3.5.25"
+    "@fortawesome/vue-fontawesome": "^3.1.2"
   },
-  "peerDependenciesMeta": {
-    "@fortawesome/fontawesome-svg-core": {
-      "optional": true
-    },
-    "@fortawesome/free-solid-svg-icons": {
-      "optional": true
-    },
-    "@fortawesome/vue-fontawesome": {
-      "optional": true
-    }
+  "peerDependencies": {
+    "vue": "^3.5.25"
   }
 }

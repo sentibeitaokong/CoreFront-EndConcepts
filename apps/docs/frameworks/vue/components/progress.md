@@ -23,9 +23,11 @@ description: Progress 组件的文档
 
 ### Progress Attributes
 
+[width(18,28,38,16)]
+
 | 属性名        | 说明                   | 类型                                                             | 默认值 |
 | ------------- | ---------------------- | ---------------------------------------------------------------- | ------ |
 | percent       | percent                | `number`                                                         | 0      |
 | stroke-height | 进度条的高度           | `number`                                                         | 15     |
-| show-text     | 是否显示进度条文字内容 | `boolean`                                                        | true   |
+| show-text     | 是否显示进度条文字内容 | `boolean`                                                        | false  |
 | type          | 进度条类型             | `enum` - `'primary'\| 'success'\| 'warning'\| 'danger'\| 'info'` | info   |
