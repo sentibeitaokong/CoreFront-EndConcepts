@@ -35,10 +35,13 @@ description: Message 组件的文档
 
 ### Message Attributes
 
-| 属性名    | 说明                                         | 类型                                                 | 默认值 |
-| --------- | -------------------------------------------- | ---------------------------------------------------- | ------ |
-| message   | 消息文字                                     | `'string'\| 'VNode'`                                 | ''     |
-| type      | 消息类型                                     | `enum` - `'success'\| 'info'\| 'danger'\| 'warning'` | info   |
-| showClose | 是否显示关闭按钮                             | `boolean`                                            | false  |
-| duration  | 显示时间，单位为毫秒。 设为 0 则不会自动关闭 | `number`                                             | 3000   |
-| offset    | 设置到视口顶部边缘的距离                     | `number`                                             | 30     |
+[width(20,33,33,14)]
+
+| 属性名         | 说明                                         | 类型                                                 | 默认值  |
+| -------------- | -------------------------------------------- | ---------------------------------------------------- | ------- |
+| message        | 消息文字                                     | `'string'\| 'VNode'`                                 | ''      |
+| transitionName | 过渡动画名称                                 | `string`                                             | fade-up |
+| type           | 消息类型                                     | `enum` - `'success'\| 'info'\| 'danger'\| 'warning'` | info    |
+| showClose      | 是否显示关闭按钮                             | `boolean`                                            | false   |
+| duration       | 显示时间，单位为毫秒。 设为 0 则不会自动关闭 | `number`                                             | 3000    |
+| offset         | 设置到视口顶部边缘的距离                     | `number`                                             | 30      |

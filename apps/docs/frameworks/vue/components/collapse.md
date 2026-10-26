@@ -34,7 +34,7 @@ description: Collapse 组件的文档
 
 ### Collapse Events
 
-[width(12,37,51)]
+[width(23,44,33)]
 
 | 事件名 | 说明                             | 类型       |
 | ------ | -------------------------------- | ---------- |
@@ -62,8 +62,9 @@ description: Collapse 组件的文档
 
 ### Collapse Item Slot
 
-[width(12,25,63)]
+[width(12,40,48)]
 
-| 名称    | 说明                 | 类型 |
-| ------- | -------------------- | ---- |
-| default | Collapse Item 的内容 | -    |
+| 名称    | 说明                                | 类型 |
+| ------- | ----------------------------------- | ---- |
+| default | Collapse Item 的内容                | -    |
+| title   | 面板标题的内容，可替代 `title` 属性 | -    |
