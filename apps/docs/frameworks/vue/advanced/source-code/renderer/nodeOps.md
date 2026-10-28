@@ -9,7 +9,7 @@
 ### 1.1 为什么需要抽离 `nodeOps`？
 
 - **环境隔离**：渲染器不再直接依赖浏览器的 `DOM API`，所有节点操作都通过 `nodeOps` 间接调用
-- **职责单一**：`nodeOps` 只负责“原汁原味”地调用底层 API,针对不同目标环境（`Web、Canvas、WebGL、移动端`等）实现各自的
+- **职责单一**：`nodeOps` 只负责“**原汁原味**”地调用底层 API,针对不同目标环境（`Web、Canvas、WebGL、移动端`等）实现各自的
   `nodeOps`，即可复用相同的渲染逻辑。
 - **平滑抹平差异**：在浏览器环境下，SVG 元素和普通 HTML 元素的创建方式不同（`createElementNS` vs `createElement`），`nodeOps`
   将这些底层差异抹平，向上层暴露出统一的接口。
@@ -273,12 +273,12 @@ export function patchStyle(el, prev, next) {
 
   // 1. 如果新样式是一个对象 (Vue 最常见的场景)
   if (next && !isCssString) {
-    // 🟢 步骤 A：遍历新样式，添加或更新属性
+    // 步骤 A：遍历新样式，添加或更新属性
     for (const key in next) {
       setStyle(style, key, next[key])
     }
 
-    // 🟢 步骤 B：遍历旧样式，清理掉新样式中没有的属性
+    // 步骤 B：遍历旧样式，清理掉新样式中没有的属性
     if (prev && typeof prev !== 'string') {
       for (const key in prev) {
         if (next[key] == null) {
@@ -295,7 +295,7 @@ export function patchStyle(el, prev, next) {
         style.cssText = next
       }
     } else if (prev) {
-      // 🟢 步骤 C：如果新样式为空 (next === null)，直接移除整个 style 属性
+      // 步骤 C：如果新样式为空 (next === null)，直接移除整个 style 属性
       el.removeAttribute('style')
     }
   }
@@ -339,7 +339,7 @@ export function patchEvent(el, rawName, prevValue, nextValue) {
   const existingInvoker = invokers[rawName]
 
   if (nextValue && existingInvoker) {
-    // 🟢 场景 A：事件发生了更新
+    // 场景 A：事件发生了更新
     // 最爽的情况：直接修改伪装者内部的 value，完全不需要调用底层的 DOM API！
     existingInvoker.value = nextValue
   } else {
@@ -347,13 +347,13 @@ export function patchEvent(el, rawName, prevValue, nextValue) {
     const name = rawName.slice(2).toLowerCase()
 
     if (nextValue) {
-      // 🟢 场景 B：全新绑定事件
+      // 场景 B：全新绑定事件
       // 创建一个新的伪装者，并把它存到缓存里
       const invoker = (invokers[rawName] = createInvoker(nextValue))
       // 将伪装者绑定到真实的 DOM 事件上（这是唯一一次调用 addEventListener）
       el.addEventListener(name, invoker)
     } else if (existingInvoker) {
-      // 🟢 场景 C：移除事件绑定 (nextValue 为空，说明用户删除了事件)
+      // 场景 C：移除事件绑定 (nextValue 为空，说明用户删除了事件)
       el.removeEventListener(name, existingInvoker)
       // 清空缓存
       invokers[rawName] = undefined
@@ -405,7 +405,7 @@ export function patchDOMProp(
     el._value = value
     const newValue = value == null ? '' : value
 
-    // 🚨 核心优化：只有当新旧值真的不相等时，才去操作 DOM 的 value 属性
+    // 核心优化：只有当新旧值真的不相等时，才去操作 DOM 的 value 属性
     // 这避免了用户正在输入时，框架强行重写 value 导致光标移到末尾的 Bug
     if (el.value !== newValue) {
       el.value = newValue
@@ -428,7 +428,7 @@ export function patchDOMProp(
   try {
     el[key] = value
   } catch (e) {
-    // 🚨 为什么要 try-catch？
+    // 为什么要 try-catch？
     // 因为 DOM API 是一个黑盒，有些元素在某些特定状态下，某些 property 是只读的。
     // 例如某些浏览器不允许动态修改 input.type，或者给只读属性强行赋值会抛出异常。
     // Vue 的策略是：遇到报错直接吞掉并静默失败（开发环境下会打印警告），防止整个应用崩溃。
@@ -570,6 +570,8 @@ function baseCreateRenderer(options: RendererOptions) {
 ## 6. `nodeOps` 跨平台实现对比
 
 为了更直观地理解 `nodeOps` 的抽象意义，我们可以对比一下 Vue 官方的浏览器实现与第三方（例如 Canvas）渲染器的理论实现差异：
+
+[width(22,36,42)]
 
 | 接口名           | 浏览器 (`runtime-dom`)               | 自定义 Canvas 渲染器 (示例)                  |
 | ---------------- | ------------------------------------ | -------------------------------------------- |

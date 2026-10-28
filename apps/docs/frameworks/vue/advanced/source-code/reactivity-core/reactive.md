@@ -12,6 +12,8 @@
 
 ### 1.2 与 `ref` 的定位对比
 
+[width(20,36,44)]
+
 | 特性           | `reactive`                      | `ref`                          |
 | -------------- | ------------------------------- | ------------------------------ |
 | 适用数据类型   | 对象（含数组、`Map`、`Set` 等） | 任意（基本类型或对象）         |
@@ -148,7 +150,7 @@ function createGetter(isReadonly: any = false, shallow: any = false) {
 
     // 1. 判断是否是数组
     const targetIsArray = Array.isArray(target)
-    // 2. 🚨 拦截核心：如果是数组，且访问的是被重写的方法
+    // 2. 拦截核心：如果是数组，且访问的是被重写的方法
     if (
       !isReadonly &&
       targetIsArray &&
@@ -267,7 +269,7 @@ export function toRaw<T>(observed: T): T {
   // 尝试读取对象的 __v_raw 属性
   const raw = observed && (observed as any)[ReactiveFlags.RAW]
 
-  // 🚨 核心逻辑：如果有 raw，说明它是个代理对象，递归调用 toRaw 继续剥离；
+  // 核心逻辑：如果有 raw，说明它是个代理对象，递归调用 toRaw 继续剥离；
   // 如果没有，说明它本身就是原始对象，直接返回。
   return raw ? toRaw(raw) : observed
 }
@@ -347,7 +349,7 @@ export function track(target: object, type: TrackOpTypes, key: unknown) {
   if (!isTracking()) return
 
   // 遍历操作的依赖会被挂载到 'length' 或专门的 ITERATE_KEY 上。
-  // 🚨 针对数组遍历的特殊处理（通常在 get 拦截器或 ownKeys 拦截器中处理映射）
+  // 针对数组遍历的特殊处理（通常在 get 拦截器或 ownKeys 拦截器中处理映射）
   if (Array.isArray(target) && type === TrackOpTypes.ITERATE) {
     key = 'length'
   }

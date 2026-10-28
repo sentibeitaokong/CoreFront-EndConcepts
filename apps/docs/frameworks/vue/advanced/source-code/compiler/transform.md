@@ -545,6 +545,8 @@ function createRootCodegen(root: RootNode, context: TransformContext) {
 
 ### 4.1 内置核心插件一览
 
+[width(27,14,59)]
+
 | 插件                  | 进入时机   | 核心职责                                                            |
 | --------------------- | ---------- | ------------------------------------------------------------------- |
 | `transformOnce`       | enter      | 处理 `v-once` 指令，标记静态内容                                    |
@@ -603,14 +605,14 @@ export function compile(
     // 注入用户自定义配置
     ...options,
 
-    // 🔥 核心注入：合并 DOM 专属节点插件和用户自定义节点插件
+    // 核心注入：合并 DOM 专属节点插件和用户自定义节点插件
     nodeTransforms: [
       ignoreSideEffectTags, // 跳过 <script> 和 <style>
       ...DOMNodeTransforms,
       ...(options.nodeTransforms || []),
     ],
 
-    // 🔥 核心注入：合并 DOM 专属指令插件和用户自定义指令插件
+    // 核心注入：合并 DOM 专属指令插件和用户自定义指令插件
     directiveTransforms: {
       ...DOMDirectiveTransforms,
       ...(options.directiveTransforms || {}),
@@ -855,7 +857,7 @@ export const transformIf = (node, context) => {
 
 //核心逻辑：结构重组
 function processIf(node, dir, context) {
-  // 🥇 场景 A：遇到 v-if (开疆拓土)
+  // 场景 A：遇到 v-if (开疆拓土)
   if (dir.name === 'if') {
     // 1. 把当前的元素节点包装成一个 "分支 (branch)"
     const branch = createIfBranch(node, dir)
@@ -980,7 +982,7 @@ export const transformOn: DirectiveTransform = (dir, node, context) => {
   // dir 就是当前遍历到的指令节点，包含指令名(name)、参数(arg)和表达式(exp)
   const { arg, exp, modifiers } = dir
 
-  // 🏷️ 1. 处理事件名称 (Event Name)
+  //1. 处理事件名称 (Event Name)
   let eventName: ExpressionNode
   if (arg.type === NodeTypes.SIMPLE_EXPRESSION) {
     if (arg.isStatic) {
@@ -999,7 +1001,7 @@ export const transformOn: DirectiveTransform = (dir, node, context) => {
     }
   }
 
-  // 📦 2. 处理事件回调函数 (Event Handler)
+  // 2. 处理事件回调函数 (Event Handler)
   let expNode = exp // 比如 "count++" 或者 "handleClick"
 
   // 2.1 检查是否是简单的成员引用 (Member Expression)
@@ -1016,7 +1018,7 @@ export const transformOn: DirectiveTransform = (dir, node, context) => {
     expNode = createCompoundExpression([`$event => {`, expNode, `}`])
   }
 
-  // 🚀 3. 性能优化：事件监听缓存 (Cache Handlers)
+  // 3. 性能优化：事件监听缓存 (Cache Handlers)
   let ret = {
     props: [createObjectProperty(eventName, expNode)], // 默认结果：{ onClick: handler }
   }
@@ -1063,7 +1065,7 @@ Block Tree 将模板基于结构指令（`v-if`、`v-for`、`<slot>`）切分为
 :::code-group
 
 ```typescript [vnode.ts]
-// 🌐 全局状态变量：追踪当前正在活动的 Block
+// 全局状态变量：追踪当前正在活动的 Block
 // 这是一个栈，用于处理多层级 Block 嵌套 (比如 v-if 里面还有 v-for)
 const blockStack = []
 // 指向当前正在收集动态节点的那个 Block 数组
@@ -1147,7 +1149,7 @@ export function createVNodeCall(
   isBlock = false, // 默认不是 Block
   isComponent = false, // 默认不是组件
 ) {
-  // 💉 第一步：智能按需注入运行时辅助函数 (Tree-Shaking 基石)
+  // 第一步：智能按需注入运行时辅助函数 (Tree-Shaking 基石)
   if (context) {
     if (isBlock) {
       // 如果这是一个 Block 节点 (如根节点、v-if 分支)
@@ -1211,13 +1213,13 @@ export const helperNameMap: any = {
 
 ### 7.1 基础代码示例
 
-**输入模板**:
+**输入模板**：
 
 ```js
 <div class="box" v-if="ok">Hello {{ name }} <!-- 注释 --></div>
 ```
 
-**生成的AST**:
+**生成的AST**：
 
 ```json
 {
@@ -1268,7 +1270,7 @@ export const helperNameMap: any = {
 }
 ```
 
-**经过 transform 阶段后的 JavaScript AST**:
+**经过 transform 阶段后的 JavaScript AST**：
 
 ```json
 {
@@ -1286,7 +1288,7 @@ export const helperNameMap: any = {
       ]
     }
   ],
-  // 🔥 终极生成的 JavaScript 逻辑指令节点
+  // 终极生成的 JavaScript 逻辑指令节点
   "codegenNode": {
     "type": 19, // NodeTypes.JS_CONDITIONAL_EXPRESSION (JavaScript 三元运算符指令)
     "test": {
@@ -1304,7 +1306,7 @@ export const helperNameMap: any = {
         "isStatic": true // 静态属性对象，后续可被 hoistStatic 静态提升
       },
       "children": [
-        // 📦 复合表达式节点 (transformText 插件合并相邻文本/插值生成)
+        // 复合表达式节点 (transformText 插件合并相邻文本/插值生成)
         {
           "type": 8, // NodeTypes.COMPOUND_EXPRESSION
           "children": [
@@ -1325,7 +1327,7 @@ export const helperNameMap: any = {
             " "
           ]
         },
-        // 📦 注释节点调用指令
+        // 注释节点调用指令
         {
           "type": 13, // NodeTypes.VNODE_CALL
           "callee": "_createCommentVNode",
@@ -1333,7 +1335,7 @@ export const helperNameMap: any = {
         }
       ],
       "patchFlag": "1 /* TEXT */", // 靶向标记：仅文本动态更新
-      "isBlock": true // 🚨 关键突变：v-if 的分支必须升级为 Block (区块) 以收集内部动态节点！
+      "isBlock": true // 关键突变：v-if 的分支必须升级为 Block (区块) 以收集内部动态节点！
     },
     "alternate": {
       // 对应三元运算符的为假 (false) 分支
@@ -1360,4 +1362,4 @@ Vue 3 编译器的 transform 阶段通过 **插件化深度优先遍历**，将�
 - **指令编译**：将 Vue 模板指令（`v-if`、`v-for`、`v-on`、`v-model` 等）转化为简洁的 JavaScript 表达式与属性绑定。
 - **静态提升（hoistStatic）**：将纯静态节点提取为模块级常量，仅在初始化时创建一次 VNode，后续渲染直接复用，显著减少运行时开销。
 - **PatchFlag 标记**：精准标记动态内容的类型（文本、class、style、props 等），运行时 diff 可根据标记靶向更新，跳过所有静态属性。
-- **Block Tree**：以结构指令为边界划分 Block，扁平收集动态节点，使 diff 过程绕过静态子树，仅处理 `dynamicChildren` 数组中的动态节点，实现 diff 性能与模板大小的“解耦”。
+- **Block Tree**：以结构指令为边界划分 Block，扁平收集动态节点，使 diff 过程绕过静态子树，仅处理 `dynamicChildren` 数组中的动态节点，实现 diff 性能与模板大小的“**解耦**”。

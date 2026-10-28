@@ -480,10 +480,10 @@ function parseInterpolation(
       type: NodeTypes.SIMPLE_EXPRESSION, // 4
       isStatic: false,
       content, // 纯净的 'msg'
-      // ✨ 内部节点的 loc 只包裹 'msg'
+      // 内部节点的 loc 只包裹 'msg'
       loc: getSelection(context, innerStart, innerEnd),
     },
-    // ✨ 外部节点的 loc 包裹 '{{  msg  }}'
+    // 外部节点的 loc 包裹 '{{  msg  }}'
     loc: getSelection(context, start),
   }
 }
@@ -601,7 +601,7 @@ function isEnd(
   if (mode === TextModes.DATA || mode === TextModes.RCDATA) {
     // 如果当前剩余的字符串是以 '</' 开头的，说明遇到了一个闭合标签
     if (startsWith(s, '</')) {
-      // ⚠️ 重点：从栈顶（倒序）往栈底遍历整个祖先节点栈
+      // 重点：从栈顶（倒序）往栈底遍历整个祖先节点栈
       for (let i = ancestors.length - 1; i >= 0; --i) {
         // 利用我们之前讲过的 startsWithEndTagOpen 去比对
         // 看看当前的闭合标签，是不是正好匹配栈里的某一个祖先标签

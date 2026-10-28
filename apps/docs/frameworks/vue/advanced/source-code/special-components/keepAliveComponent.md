@@ -273,6 +273,6 @@ const currentComponent = ref(Home)
 
 - **缓存机制**：通过 `Map` 存储组件 VNode，实现实例复用。
 - **LRU 淘汰**：利用 `keys` 集合维护访问顺序，超出 `max` 时卸载最老的缓存。
-- **DOM 保留**: 失活时将 DOM 移入隐藏 `div`，激活时移回原容器
+- **DOM 保留**：失活时将 DOM 移入隐藏 `div`，激活时移回原容器
 - **生命周期**：扩展 `activated`/`deactivated` 钩子，使组件能感知缓存状态。
 - **渲染器配合**：通过 `COMPONENT_KEPT_ALIVE` 标记，让渲染器区分正常卸载和失活，避免销毁实例。

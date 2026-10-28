@@ -50,13 +50,13 @@ description: Form 组件的文档
 
 ### Form Exposes
 
-[width(15,69,16)]
+[width(17,65,18)]
 
-| 方法名        | 说明                                                            | 类型       |
-| ------------- | --------------------------------------------------------------- | ---------- |
-| validate      | 对整个表单的内容进行验证。 接收一个回调函数，或返回 `Promise`。 | `Function` |
-| resetFields   | 重置该表单项，将其值重置为初始值，并移除校验结果                | `Function` |
-| clearValidate | 清理某个字段的表单验证信息。                                    | `Function` |
+| 方法名        | 说明                                                         | 类型       |
+| ------------- | ------------------------------------------------------------ | ---------- |
+| validate      | 对整个表单的内容进行验证，返回 `Promise`。                   | `Function` |
+| resetFields   | 重置整个表单（或指定字段），将其值重置为初始值并移除校验结果 | `Function` |
+| clearValidate | 清理整个表单（或指定字段）的校验结果。                       | `Function` |
 
 ## Form Item API
 
@@ -79,11 +79,11 @@ description: Form 组件的文档
 
 ### Form Item Exposes
 
-[width(17,58,25)]
+[width(18,58,24)]
 
-| 名称          | 说明                                                 | 类型       |
-| ------------- | ---------------------------------------------------- | ---------- |
-| clearValidate | 移除该表单项的校验结果                               | `Function` |
-| validateState | 校验状态                                             | `Function` |
-| resetField    | 对该表单项进行重置，将其值重置为初始值并移除校验结果 | `Function` |
-| validate      | 验证表单项                                           | `Function` |
+| 名称           | 说明                                                 | 类型       |
+| -------------- | ---------------------------------------------------- | ---------- |
+| clearValidate  | 移除该表单项的校验结果                               | `Function` |
+| validateStatus | 校验状态（`state` / `errorMsg` / `loading`）         | `object`   |
+| resetField     | 对该表单项进行重置，将其值重置为初始值并移除校验结果 | `Function` |
+| validate       | 验证表单项                                           | `Function` |

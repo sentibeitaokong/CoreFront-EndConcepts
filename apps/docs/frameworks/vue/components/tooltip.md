@@ -55,7 +55,7 @@ description: Tooltip 组件的文档
 
 | 属性名        | 说明                                             | 类型                                           | 默认值 |
 | ------------- | ------------------------------------------------ | ---------------------------------------------- | ------ |
-| content       | 显示的内容，也可被 `slot#content` 覆盖           | `string`                                       | ""     |
+| content       | 显示的内容，也可被 `slot#content` 覆盖           | `string`                                       | ''     |
 | placement     | `Tooltip` 组件出现的位置                         | `enum` - `'left'\| 'top'\| 'right'\| 'bottom'` | right  |
 | trigger       | 提示框的触发方式（用于显示），在受控模式下无效。 | `enum` - `'hover'\| 'click'`                   | click  |
 | manual        | 手动触发                                         | `boolean`                                      | false  |
@@ -68,10 +68,10 @@ description: Tooltip 组件的文档
 
 [width(19,60,21)]
 
-| 事件名         | 说明                                                   | 类型       |
-| -------------- | ------------------------------------------------------ | ---------- |
-| visible-change | 切换提示框显示时和关闭时触发，将触发原因作为参数传入。 | `Function` |
-| click-outside  | 在提示框隐藏时触发。 将触发原因作为参数传入。          | `Function` |
+| 事件名         | 说明                                         | 类型       |
+| -------------- | -------------------------------------------- | ---------- |
+| visible-change | 提示框显示或关闭时触发，参数为当前是否显示。 | `Function` |
+| click-outside  | 点击提示框外部时触发，参数为 `true`。        | `Function` |
 
 ### Tooltip Slots
 

@@ -9,7 +9,7 @@ description: Select 组件的文档
 
 ## 基础用法
 
-适用广泛的基础单选 `v-model` 的值为当前被选中的 `option` 的 value 属性值。
+适用于广泛的基础单选 `v-model` 的值为当前被选中的 `option` 的 value 属性值。
 
 <preview path="../../../components/Select/BasicSelect.vue" title="基础选择器" description="Select 基础选择器"></preview>
 
@@ -17,13 +17,13 @@ description: Select 组件的文档
 
 禁用整个选择器组件
 
-为 `el-select` 设置 `disabled`属性，则整个选择器不可用。
+为 `vk-select` 设置 `disabled` 属性，则整个选择器不可用。
 
 <preview path="../../../components/Select/DisabledSelect.vue" title="基础选择器禁用" description="Select 基础选择器禁用"></preview>
 
 ## 有禁用选项
 
-禁用选择器组件的单个选项,为options数组选项里面设置`disabled`属性，则该选项不可用
+禁用选择器组件的单个选项。在 `options` 数组的选项里设置 `disabled` 属性，则该选项不可用
 
 <preview path="../../../components/Select/DisabledSelectOption.vue" title="基础选择器禁用选项" description="Select 基础选择器禁用选项"></preview>
 
@@ -55,7 +55,7 @@ description: Select 组件的文档
 
 服务器搜索数据，输入关键字进行查找。为了启用远程搜索，需要将 `filterable` 和 `remote` 设置为true，同时传入一个`remote-method`。 `remote-method` 为一个返回 `Promise` 的`Function`，类型为 `(value: string) => Promise<SelectOption[]>` 。
 
-<preview path="../../../components/Select/RemoteSelect.vue" title="筛选选项" description="Select 筛选选项"></preview>
+<preview path="../../../components/Select/RemoteSelect.vue" title="远程搜索" description="Select 远程搜索"></preview>
 
 ## Select API
 
@@ -66,10 +66,10 @@ description: Select 组件的文档
 | 属性名                | 说明                                                                                             | 类型       | 默认值 |
 | --------------------- | ------------------------------------------------------------------------------------------------ | ---------- | ------ |
 | model-value / v-model | 绑定值                                                                                           | `'string'` | —      |
-| options               | 选项的数据源,`value`,`label` 和 `disabled`属性.                                                  | `array`    | —      |
-| placeholder           | 占位符，默认为`Select`                                                                           | `string`   | —      |
+| options               | 选项的数据源，每项包含 `label`、`value` 和 `disabled`。                                          | `array`    | —      |
+| placeholder           | 占位符                                                                                           | `string`   | —      |
 | clearable             | 是否可以清空选项                                                                                 | `boolean`  | false  |
-| disabled              | 按钮是否为禁用状态                                                                               | `boolean`  | false  |
+| disabled              | 是否禁用选择器                                                                                   | `boolean`  | false  |
 | renderLabel           | 自定义模板                                                                                       | `Function` | —      |
 | filterable            | `Select` 组件是否可筛选                                                                          | `boolean`  | false  |
 | filterMethod          | 自定义筛选方法的第一个参数是当前输入的值。 只有当 `filterable` 设置为 `true` 时才会生效。        | `Function` | —      |
@@ -92,7 +92,7 @@ description: Select 组件的文档
 
 [width(13,28,18,41)]
 
-| 属性名   | 说明               | 类型      | 默认值 |
+| 字段     | 说明               | 类型      | 默认值 |
 | -------- | ------------------ | --------- | ------ |
 | label    | 选项的名称         | `string`  | —      |
 | value    | 选项的值           | `string`  | —      |

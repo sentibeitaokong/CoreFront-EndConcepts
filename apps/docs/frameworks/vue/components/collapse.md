@@ -25,20 +25,20 @@ description: Collapse 组件的文档
 
 ### Collapse Attribute
 
-[width(28,33,18,21)]
+[width(28,38,18,16)]
 
-| 属性名                | 详情                         | 类型      | 默认值 |
-| --------------------- | ---------------------------- | --------- | ------ |
-| model-value / v-model | 当前活动面板,其类型是`array` | `array`   | []     |
-| accordion             | 是否手风琴模式               | `boolean` | false  |
+| 属性名                | 详情                          | 类型      | 默认值 |
+| --------------------- | ----------------------------- | --------- | ------ |
+| model-value / v-model | 当前活动面板，其类型是`array` | `array`   | ['a']  |
+| accordion             | 是否手风琴模式                | `boolean` | false  |
 
 ### Collapse Events
 
 [width(23,44,33)]
 
-| 事件名 | 说明                             | 类型       |
-| ------ | -------------------------------- | ---------- |
-| change | 切换当前活动面板,其类型是`array` | `Function` |
+| 事件名 | 说明                              | 类型       |
+| ------ | --------------------------------- | ---------- |
+| change | 切换当前活动面板，其类型是`array` | `Function` |
 
 ### Collapse Slots
 
@@ -52,13 +52,13 @@ description: Collapse 组件的文档
 
 ### Collapse Item Attributes
 
-[width(13,18,18,51)]
+[width(13,18,23,46)]
 
-| 属性名   | 详情       | 类型      | 默认值 |
-| -------- | ---------- | --------- | ------ |
-| name     | 唯一标志符 | `string`  | number |
-| title    | 面板标题   | `string`  | ''     |
-| disabled | 是否禁用   | `boolean` | false  |
+| 属性名   | 详情       | 类型               | 默认值 |
+| -------- | ---------- | ------------------ | ------ |
+| name     | 唯一标识符 | `string \| number` | —      |
+| title    | 面板标题   | `string`           | ''     |
+| disabled | 是否禁用   | `boolean`          | false  |
 
 ### Collapse Item Slot
 

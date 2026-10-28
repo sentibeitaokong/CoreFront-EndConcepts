@@ -7,7 +7,7 @@ outline: [2, 4] # 这个页面将显示 h2 和 h3 标题
 ## 1. 核心概念与通信哲学
 
 **核心哲学：单向数据流 (One-Way Data Flow)**
-无论使用哪种通信方式，都应该尽量遵循：数据的所有权归谁，就只有谁有资格修改它。其他组件想修改，必须“发消息”求拥有者去改。
+无论使用哪种通信方式，都应该尽量遵循：数据的所有权归谁，就只有谁有资格修改它。其他组件想修改，必须“**发消息**”求拥有者去改。
 
 ## 2. 组件通信全家桶实战
 
@@ -17,7 +17,7 @@ outline: [2, 4] # 这个页面将显示 h2 和 h3 标题
 
 这是 Vue 官方最为推崇的通信方式，构成了组件化开发的基础。
 
-#### 1. 父传子：**`Props`**
+#### 2.1.1 父传子：**`Props`**
 
 父组件通过在子组件标签上绑定属性向下传递数据。
 
@@ -123,17 +123,16 @@ defineProps({
 })
 ```
 
-**示例**
+:::details Props示例
+:::code-group
 
-```vue
-<!-- 父组件 Parent.vue -->
+```vue [Parent.vue ]
 <template>
   <Child :msg="parentMessage" :count="10" />
 </template>
 ```
 
-```vue
-<!-- 子组件 Child.vue -->
+```vue [Child.vue]
 <script setup>
 // 声明接收 props
 const props = defineProps({
@@ -144,7 +143,9 @@ console.log(props.msg)
 </script>
 ```
 
-#### 2. 子传父：**`emit`**
+:::
+
+#### 2.1.2 子传父：**`emit`**
 
 子组件不能直接修改 `Props`！它必须通过发射自定义事件，通知父组件自己去改。
 
@@ -211,10 +212,10 @@ function submitForm(email, password) {
 </script>
 ```
 
-**示例**
+:::details emit示例
+:::code-group
 
-```vue
-<!-- 子组件 Child.vue -->
+```vue [Child.vue]
 <script setup>
 const emit = defineEmits(['updateMsg'])
 const handleClick = () => {
@@ -227,19 +228,20 @@ const handleClick = () => {
 </template>
 ```
 
-```vue
-<!-- 父组件 Parent.vue -->
+```vue [Parent.vue]
 <template>
   <!-- 监听子组件的自定义事件 -->
   <Child @updateMsg="handleChildMsg" />
 </template>
 ```
 
+:::
+
 ### 2.2 父子双向绑定 (语法糖)
 
 如果父子之间仅仅是简单的表单状态同步，每次都写 `props` 和 `emit` 会非常繁琐。Vue 提供了 `v-model` 语法糖。
 
-#### 1. 双向绑定: `v-model`
+#### 2.2.1 双向绑定: `v-model`
 
 从 Vue 3.4 开始，推荐的实现方式是使用 `defineModel()` 宏：
 
@@ -285,9 +287,7 @@ const model = defineModel()
 - 一个名为 `modelValue` 的 `prop`，本地 `ref` 的值与其同步；
 - 一个名为 `update:modelValue` 的事件，当本地 `ref` 的值发生变更时触发。
 
-在 `3.4` 版本之前，你一般会按照如下的方式来实现上述相同的子组件：
-
-::: details
+::: details (Vue 3.4之前)
 
 ```vue
 <!-- 父组件 -->
@@ -309,7 +309,7 @@ function updateInput(e) {
 
 :::
 
-因为 `defineModel` 声明了一个 `prop`，你可以通过给 `defineModel` 传递选项，来声明底层 `prop` 的选项：
+因为`defineModel`声明了一个`prop`，你可以通过给`defineModel`传递选项，来声明底层 `prop` 的选项：
 
 ```js
 // 使 v-model 必填
@@ -319,7 +319,7 @@ const model = defineModel({ required: true })
 const model = defineModel({ default: 0 })
 ```
 
-#### 2. 多个 `v-model` 绑定
+#### 2.2.2 多个 `v-model` 绑定
 
 组件上的每一个 `v-model` 都会同步不同的 `prop`，而无需额外的选项：
 
@@ -371,7 +371,7 @@ defineEmits(['update:firstName', 'update:lastName'])
 
 ### 2.3 爷孙/跨级通信 (依赖注入)
 
-当组件嵌套了三四层（A -> B -> C -> D），A 要传数据给 D，如果一层层写 Props 会引发严重的“Prop 逐级透传地狱 (Prop Drilling)”。
+当组件嵌套了三四层（A -> B -> C -> D），A 要传数据给 D，如果一层层写 Props 会引发严重的“**Prop 逐级透传地狱 (Prop Drilling)**”。
 
 ![Logo](/img/propsDrilling.png)
 
@@ -379,7 +379,7 @@ defineEmits(['update:firstName', 'update:lastName'])
 
 ![Logo](/img/provide-inject.png)
 
-#### 1. provide(提供)
+#### 2.3.1 provide(提供)
 
 要为组件后代提供数据，需要使用到 `provide()` 函数：
 
@@ -391,7 +391,7 @@ provide(/* 注入名 */ 'message', /* 值 */ 'hello!')
 </script>
 ```
 
-`provide()` 函数接收两个参数。第一个参数被称为注入名，可以是一个字符串或是一个 `Symbol`。后代组件会用注入名来查找期望注入的值。一个组件可以多次调用 `provide()`，使用不同的注入名，注入不同的依赖值。
+`provide()`函数接收两个参数。第一个参数被称为注入名，可以是一个字符串或是一个`Symbol`。后代组件会用注入名来查找期望注入的值。一个组件可以多次调用`provide()`，使用不同的注入名，注入不同的依赖值。
 
 第二个参数是提供的值，值可以是任意类型，包括响应式的状态，比如一个 ref,提供的响应式状态使后代组件可以由此和提供者建立响应式的联系。
 
@@ -401,8 +401,6 @@ import { ref, provide } from 'vue'
 const count = ref(0)
 provide('key', count)
 ```
-
-**应用层 Provide**
 
 除了在一个组件中提供依赖，我们还可以在整个应用层面提供依赖：
 
@@ -414,7 +412,7 @@ const app = createApp({})
 app.provide(/* 注入名 */ 'message', /* 值 */ 'hello!')
 ```
 
-#### 2. inject(注入)
+#### 2.3.2 inject(注入)
 
 要注入上层组件提供的数据，需使用 `inject()` 函数：
 
@@ -431,8 +429,9 @@ const value = inject('key', () => new ExpensiveClass(), true)
 
 当提供 / 注入响应式的数据时，建议尽可能将任何对响应式状态的变更都保持在供给方组件中。这样可以确保所提供状态的声明和变更操作都内聚在同一个组件内，使其更容易维护。
 
-```vue
-<!-- 爷爷组件 GrandParent.vue -->
+:::code-group
+
+```vue [GrandParent.vue]
 <script setup>
 import { ref, provide } from 'vue'
 
@@ -445,8 +444,7 @@ provide('theme', {
 </script>
 ```
 
-```vue
-<!-- 孙子组件 Child.vue -->
+```vue [Child.vue]
 <script setup>
 import { inject } from 'vue'
 
@@ -454,6 +452,8 @@ import { inject } from 'vue'
 const { color, updateColor } = inject('theme')
 </script>
 ```
+
+:::
 
 **使用 Symbol 作注入名**
 
@@ -479,7 +479,7 @@ const injected = inject(myInjectionKey)
 
 ### 2.4 全局/兄弟通信 (状态管理)
 
-#### 1. 全局状态管理：Pinia (Vue 3 标准)
+#### 2.4.1 全局状态管理：Pinia (Vue 3 标准)
 
 将状态抽离到外部单独管理，所有组件都去订阅这个外部仓库。
 
@@ -508,14 +508,11 @@ userStore.login('Admin') // 改数据
 </script>
 ```
 
-#### 2. 事件总线：EventBus (Vue 3 已废弃原生支持)
+#### 2.4.2 事件总线：EventBus (Vue 3 已废弃原生支持)
 
 在 Vue 2 时代，我们常用 `new Vue()` 暴露的 `$on` 和 `$emit` 实现全局事件互发。但在 Vue 3 中，实例接口已被彻底移除。
 
-**现代替代方案**：
-
-1. 优先使用 Pinia 存储标记状态。
-2. 如果只想要纯粹的事件触发，需安装第三方轻量库，如 `mitt` 或 `tiny-emitter`。
+**现代替代方案**：1. 优先使用 Pinia 存储标记状态。2. 如果只想要纯粹的事件触发，需安装第三方轻量库，如 `mitt` 或 `tiny-emitter`。
 
 **1. 安装 mitt**
 
@@ -527,8 +524,9 @@ npm install mitt
 
 为了防止在代码里到处写死魔法字符串（Magic Strings），强烈建议把事件名称统一定义成常量。
 
-```javascript
-// src/utils/eventBus.js
+:::code-group
+
+```javascript [src/utils/eventBus.js]
 import mitt from 'mitt'
 
 // 1. 创建 mitt 实例 (单例)
@@ -542,12 +540,15 @@ export const EVENTS = {
 }
 ```
 
-**3. 接收方组件 (挂载与销毁监听 🚨)**
+:::
+
+**3. 接收方组件 (挂载与销毁监听)**
 
 接收方组件负责监听事件。**极其重要：必须在组件销毁前 (`onBeforeUnmount`) 手动卸载监听，否则会造成严重的内存泄漏和重复触发！**
 
-```vue
-<!-- src/components/NotificationToast.vue -->
+:::code-group
+
+```vue [src/components/NotificationToast.vue]
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { bus, EVENTS } from '@/utils/eventBus'
@@ -575,14 +576,14 @@ onMounted(() => {
   // bus.on('*', (type, e) => console.log(type, e))
 })
 
-// 3. 🚨 必须：组件卸载前，关闭监听
+// 3. 必须：组件卸载前，关闭监听
 onBeforeUnmount(() => {
   bus.off(EVENTS.SHOW_NOTIFICATION, handleShowNotification)
 })
 </script>
 
 <template>
-  <div v-if="isVisible" class="toast-box">📢 收到广播：{{ message }}</div>
+  <div v-if="isVisible" class="toast-box">收到广播：{{ message }}</div>
 </template>
 
 <style scoped>
@@ -598,14 +599,15 @@ onBeforeUnmount(() => {
 </style>
 ```
 
+:::
+
 **4. 发送方组件 / 纯 JS 文件 (触发事件)**
 
 发送方可以是 Vue 组件，也可以是**纯纯的普通 JS/TS 文件**（比如 Axios 的拦截器，这正是 Event Bus 最不可替代的场景）。
 
-**在普通 Vue 组件中触发**
+:::code-group
 
-```vue
-<!-- src/views/Dashboard.vue -->
+```vue [src/views/Dashboard.vue]
 <script setup>
 import { bus, EVENTS } from '@/utils/eventBus'
 
@@ -625,9 +627,9 @@ const triggerToast = () => {
 </template>
 ```
 
-**在纯 JS 中触发 (如 Axios 响应拦截器)**
+:::
 
-这是 Pinia 或 Props 很难优雅解决的场景。
+**在纯 JS 中触发 (如 Axios 响应拦截器)**
 
 ```javascript
 // src/utils/request.js
@@ -641,7 +643,7 @@ const api = axios.create({
 api.interceptors.response.use(
   response => response.data,
   error => {
-    // 💡 绝杀场景：当后端返回 401 身份过期时，
+    // 绝杀场景：当后端返回 401 身份过期时，
     // 我们在这个没有 Vue 上下文的纯 JS 文件里，直接用 bus 呼叫全局退出弹窗
     if (error.response && error.response.status === 401) {
       bus.emit(EVENTS.USER_LOGOUT, { reason: 'Token 已过期，请重新登录' })
@@ -656,7 +658,7 @@ export default api
 
 ### 2.5 透传(Attributes)
 
-“透传 `attribute`”指的是传递给一个组件，却没有被该组件声明为 `props` 或 `emits` 的 `attribute` 或者 `v-on` 事件监听器。最常见的例子就是 `class`、`style` 和 `id`。
+“**透传 `attribute`**”指的是传递给一个组件，却没有被该组件声明为 `props` 或 `emits` 的 `attribute` 或者 `v-on` 事件监听器。最常见的例子就是 `class`、`style` 和 `id`。
 
 **Attributes 继承**
 
@@ -705,23 +707,24 @@ defineOptions({
 
 当你二次封装别人的组件库（比如把 Element Plus 的 `el-input` 包装成你公司的 `MyInput`）时，别人组件上有几十个属性和事件，你怎么原封不动地传给它？
 
-- **`useAttrs()` (透传 Attributes)**
-  它能捕获父组件传过来的、但你没有在 `defineProps` 和 `defineEmits` 中声明的“漏网之鱼”（包括 class、style、自定义属性、原生事件）。
-  ```vue
-  <!-- MyInput.vue -->
-  <script setup>
-  import { useAttrs } from 'vue'
-  const attrs = useAttrs()
-  </script>
-  <template>
-    <!-- v-bind 批量绑定所有透传过来的属性和事件 -->
-    <el-input v-bind="attrs" class="my-custom-class" />
-  </template>
-  ```
+**`useAttrs()` (透传 Attributes)**
+它能捕获父组件传过来的、但你没有在 `defineProps` 和 `defineEmits` 中声明的“**漏网之鱼**”（包括 class、style、自定义属性、原生事件）。
+
+```vue
+<!-- MyInput.vue -->
+<script setup>
+import { useAttrs } from 'vue'
+const attrs = useAttrs()
+</script>
+<template>
+  <!-- v-bind 批量绑定所有透传过来的属性和事件 -->
+  <el-input v-bind="attrs" class="my-custom-class" />
+</template>
+```
 
 ### 2.6 插槽(Slots)
 
-#### 1. 父传子(默认插槽和具名插槽)
+#### 2.6.1 父传子(默认插槽和具名插槽)
 
 **默认插槽**
 
@@ -819,7 +822,7 @@ defineOptions({
 </template>
 ```
 
-#### 2. 子传父(作用域插槽)
+#### 2.6.2 子传父(作用域插槽)
 
 插槽的内容无法访问到子组件的状态。但可以像对组件传递 `props` 那样，向一个插槽的出口上传递 `attributes`：
 
@@ -876,7 +879,7 @@ function MyComponent(slots) {
 
 注意插槽上的 `name` 是一个 `Vue` 特别保留的 `attribute`，不会作为 `props` 传递给插槽。因此最终 `headerProps` 的结果是 `{ message: 'hello' }`。
 
-**注意：**如果你同时使用了具名插槽与默认插槽，则需要为默认插槽使用显式的 `<template>` 标签。尝试直接为组件添加 `v-slot` 指令将导致编译错误。这是为了避免因默认插槽的 `props` 的作用域而困惑。举例：
+**注意：** 如果你同时使用了具名插槽与默认插槽，则需要为默认插槽使用显式的 `<template>` 标签。尝试直接为组件添加 `v-slot` 指令将导致编译错误。这是为了避免因默认插槽的 `props` 的作用域而困惑。举例：
 
 ```html
 <!-- <MyComponent> template 子组件 -->
@@ -912,10 +915,11 @@ function MyComponent(slots) {
 
 ### 2.7 `ref` 与 `defineExpose`
 
-默认情况下，Vue 3 `<script setup>` 组件是**封闭的**。父组件想调子组件的方法，子组件必须先“开门”。
+默认情况下，Vue 3 `<script setup>` 组件是**封闭的**。父组件想调子组件的方法，子组件必须先“**开门**”。
 
-```vue
-<!-- 子组件 Child.vue -->
+:::code-group
+
+```vue [Child.vue]
 <script setup>
 import { ref } from 'vue'
 const count = ref(0)
@@ -926,8 +930,7 @@ defineExpose({ reset, count })
 </script>
 ```
 
-```vue
-<!-- 父组件 Parent.vue -->
+```vue [Parent.vue]
 <script setup>
 import { ref, onMounted } from 'vue'
 
@@ -943,47 +946,88 @@ onMounted(() => {
 </template>
 ```
 
-### 2.8 总结
+:::
 
-面对如此多的通信方式，在真实的工程中该如何抉择？请牢记以下法则：
+### 2.8 通信方式
 
-- **能用 Props / Emit 解决的，绝对不要用其他方式。** 这是最易于维护、数据来源最清晰的方案。
-- **表单类的子组件封装**，无脑使用 `v-model`。
-- **开发高阶、可高度复用的基础组件库**（如自己写一个 Element UI），常需要结合 `provide/inject`（处理类似 Form 表单与 FormItem 的联动）和 `useAttrs`（透传原生属性）。
-- **跨路由页面的状态**（如登录 token、购物车商品数），不要犹豫，立刻使用全局状态管理 **Pinia**。
+#### 2.8.1 **通信方式选型**
+
+[width(21,18,18,43)]
+
+| 通信方式               | 方向                      | 适用场景                 | 注意点                                                  |
+| ---------------------- | ------------------------- | ------------------------ | ------------------------------------------------------- |
+| `props`                | 父 → 子                   | 传入数据、配置           | 子组件不能直接改 props；复杂对象注意响应式丢失          |
+| `emit`                 | 子 → 父                   | 子组件通知父组件         | 事件名用 kebab-case，参数尽量单一职责                   |
+| `v-model`              | 父 ↔ 子                   | 表单类双向绑定           | 默认 `modelValue` + `update:modelValue`；可自定义名称   |
+| `provide` / `inject`   | 跨级向下                  | 主题、配置、表单上下文   | 注入 key 用 `Symbol`/`InjectionKey`；避免滥用成全局状态 |
+| Pinia                  | 任意组件                  | 全局状态、兄弟组件共享   | 适合跨页面、跨路由的长期状态                            |
+| `attrs`                | 父 → 子透传               | 包装组件、组件库透传     | `inheritAttrs: false` 后手动 `v-bind="$attrs"`          |
+| 插槽（含作用域插槽）   | 父 → 子内容 / 子 → 父数据 | 布局分发、表格自定义列   | 作用域插槽把子组件数据暴露给父级模板                    |
+| `ref` + `defineExpose` | 父 → 子实例               | 父组件主动调用子组件方法 | 只暴露必要的 API，避免破坏封装                          |
+| EventBus（mitt）       | 任意组件                  | 临时、低频的跨组件事件   | Vue 3 已无内置 EventBus，优先用 Pinia                   |
+
+#### 2.8.2 **高频场景**
+
+[width(26,41,33)]
+
+| 业务场景             | 推荐写法                                  | 为什么                                      |
+| -------------------- | ----------------------------------------- | ------------------------------------------- |
+| 表单组件双向绑定     | `v-model` + `defineModel()`（3.4+）       | 比手写 props + emit 更简洁                  |
+| 跨级主题 / 配置      | `provide` + `inject`                      | 避免逐层透传 props                          |
+| 兄弟组件共享购物车   | Pinia                                     | 状态集中、可持久化、易调试                  |
+| 组件库透传原生属性   | `inheritAttrs: false` + `v-bind="$attrs"` | 让 `class` / `style` / 原生事件落到正确元素 |
+| 表格自定义列         | 作用域插槽 `#default="{ row }"`           | 父级拿到行数据，子组件只负责渲染            |
+| 父组件调用子组件方法 | `ref` + `defineExpose({ reset })`         | 比通过 props 传回调更直接，但要限制暴露面   |
+
+#### 2.8.3 **高频补充**
+
+[width(18,42,40)]
+
+| 场景             | 推荐写法                                      | 说明                                                    |
+| ---------------- | --------------------------------------------- | ------------------------------------------------------- |
+| 读取插槽内容     | `useSlots()`                                  | 组合式 API 中替代 `this.$slots`，适合判断插槽是否存在   |
+| 跨级注入带类型   | `const key: InjectionKey<Context> = Symbol()` | 配合 `provide(key, value)` / `inject(key)` 获得类型提示 |
+| 只读跨级状态     | `provide('state', readonly(state))`           | 子组件误改会报警告，保持单向数据流                      |
+| 注入默认值       | `inject(key, fallback)`                       | 组件可独立使用，不强制依赖上层 Provider                 |
+| 透传所有属性     | `inheritAttrs: false` + `v-bind="$attrs"`     | 让 `class`、`style`、原生事件落到正确元素               |
+| 访问父/根实例    | 尽量避免 `$parent` / `$root`                  | 耦合高、重构易碎；改用 props / provide / Pinia          |
+| Options API 暴露 | `expose: ['reset']`                           | 等价于 `defineExpose`，只暴露公开 API                   |
 
 ## 3. 常见问题 (FAQ) 与避坑指南
 
 ### 3.1 为什么 Vue 极其严厉地禁止子组件直接修改父组件传来的 Props？
 
-- **答**：这是为了防范**“状态突变导致的代码失控”**。
-  - 在大型应用中，一个父组件的状态可能会作为 Props 同时分发给 5 个不同的子组件。
-  - 如果允许子组件直接修改 Props（在 JS 中如果是对象引用，确实是改得动的），那么只要有一个子组件不小心改了它，其他 4 个子组件和父组件的视图都会瞬间莫名其妙地发生变化。
-  - 此时，父组件根本不知道是哪个“逆子”干的，这会导致排查 Bug 变得如同大海捞针。
-  - **架构纪律**：因此，Vue 强制规定了**单向数据流**。子组件只能读；想改？必须发个 `$emit` 申请书，让拥有该数据的父组件自己去执行修改代码。这样所有状态的改变都收敛、可追溯。
+这是为了防范“**状态突变导致的代码失控**”。
+
+- 在大型应用中，一个父组件的状态可能会作为 Props 同时分发给 5 个不同的子组件。
+- 如果允许子组件直接修改 Props（在 JS 中如果是对象引用，确实是改得动的），那么只要有一个子组件不小心改了它，其他 4 个子组件和父组件的视图都会瞬间莫名其妙地发生变化。
+- 此时，父组件根本不知道是哪个“**逆子**”干的，这会导致排查 Bug 变得如同大海捞针。
+- **架构纪律**：因此，Vue 强制规定了**单向数据流**。子组件只能读；想改？必须发个 `$emit` 申请书，让拥有该数据的父组件自己去执行修改代码。这样所有状态的改变都收敛、可追溯。
 
 ### 3.2 父组件通过 `provide` 传下去的数据，孙子组件拿到了，但父组件数据改变时孙子组件为什么没更新？
 
-- **答**：因为你可能 `provide` 了一个**非响应式**的数据。
-  - `provide` 函数本身并不会施加魔法把普通数据变成响应式的。
-  - 如果你写的是 `provide('msg', 'hello')`，孙子拿到的永远是个死字符串。
-  - **正解**：你必须传入通过 `ref` 或 `reactive` 包装过的数据。
-  ```js
-  // 祖先组件
-  const count = ref(0)
-  provide('countObj', count) // 必须传 ref 本身，千万不要传 count.value
-  ```
+因为你可能 `provide` 了一个**非响应式**的数据。
+
+- `provide` 函数本身并不会施加魔法把普通数据变成响应式的。
+- 如果你写的是 `provide('msg', 'hello')`，孙子拿到的永远是个死字符串。
+- **正解**：你必须传入通过 `ref` 或 `reactive` 包装过的数据。
+
+```js
+// 祖先组件
+const count = ref(0)
+provide('countObj', count) // 必须传 ref 本身，千万不要传 count.value
+```
 
 ### 3.3 我在使用 Vue 3，以前极其好用的 EventBus (全局事件总线 `this.$bus.$emit`) 怎么不见了？
 
-- **答**：**Vue 3 的底层彻底移除了实例上的 `$on`, `$off`, `$once` 方法。**
-  - **废弃原因**：EventBus 虽然写起来爽，但在大型项目中是绝对的“代码维护噩梦”。事件满天飞，根本无法追踪一个事件是在哪里发射的，又是在哪里被监听的，且极易引发忘记解绑导致的严重内存泄漏。
-  - **Vue 3 的替代方案**：
-    1.  **推荐方案**：直接使用 **Pinia** 进行状态共享。如果只是想互相通知，可以在 Pinia store 里放一个标记状态。
-    2.  **备用方案**：如果坚持要用事件总线模式（比如封装独立的小型库），官方建议安装第三方的纯 JS 事件库，如 **`mitt`** 或 **`tiny-emitter`**。
+**Vue 3 的底层彻底移除了实例上的 `$on`, `$off`, `$once` 方法。**
+
+- **废弃原因**：EventBus 虽然写起来爽，但在大型项目中是绝对的“**代码维护噩梦**”。事件满天飞，根本无法追踪一个事件是在哪里发射的，又是在哪里被监听的，且极易引发忘记解绑导致的严重内存泄漏。
+- **Vue 3 的替代方案**：
+  - **推荐方案**：直接使用 **Pinia** 进行状态共享。如果只是想互相通知，可以在 Pinia store 里放一个标记状态。
+  - **备用方案**：如果坚持要用事件总线模式（比如封装独立的小型库），官方建议安装第三方的纯 JS 事件库，如 **`mitt`** 或 **`tiny-emitter`**。
 
 ### 3.4 什么时候该用 `Props/Emit`，什么时候该用 `Pinia` 全局状态？
 
-- **答**：这考验你的架构颗粒度感知。
-  - **选用 Props/Emit**：这个数据是不是只在这个组件的局部上下文中才有意义？（比如一个弹窗组件的 `isVisible`，或者一个商品卡片接收到的 `productInfo`）。这属于**局部 UI 状态**，坚决不用 Pinia，保持组件的独立性和复用性。
-  - **选用 Pinia**：这个数据是不是很多毫无物理关系的页面都要用？（比如当前登录的用户信息、全局的主题偏好、购物车里有几件商品）。这属于**全局业务状态**，为了避免恶心的多层跨级传递，坚决放入 Pinia。
+- **选用 Props/Emit**：这个数据是不是只在这个组件的局部上下文中才有意义？（比如一个弹窗组件的 `isVisible`，或者一个商品卡片接收到的 `productInfo`）。这属于**局部 UI 状态**，坚决不用 Pinia，保持组件的独立性和复用性。
+- **选用 Pinia**：这个数据是不是很多毫无物理关系的页面都要用？（比如当前登录的用户信息、全局的主题偏好、购物车里有几件商品）。这属于**全局业务状态**，为了避免恶心的多层跨级传递，坚决放入 Pinia。

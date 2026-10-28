@@ -8,14 +8,16 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 在 Vue 中，当应用规模变得复杂时，如果有**数十个毫不相干的页面组件（非父子关系）需要共享同一个数据（例如：当前登录的用户信息、全局的主题偏好、购物车里的商品列表）**，继续使用 `Provide/Inject` 或乱飞的事件总线 (EventBus) 将会导致代码逻辑像意大利面条一样难以追踪。
 
-**全局状态管理库 (State Management)** 相当于在整个 Vue 应用的顶部，建立了一个“公共数据仓库”。任何组件都可以直接去仓库里拿数据（读），或者向仓库发送修改数据的请求（写）。
+**全局状态管理库 (State Management)** 相当于在整个 Vue 应用的顶部，建立了一个“**公共数据仓库**”。任何组件都可以直接去仓库里拿数据（读），或者向仓库发送修改数据的请求（写）。
 
 ### 1.1 架构演进：Vuex 的没落与 Pinia 的登基
 
 长期以来，**Vuex** 都是 Vue 官方的标配。但由于其架构较老，在 Vue 3 (Composition API 和 TS) 时代显得格格不入。
-**Pinia** 最初是作为 Vuex 5 的实验性项目孵化的，因为其设计极其优雅，最终被官方“扶正”，成为现在 Vue 的官方默认状态管理库。
+**Pinia** 最初是作为 Vuex 5 的实验性项目孵化的，因为其设计极其优雅，最终被官方“**扶正**”，成为现在 Vue 的官方默认状态管理库。
 
-| 对比维度            | Vuex 3/4                                                                                                | Pinia (现代标准 🌟)                                                                                                    |
+[width(13,39,48)]
+
+| 对比维度            | Vuex 3/4                                                                                                | Pinia (现代标准)                                                                                                       |
 | :------------------ | :------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------- |
 | **API 风格**        | Options API 风格 (厚重)                                                                                 | Composition API 风格 (极简，天然贴合 Vue 3)                                                                            |
 | **TypeScript 支持** | **极差**。需要写大量恶心的类型推导，且容易丢失提示。                                                    | **完美**。无需任何额外配置，天生支持极其精确的代码提示。                                                               |
@@ -28,22 +30,23 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 把 `Store` 想象成一个普通的组合式函数 (`Composable`)。
 
-```javascript
-// src/store/counter.js
+:::code-group
+
+```javascript [src/store/counter.js]
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 // 1. 定义并导出 Store (命名规范：useXxxStore)
 // 第一个参数 'counter' 是该 store 的全局唯一 ID
 export const useCounterStore = defineStore('counter', () => {
-  // 🍎 State (状态)：用 ref 或 reactive 定义
+  // State (状态)：用 ref 或 reactive 定义
   const count = ref(0)
   const name = ref('Eduardo')
 
-  // 🍏 Getters (计算属性)：用 computed 定义
+  // Getters (计算属性)：用 computed 定义
   const doubleCount = computed(() => count.value * 2)
 
-  // 🍉 Actions (动作/方法)：定义普通的 function，支持同步和异步 (async)
+  // Actions (动作/方法)：定义普通的 function，支持同步和异步 (async)
   function increment() {
     count.value++
   }
@@ -53,10 +56,12 @@ export const useCounterStore = defineStore('counter', () => {
     name.value = res.name
   }
 
-  // 🚨 必须暴露出去，组件才能使用
+  // 必须暴露出去，组件才能使用
   return { count, name, doubleCount, increment, fetchUser }
 })
 ```
+
+:::
 
 ### 2.2 在组件中使用 Store
 
@@ -68,13 +73,13 @@ import { storeToRefs } from 'pinia'
 // 1. 实例化 Store
 const counterStore = useCounterStore()
 
-// ❌ 错误：直接解构会失去响应式！
+// 错误：直接解构会失去响应式！
 // const { count } = counterStore
 
-// ✅ 正确 1：如果一定要解构，必须使用 storeToRefs (只针对 state 和 getter)
+// 正确 1：如果一定要解构，必须使用 storeToRefs (只针对 state 和 getter)
 const { count, doubleCount } = storeToRefs(counterStore)
 
-// ✅ 正确 2：Action 函数可以直接解构，不受影响
+// 正确 2：Action 函数可以直接解构，不受影响
 const { increment } = counterStore
 
 function add() {
@@ -120,22 +125,62 @@ export const useCartStore = defineStore('cart', () => {
 })
 ```
 
+### 2.4 Store API 速查
+
+[width(18,28,23,31)]
+
+| API                      | 常用写法                                            | 适用场景                             | 注意点                                        |
+| ------------------------ | --------------------------------------------------- | ------------------------------------ | --------------------------------------------- |
+| `storeToRefs(store)`     | `const { count } = storeToRefs(store)`              | 解构 state / getters 并保持响应式    | 只处理 state 和 getters；action 可以直接解构  |
+| `store.$patch()`         | `store.$patch({ count: 1 })` 或函数式               | 批量修改多个字段                     | 函数式写法适合基于旧值计算，只触发一次订阅    |
+| `store.$reset()`         | `store.$reset()`                                    | 退出登录、重置筛选条件               | setup store 默认没有 `$reset`，需要自己实现   |
+| `store.$subscribe()`     | `store.$subscribe(cb, { detached: true })`          | 持久化、埋点、同步到 localStorage    | 组件外使用要加 `detached: true`；返回取消函数 |
+| `store.$onAction()`      | `store.$onAction(({ name, after, onError }) => {})` | 统一 loading、错误上报、审计         | 在 `after` / `onError` 里处理异步结果         |
+| `store.$state`           | `store.$state = newState`                           | 整体替换状态（如 SSR 注水）          | 会触发所有订阅，局部更新优先用 `$patch`       |
+| `defineStore(id, setup)` | `defineStore('user', () => {})`                     | 组合式写法定义 Store                 | id 必须全局唯一，重复定义会复用同一个 Store   |
+| `pinia.use(plugin)`      | `pinia.use(({ store }) => {})`                      | 给所有 Store 注入 router、持久化能力 | 在 `app.use(pinia)` 前注册                    |
+
+[width(24,43,33)]
+
+| 业务场景               | 推荐写法                                     | 为什么                                       |
+| ---------------------- | -------------------------------------------- | -------------------------------------------- |
+| 登录态 / token 持久化  | `pinia-plugin-persistedstate` + `$subscribe` | 刷新页面不丢登录态                           |
+| 路由守卫里读取用户信息 | 在 `beforeEach` 内调用 `useUserStore()`      | Pinia 安装后才能用，不要在模块顶层提前实例化 |
+| 跨页面保留筛选条件     | 把筛选条件放进 Store，页面卸载不清理         | 返回列表页时无需重新查询                     |
+| 多 Store 协作          | 在 action 内调用另一个 `useXxxStore()`       | 扁平架构，避免 Vuex 的模块嵌套               |
+| 统一处理 action 异常   | `$onAction` 的 `onError` 上报                | 避免每个 action 重复 try/catch               |
+
+### 2.5 工程化补充：Options Store、HMR 与测试
+
+[width(21,43,36)]
+
+| 场景             | 写法                                             | 说明                                             |
+| ---------------- | ------------------------------------------------ | ------------------------------------------------ |
+| Options Store    | `defineStore('id', { state, getters, actions })` | 老项目 / Vuex 迁移更直观；新项目优先 Setup Store |
+| Options API 辅助 | `mapStores` / `mapState` / `mapActions`          | 在 Options API 组件中映射 Store                  |
+| HMR              | `acceptHMRUpdate(useStore, import.meta.hot)`     | 开发时修改 Store 不丢状态                        |
+| 单元测试         | `setActivePinia(createPinia())`                  | 每个测试用例创建独立 Pinia，避免状态串扰         |
+| 实例标识         | `store.$id`                                      | 调试、日志、动态判断 Store 类型                  |
+| 销毁实例         | `store.$dispose()`                               | 手动清理订阅，常用于动态 Store                   |
+| 全局状态快照     | `pinia.state.value`                              | SSR 注水、Devtools 调试                          |
+
 ## 3. 终极扩展：Plugins (插件系统) 深度定制
 
-插件系统是 Pinia 提供给高级工程师的一把“手术刀”。通过编写插件，你可以在**每一个 Store 被创建的那一刻**进行拦截，往里面动态挂载全局属性、改写方法、甚至重构底层逻辑。
+插件系统是 Pinia 提供给高级工程师的一把“**手术刀**”。通过编写插件，你可以在**每一个 Store 被创建的那一刻**进行拦截，往里面动态挂载全局属性、改写方法、甚至重构底层逻辑。
 
 ### 3.1 编写插件的核心 API (`context`)
 
 当你向 `pinia.use(plugin)` 传入一个函数时，这个函数会在每个 Store 初始化时执行，并收到一个极其强大的 `context` 对象。
 
-```javascript
-// MyPiniaPlugin.js
+:::code-group
+
+```javascript [MyPiniaPlugin.js]
 export function myPiniaPlugin(context) {
   // 你可以从 context 中剥离出四个核心对象：
   const {
     pinia, // 整个 pinia 根实例
     app, // 当前 Vue app 的实例 (能拿到 app.config.globalProperties)
-    store, // 🚨 此时正在被创建的那个目标 Store 实例！
+    store, // 此时正在被创建的那个目标 Store 实例！
     options, // 这个 Store 原始的配置选项 (包括你自定义的各种参数)
   } = context
 
@@ -144,12 +189,15 @@ export function myPiniaPlugin(context) {
 }
 ```
 
+:::
+
 ### 3.2 动态挂载全局工具 (如 Router)
 
-为了避免在 Store 的业务代码里写恶心的 `import router from '@/router'` 从而导致循环依赖，我们可以在最顶层用插件把 router “硬塞”进每一个 Store 里。
+为了避免在 Store 的业务代码里写恶心的 `import router from '@/router'` 从而导致循环依赖，我们可以在最顶层用插件把 router “**硬塞**”进每一个 Store 里。
 
-```javascript
-// main.js
+:::code-group
+
+```javascript [main.js]
 import { createApp, markRaw } from 'vue'
 import { createPinia } from 'pinia'
 import router from './router'
@@ -159,7 +207,7 @@ const pinia = createPinia()
 
 // 注入路由插件
 pinia.use(({ store }) => {
-  // 🚨 致命防坑：因为 router 内部逻辑极其复杂且对象庞大，
+  // 致命防坑：因为 router 内部逻辑极其复杂且对象庞大，
   // 绝不能让 Pinia 的响应式系统去深度劫持它 (会导致死循环爆炸)！
   // 必须使用 markRaw 给它穿上绝缘服，告诉 Vue 不要代理它。
   store.router = markRaw(router)
@@ -171,7 +219,7 @@ app.use(pinia)
 app.mount('#app')
 ```
 
-_现在，在任意的 Options Store 中你就可以直接 `this.router.push` 了。(注：在 Setup Store 中无法通过 `this` 访问，通常直接 `import router` 更符合现代 ESM 规范)。_
+:::
 
 ### 3.3 状态持久化 (Pinia Plugin Persistedstate)
 
@@ -184,8 +232,9 @@ _现在，在任意的 Options Store 中你就可以直接 `this.router.push` �
 npm i pinia-plugin-persistedstate
 ```
 
-```javascript
-// main.js
+:::code-group
+
+```javascript [main.js]
 import { createPinia } from 'pinia'
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
@@ -194,10 +243,13 @@ pinia.use(piniaPluginPersistedstate) // 注入插件
 app.use(pinia)
 ```
 
+:::
+
 **2. 在 Store 中一键开启：**
 
-```javascript
-// store/user.js
+:::code-group
+
+```javascript [store/user.js]
 export const useUserStore = defineStore(
   'user',
   () => {
@@ -205,11 +257,13 @@ export const useUserStore = defineStore(
     return { token }
   },
   {
-    // 🔥 魔法开启！这个 Store 的数据会自动同步到 localStorage
+    // 魔法开启！这个 Store 的数据会自动同步到 localStorage
     persist: true,
   },
 )
 ```
+
+:::
 
 **基于 `$subscribe` 实现终极持久化**
 
@@ -240,45 +294,42 @@ export function persistPlugin({ store }) {
 
 ### 4.1 既然能在 Pinia 里随意 `store.count++` 暴改状态，那还要 Actions 甚至架构纪律干嘛？
 
-- **答**：这是一个极具争议的话题。
-  - **Vuex 时代**：有着极其严格的物理纪律，强迫你必须走 `commit(mutation)` 才能改状态，这为了配合 DevTools 记录时间旅行。
-  - **Pinia 时代**：抛弃了这种物理限制，直接赋值 `store.token = '123'` 是合法的，Vue DevTools 依然能完美追踪。
-  - **架构建议**：虽然 Pinia 不拦你，但在团队协作中，**强烈建议把所有修改状态的逻辑封装在 Actions 函数里**。如果在组件的各个角落里散落着直接修改 State 的代码，排查 Bug 时你依然会绝望。封装在 Actions 里，逻辑高内聚，更利于测试和维护。
+- **Vuex 时代**：有着极其严格的物理纪律，强迫你必须走 `commit(mutation)` 才能改状态，这为了配合 DevTools 记录时间旅行。
+- **Pinia 时代**：抛弃了这种物理限制，直接赋值 `store.token = '123'` 是合法的，Vue DevTools 依然能完美追踪。
+- **架构建议**：虽然 Pinia 不拦你，但在团队协作中，**强烈建议把所有修改状态的逻辑封装在 Actions 函数里**。如果在组件的各个角落里散落着直接修改 State 的代码，排查 Bug 时你依然会绝望。封装在 Actions 里，逻辑高内聚，更利于测试和维护。
 
 ### 4.2 为什么我对 Store 里的数据进行了解构赋值，页面就不更新了？
 
-- **答**：这也是高频新手坑。
-  - **原理**：`Store` 本质上是一个包裹在 `reactive` 里的对象。正如我们在响应式基础章节讲过的，对 reactive 对象进行结构，提取出的基本数据类型会变成死值，彻底脱离底层的 Proxy 代理网。
-  - **避坑方案**：如果你嫌每次写 `userStore.name` 太长，非要解构出 `name`。你**绝对不能用原生解构**，必须包裹一层 **`storeToRefs`**。
-  ```javascript
-  import { storeToRefs } from 'pinia'
-  // 把里面的属性一个个扒出来，变成安全的 ref
-  const { count, name } = storeToRefs(counterStore)
-  // 此时想改它，必须加 .value 了！
-  count.value++
-  ```
+- **原理**：`Store` 本质上是一个包裹在 `reactive` 里的对象。正如我们在响应式基础章节讲过的，对 reactive 对象进行结构，提取出的基本数据类型会变成死值，彻底脱离底层的 Proxy 代理网。
+- **避坑方案**：如果你嫌每次写 `userStore.name` 太长，非要解构出 `name`。你**绝对不能用原生解构**，必须包裹一层 **`storeToRefs`**。
+
+```javascript
+import { storeToRefs } from 'pinia'
+// 把里面的属性一个个扒出来，变成安全的 ref
+const { count, name } = storeToRefs(counterStore)
+// 此时想改它，必须加 .value 了！
+count.value++
+```
 
 ### 4.3 我在路由守卫 (`router.beforeEach`) 里面调用 Store 报错了，提示“Pinia 还未安装”？
 
-- **答**：这是初始化时序问题。
-  - **原因**：在 `main.js` 中，通常你初始化路由 (`app.use(router)`) 和初始化 Pinia (`app.use(pinia)`) 都在一起。如果在 router 文件的最顶部去 `import` 并实例化 Store，此时 Vue 实例可能还没把 Pinia 挂载进去。
-  - **解决方案**：不要在文件的顶部全局实例化 Store，**必须把 Store 的实例化推迟到路由守卫的回调函数内部**！
+- **原因**：在 `main.js` 中，通常你初始化路由 (`app.use(router)`) 和初始化 Pinia (`app.use(pinia)`) 都在一起。如果在 router 文件的最顶部去 `import` 并实例化 Store，此时 Vue 实例可能还没把 Pinia 挂载进去。
+- **解决方案**：不要在文件的顶部全局实例化 Store，**必须把 Store 的实例化推迟到路由守卫的回调函数内部**！
 
-  ```javascript
-  // ❌ 错误写法：此时 Pinia 可能还没 ready
-  // const userStore = useUserStore()
+```javascript
+// 错误写法：此时 Pinia 可能还没 ready
+// const userStore = useUserStore()
 
-  router.beforeEach((to, from) => {
-    // ✅ 正确写法：在函数执行时，整个 Vue 宇宙早就初始化完毕了，绝对安全
-    const userStore = useUserStore()
-    if (!userStore.isLoggedIn) return '/login'
-  })
-  ```
+router.beforeEach((to, from) => {
+  // 正确写法：在函数执行时，整个 Vue 宇宙早就初始化完毕了，绝对安全
+  const userStore = useUserStore()
+  if (!userStore.isLoggedIn) return '/login'
+})
+```
 
 ### 4.4 把普通逻辑抽离成 Composable（组合式函数）和写成 Pinia Store 有什么本质区别？我该怎么选？
 
-- **答**：这是一个非常高级的架构问题。
-  - 两者在代码长相上确实极其相似（都是 `import` 后调用函数返回状态）。
-  - **Composable (如 `useMouse`)**：是**局部状态**。你在组件 A 调用一次，组件 B 调用一次，它们会在内存里创建**两份相互独立的**状态副本，互不干扰。
-  - **Pinia Store (如 `useUserStore`)**：是**全局单例 (Singleton) 状态**。不管你在 100 个组件里调用了多少次，Pinia 底层都会保证它们指向的是**内存里同一份数据**。
-  - **选型结论**：如果是可复用的纯逻辑（比如防抖、获取滚动位置），用 Composable；如果是必须跨页面共享的业务数据（比如购物车商品列表），用 Pinia。
+- 两者在代码长相上确实极其相似（都是 `import` 后调用函数返回状态）。
+- **Composable (如 `useMouse`)**：是**局部状态**。你在组件 A 调用一次，组件 B 调用一次，它们会在内存里创建**两份相互独立的**状态副本，互不干扰。
+- **Pinia Store (如 `useUserStore`)**：是**全局单例 (Singleton) 状态**。不管你在 100 个组件里调用了多少次，Pinia 底层都会保证它们指向的是**内存里同一份数据**。
+- **选型结论**：如果是可复用的纯逻辑（比如防抖、获取滚动位置），用 Composable；如果是必须跨页面共享的业务数据（比如购物车商品列表），用 Pinia。

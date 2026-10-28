@@ -12,6 +12,8 @@
 
 ### 1.2 与 `reactive` 的简单对比
 
+[width(22,37,41)]
+
 | 特性             | `ref`                            | `reactive`                      |
 | ---------------- | -------------------------------- | ------------------------------- |
 | 适用数据类型     | 任意（基本类型或对象）           | 仅对象（含数组、集合）          |
@@ -328,7 +330,7 @@ export function toRefs(object) {
 
 ### `proxyRefs`
 
-你能以操作普通对象的方式，来操作一个内部可能包含 `ref` 的对象，而无需时刻使用 `.value` 来取值或赋值,因此模板无需使用`.value`属性来展示。
+你能以操作普通对象的方式，来操作一个内部可能包含 `ref` 的对象，而无需时刻使用 `.value` 来取值或赋值，因此模板无需使用`.value`属性来展示。
 
 ```typescript
 export function proxyRefs<T extends object>(
@@ -356,6 +358,8 @@ const shallowUnwrapHandlers: ProxyHandler<any> = {
 ```
 
 ## 6. `ref` 与 `reactive` 对比
+
+[width(18,30,52)]
 
 | 对比维度     | `ref`                     | `reactive`             |
 | ------------ | ------------------------- | ---------------------- |

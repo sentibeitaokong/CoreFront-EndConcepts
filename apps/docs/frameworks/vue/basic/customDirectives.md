@@ -10,6 +10,8 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 当你发现你需要反复获取 DOM 节点去执行如 `el.focus()`、操作 Canvas、强制重绘特定样式、或者拦截底层键盘事件时，不要把这些恶心的 DOM 操作散落在各个组件的 `onMounted` 里，把它们封装成指令！
 
+[width(22,78)]
+
 | 典型应用场景         | 详细说明                                                                              |
 | :------------------- | :------------------------------------------------------------------------------------ |
 | **微观交互行为**     | 自动获取焦点 (`v-focus`)、点击元素外部触发关闭 (`v-click-outside`)。                  |
@@ -31,19 +33,19 @@ const myDirective = {
   // 2. 在元素被插入到 DOM 前调用
   beforeMount(el, binding, vnode, prevVnode) {},
 
-  // 3. 在绑定元素的父组件及他自己的所有子节点都挂载完成后调用 (最常用 🌟)
+  // 3. 在绑定元素的父组件及他自己的所有子节点都挂载完成后调用 (最常用)
   mounted(el, binding, vnode, prevVnode) {},
 
   // 4. 绑定元素的父组件更新前调用
   beforeUpdate(el, binding, vnode, prevVnode) {},
 
-  // 5. 在绑定元素的父组件及他自己的所有子节点都更新后调用 (常用 🌟)
+  // 5. 在绑定元素的父组件及他自己的所有子节点都更新后调用 (常用)
   updated(el, binding, vnode, prevVnode) {},
 
   // 6. 绑定元素的父组件卸载前调用
   beforeUnmount(el, binding, vnode, prevVnode) {},
 
-  // 7. 绑定元素的父组件卸载后调用 (极其重要，用于清理事件监听 🌟)
+  // 7. 绑定元素的父组件卸载后调用 (极其重要，用于清理事件监听)
   unmounted(el, binding, vnode, prevVnode) {},
 }
 ```
@@ -55,20 +57,89 @@ const myDirective = {
 
 - `el`：指令绑定到的元素。这可以用于直接操作 DOM。
 - `binding`：一个对象，包含以下属性。
-  - `value`：传递给指令的值。例如在 `v-my-directive`="1 + 1" 中，值是 2。
+  - `value`：传递给指令的值。例如在 `v-my-directive="1 + 1"` 中，值是 2。
   - `oldValue`：之前的值，仅在 `beforeUpdate` 和 `updated` 中可用。无论值是否更改，它都可用。
   - `arg`：传递给指令的参数 (如果有的话)。例如在 `v-my-directive:foo` 中，参数是 `"foo"`。
   - `modifiers`：一个包含修饰符的对象 (如果有的话)。例如在 `v-my-directive.foo.bar` 中，修饰符对象是 `{ foo: true, bar: true }`。
   - `instance`：使用该指令的组件实例。
   - `dir`：指令的定义对象。
 - `vnode`：代表绑定元素的底层 `VNode`。
-- `prevVnode`：代表之前的渲染中指令所绑定元素的 `VNode`。仅在 `beforeUpdate` 和 `updated` 钩子中可用。
+- `prevVnode`:代表之前的渲染中指令所绑定元素的`VNode`。仅在`beforeUpdate`和`updated`钩子中可用。
 
 比如你写了 `<div v-color:background.fast="'red'"></div>`
 
 - `binding.value`: 传递给指令的值（此例为 `'red'`）。
 - `binding.arg`: 传递的参数（此例为 `'background'`）。
 - `binding.modifiers`: 包含修饰符的对象（此例为 `{ fast: true }`）。
+
+[width(25,18,28,29)]
+
+| 属性 / 选项         | 常用取值                 | 适用场景                   | 注意点                                 |
+| ------------------- | ------------------------ | -------------------------- | -------------------------------------- |
+| `binding.value`     | 指令表达式的值           | 读取传给指令的主体参数     | 未传值时是 `undefined`                 |
+| `binding.oldValue`  | 上一次的值               | 对比更新前后的差异         | 仅在 `beforeUpdate` / `updated` 中可用 |
+| `binding.arg`       | `v-dir:foo` 中的 `'foo'` | 同一个指令切换行为模式     | 参数是静态字符串，不是响应式值         |
+| `binding.modifiers` | `{ fast: true }`         | 开关式配置（`v-dir.fast`） | 修饰符名取自 `.foo.bar`，值为 `true`   |
+| `binding.instance`  | 当前组件实例             | 需要访问组件状态或方法     | 类型可能是 `null`                      |
+| `binding.dir`       | 指令定义对象             | 指令内部复用自身配置       | 一般不需要直接读取                     |
+
+**常用钩子组合：**
+
+- **只写 `mounted`**：一次性 DOM 初始化，如 `v-focus`、第三方库挂载。
+- **`mounted` + `unmounted`（成对）**：绑定和解绑事件监听、`ResizeObserver`，防止内存泄漏。
+- **`mounted` + `updated`**：值变化时需要重新执行 DOM 操作；指令直接传函数时默认等价于这一组合。
+- **`beforeUpdate`**：在 DOM 打补丁前读取旧状态，如记录滚动位置。
+
+### 2.2 SSR、注册方式与渲染函数
+
+- **全局注册**：`app.directive('focus', focusDirective)`，指令名不要带 `v-` 前缀。
+
+```js
+app.directive('focus', focusDirective) // 模板里写 v-focus
+```
+
+- **局部注册**：`<script setup>` 中以 `v` 开头的驼峰变量会自动注册，如 `const vFocus = {...}` 对应 `v-focus`。
+
+```ts
+// 变量名 vFocus 会自动注册为 v-focus，无需 app.directive
+const vFocus = {
+  mounted: el => el.focus(),
+}
+```
+
+- **SSR**：指令在服务端不会执行 DOM 钩子；需要参与服务端渲染时实现 `getSSRProps(binding, vnode)` 返回需要合并的属性。
+
+```ts
+const vColor = {
+  mounted(el, binding) {
+    el.style.color = binding.value
+  },
+  getSSRProps(binding) {
+    return { style: `color:${binding.value}` }
+  },
+}
+```
+
+- **渲染函数 / JSX**：用 `withDirectives(vnode, [[vColor, 'red']])` 手动应用指令，用 `resolveDirective('color')` 解析已注册指令。
+
+```ts
+import { h, resolveDirective, withDirectives } from 'vue'
+
+const color = resolveDirective('color')
+const render = () => withDirectives(h('p', '红色文本'), [[color, 'red']])
+```
+
+- **组件上的指令**：指令会落到组件的根节点；多根组件无法确定目标，Vue 会警告，改用 props 或包裹单一根节点。
+
+```vue
+<template>
+  <!-- 单根组件：指令直接落在根节点上 -->
+  <MyInput v-focus />
+
+  <!-- 多根组件：指令不知道该落到哪个根节点，Vue 会警告 -->
+  <MultiRoot v-focus />
+</template>
+```
 
 ## 3. 企业级自定义指令实战
 
@@ -93,8 +164,9 @@ const vFocus = {
 
 这是写各种 Dropdown 下拉菜单、弹窗组件时必备的神器。
 
-```js
-// src/directives/clickOutside.js
+:::code-group
+
+```js [src/directives/clickOutside.js]
 export const clickOutside = {
   mounted(el, binding) {
     // 1. 创建一个处理函数，判断点击的靶点是否在当前 el 元素内部
@@ -111,7 +183,7 @@ export const clickOutside = {
     document.addEventListener('click', el._clickOutsideHandler)
   },
 
-  // 🚨 极其重要：物理卸载防内存泄漏
+  // 极其重要：物理卸载防内存泄漏
   unmounted(el) {
     document.removeEventListener('click', el._clickOutsideHandler)
     delete el._clickOutsideHandler
@@ -119,19 +191,21 @@ export const clickOutside = {
 }
 ```
 
-```vue
-<!-- 使用方式 -->
+```vue [MyComponent.vue]
 <template>
   <div class="dropdown" v-click-outside="closeMenu">点击我外面我会关闭</div>
 </template>
 ```
 
+:::
+
 ### 3.3 系统级：按钮权限控制 (`v-permission`)
 
 在后台管理系统中，通过角色控制某个按钮是否显示，是极其常见的高频需求。
 
-```js
-// src/directives/permission.js
+:::code-group
+
+```js [src/directives/permission.js]
 export const permission = {
   mounted(el, binding) {
     const { value: requiredRole } = binding // 获取指令绑定的角色要求
@@ -153,35 +227,83 @@ export const permission = {
 }
 ```
 
-```vue
-<!-- 全局注册后使用 -->
+```vue [MyComponent.vue]
 <button v-permission="['admin']">只有超级管理员能看到这个按钮</button>
 ```
+
+:::
+
+### 3.4 **高频场景**
+
+[width(20,45,35)]
+
+| 业务场景             | 推荐写法                                                   | 为什么                                |
+| -------------------- | ---------------------------------------------------------- | ------------------------------------- |
+| 输入框自动聚焦       | `mounted` 中调用 `el.focus()`                              | 只需执行一次，函数简写即可            |
+| 下拉菜单点击外部关闭 | `mounted` 绑定 `document` 事件 + `unmounted` 解绑          | 事件挂在全局，必须成对清理            |
+| 图片懒加载           | `mounted` 中创建 `IntersectionObserver` + `unmounted` 断开 | 进入视口再加载，避免浪费带宽          |
+| 按钮级权限控制       | `mounted` 中按角色移除节点                                 | 权限在一次会话内稳定，无需响应式切换  |
+| 图表/播放器接入      | `mounted` 初始化实例 + `unmounted` 调用 `dispose()`        | 第三方实例不由 Vue 管理，必须手动销毁 |
 
 ## 4. 常见问题 (FAQ) 与避坑指南
 
 ### 4.1 为什么官方文档说“能用组件解决的，绝不用自定义指令”？
 
-- **答**：这是设计哲学的边界。
-  - **职责越界**：如果你的指令开始去创建大量新的 DOM 节点、或者往目标元素内部强行 `innerHTML` 插入一大堆 HTML 结构，这说明你走偏了。这种与视图渲染强相关的操作，组件和插槽 (`Slot`) 是更好、更具有响应式安全保障的手段。
-  - **可维护性差**：指令里的逻辑是“黑盒”操作原生 DOM 的。如果过度滥用，会破坏 Vue 数据驱动视图的直觉，导致日后重构时 Bug 频发。
-  - **核心准则**：指令**只做辅助性、外挂性的底层 DOM API 操作**。
+- **职责越界**：如果你的指令开始去创建大量新的 DOM 节点、或者往目标元素内部强行 `innerHTML` 插入一大堆 HTML 结构，这说明你走偏了。这种与视图渲染强相关的操作，组件和插槽 (`Slot`) 是更好、更具有响应式安全保障的手段。
+- **可维护性差**：指令里的逻辑是“**黑盒**”操作原生 DOM 的。如果过度滥用，会破坏 Vue 数据驱动视图的直觉，导致日后重构时 Bug 频发。
+- **核心准则**：指令**只做辅助性、外挂性的底层 DOM API 操作**。
 
 ### 4.2 我把自定义指令绑在一个封装好的 Vue 组件上，为什么不生效？
 
-- **答**：在 Vue 3 中，指令绑定到组件上的行为发生了一个巨大的“破坏性变更”。
-  - 在 Vue 2 中，指令默认会穿透并作用在组件的**根元素 (Root Node)** 上。
-  - 在 Vue 3 中，如果你绑定的子组件**有多个根元素（Fragments 碎片机制）**，Vue 将会彻底懵逼，不知道这个指令到底该绑在哪个根节点上，于是**直接抛出警告，指令完全失效**。
-  - **避坑指南**：官方强烈建议：**不要把自定义指令直接绑定在 Vue 组件标签上！** 始终将指令绑定在最底层的原生的 HTML 标签（如 `<div>`, `<input>`）上，以保证绝对的安全和确定性。
+在 Vue 3 中，指令绑定到组件上的行为发生了一个巨大的“**破坏性变更**”。
+
+- 在 Vue 2 中，指令默认会穿透并作用在组件的**根元素 (Root Node)** 上。
+- 在 Vue 3 中，如果你绑定的子组件**有多个根元素（Fragments 碎片机制）**，Vue 将会彻底懵逼，不知道这个指令到底该绑在哪个根节点上，于是**直接抛出警告，指令完全失效**。
+- **避坑指南**：官方强烈建议：**不要把自定义指令直接绑定在 Vue 组件标签上！** 始终将指令绑定在最底层的原生的 HTML 标签（如 `<div>`, `<input>`）上，以保证绝对的安全和确定性。
 
 ### 4.3 `v-show` 也是指令，我自己写的 `v-permission` 删除了元素，这俩有什么区别？
 
-- **答**：区别在于控制层级和恢复机制。
-  - `v-show` 是 Vue 官方深度集成的，它仅仅是修改了 DOM 的 `style.display` 属性，并且通过闭包保留了它原来的 `display` 状态，随时可以改回来。
-  - 我们在 `v-permission` 中使用的是 `el.parentNode.removeChild(el)` 物理拔除节点。这种做法在权限控制中非常安全，因为权限在一次会话中通常不改变。但如果你试图用这种拔除操作去实现一个高频开关的功能，拔掉之后你是很难再用指令把它“插”回原位的（因为 `parentNode` 里已经没它的坑位了），此时应该使用原生的 `v-if` 让 Vue 的编译器去接管销毁与重建。
+区别在于控制层级和恢复机制。
+
+- `v-show` 是 Vue 官方深度集成的，它仅仅是修改了 DOM 的 `style.display` 属性，并且通过闭包保留了它原来的 `display` 状态，随时可以改回来。
+- 我们在 `v-permission` 中使用的是 `el.parentNode.removeChild(el)` 物理拔除节点。这种做法在权限控制中非常安全，因为权限在一次会话中通常不改变。但如果你试图用这种拔除操作去实现一个高频开关的功能，拔掉之后你是很难再用指令把它“**插**”回原位的（因为 `parentNode` 里已经没它的坑位了），此时应该使用原生的 `v-if` 让 Vue 的编译器去接管销毁与重建。
 
 ### 4.4 为什么有时我的指令里的 `el` 拿到的样式高度/宽度不正确？
 
-- **答**：**执行时机的时差问题**。
-  - `mounted` 钩子虽然保证了该元素已经被插入了真实的 DOM 树中，但如果该元素的子节点包含大量需要去远端拉取的网络图片，或者该元素受到页面中某些复杂 CSS 动画的牵连，此时你获取的高度可能是不准确的。
-  - **解决方案**：遇到与物理渲染强相关的操作，在指令内也要包裹一次 `nextTick` 或者使用 `setTimeout(fn, 0)` 强制把计算延后。如果在监听复杂的尺寸变化，建议引入更现代的 `ResizeObserver` API，并在 `unmounted` 中销毁它。
+**执行时机的时差问题**。
+
+`mounted` 钩子虽然保证了该元素已经被插入了真实的 DOM 树中，但如果该元素的子节点包含大量需要去远端拉取的网络图片，或者该元素受到页面中某些复杂 CSS 动画的牵连，此时你获取的高度可能是不准确的。
+
+```js
+const vAutoHeight = {
+  mounted(el) {
+    // 时机过早：子节点里的图片 / 字体还没加载完，此时 scrollHeight 可能偏小
+    el.style.height = `${el.scrollHeight}px`
+  },
+}
+```
+
+**解决方案**：遇到与物理渲染强相关的操作，在指令内也要包裹一次 `nextTick` 或者使用 `setTimeout(fn, 0)` 强制把计算延后。如果在监听复杂的尺寸变化，建议引入更现代的 `ResizeObserver` API，并在 `unmounted` 中销毁它。
+
+```js
+import { nextTick } from 'vue'
+
+const vAutoHeight = {
+  async mounted(el) {
+    // 等本次 DOM 更新与浏览器布局完成后再测量
+    await nextTick()
+    el.style.height = `${el.scrollHeight}px`
+
+    // 尺寸会持续变化时，交给 ResizeObserver 监听，而不是手动反复测
+    const observer = new ResizeObserver(() => {
+      el.style.height = `${el.scrollHeight}px`
+    })
+    observer.observe(el)
+    el._observer = observer
+  },
+  unmounted(el) {
+    // 元素卸载时销毁观察器，避免内存泄漏
+    el._observer?.disconnect()
+  },
+}
+```

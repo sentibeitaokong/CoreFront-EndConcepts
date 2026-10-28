@@ -28,7 +28,7 @@ const count: Ref<number> = ref(0)
 
 ## 2. 为 `reactive()` 标注类型
 
-`reactive` 同样会隐式地从它的参数中推导类型。如果不满足自动推导，**官方推荐使用接口显式标注变量类型**。
+`reactive`同样会隐式地从它的参数中推导类型。如果不满足自动推导，**官方推荐使用接口显式标注变量类型**。
 
 ```typescript
 import { reactive } from 'vue'
@@ -42,14 +42,14 @@ interface Book {
 const book: Book = reactive({ title: 'Vue 3 Guide' })
 
 // 不推荐写法：使用泛型（因为底层实现的一些边缘限制）
-// const book = reactive<Book>({ title: 'Vue 3 Guide' }) ❌
+// const book = reactive<Book>({ title: 'Vue 3 Guide' })
 ```
 
 ## 3. 为 `defineProps` 标注类型
 
-在 `<script setup>` 中，`defineProps` 是一个**编译宏**。标注它的类型有两种截然不同的风格，**绝对不要混用**。
+在`<script setup>`中，`defineProps`是一个**编译宏**。标注它的类型有两种截然不同的风格，**绝对不要混用**。
 
-### 3.1 基于类型的声明 (Type-based declaration 🌟)
+### 3.1 基于类型的声明 (Type-based declaration)
 
 这是 TS 环境下**最强大、最推荐**的写法。纯靠 TS 接口来定义，没有运行时开销。
 
@@ -140,8 +140,10 @@ const emit = defineEmits<{
   (e: 'change', id: number): void
   (e: 'update', value: string): void
 }>()
+```
 
-// 🚀 Vue 3.3+ 更简洁的新语法：
+```typescript
+// Vue 3.3+ 更简洁的新语法：
 const emit = defineEmits<{
   change: [id: number] // 键名就是事件名，值就是参数元组
   update: [value: string]
@@ -195,7 +197,7 @@ const foo = inject<string>('foo', 'bar') // 类型：string
 
 ## 7. 为模板引用 (Template Refs) 标注类型
 
-当你想要通过 `ref` 获取一个 DOM 节点或子组件实例时，这是最容易踩坑的地方，因为它的初始值永远是 `null`。
+当你想要通过 `ref` 获取一个 DOM 节点或子组件实例时，因为它的初始值永远是 `null`。
 
 ### 7.1 标注原生 DOM 元素
 
@@ -248,7 +250,7 @@ defineExpose({ open })
 import { ref } from 'vue'
 import MyModal from './MyModal.vue'
 
-// 🚀 核心魔法：使用 InstanceType 提取导入进来的组件类型
+// 核心魔法：使用 InstanceType 提取导入进来的组件类型
 const modalRef = ref<InstanceType<typeof MyModal> | null>(null)
 
 const openModal = () => {
@@ -286,33 +288,56 @@ export default {
 } satisfies HighlightDirective
 ```
 
-## 10. 常见问题 (FAQ) 与避坑指南
+## 10. 类型标注速查
 
-### 10.1 为什么我的 `defineProps` 报错 `missing semicolon` 或者提示语法错误？
+[width(18,44,38)]
 
-- **答**：**这是因为你忘记在 `<script setup>` 上加 `lang="ts"` 了！**
-  - `defineProps<{ msg: string }>()` 里面的 `<>` 是纯正的 TypeScript 泛型语法。如果你没告诉 Vue 编译器这是一段 TS 代码，它会按照纯 JS 的规范去解析，看到 `<` 就直接崩溃了。
-  - **解决**：永远确保写的是 `<script setup lang="ts">`。
+| 场景                  | 推荐写法                                                               | 说明                                                 |
+| --------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------- |
+| 基本类型 ref          | `const n = ref<number>(0)`                                             | 需要可空时用 `ref<number \| null>(null)`             |
+| reactive 对象         | `const s: State = reactive({ ... })`                                   | 优先接口断言，避免泛型深层解包的推导问题             |
+| Props（类型声明）     | `defineProps<Props>()` / `withDefaults(defineProps<Props>(), { ... })` | 3.3+ 支持外部 `import type` 的接口                   |
+| Props（运行时声明）   | `defineProps({ msg: { type: String, required: true } })`               | 复杂对象用 `PropType<Book>` 断言                     |
+| Emits                 | `defineEmits<{ change: [id: number]; update: [value: string] }>()`     | 3.3+ 的元组语法比函数重载更简洁                      |
+| computed              | `computed<number>(() => ...)`                                          | 联合类型或复杂推导时显式指定返回值                   |
+| provide / inject      | `const key: InjectionKey<Context> = Symbol('key')`                     | 注入时用 `inject(key)!` 或先判空                     |
+| 原生 DOM ref          | `ref<HTMLInputElement \| null>(null)`                                  | 初始值必须是 `null`，使用前判空                      |
+| 子组件实例            | `ref<InstanceType<typeof Child> \| null>(null)`                        | 配合 `defineExpose` 才能访问暴露项                   |
+| `defineModel`         | `const model = defineModel<string>()`                                  | 3.4+；返回 `ModelRef`，可声明 `required` / `default` |
+| `defineSlots`         | `defineSlots<{ default(props: { item: Item }): any }>()`               | 给作用域插槽的 props 提供类型                        |
+| `defineExpose`        | `defineExpose({ focus })`                                              | 父组件通过 `ref` 只能访问暴露成员                    |
+| `MaybeRefOrGetter<T>` | `function useX(v: MaybeRefOrGetter<T>)`                                | 3.3+；配合 `toValue(v)` 统一取值                     |
+| 泛型 Composable       | `function useFetch<T>(url: string): Promise<Ref<T>>`                   | 返回值随入参推导，避免 `any`                         |
+| 组件实例类型          | `ComponentPublicInstance`                                              | 需要约束组件实例或 `$refs` 时使用                    |
+| 事件处理函数          | `(e: MouseEvent) => void`                                              | 需要事件对象时显式标注，避免 `any`                   |
 
-### 10.2 为什么用 TS 接口声明的 `defineProps`，在子组件里如果只传了部分可选属性，控制台会报警告？
+## 11. 常见问题 (FAQ) 与避坑指南
 
-- **答**：这是关于“响应式解构默认值”的坑。
-  - 在 Vue 3.5 之前，如果你写了 `defineProps<{ msg?: string }>()` 且没有用 `withDefaults` 赋默认值。当父组件没传 `msg` 时，子组件模板里读到的实际上是个真实的 `undefined`。
-  - **现代最佳实践 (Vue 3.5+)**：直接使用解构并赋予默认值，这是官方目前最推崇的写法。
-  ```typescript
-  // TS 会完美推导，且底层响应式不会丢失
-  const { msg = 'hello' } = defineProps<{ msg?: string }>()
-  ```
+### 11.1 为什么我的 `defineProps` 报错 `missing semicolon` 或者提示语法错误？
 
-### 10.3 `reactive` 能用泛型吗？为什么官方文档说不推荐？
+**这是因为你忘记在 `<script setup>` 上加 `lang="ts"` 了！**
 
-- **答**：
-  - 你可以写 `const state = reactive<User>({ name: 'Alice' })`。
-  - **但不推荐的原因是**：`reactive` 的泛型底层实现有一些深奥的“深层解包（Deep Unwrapping）”逻辑。如果你传进去的接口 `User` 里面本身又包含了其他 `ref` 对象，TS 泛型有时无法完美推导出正确的解包后类型，导致你在写代码时没有提示甚至报错。
-  - **官方铁律**：给 `reactive` 标类型，**永远优先使用接口类型断言** `const state: User = reactive({ ... })`。
+- `defineProps<{ msg: string }>()` 里面的 `<>` 是纯正的 TypeScript 泛型语法。如果你没告诉 Vue 编译器这是一段 TS 代码，它会按照纯 JS 的规范去解析，看到 `<` 就直接崩溃了。
+- **解决**：永远确保写的是 `<script setup lang="ts">`。
 
-### 10.4 我能在外部的 `.ts` 文件里定义 Props 接口，然后 `import` 进 `defineProps` 吗？
+### 11.2 为什么用 TS 接口声明的 `defineProps`，在子组件里如果只传了部分可选属性，控制台会报警告？
 
-- **答**：**Vue 3.3+ 完美支持！**
-  - 在以前的版本这是个大痛点（会报错由于宏编译限制无法解析外部引入）。
-  - 现在你可以放心地建一个 `types.ts`，导出 `export interface MyProps { ... }`，然后在组件里 `import { type MyProps } from './types'`，最后 `defineProps<MyProps>()`。这极大方便了企业级应用中组件 API 契约的集中管理与复用。
+这是关于“**响应式解构默认值**”的坑。
+
+- 在 Vue 3.5 之前，如果你写了 `defineProps<{ msg?: string }>()` 且没有用 `withDefaults` 赋默认值。当父组件没传 `msg` 时，子组件模板里读到的实际上是个真实的 `undefined`。
+- **现代最佳实践 (Vue 3.5+)**：直接使用解构并赋予默认值，这是官方目前最推崇的写法。
+
+```typescript
+// TS 会完美推导，且底层响应式不会丢失
+const { msg = 'hello' } = defineProps<{ msg?: string }>()
+```
+
+### 11.3 `reactive` 能用泛型吗？为什么官方文档说不推荐？
+
+- 你可以写 `const state = reactive<User>({ name: 'Alice' })`。
+- **但不推荐的原因是**：`reactive` 的泛型底层实现有一些深奥的“**深层解包（Deep Unwrapping）**”逻辑。如果你传进去的接口 `User` 里面本身又包含了其他 `ref` 对象，TS 泛型有时无法完美推导出正确的解包后类型，导致你在写代码时没有提示甚至报错。
+- **官方铁律**：给`reactive`标类型,**永远优先使用接口类型断言**`const state: User = reactive({ ... })`。
+
+### 11.4 我能在外部的 `.ts` 文件里定义 Props 接口，然后 `import` 进 `defineProps` 吗？
+
+**Vue 3.3+ 完美支持！** 现在你可以放心地建一个 `types.ts`，导出 `export interface MyProps { ... }`，然后在组件里 `import { type MyProps } from './types'`，最后 `defineProps<MyProps>()`。这极大方便了企业级应用中组件 API 契约的集中管理与复用。

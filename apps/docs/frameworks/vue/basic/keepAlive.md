@@ -8,15 +8,27 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 **`<KeepAlive>`** 是 Vue 官方提供的一个极具魔法色彩的内置抽象组件。它的核心使命是：**将那些被切走的组件实例“物理冷藏”在内存中，防止它们被销毁。当再次切回时，直接从内存中“唤醒”它们，实现瞬间渲染和状态绝对保留。**
 
-| 典型应用场景               | 详细说明                                                                                                                 |
-| :------------------------- | :----------------------------------------------------------------------------------------------------------------------- |
-| **多标签页 (Tabs) 切换**   | 业务系统中最常见。用户在“订单列表”和“商品详情”Tab 之间来回切换，要求两边的搜索条件、翻页页码、表单输入内容绝对不能丢失。 |
-| **复杂的长表单录入**       | 分步骤的向导式表单（如：第一步 -> 第二步 -> 第三步）。用户填到第三步想返回第一步修改，第一步填过的内容必须被保留。       |
-| **超长列表的滚动状态保留** | 从首页的新闻列表往下滚了很远，点击进入新闻详情，再返回首页时，要求依然停留在刚才滚动的像素位置。                         |
+[width(28,72)]
+
+| 典型应用场景               | 详细说明                                                                                                                         |
+| :------------------------- | :------------------------------------------------------------------------------------------------------------------------------- |
+| **多标签页 (Tabs) 切换**   | 业务系统中最常见。用户在“**订单列表**”和“**商品详情**”Tab 之间来回切换，要求两边的搜索条件、翻页页码、表单输入内容绝对不能丢失。 |
+| **复杂的长表单录入**       | 分步骤的向导式表单（如：第一步 -> 第二步 -> 第三步）。用户填到第三步想返回第一步修改，第一步填过的内容必须被保留。               |
+| **超长列表的滚动状态保留** | 从首页的新闻列表往下滚了很远，点击进入新闻详情，再返回首页时，要求依然停留在刚才滚动的像素位置。                                 |
 
 ## 2. 核心 API 与精准控制实战
 
-`<KeepAlive>` 如果包住所有的组件，会导致浏览器内存被瞬间撑爆。因此，Vue 提供了极其精准的缓存控制手段。
+`<KeepAlive>`如果包住所有的组件,会导致浏览器内存被瞬间撑爆。因此,Vue提供了极其精准的缓存控制手段。
+
+[width(15,28,26,31)]
+
+| 属性 / 选项        | 常用取值                               | 适用场景                         | 注意点                                            |
+| ------------------ | -------------------------------------- | -------------------------------- | ------------------------------------------------- |
+| `include`          | 字符串 / 正则 / 数组                   | 白名单：只缓存指定组件           | 匹配组件自身的 `name`，不是路由 `name`            |
+| `exclude`          | 字符串 / 正则 / 数组                   | 黑名单：排除指定组件             | 优先级高于 `include`                              |
+| `max`              | 数字，如 `10`                          | 限制缓存实例数量                 | 超出后按 LRU 淘汰最久未使用的实例                 |
+| 组件 `name`        | `defineOptions({ name: 'OrderList' })` | 让 `include` / `exclude` 能匹配  | `<script setup>` 默认按文件名推导，显式声明最稳妥 |
+| `<component :key>` | 路由 `fullPath` 或唯一值               | 同一组件在不同参数下需要独立实例 | `key` 变化会创建新实例，缓存也按 `key` 区分       |
 
 ### 2.1 基础包裹 (配合动态组件或路由)
 
@@ -31,7 +43,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 ```
 
 **配合 Vue Router 4 的标准写法：**
-🚨 _注意：在 Vue 3 (Vue Router 4) 中，路由组件缓存的写法发生了天翻地覆的结构性变化！_
+_注意：在 Vue 3 (Vue Router 4) 中，路由组件缓存的写法发生了天翻地覆的结构性变化！_
 
 ```vue
 <!-- 场景二：配合路由 (Vue 3 规范写法) -->
@@ -65,17 +77,17 @@ const cachedViews = ref(['OrderList', 'UserForm'])
 </template>
 ```
 
-**🚨 避坑核心：组件的 `name` 是什么？**
-`include` 和 `exclude` 匹配的**绝对不是路由的 name，而是 Vue 组件自身的 `name` 选项**！
-在 Vue 3 `<script setup>` 时代，给组件命名是一个痛点：
-
-1. 默认情况下，Vue 会以文件名为组件自动推导 name（如 `OrderList.vue` 的 name 就是 `OrderList`）。
-2. **最稳妥的做法**：利用 Vue 3.3+ 新增的 `defineOptions` 显式声明：
-   ```vue
-   <script setup>
-   defineOptions({ name: 'OrderList' }) // 强行指定名字，供 KeepAlive 抓取
-   </script>
-   ```
+> [!IMPORTANT] 避坑核心：组件的 `name` 是什么？
+> `include` 和 `exclude` 匹配的**绝对不是路由的 name，而是 Vue 组件自身的 `name` 选项**！
+>
+> - 默认情况下，Vue 会以文件名为组件自动推导 name（如 `OrderList.vue` 的 name 就是 `OrderList`）。
+> - **最稳妥的做法**：利用 Vue 3.3+ 新增的 `defineOptions` 显式声明：
+>
+> ```vue
+> <script setup>
+> defineOptions({ name: 'OrderList' }) // 强行指定名字，供 KeepAlive 抓取
+> </script>
+> ```
 
 ### 2.3 内存护城河：`max` (最大缓存实例数)
 
@@ -91,7 +103,7 @@ const cachedViews = ref(['OrderList', 'UserForm'])
 </KeepAlive>
 ```
 
-**LRU(缓存淘汰算法)**
+:::details **LRU(缓存淘汰算法)**
 
 ```js
 class LRUCache {
@@ -109,7 +121,7 @@ class LRUCache {
     // 如果缓存里有，拿到这个组件的虚拟节点 (VNode)
     const vnode = this.cache.get(key)
 
-    // 🚨 LRU 的核心动作 1：【刷新鲜度】
+    // LRU 的核心动作 1：【刷新鲜度】
     // 既然你刚刚用了它，我就先把它从字典里删掉，然后再重新塞进去。
     // 在 JS 的 Map 中，最新 set 进去的键值对会被排在队伍的最末尾！
     this.cache.delete(key)
@@ -128,7 +140,7 @@ class LRUCache {
     // 塞入新的组件（由于是最新插入，排在 Map 的最后面）
     this.cache.set(key, vnode)
 
-    // 🚨 LRU 的核心动作 2：【容量超载淘汰】
+    // LRU 的核心动作 2：【容量超载淘汰】
     // 检查桌子是不是放满了
     if (this.cache.size > this.capacity) {
       // Map.prototype.keys() 会返回一个迭代器，按照插入顺序排列
@@ -160,11 +172,91 @@ keepAlive.put('设置页', 'VNode_Setting')
 console.log(keepAlive.cache.keys()) // 结果: [详情页, 首页, 设置页]
 ```
 
+:::
+
+[width(24,44,32)]
+
+| 业务场景                              | 推荐写法                                                 | 为什么                                            |
+| ------------------------------------- | -------------------------------------------------------- | ------------------------------------------------- |
+| 后台多 Tab / 多菜单切换               | `<KeepAlive :include="cachedViews">` + 组件 `name`       | 保留搜索条件、页码、表单输入，切回不重新渲染      |
+| 列表页 → 详情页 → 返回列表            | 列表页加入 `include`，配合 Router `scrollBehavior`       | 实例状态由 KeepAlive 保留，滚动位置由 Router 还原 |
+| 多级路由（Layout 内嵌 `router-view`） | 把 `<KeepAlive>` 放到最深层需要缓存的 `<router-view>` 外 | KeepAlive 只缓存直接包裹的第一层子组件            |
+| 从菜单进入要重置、从详情返回要保留    | Pinia 动态维护 `cachedViews` + 路由守卫增删              | 把组件从 `include` 移除会立即销毁缓存实例         |
+| 缓存页面过多导致内存上涨              | `:max="10"`                                              | 用 LRU 限制实例数，淘汰最久未访问的页面           |
+
+### 2.4 缓存失效与组合顺序
+
+- **强制新实例**：给 `<component>` 或 `<router-view>` 绑定 `:key="route.fullPath"`，key 变化会创建新实例，也相当于新的缓存条目。
+
+```vue
+<router-view v-slot="{ Component, route }">
+  <!-- fullPath 变化 → 新建实例，同时对应一条新的缓存记录 -->
+  <KeepAlive>
+    <component :is="Component" :key="route.fullPath" />
+  </KeepAlive>
+</router-view>
+```
+
+- **组合顺序**：需要“**缓存 + 过渡**”时用 `<Transition><KeepAlive><component :is="Component" /></KeepAlive></Transition>`，`KeepAlive` 负责缓存，`Transition` 负责进出场。
+
+```vue
+<Transition name="fade">
+  <KeepAlive>
+    <component :is="Component" />
+  </KeepAlive>
+</Transition>
+```
+
+- **include 响应式**：`include` 传入数组/计算属性时，增删名单会即时生效；移除某个组件会销毁它的缓存实例。
+
+```vue
+<script setup>
+import { ref } from 'vue'
+
+const cached = ref(['UserList'])
+
+// 从名单里移除后，UserList 的缓存实例会被立即销毁
+const evict = () => {
+  cached.value = cached.value.filter(name => name !== 'UserList')
+}
+</script>
+
+<template>
+  <KeepAlive :include="cached">
+    <component :is="current" />
+  </KeepAlive>
+</template>
+```
+
+- **内存边界**：缓存保存的是组件实例（含 DOM 与状态），不要无上限缓存重型页面；`max` 按 LRU 淘汰。
+
+```vue
+<!-- 最多缓存 3 个实例，超出时按 LRU 淘汰最久未使用的 -->
+<KeepAlive :max="3">
+  <component :is="current" />
+</KeepAlive>
+```
+
+- **刷新数据**：缓存的页面不会再次触发 `onMounted`，需要最新数据时在 `onActivated` 中重新请求。
+
+```vue
+<script setup>
+import { onActivated, ref } from 'vue'
+
+const list = ref([])
+
+// 首次挂载和每次从缓存唤醒都会触发，用它替代 onMounted 拉取最新数据
+onActivated(async () => {
+  list.value = await fetchList()
+})
+</script>
+```
+
 ## 3. 专属生命周期 (冬眠与唤醒)
 
 当组件被包裹在 `<KeepAlive>` 中时，它的 `onMounted` (挂载) 和 `onUnmounted` (卸载) **只会在此生第一次被创建，和最终被 LRU 算法剔除时执行一次**。
 
-当你在缓存的组件间来回切换时，你需要感知到“我被切进来了”和“我被切走了”，于是 Vue 注入了两个专属的生命周期：
+当你在缓存的组件间来回切换时，你需要感知到“**我被切进来了**”和“**我被切走了**”，于是 Vue 注入了两个专属的生命周期：
 
 ```vue
 <script setup>
@@ -202,37 +294,39 @@ onUnmounted(() => {
 
 ### 4.1 我在 `<KeepAlive :include="cachedList">` 里写了要缓存 `UserList`，为什么根本没生效，一切换还是重置了？
 
-- **答**：这是使用 `<KeepAlive>` 时**排在第一位的致命坑点**。通常由以下两个原因导致：
-  1.  **没有给组件声明正确的 `name`**：你在路由配置里写了 `name: 'UserList'`，但这没用。`include` 看的是**组件本身代码里声明的 `name`**。在使用 `<script setup>` 时很容易漏掉，必须使用 `defineOptions({ name: 'UserList' })` 显式加上，且与 `include` 数组里的字符串**大小写绝对一致**。
-  2.  **组件发生了深层嵌套**：你的 `App.vue` 下面嵌套了 `<router-view>` (第一层)，加载了 `Layout.vue`，而 `Layout.vue` 里面又嵌套了一个 `<router-view>` (第二层)。你把 `<KeepAlive>` 写在了第一层，但却想去缓存第二层里深埋的 `UserList`。**这是绝对无效的！** `<KeepAlive>` 只能嗅探并缓存它**直接包裹的第一层直系子组件**。如果有多级路由，你必须把 `<KeepAlive>` 搬到最深层那个需要被缓存的 `<router-view>` 旁边。
+- **没有给组件声明正确的 `name`**：你在路由配置里写了 `name: 'UserList'`，但这没用。`include` 看的是**组件本身代码里声明的 `name`**。在使用 `<script setup>` 时很容易漏掉，必须使用 `defineOptions({ name: 'UserList' })` 显式加上，且与 `include` 数组里的字符串**大小写绝对一致**。
+- **组件发生了深层嵌套**：你的 `App.vue` 下面嵌套了 `<router-view>` (第一层)，加载了 `Layout.vue`，而 `Layout.vue` 里面又嵌套了一个 `<router-view>` (第二层)。你把 `<KeepAlive>` 写在了第一层，但却想去缓存第二层里深埋的 `UserList`。**这是绝对无效的！** `<KeepAlive>` 只能嗅探并缓存它**直接包裹的第一层直系子组件**。如果有多级路由，你必须把`<KeepAlive>`搬到最深层那个需要被缓存的`<router-view>`旁边。
 
 ### 4.2 业务需求：用户从“列表页”点击进入“详情页”，需要保留列表的页码缓存；但如果用户是从“左侧大菜单”点击进入“列表页”，必须清空缓存重置列表。怎么做？
 
-- **答**：这是企业级后台系统极其变态但也极常见的需求：**动态条件缓存**。
-  - **核心解法**：通过 Vuex/Pinia 动态维护那个传入 `:include` 的数组。
-  - **操作流**：
-    1.  全局维护一个 `cachedViews = ['OrderList']`。
-    2.  利用 Vue Router 的 `beforeEach` 路由守卫进行逻辑判断。
-    3.  如果判断用户是点击“左侧大菜单”前往 `OrderList`，就在路由守卫中，强行用 JS 把 `OrderList` 从 Pinia 的 `cachedViews` 数组中 `splice` 剔除掉。
-    4.  此时 `<KeepAlive>` 侦测到白名单里没它了，会**瞬间物理销毁**内存里的 `OrderList` 实例。
-    5.  紧接着路由跳转完毕，用户看到了一个全新重置的列表。然后再偷偷把 `OrderList` push 塞回 `cachedViews` 里等待下一次缓存。
+这是企业级后台系统极其变态但也极常见的需求：**动态条件缓存**。
+
+- **核心解法**：通过 Vuex/Pinia 动态维护那个传入 `:include` 的数组。
+- **操作流**：
+  1.  全局维护一个 `cachedViews = ['OrderList']`。
+  2.  利用 Vue Router 的 `beforeEach` 路由守卫进行逻辑判断。
+  3.  如果判断用户是点击“**左侧大菜单**”前往 `OrderList`，就在路由守卫中，强行用 JS 把 `OrderList` 从 Pinia 的 `cachedViews` 数组中 `splice` 剔除掉。
+  4.  此时 `<KeepAlive>` 侦测到白名单里没它了，会**瞬间物理销毁**内存里的 `OrderList` 实例。
+  5.  紧接着路由跳转完毕，用户看到了一个全新重置的列表。然后再偷偷把 `OrderList` push 塞回 `cachedViews` 里等待下一次缓存。
 
 ### 4.3 为什么缓存的页面切回来时，页面的滚动条总是自动跳回顶部，记录不住？
 
-- **答**：因为 `<KeepAlive>` **只负责缓存 Vue 实例的内存状态数据，它不管原生浏览器 DOM 滚动条的事。**
-  - **原因**：当你切走时，原来的 DOM 虽然没被销毁（被暂时移出文档流，挂在虚拟节点上），但浏览器的整个视口换成了新组件。当你再切回来时，DOM 重新插回文档流，浏览器会默认将其滚动高度重置为 0。
-  - **终极解法 (Vue Router 提供)**：不要自己手动在 `onActivated` 里去写丑陋的 `window.scrollTo`。应该在 Vue Router 初始化时，利用官方提供的 **`scrollBehavior`** 配置项。它会在背后自动为你接管所有历史页面的像素级精确滚动位置管理。
-  ```js
-  const router = createRouter({
-    history: createWebHistory(),
-    routes: [...],
-    // 原生接管：返回上一个页面时，极其精准地还原滚动位置
-    scrollBehavior(to, from, savedPosition) {
-      if (savedPosition) {
-        return savedPosition
-      } else {
-        return { top: 0 }
-      }
+因为 `<KeepAlive>` **只负责缓存 Vue 实例的内存状态数据，它不管原生浏览器 DOM 滚动条的事。**
+
+- **原因**：当你切走时，原来的 DOM 虽然没被销毁（被暂时移出文档流，挂在虚拟节点上），但浏览器的整个视口换成了新组件。当你再切回来时，DOM 重新插回文档流，浏览器会默认将其滚动高度重置为 0。
+- **终极解法 (Vue Router 提供)**：不要自己手动在 `onActivated` 里去写丑陋的 `window.scrollTo`。应该在 Vue Router 初始化时，利用官方提供的 **`scrollBehavior`** 配置项。它会在背后自动为你接管所有历史页面的像素级精确滚动位置管理。
+
+```js
+const router = createRouter({
+  history: createWebHistory(),
+  routes: [],
+  // 原生接管：返回上一个页面时，极其精准地还原滚动位置
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) {
+      return savedPosition
+    } else {
+      return { top: 0 }
     }
-  })
-  ```
+  },
+})
+```

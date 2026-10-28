@@ -40,6 +40,8 @@ description: Switch 组件的文档
 
 ### Switch Attributes
 
+[width(18,38,33,11)]
+
 | 属性名                | 说明                                                                       | 类型                                       | 默认值 |
 | --------------------- | -------------------------------------------------------------------------- | ------------------------------------------ | ------ |
 | model-value / v-model | 绑定值，必须等于 `active-value` 或 `inactive-value`，默认为 `Boolean` 类型 | `enum` - `'boolean'\| 'string'\| 'number'` | false  |
@@ -50,9 +52,10 @@ description: Switch 组件的文档
 | active-value          | switch 状态为 `on` 时的值                                                  | `enum` - `'boolean'\| 'string'\| 'number'` | true   |
 | inactive-value        | switch的状态为 `off` 时的值                                                | `enum` - `'boolean'\| 'string'\| 'number'` | false  |
 | name                  | switch 对应的 `name` 属性                                                  | `string`                                   | ''     |
-| id                    | input 的 `id`                                                              | `string`                                   | —      |
 
 ### Switch Events
+
+[width(12,36,52)]
 
 | 事件名 | 说明                            | 类型       |
 | ------ | ------------------------------- | ---------- |

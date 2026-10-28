@@ -4,7 +4,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 # Vue Router 架构
 
-Vue Router 是 Vue 官方的路由管理器。在大型单页应用（SPA）中，它不仅仅负责“页面跳转”，更是**掌控整个应用状态机、权限边界和渲染性能的指挥中枢**。
+Vue Router 是 Vue 官方的路由管理器。在大型单页应用（SPA）中，它不仅仅负责“**页面跳转**”，更是**掌控整个应用状态机、权限边界和渲染性能的指挥中枢**。
 
 ## 1. 底层路由模式：Hash vs History
 
@@ -193,7 +193,7 @@ Vue Router 提供了两种截然不同的底层物理实现来实现这一诉求
 
 ### 1.3 Nginx 兜底配置 (History 模式必配)
 
-为了拯救 History 模式的 404 危机，我们必须赋予 Nginx（或其他服务器）一种“耍赖”的能力：
+为了拯救 History 模式的 404 危机，我们必须赋予 Nginx（或其他服务器）一种“**耍赖**”的能力：
 
 ```nginx
 server {
@@ -219,8 +219,8 @@ server {
 
 ## 2. 路由的高阶排兵布阵
 
-- **`<router-link>`**: 相当于超级 `<a>` 标签。它用于创建导航链接。相比原生的 `<a>` 标签，`<router-link>` 能够正确地被 Vue Router 拦截，**防止页面重新加载**，并在对应的路由处于激活状态时，自动为其添加 active 的 CSS 类名。
-- **`<router-view>`**: 这是一个占位符组件。当 URL 发生变化时，Vue Router 会查找路由配置，找到与当前 URL 匹配的组件，并**将其渲染在这个坑位中**。
+- **`<router-link>`**：相当于超级 `<a>` 标签。它用于创建导航链接。相比原生的 `<a>` 标签，`<router-link>` 能够正确地被 Vue Router 拦截，**防止页面重新加载**，并在对应的路由处于激活状态时，自动为其添加 active 的 CSS 类名。
+- **`<router-view>`**：这是一个占位符组件。当 URL 发生变化时，Vue Router 会查找路由配置，找到与当前 URL 匹配的组件，并**将其渲染在这个坑位中**。
 
 ### 2.1 基础路由配置
 
@@ -241,7 +241,7 @@ const routes = [
   {
     path: '/about',
     name: 'about',
-    // 🚀 路由级代码分割 (懒加载)
+    // 路由级代码分割 (懒加载)
     // 这将生成一个单独的 chunk (如 about.[hash].js)，仅在访问该路由时加载
     component: () => import('../views/AboutView.vue'),
   },
@@ -501,7 +501,7 @@ const routes = [
 
 ### 2.7 **将 `props` 传递给路由组件**
 
-通过设置 `props: true` 来配置路由将 `id` 参数作为 `prop` 传递给组件,当 `props` 设置为 `true` 时，`route.params` 将被设置为组件的 `props`。
+通过设置 `props: true` 来配置路由将 `id` 参数作为 `prop` 传递给组件。当 `props` 设置为 `true` 时，`route.params` 将被设置为组件的 `props`。
 
 ```js
 const routes = [{ path: '/user/:id', component: User, props: true }]
@@ -694,9 +694,65 @@ const router = createRouter({
 })
 ```
 
+### 2.12 路由配置速查
+
+**高频属性速查：**
+
+[width(19,28,22,31)]
+
+| 属性 / 选项          | 常用取值                             | 适用场景                        | 注意点                                              |
+| -------------------- | ------------------------------------ | ------------------------------- | --------------------------------------------------- |
+| `path`               | `'/user/:id'`、子路由 `'dashboard'`  | URL 匹配、动态参数              | 子路由不要以 `/` 开头；动态段用 `:id`               |
+| `name`               | `'profile'`                          | 命名跳转、传 `params`           | 全局唯一；用 `path` 跳转时 `params` 会被忽略        |
+| `component`          | 组件、`() => import('./View.vue')`   | 页面组件、路由懒加载            | 懒加载会产出独立 chunk，按需下载                    |
+| `children`           | 子路由数组                           | 后台布局等嵌套路由              | 父组件模板必须留 `<router-view>`                    |
+| `redirect` / `alias` | `'/'`、`{ name: 'home' }`、`'/home'` | 默认页、旧路径迁移、多 URL 映射 | 重定向不产生额外 history 记录；绝对别名要带动态参数 |
+| `meta`               | `{ requiresAuth: true }`             | 鉴权、页面标题、埋点            | 父子路由的 `meta` 会做非递归合并                    |
+| `props`              | `true`、对象、`route => ({ ... })`   | 解耦 `$route`、转换参数         | 命名视图需逐个视图配置                              |
+| `beforeEnter`        | `(to, from) => {}`                   | 单条路由独享守卫                | 只在进入该路由时触发                                |
+
+**高频场景：**
+
+[width(19,41,40)]
+
+| 业务场景        | 推荐写法                            | 为什么                          |
+| --------------- | ----------------------------------- | ------------------------------- |
+| 后台布局嵌套    | `children` + 父级 `<router-view>`   | 侧边栏 / 头部只渲染一次         |
+| 详情页参数化    | `path: '/user/:id'` + `props: true` | 组件不依赖 `$route`，可单独测试 |
+| 旧链接迁移      | `alias` / `redirect`                | 保留 SEO 与外部链接             |
+| 权限标记        | `meta: { requiresAuth: true }`      | 守卫统一读取，不污染组件        |
+| 页面标题 / 埋点 | `meta: { title }` + `afterEach`     | 路由级元信息集中管理            |
+
+### 2.13 高频路由 API 补充
+
+[width(45,21,34)]
+
+| API                                     | 用途                       | 注意点                                         |
+| --------------------------------------- | -------------------------- | ---------------------------------------------- |
+| `router.resolve(location)`              | 生成 `href` / 解析目标路由 | 不触发导航，适合新窗口、权限判断               |
+| `router.addRoute(parentName?, route)`   | 动态注册路由               | 返回移除函数，适合动态权限                     |
+| `router.removeRoute(name)`              | 删除路由                   | 必须传路由 `name`                              |
+| `router.hasRoute(name)` / `getRoutes()` | 判断 / 获取路由表          | 动态菜单、权限树                               |
+| `router.isReady()`                      | 等待首次导航完成           | SSR / 首屏数据预取前使用                       |
+| `router.onError(cb)`                    | 捕获路由错误               | 懒加载 chunk 失败时可提示刷新                  |
+| `isNavigationFailure(err, type)`        | 区分导航失败类型           | 配合 `NavigationFailureType` 使用              |
+| `RouterLink custom`                     | 自定义链接渲染             | 插槽参数含 `href`、`isActive`、`isExactActive` |
+| `RouteRecordRaw`                        | 路由表类型                 | 拆分路由文件、动态路由时使用                   |
+
+```ts
+const { href } = router.resolve({ name: 'user', params: { id: 1 } })
+const remove = router.addRoute({
+  path: '/admin',
+  name: 'admin',
+  component: Admin,
+})
+// 退出登录或权限变化时移除
+remove()
+```
+
 ## 3. 导航守卫 (Navigation Guards)
 
-Vue Router 提供了极其细粒度的守卫拦截点，按照“管辖范围”可以分为三大类：**全局守卫、路由独享守卫、组件内守卫**。
+Vue Router 提供了极其细粒度的守卫拦截点，按照“**管辖范围**”可以分为三大类：**全局守卫、路由独享守卫、组件内守卫**。
 
 ### 3.1 全局守卫 (Global Guards)
 
@@ -795,9 +851,38 @@ onBeforeRouteUpdate(async (to, from) => {
 </script>
 ```
 
-### 3.4 完整的导航解析解析流程 (面试必背)
+### 3.4 守卫速查
 
-当用户点击一个链接，试图从 A 页面跳到 B 页面时，Vue Router 的内部校验就像一台精密的齿轮，严格按照以下 10 步顺序执行。掌握它，你就能解决 99% 的时序 Bug。
+**高频属性速查（导航守卫）：**
+
+[width(33,13,28,26)]
+
+| 守卫                   | 作用域                | 常用场景                     | 注意点                                            |
+| ---------------------- | --------------------- | ---------------------------- | ------------------------------------------------- |
+| `router.beforeEach`    | 全局前置              | 登录校验、动态权限、埋点开始 | 返回 `false` 取消，返回路由地址重定向             |
+| `router.beforeResolve` | 全局解析              | 等待异步依赖、相机权限       | 在组件内守卫和异步组件解析后触发                  |
+| `router.afterEach`     | 全局后置              | 关闭 Loading、PV 埋点        | 无法阻断导航                                      |
+| `beforeEnter`          | 路由独享              | 单页面额外校验               | 只在进入该路由时触发                              |
+| `onBeforeRouteLeave`   | 组件内                | 未保存表单离开拦截           | 返回 `false` 阻止离开                             |
+| `onBeforeRouteUpdate`  | 组件内                | 同一组件参数变化后重新请求   | 路由复用、组件未销毁时触发                        |
+| `beforeRouteEnter`     | 组件内（Options API） | 进入前预取数据               | 此时 `this` 不可用，`<script setup>` 中不能直接用 |
+
+**高频场景：**
+
+[width(20,48,32)]
+
+| 业务场景       | 推荐写法                                                | 为什么                               |
+| -------------- | ------------------------------------------------------- | ------------------------------------ |
+| 登录态校验     | `beforeEach` 中读 Store + `return '/login'`             | 统一拦截，登录后带 `redirect` 回跳   |
+| 动态权限路由   | `beforeEach` 中按角色 `addRoute`                        | 权限变化时只注册可访问路由           |
+| 未保存表单离开 | `onBeforeRouteLeave` + `window.confirm`                 | 防止误操作丢失数据                   |
+| 详情页参数复用 | `onBeforeRouteUpdate` 或 `watch(() => route.params.id)` | 组件被复用，`onMounted` 不会再次执行 |
+| 全局进度条     | `beforeEach` 开始、`afterEach` 结束                     | 后置守卫无法阻断，适合收尾           |
+| 404 兜底       | 最后一条 `path: '/:pathMatch(.*)*'`                     | 放在动态路由之后，避免吞掉正常路由   |
+
+### 3.5 完整的导航解析流程 (面试必背)
+
+当用户点击一个链接，试图从 A 页面跳到 B 页面时，Vue Router 的内部校验就像一台精密的齿轮，严格按照以下 11 步顺序执行。掌握它，你就能解决 99% 的时序 Bug。
 
 1.  导航被触发。
 2.  在失活的组件（页面 A）里调用 **`beforeRouteLeave`** 守卫。
@@ -811,7 +896,7 @@ onBeforeRouteUpdate(async (to, from) => {
 10. 调用全局的 **`router.afterEach`** 钩子。
 11. 触发 DOM 更新。
 
-### 3.5 现代返回值控制法 (Vue 3 范式)
+### 3.6 现代返回值控制法 (Vue 3 范式)
 
 在早期的 Vue Router 中，我们极度依赖第三个参数 `next` 函数。**在 Vue Router 4 中，官方极其严厉地建议：抛弃 `next`，全面拥抱基于 `return` 的声明式控制。**
 
@@ -822,7 +907,7 @@ onBeforeRouteUpdate(async (to, from) => {
 - **`return true` 或 `return undefined` (什么都不写自然结束)**：绿灯放行。允许进入目标页面。
 - **`throw new Error(...)`**：如果抛出一个异常，导航会被取消并抛出该错误，可由 `router.onError()` 统一捕获处理。
 
-### 3.6 全局拦截：动态权限与登录校验
+### 3.7 全局拦截：动态权限与登录校验
 
 ```javascript
 import router from './router'
@@ -849,7 +934,7 @@ router.beforeEach(async (to, from) => {
 })
 ```
 
-### 3.7 组件内离开拦截：防丢失表单
+### 3.8 组件内离开拦截：防丢失表单
 
 ```vue
 <!-- UserEditForm.vue -->
@@ -883,84 +968,93 @@ onBeforeRouteLeave((to, from) => {
 
 ### 4.1 动态路由切换时（比如从 `/user/1` 跳转到 `/user/2`），页面为什么毫无反应，生命周期也不执行？
 
-- **答**：这是 Vue 极其聪明的“组件复用机制”导致的新手大坑。
-  - **原因**：Vue 发现你从 A 页面跳到 B 页面，用的居然是**同一个 Vue 组件文件**（`UserDetail.vue`）。为了榨干性能，它决定**不销毁也不重新创建这个组件**，仅仅在内部更新一下 `route.params.id` 的值。既然不创建，那 `onMounted` 等钩子自然就成了死人。
-  - **终极解法 A (监听)**：在组件内部使用 `watch` 监听参数变化。
+这是 Vue 极其聪明的“**组件复用机制**”导致的新手大坑。
 
-    ```js
-    import { watch } from 'vue'
-    import { useRoute } from 'vue-router'
-    const route = useRoute()
+- **原因**：Vue 发现你从 A 页面跳到 B 页面，用的居然是**同一个 Vue 组件文件**（`UserDetail.vue`）。为了榨干性能，它决定**不销毁也不重新创建这个组件**，仅仅在内部更新一下 `route.params.id` 的值。既然不创建，那 `onMounted` 等钩子自然就成了死人。
+- **终极解法 A (监听)**：在组件内部使用 `watch` 监听参数变化。
 
-    watch(
-      () => route.params.id,
-      newId => {
-        // 在这里重新发起请求获取 id=2 的用户数据
-        fetchUserData(newId)
-      },
-      { immediate: true },
-    ) // immediate 保证初次挂载也能执行
-    ```
+  ```js
+  import { watch } from 'vue'
+  import { useRoute } from 'vue-router'
+  const route = useRoute()
 
-  - **终极解法 B (暴力拆毁 🌟推荐)**：直接在 `App.vue`（或者嵌套层）的 `<router-view>` 上绑一个跟全路径强相关的 `:key`。
-    ```vue
-    <!-- 只要路径变了哪怕一丁点，Vue 就会认为它是全新的组件，残忍销毁旧的，重新执行完整的生命周期！ -->
-    <router-view :key="$route.fullPath" />
-    ```
-  - **终极解法C**:在组件内部引入并使用 onBeforeRouteUpdate 守卫，在这个钩子里获取最新的 to.params.id 并重新发起请求。
-    ```vue
-    <script setup>
-    import { onBeforeRouteUpdate } from 'vue-router'
-    // 与 beforeRouteUpdate 相同，无法访问 `this`
-    onBeforeRouteUpdate(async (to, from) => {
-      //仅当 id 更改时才获取用户，例如仅 query 或 hash 值已更改
-      if (to.params.id !== from.params.id) {
-        userData.value = await fetchUser(to.params.id)
-      }
-    })
-    </script>
-    ```
+  watch(
+    () => route.params.id,
+    newId => {
+      // 在这里重新发起请求获取 id=2 的用户数据
+      fetchUserData(newId)
+    },
+    { immediate: true },
+  ) // immediate 保证初次挂载也能执行
+  ```
+
+- **终极解法 B (暴力拆毁，推荐)**：直接在 `App.vue`（或者嵌套层）的 `<router-view>` 上绑一个跟全路径强相关的 `:key`。
+
+  ```vue
+  <!-- 只要路径变了哪怕一丁点，Vue 就会认为它是全新的组件，残忍销毁旧的，重新执行完整的生命周期！ -->
+  <router-view :key="$route.fullPath" />
+  ```
+
+- **终极解法 C（守卫）**：在组件内部引入并使用 `onBeforeRouteUpdate` 守卫，在这个钩子里获取最新的 `to.params.id` 并重新发起请求。
+
+  ```vue
+  <script setup>
+  import { onBeforeRouteUpdate } from 'vue-router'
+  // 与 beforeRouteUpdate 相同，无法访问 `this`
+  onBeforeRouteUpdate(async (to, from) => {
+    //仅当 id 更改时才获取用户，例如仅 query 或 hash 值已更改
+    if (to.params.id !== from.params.id) {
+      userData.value = await fetchUser(to.params.id)
+    }
+  })
+  </script>
+  ```
 
 ### 4.2 路由表中 `path` 开头带不带斜杠 `/` 有什么区别？
 
-- **答**：这在嵌套路由中是致命的细节。
-  - **带斜杠 (`/child`)**：会被当作**绝对路径**。无论你嵌套了多少层，访问它永远是 `app.com/child`。
-  - **不带斜杠 (`child`)**：会被当作**相对路径**。它会自动把所有父级的 path 拼接起来。比如父级是 `/admin`，访问它就是 `app.com/admin/child`。
-  - **避坑指南**：在 `children` 数组里的所有子路由，**强烈建议永远不要带开头的斜杠 `/`**，保持相对嵌套关系，这是最符合直觉的工程规范。
+这在嵌套路由中是致命的细节。
+
+- **带斜杠 (`/child`)**：会被当作**绝对路径**。无论你嵌套了多少层，访问它永远是 `app.com/child`。
+- **不带斜杠 (`child`)**：会被当作**相对路径**。它会自动把所有父级的 path 拼接起来。比如父级是 `/admin`，访问它就是 `app.com/admin/child`。
+- **避坑指南**：在 `children` 数组里的所有子路由，**强烈建议永远不要带开头的斜杠 `/`**，保持相对嵌套关系，这是最符合直觉的工程规范。
 
 ### 4.3 `history` 模式下，Nginx 除了配置 `try_files`，如果是部署在子目录下该怎么办？
 
-- **答**：如果你的前端项目不是部署在域名的根目录，而是部署在 `https://www.app.com/my-project/` 下，你必须在两处同时动刀：
-  1.  **Vue Router 配置修改**：传入基础路径给 History 引擎。
-      ```js
-      const router = createRouter({
-        // 传入基础路径！
-        history: createWebHistory('/my-project/'),
-        routes,
-      })
-      ```
-  2.  **Nginx 配置修改**：`try_files` 的兜底路径必须精准指向子目录里的 html。
-      ```nginx
-      location /my-project {
-          alias /usr/share/nginx/html; # 或者用 root 根据实际物理路径搭配
-          index index.html;
-          # 核心：找不到时扔给这个子目录的 index.html
-          try_files $uri $uri/ /my-project/index.html;
-      }
-      ```
+如果你的前端项目不是部署在域名的根目录，而是部署在 `https://www.app.com/my-project/` 下，你必须在两处同时动刀：
+
+1.  **Vue Router 配置修改**：传入基础路径给 History 引擎。
+
+    ```js
+    const router = createRouter({
+      // 传入基础路径！
+      history: createWebHistory('/my-project/'),
+      routes,
+    })
+    ```
+
+2.  **Nginx 配置修改**：`try_files` 的兜底路径必须精准指向子目录里的 html。
+
+    ```nginx
+    location /my-project {
+        alias /usr/share/nginx/html; # 或者用 root 根据实际物理路径搭配
+        index index.html;
+        # 核心：找不到时扔给这个子目录的 index.html
+        try_files $uri $uri/ /my-project/index.html;
+    }
+    ```
 
 ### 4.4 为什么我使用 `router.push({ name: 'user', params: { data: myData } })` 传递非路径参数，刷新页面后参数就变成了 `undefined`？
 
-- **原因**: 从 Vue Router 4.1.4 开始，**官方正式废弃并移除了未在 `path` 中明确定义的隐式 `params` 传递**。也就是说，如果你的路由是 `path: '/user'`，你不能指望把一个对象隐藏在 `params` 里通过路由传给下一个页面。这种数据存储在内存中，一旦刷新页面内存清空，数据立刻丢失。
-- **正确做法**:
+- **原因**：从 Vue Router 4.1.4 开始，**官方正式废弃并移除了未在 `path` 中明确定义的隐式 `params` 传递**。也就是说，如果你的路由是 `path: '/user'`，你不能指望把一个对象隐藏在 `params` 里通过路由传给下一个页面。这种数据存储在内存中，一旦刷新页面内存清空，数据立刻丢失。
+- **正确做法**：
   1.  如果参数应该出现在 URL 中（可分享、刷新不丢），请配置动态路径参数（`path: '/user/:id'`）或者使用 URL 查询参数（`query: { id: 123 }`）。
   2.  如果传递的是不需要展示在 URL 中的大型对象或敏感状态，**必须使用全局状态管理（如 Pinia / Vuex）**。
 
 ### 4.5 `router-link` 的 `active-class` 是怎么匹配的？
 
-- **原理**: 当你浏览当前页面时，如果该页面的路径与 `<router-link>` 指定的 `to` 路径**部分匹配或完全匹配**，Vue Router 会自动为该链接添加 CSS 类名。默认类名是 `router-link-active`（部分匹配）和 `router-link-exact-active`（完全精确匹配）。
-- **坑点**: 如果你有一个回到首页的链接 `<router-link to="/">`，因为所有的路径（如 `/about`）都以 `/` 开头，它会导致首页链接永远处于 active 高亮状态。
-- **解决**: 你可以通过添加 `exact` 属性（Vue Router 3）或在 CSS 中严格针对 `router-link-exact-active` 类编写样式，或者在代码中精确控制，使其仅在绝对匹配根路径时才高亮。
+- **原理**：当你浏览当前页面时，如果该页面的路径与 `<router-link>` 指定的 `to` 路径**部分匹配或完全匹配**，Vue Router 会自动为该链接添加 CSS 类名。默认类名是 `router-link-active`（部分匹配）和 `router-link-exact-active`（完全精确匹配）。
+- **坑点**：如果你有一个回到首页的链接 `<router-link to="/">`，因为所有的路径（如 `/about`）都以 `/` 开头，它会导致首页链接永远处于 active 高亮状态。
+- **解决**：你可以通过添加 `exact` 属性（Vue Router 3）或在 CSS 中严格针对 `router-link-exact-active` 类编写样式，或者在代码中精确控制，使其仅在绝对匹配根路径时才高亮。
 
 ```js
 <RouterLink
@@ -981,22 +1075,25 @@ const router = createRouter({
 
 ### 4.6 为什么我的 `beforeEach` 陷入了无限死循环 (Maximum call stack size exceeded)？
 
-- **答**：这是新手配置路由守卫时 100% 会遇到的坑。
-  - **原因**：你写了 `if (!token) return '/login'`。当用户没有 token 时，系统将其重定向到 `/login`。**但是，去往 `/login` 的这个跳转动作，又会重新触发一次全局的 `beforeEach`！**
-  - 此时系统再次检查，发现还是没有 token，于是再次重定向到 `/login`…… 从而引发光速的无限死循环。
-  - **避坑指南**：**在重定向时，必须对“目标页面本身就是免鉴权页面”做排除处理！**
-  ```javascript
-  router.beforeEach(to => {
-    // 🚨 防呆设计：如果他没登录，且他去的本来就是登录页，绝对要放行！
-    if (!token && to.name !== 'login') {
-      return { name: 'login' }
-    }
-  })
-  ```
+这是新手配置路由守卫时 100% 会遇到的坑。
+
+- **原因**：你写了 `if (!token) return '/login'`。当用户没有 token 时，系统将其重定向到 `/login`。**但是，去往 `/login` 的这个跳转动作，又会重新触发一次全局的 `beforeEach`！**
+- 此时系统再次检查，发现还是没有 token，于是再次重定向到 `/login`…… 从而引发光速的无限死循环。
+- **避坑指南**：**在重定向时，必须对“目标页面本身就是免鉴权页面”做排除处理！**
+
+```javascript
+router.beforeEach(to => {
+  // 防呆设计：如果他没登录，且他去的本来就是登录页，绝对要放行！
+  if (!token && to.name !== 'login') {
+    return { name: 'login' }
+  }
+})
+```
 
 ### 4.7 在 `<script setup>` 中怎么使用 `beforeRouteEnter`？
 
-- **答**：**不能使用。这是物理限制。**
-  - `beforeRouteEnter` 守卫在导航确认前被调用，因此**它执行时，即将登场的新组件连实例化（生成 `this` 和执行 `setup`）都还没开始！**
-  - 既然 `setup` 还没执行，你自然无法在 `<script setup>` 的代码块里去声明这个钩子。
-  - **替代方案**：如果你实在需要在进入组件前发请求，请将请求逻辑前置到**路由独享守卫 `beforeEnter`** 或全局的 `beforeResolve` 中。如果纯粹为了拿数据，不如直接在 `setup()` 同步代码里尽早发请求，或者拥抱 `<Suspense>` 顶层 `await` 架构。
+**不能使用。这是物理限制。**
+
+- `beforeRouteEnter` 守卫在导航确认前被调用，因此**它执行时，即将登场的新组件连实例化（生成 `this` 和执行 `setup`）都还没开始！**
+- 既然 `setup` 还没执行，你自然无法在 `<script setup>` 的代码块里去声明这个钩子。
+- **替代方案**：如果你实在需要在进入组件前发请求，请将请求逻辑前置到**路由独享守卫 `beforeEnter`** 或全局的 `beforeResolve` 中。如果纯粹为了拿数据，不如直接在 `setup()` 同步代码里尽早发请求，或者拥抱 `<Suspense>` 顶层 `await` 架构。

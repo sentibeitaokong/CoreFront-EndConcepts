@@ -10,10 +10,12 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 > **痛点场景：**
 > 你在一个极其深层、内部嵌套了十几个 `<div>` 的子组件里，写了一个 `<MyModal>` 全屏弹窗。
-> 按照常理，弹窗的 DOM 会被渲染在这个深层 `<div>` 内部。如果这个深层 `<div>` 或者它的某个祖先元素设置了 `overflow: hidden`、`z-index` 或者特殊的 `transform`，你的弹窗就会被无情地**截断、遮挡、或者定位错乱**，根本无法做到真正的“全屏居中覆盖”。
+> 按照常理，弹窗的 DOM 会被渲染在这个深层 `<div>` 内部。如果这个深层 `<div>` 或者它的某个祖先元素设置了 `overflow: hidden`、`z-index` 或者特殊的 `transform`，你的弹窗就会被无情地**截断、遮挡、或者定位错乱**，根本无法做到真正的“**全屏居中覆盖**”。
 
 **`<Teleport>`** 就是 Vue 3 为了彻底解决这个 CSS 物理层级冲突而发明的内置组件。
 它的核心魔法是：**在逻辑上，组件依然存在于原来的组件树中（共享状态、接收 Props）；但在物理 DOM 上，它能瞬间将自身的 DOM 节点“传送”到 HTML 文档的任意其他位置（比如直接塞进 `<body>` 里）。**
+
+[width(23,77)]
 
 | 典型应用场景                         | 详细说明                                                                                          |
 | :----------------------------------- | :------------------------------------------------------------------------------------------------ |
@@ -24,6 +26,15 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 ## 2. 核心 API 与实战用法
 
 `<Teleport>` 的用法极其简单直观，它的核心属性只有一个：**`to`**。
+
+[width(17,27,20,36)]
+
+| 属性 / 用法          | 常用取值                           | 适用场景                   | 注意点                                                   |
+| -------------------- | ---------------------------------- | -------------------------- | -------------------------------------------------------- |
+| `to`                 | `'body'`、`'#modals'`、HTMLElement | 弹窗、Toast、下拉浮层      | 目标必须在挂载时已存在，否则报 `Invalid Teleport target` |
+| `disabled`           | `true` / `false`                   | 响应式切换是否传送         | 只切换挂载位置，组件状态不变                             |
+| `defer`              | 布尔属性                           | 目标元素比 Teleport 晚渲染 | Vue 3.5+；解析推迟到其他部分挂载后                       |
+| 多个 Teleport 同目标 | 多个 `<Teleport to="#modals">`     | 多个 Modal 实例            | 按挂载顺序追加，不会互相覆盖                             |
 
 ### 2.1 基础传送 (传送到 body)
 
@@ -126,7 +137,7 @@ onMounted(() => {
 
 ### 2.4 **多个 `Teleport` 共享目标**
 
-一个可重用的 `<Modal>` 组件可能同时存在多个实例,对于此类场景，多个 `<Teleport>` 组件可以将其内容挂载在同一个目标元素上，而顺序就是简单的顺次追加，后挂载的将排在目标元素下更后面的位置上，但都在目标元素中。
+一个可重用的 `<Modal>` 组件可能同时存在多个实例。对于此类场景，多个 `<Teleport>` 组件可以将其内容挂载在同一个目标元素上，而顺序就是简单的顺次追加，后挂载的将排在目标元素下更后面的位置上，但都在目标元素中。
 
 ```vue
 <Teleport to="#modals">
@@ -155,27 +166,95 @@ onMounted(() => {
 <div id="late-div"></div>
 ```
 
+### 2.6 高频组合与坑位
+
+- **层叠上下文**：祖先元素上的 `transform`、`filter`、`perspective`、`contain` 会让 `position: fixed` 相对该元素定位；传送到 `body` 可逃离这些限制。
+
+```vue
+<template>
+  <!-- 祖先带 transform 时，fixed 会相对祖先容器定位 -->
+  <div class="has-transform">
+    <Teleport to="body">
+      <!-- 传送到 body 后，重新相对视口定位 -->
+      <div class="modal" />
+    </Teleport>
+  </div>
+</template>
+```
+
+- **配合 `Transition`**：把 `Transition` 放在 `Teleport` 内部，并保证只有一个根节点：`<Teleport to="body"><Transition><div v-if="open" /></Transition></Teleport>`。
+
+```vue
+<Teleport to="body">
+  <Transition name="fade">
+    <!-- Transition 在 Teleport 内部，且只有一个根节点 -->
+    <div v-if="open" class="modal" />
+  </Transition>
+</Teleport>
+```
+
+- **配合 `KeepAlive` / `Suspense`**：传送只改变 DOM 位置，组件生命周期、`provide/inject`、`onActivated` 仍然按组件树生效。
+
+```vue
+<Teleport to="body">
+  <KeepAlive>
+    <!-- DOM 落在 body 下，缓存与 onActivated 仍按组件树生效 -->
+    <Modal v-if="open" />
+  </KeepAlive>
+</Teleport>
+```
+
+- **SSR**：服务端渲染时目标容器必须存在，否则退回原位或报错；目标晚于组件出现时用 `defer`。
+
+```vue
+<!-- 目标容器可能晚于组件渲染：defer 会等挂载后再解析目标 -->
+<Teleport to="#toast-container" defer>
+  <Toast />
+</Teleport>
+```
+
+- **测试**：挂载前在 `document.body` 创建目标节点，测试结束清理，避免多个用例互相污染。
+
+```js
+import { afterEach, beforeEach } from 'vitest'
+
+beforeEach(() => {
+  // 挂载前先建好传送目标
+  const target = document.createElement('div')
+  target.id = 'toast-container'
+  document.body.appendChild(target)
+})
+
+afterEach(() => {
+  document.body.innerHTML = '' // 清理，避免用例互相污染
+})
+```
+
 ## 3. 常见问题 (FAQ) 与避坑指南
 
 ### 3.1 既然 DOM 被传送到外面的 `<body>` 里了，那我原来组件里的 `<style scoped>` 还能控制它的样式吗？
 
-- **答**：**完美支持！这正是 `<Teleport>` 最优雅的地方。**
-  - `<Teleport>` 改变的**仅仅是真实 DOM 挂载的物理位置**，它丝毫没有改变 Vue 组件树的**逻辑层级**。
-  - 在 Vue 编译模板时，只要你的代码写在当前组件的 `<template>` 里，Vue 就会给它打上当前组件特有的属性标记（比如 `data-v-1a2b3c`）。因此，你写在这个组件底部的 `<style scoped>` 依然能精确命中传送到外面去的元素。
+**完美支持！这正是 `<Teleport>` 最优雅的地方。**
+
+- `<Teleport>` 改变的**仅仅是真实 DOM 挂载的物理位置**，它丝毫没有改变 Vue 组件树的**逻辑层级**。
+- 在 Vue 编译模板时，只要你的代码写在当前组件的 `<template>` 里，Vue 就会给它打上当前组件特有的属性标记（比如 `data-v-1a2b3c`）。因此，你写在这个组件底部的 `<style scoped>` 依然能精确命中传送到外面去的元素。
 
 ### 3.2 传送到外面的组件，还能通过 `Provide` / `Inject` 拿到爷爷组件的数据吗？
 
-- **答**：**完全可以。**
-  - 理由同上。逻辑上，这个被传送的组件依然是那个爷爷组件的孙子。Vue 的虚拟 DOM 树（VNode Tree）并没有因为 `<Teleport>` 而发生断裂。因此所有的组件通信机制（`Props`, `Emits`, `Provide/Inject`, `$refs` 甚至 Vue Router 的上下文）统统照常工作，没有任何阻碍。
+**完全可以。**
+
+- 理由同上。逻辑上，这个被传送的组件依然是那个爷爷组件的孙子。Vue 的虚拟 DOM 树（VNode Tree）并没有因为 `<Teleport>` 而发生断裂。因此所有的组件通信机制（`Props`, `Emits`, `Provide/Inject`, `$refs` 甚至 Vue Router 的上下文）统统照常工作，没有任何阻碍。
 
 ### 3.3 为什么页面报错 `[Vue warn]: Invalid Teleport target: #toast-container`？
 
-- **答**：这是使用 `<Teleport>` 时最容易踩的坑：**目标容器必须先于传送动作存在,可以使用`defer`属性延迟解析**
-  - **原因**：当 Vue 试图将你的组件挂载到 `#toast-container` 时，如果这个容器是在当前组件之后才被渲染出来的（或者是由另一个被 `v-if` 控制的组件异步生成的），Vue 去查 DOM 树发现“查无此坑”，就会抛出这个警告，并且你的内容将不会被渲染。
-  - **避坑指南**：必须确保 `to="xxx"` 所指向的目标 DOM 节点，在当前 `<Teleport>` 组件**挂载 (`mounted`) 之前就已经真实存在于页面的 HTML 中**。（这也是为什么大家最喜欢传送到 `body`，因为 `body` 永远在最开始就存在）。
+这是使用 `<Teleport>` 时最容易踩的坑：**目标容器必须先于传送动作存在，可以使用 `defer` 属性延迟解析**
+
+- **原因**：当 Vue 试图将你的组件挂载到 `#toast-container` 时，如果这个容器是在当前组件之后才被渲染出来的（或者是由另一个被 `v-if` 控制的组件异步生成的），Vue 去查 DOM 树发现“**查无此坑**”，就会抛出这个警告，并且你的内容将不会被渲染。
+- **避坑指南**：必须确保 `to="xxx"` 所指向的目标 DOM 节点，在当前 `<Teleport>` 组件**挂载 (`mounted`) 之前就已经真实存在于页面的 HTML 中**。
 
 ### 3.4 多个不同的组件同时往同一个 `to="body"` 目标发送 `<Teleport>`，会覆盖吗？
 
-- **答**：**不会覆盖，而是会优雅地追加 (Append)。**
-  - Vue 允许极其多个 `<Teleport>` 实例瞄准同一个目标容器。
-  - 它们的 DOM 节点会按照组件的**挂载顺序**，依次被追加 (append) 到目标容器的内部。这就是为什么你可以放心地在多个组件里同时呼出 Toast 提示，它们会自动在 `#toast-container` 内部按照先后顺序排成一列。
+**不会覆盖，而是会优雅地追加 (Append)。**
+
+- Vue 允许极其多个 `<Teleport>` 实例瞄准同一个目标容器。
+- 它们的 DOM 节点会按照组件的**挂载顺序**，依次被追加 (append) 到目标容器的内部。这就是为什么你可以放心地在多个组件里同时呼出 Toast 提示，它们会自动在 `#toast-container` 内部按照先后顺序排成一列。

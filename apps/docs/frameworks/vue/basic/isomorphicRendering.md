@@ -2,14 +2,16 @@
 
 ## 1. 什么是同构渲染？
 
-**同构渲染（Isomorphic Rendering）** 是指同一套 Vue 组件代码既可以在**服务端（Node.js）** 运行并渲染为 HTML 字符串，又可以在**客户端（浏览器）** 运行并接管交互。它的核心理念是“一套代码，两端运行”。
+**同构渲染（Isomorphic Rendering）** 是指同一套 Vue 组件代码既可以在**服务端（Node.js）** 运行并渲染为 HTML 字符串，又可以在**客户端（浏览器）** 运行并接管交互。它的核心理念是“**一套代码，两端运行**”。
 
 同构渲染的完整生命周期分为两大阶段：
 
 - **首次渲染（服务端 SSR）**：用户请求页面 → 服务端执行组件逻辑，生成完整 HTML → 浏览器收到 HTML，立即展示内容。
-- **客户端激活（Hydration）**：浏览器加载 JS 文件 → Vue 在客户端“激活”已有的 DOM 节点，挂载事件监听和响应式绑定 → 后续交互和页面切换完全由客户端接管（SPA 模式）。
+- **客户端激活（Hydration）**：浏览器加载 JS 文件 → Vue 在客户端“**激活**”已有的 DOM 节点，挂载事件监听和响应式绑定 → 后续交互和页面切换完全由客户端接管（SPA 模式）。
 
 ## 2. 同构渲染的优势
+
+[width(20,80)]
 
 | 优势               | 说明                                                             |
 | ------------------ | ---------------------------------------------------------------- |
@@ -29,22 +31,57 @@
 - 将组件树转换为 HTML 字符串。
 - 返回完整的 HTML，包含 `<head>` 中的资源链接和 `<body>` 中的页面内容。
 
+```js
+import { createSSRApp } from 'vue'
+import { renderToString } from 'vue/server-renderer'
+import App from './App.vue'
+
+// 1. 创建 SSR 应用实例
+const app = createSSRApp(App)
+
+// 2. 执行组件的 setup / render，把组件树转成 HTML 字符串
+const html = await renderToString(app)
+
+// 3. 拼进完整页面（含 head 资源与客户端入口脚本）返回
+const page = `<!DOCTYPE html>
+<html>
+  <head><title>SSR Demo</title></head>
+  <body>
+    <div id="app">${html}</div>
+    <script src="/client.js"></script>
+  </body>
+</html>`
+```
+
 ### 3.2 客户端激活阶段
 
 客户端加载 JS 后调用 `app.mount('#app')`，Vue 进入 **Hydration** 模式：
 
-- **复用已有 DOM**：不重新创建 DOM 节点，而是“接管”服务端渲染的 HTML 结构。
+- **复用已有 DOM**：不重新创建 DOM 节点，而是“**接管**”服务端渲染的 HTML 结构。
 - **建立响应式绑定**：将组件实例与已有 DOM 关联，建立响应式系统。
 - **挂载事件监听**：为已有的 DOM 元素绑定事件处理器（如 `@click`）。
 - **激活完成后**：页面进入纯 CSR 模式，后续路由切换和交互完全由客户端处理。
+
+:::code-group
+
+```js [client.js]
+import { createSSRApp } from 'vue'
+import App from './App.vue'
+
+// 用同一份组件代码创建应用，mount 时走的是 hydrate 而不是重新创建 DOM
+const app = createSSRApp(App)
+app.mount('#app')
+```
+
+:::
 
 ### 3.3 完整流程图
 
 ![Logo](/img/createSSRApp.png)
 
-## 5. 客户端激活原理详解
+## 4. 客户端激活原理详解
 
-### 5.1 激活的核心：`hydrate` 与 `mount` 的区别
+### 4.1 激活的核心：`hydrate` 与 `mount` 的区别
 
 在客户端渲染中，`mount` 会创建全新的 DOM 节点。而在同构渲染中，使用 `hydrate` 替代 `mount`：
 
@@ -63,7 +100,7 @@ export function hydrate(vnode, container) {
 
 :::
 
-### 5.2 vnode.el 的复用机制
+### 4.2 vnode.el 的复用机制
 
 在 SSR 中，服务端生成的 HTML 中没有 VNode 信息，只有纯 DOM。激活时，Vue 的 `patch` 流程会**跳过 DOM 创建步骤**，直接使用已有 DOM。这一机制在组件挂载函数中体现：
 
@@ -87,9 +124,9 @@ const mountComponent = (initialVNode, container, ...) => {
 
 :::
 
-首次激活时走“创建新组件实例”的分支，但由于 `vnode.el` 已经指向服务端渲染的 DOM，所以 `setupRenderEffect` 中的 `patch` 过程会“匹配”已有结构，而不是重新创建。
+首次激活时走“**创建新组件实例**”的分支，但由于 `vnode.el` 已经指向服务端渲染的 DOM，所以 `setupRenderEffect` 中的 `patch` 过程会“**匹配**”已有结构，而不是重新创建。
 
-### 5.3 事件激活：`$setup` 与事件追踪
+### 4.3 事件激活：`$setup` 与事件追踪
 
 服务端不会处理事件绑定（如 `@click`），因此激活时需要进行**事件激活**。Vue 通过编译时的 `v-on` 转换和运行时的 `_track` 函数实现：
 
@@ -111,23 +148,26 @@ export function render(_ctx, _cache, $props, $setup, $data, $options) {
 }
 ```
 
-`$setup` 变量作为编译后的渲染函数参数，统一管理组件上下文中的事件处理函数，使得激活时的注册更加高效。
+`$setup`变量作为编译后的渲染函数参数,统一管理组件上下文中的事件处理函数,使得激活时的注册更加高效。
 
-### 5.4 KeepAlive 组件的激活处理
+### 4.4 KeepAlive 组件的激活处理
 
 当服务端渲染的 HTML 中包含 `<KeepAlive>` 包裹的组件时，客户端激活需要特殊处理：
 
-```typescript
-// 在 renderer.ts 中
+:::code-group
+
+```typescript [renderer.ts]
 if (initialVNode.shapeFlag & ShapeFlags.COMPONENT_KEPT_ALIVE) {
   // 通过 KeepAlive 注入的 activate 函数处理
   ;(instance.ctx as KeepAliveContext).activate(vnode, container, anchor)
 }
 ```
 
+:::
+
 KeepAlive 组件在服务端没有缓存行为（每次请求都是新的），但在客户端激活时，需要正确建立缓存状态和激活钩子。
 
-### 5.5 激活不匹配 (Hydration Mismatch) 的容错处理
+### 4.5 激活不匹配 (Hydration Mismatch) 的容错处理
 
 当服务端渲染的 HTML 与客户端期望的 VNode 结构不一致时，会发生 hydration mismatch。Vue 3 对此有完善的容错机制：
 
@@ -135,21 +175,19 @@ KeepAlive 组件在服务端没有缓存行为（每次请求都是新的），�
 - **属性不匹配**：如果 class、style 等不一致，Vue 会更新属性以匹配客户端期望。
 - **文本内容不匹配**：文本差异会被 patch 更新。
 
-在开发环境下，Vue 会输出详细的 hydration mismatch 警告，帮助开发者定位问题。
-
-### 5.6 激活流程图
+### 4.6 激活流程图
 
 ![Logo](/img/client.png)
 
-## 6. 如何使用 Vue 3 同构渲染
+## 5. 如何使用 Vue 3 同构渲染
 
-### 6.1 最简示例：从零实现 SSR
+### 5.1 最简示例：从零实现 SSR
 
 以下是一个不依赖 Vite 的 Node.js 示例，展示 SSR 的核心流程：
 
 **目录结构**：
 
-```
+```tree
 ssr-demo/
 ├── server.js          # Node.js 服务端
 ├── client.js          # 客户端入口
@@ -230,13 +268,11 @@ app.mount('#app')
 
 :::
 
-### 6.2 使用 Vite + vite-plugin-ssr 构建 SSR 应用
+### 5.2 使用 Vite + vite-plugin-ssr 构建 SSR 应用
 
-在生产环境中，推荐使用 Vite + 官方 SSR 支持来构建完整的同构渲染应用。以下是一个完整的 Vite SSR 项目结构：
+在生产环境中,推荐使用 Vite + SSR 支持来构建完整的同构渲染应用。以下是一个完整的Vite SSR项目结构：
 
-**项目目录**：
-
-```
+```tree
 vite-ssr-app/
 ├── src/
 │   ├── App.vue            # 根组件
@@ -271,9 +307,9 @@ export default defineConfig({
 
 :::
 
-### 6.3 路由配置（SSR + SPA）
+### 5.3 路由配置（SSR + SPA）
 
-在 SSR 应用中，路由需要在**服务端和客户端共享**，确保同一 URL 在两端渲染出相同的内容。通常在服务端使用 `createMemoryHistory`，在客户端使用 `createWebHistory`：
+在 SSR 应用中，路由需要在**服务端和客户端共享**，确保同一 URL 在两端渲染出相同的内容。通常在服务端使用 `createMemoryHistory`，在客户端使用 `createWebHistory`
 
 :::code-group
 
@@ -293,7 +329,7 @@ export function createAppRouter(isServer) {
 
 :::
 
-### 6.4 状态管理（Pinia SSR 适配）
+### 5.4 状态管理（Pinia SSR 适配）
 
 Pinia 在 SSR 场景下需要做状态序列化与注入，以下是核心适配模式：
 
@@ -334,7 +370,7 @@ app.mount('#app')
 
 :::
 
-### 6.5 开发与构建脚本
+### 5.5 开发与构建脚本
 
 ```json
 {
@@ -348,9 +384,25 @@ app.mount('#app')
 }
 ```
 
-## 7. 同构渲染的注意事项与最佳实践
+### 5.6 高频 SSR API 与模式
 
-### 7.1 服务端环境差异
+[width(40,28,32)]
+
+| API / 模式                                   | 用途                          | 注意点                                             |
+| -------------------------------------------- | ----------------------------- | -------------------------------------------------- |
+| `renderToString(app, context)`               | 输出 HTML 字符串              | 简单直接，大页面占内存                             |
+| `renderToWebStream(app, context)`            | Web Stream 流式输出           | 适合 Edge / 流式响应                               |
+| `pipeToNodeWritable(app, context, writable)` | Node 流式输出                 | 需要 `@vue/server-renderer`                        |
+| `useSSRContext()`                            | 在 `setup` 中读取 SSR context | 常用于收集 teleports / modules                     |
+| `import.meta.env.SSR`                        | 区分服务端 / 客户端代码       | 避免在服务端访问 `window`                          |
+| `useId()`                                    | 生成跨端一致的 ID             | 3.5+；用于表单、`aria-*` 等，避免 hydration 不匹配 |
+| `ClientOnly`                                 | 仅客户端渲染的包装组件        | Nuxt 内置；手写可用 `onMounted` 控制               |
+
+## 6. 同构渲染的注意事项与最佳实践
+
+### 6.1 服务端环境差异
+
+[width(28,38,34)]
 
 | 差异点                 | 说明                               | 解决方案                                                         |
 | ---------------------- | ---------------------------------- | ---------------------------------------------------------------- |
@@ -359,15 +411,15 @@ app.mount('#app')
 | 每个请求都是新上下文   | 服务端为每个请求创建新的应用实例   | 使用工厂函数 `createApp()` 而非直接创建实例                      |
 | 不能使用 `setInterval` | 服务端计时器会阻塞请求             | 避免在服务端使用计时器                                           |
 
-### 7.2 避免状态污染
+### 6.2 避免状态污染
 
 **绝对不要使用全局状态**。在服务端，多个请求共享同一个 Node.js 进程，如果使用全局变量存储状态，会导致**跨请求状态污染**：
 
 ```javascript
-// ❌ 错误做法：全局状态会在多个请求间共享
+// 错误做法：全局状态会在多个请求间共享
 const state = reactive({ count: 0 })
 
-// ✅ 正确做法：每个请求创建新的应用实例
+// 正确做法：每个请求创建新的应用实例
 function createApp() {
   const state = reactive({ count: 0 })
   return createSSRApp({
@@ -378,7 +430,9 @@ function createApp() {
 }
 ```
 
-### 7.3 Hydration Mismatch 的常见原因
+### 6.3 Hydration Mismatch 的常见原因
+
+[width(29,40,31)]
 
 | 原因                    | 示例                             | 解决方法                                        |
 | ----------------------- | -------------------------------- | ----------------------------------------------- |
@@ -387,15 +441,83 @@ function createApp() {
 | 条件渲染依赖浏览器特性  | `v-if="isMobile"`                | 使用 CSS 媒体查询替代，或使用 `ClientOnly` 包裹 |
 | 异步数据未等待          | 服务端渲染时数据未加载完成       | 使用 `async setup` 或路由守卫等待数据           |
 
-### 7.4 最佳实践
+### 6.4 最佳实践
 
 - **使用工厂函数创建应用实例**：确保每个请求有独立的应用上下文。
+
+```js
+// 错误：模块级单例，多个请求会共享同一份应用与状态
+const app = createSSRApp(App)
+
+// 正确：工厂函数，每个请求创建一份独立实例
+export function createApp() {
+  return createSSRApp(App)
+}
+```
+
 - **使用 `import.meta.env.SSR` 判断环境**：在需要访问浏览器 API 的地方进行环境判断。
+
+```js
+if (import.meta.env.SSR) {
+  // 服务端：不要访问 window / document
+} else {
+  // 客户端：可以安全使用浏览器 API
+  window.addEventListener('resize', onResize)
+}
+```
+
 - **使用 `<ClientOnly>` 组件**：对于纯客户端功能（如富文本编辑器），可以用 `<ClientOnly>` 包裹，使其只在客户端渲染。
+
+```vue
+<!-- ClientOnly 通常由 Nuxt / VitePress 等框架提供，也可以自行实现 -->
+<ClientOnly>
+  <RichEditor v-model="content" />
+  <template #fallback>编辑器加载中...</template>
+</ClientOnly>
+```
+
 - **预取数据**：在路由守卫或 `async setup` 中预取数据，确保服务端渲染时数据已就绪。
+
+```ts
+import { onServerPrefetch, ref } from 'vue'
+
+const data = ref(null)
+
+// SSR 阶段会等待该 Promise 完成后才继续渲染；客户端不会重复执行
+onServerPrefetch(async () => {
+  data.value = await fetchPageData()
+})
+```
+
 - **使用流式渲染（Streaming SSR）**：对于大型页面，使用 `renderToStream` 替代 `renderToString`，可以更早地向浏览器发送 HTML 内容。
 
-## 8. 总结
+```js
+import { renderToStream } from 'vue/server-renderer'
+
+// 边渲染边发送，浏览器可以更早开始解析 HTML
+const stream = renderToStream(app, ctx)
+stream.pipe(res)
+```
+
+### 6.5 SSG、流式渲染与降级
+
+[width(14,13,27,46)]
+
+| 模式     | 渲染时机       | 适用场景              | 注意点                                                           |
+| -------- | -------------- | --------------------- | ---------------------------------------------------------------- |
+| CSR      | 浏览器         | 后台系统、弱 SEO 页面 | 首屏白屏时间长                                                   |
+| SSR      | 每次请求       | 个性化、强 SEO        | 需要 Node 服务与缓存策略                                         |
+| SSG      | 构建时         | 文档、营销页、博客    | 内容更新需重新构建                                               |
+| 流式 SSR | 请求中分块输出 | 大页面、慢接口        | 需要 `Suspense` 配合，浏览器可边接收边渲染，最终由客户端 hydrate |
+
+- **流式渲染**：先返回页面骨架，异步部分完成后继续推送；用 `renderToWebStream` / `pipeToNodeWritable`。
+- **SSG**：Nuxt 用 `nuxi generate`，VitePress 构建时预渲染；适合内容稳定、CDN 分发的站点。
+- **安全**：不要把密钥、用户隐私写进 `__INITIAL_STATE__`；序列化前做转义，避免 XSS。
+- **缓存**：SSG 可直接 CDN 长缓存；SSR 要按用户/接口设置 `Cache-Control`，避免缓存串号。
+
+## 7. 总结
+
+[width(16,30,54)]
 
 | 对比维度   | CSR（客户端渲染）        | SSR（同构渲染）                 |
 | ---------- | ------------------------ | ------------------------------- |

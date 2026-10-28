@@ -7,7 +7,7 @@
 ::: code-group
 
 ```shell [npm]
-$  npm install xb-element --save
+$ npm install xb-element --save
 ```
 
 :::

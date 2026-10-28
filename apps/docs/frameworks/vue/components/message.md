@@ -11,7 +11,7 @@ description: Message 组件的文档
 
 默认情况下在顶部显示并在 3 秒后消失。
 
-`Message` 在配置上与 `Notification` 非常类似,注册了一个全局的 `createMessage`方法用于调用。 Message 可以接收一个字符串或一个 VNode 作为参数，它会被显示为正文内容。
+`Message` 在配置上与 `Notification` 非常类似。组件库导出了 `createMessage` 方法用于调用，需要从包中按需导入。 `createMessage` 可以接收一个字符串或一个 VNode 作为参数，它会被显示为正文内容。
 
 <preview path="../../../components/Message/BasicMessage.vue" title="基础用法" description="Message 组件的基础用法"></preview>
 
@@ -27,9 +27,9 @@ description: Message 组件的文档
 
 可以添加关闭按钮。
 
-默认的 `Message` 是不可以被人工关闭的。 如果你需要手动关闭功能，你可以把 `showClose` 设置为 `true` 此外，和 `Notification` 一样，`Message` 拥有可控的 `duration`， 默认的关闭时间为 `3000` 毫秒，当把这个属性的值设置为0便表示该消息不会被自动关闭。
+默认的 `Message` 是不可以被人工关闭的。 如果你需要手动关闭功能，你可以把 `showClose` 设置为 `true`。此外，和 `Notification` 一样，`Message` 拥有可控的 `duration`，默认的关闭时间为 `3000` 毫秒；当把这个属性的值设置为 `0` 时，表示该消息不会被自动关闭。
 
-<preview path="../../../components/Message/CanCloseMessage.vue" title="可关闭模式用法" description="DropDown 组件的可关闭模式用法"></preview>
+<preview path="../../../components/Message/CanCloseMessage.vue" title="可关闭模式用法" description="Message 组件的可关闭模式用法"></preview>
 
 ## Message API
 

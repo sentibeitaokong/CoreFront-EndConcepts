@@ -32,7 +32,7 @@ description: Input 组件的文档
 
 ## Textarea
 
-用于输入多行文本信息可缩放的输入框。 添加 **type="textarea"** 属性来将 input 元素转换为原生的 textarea 元素。
+用于输入多行文本信息可缩放的输入框。 添加 `type="textarea"` 属性来将 input 元素转换为原生的 textarea 元素。
 
 <preview path="../../../components/Input/TextareaInput.vue" title="Textarea" description="Textarea"></preview>
 
@@ -52,31 +52,37 @@ description: Input 组件的文档
 
 ### Input Attributes
 
-| 属性名                | 说明                                              | 类型                                        | 默认值 |
-| --------------------- | ------------------------------------------------- | ------------------------------------------- | ------ |
-| type                  | 输入类型                                          | `enum` - `'text'\| 'textarea'\| 'password'` | text   |
-| model-value / v-model | 绑定值                                            | `'string' \/ 'number'`                      | —      |
-| size                  | 输入框尺寸，只在 type 不为 'textarea' 时有效      | `enum` - `'large'\| 'small'`                | —      |
-| placeholder           | 输入框占位文本                                    | `string`                                    | —      |
-| clearable             | 是否显示清除按钮，只有当 type 不是 textarea时生效 | `boolean`                                   | false  |
-| disabled              | 按钮是否为禁用状态                                | `boolean`                                   | false  |
-| showPassword          | 是否显示切换密码图标                              | `boolean`                                   | false  |
-| autofocus             | 原生 `autofocus` 属性                             | `boolean`                                   | false  |
-| readonly              | 原生 readonly 属性，是否只读                      | `boolean`                                   | false  |
-| form                  | 原生属性                                          | `string`                                    | —      |
-| autocomplete          | 原生 autocomplete 属性                            | `string`                                    | off    |
+[width(26,33,30,11)]
+
+| 属性名                | 说明                                               | 类型                                        | 默认值 |
+| --------------------- | -------------------------------------------------- | ------------------------------------------- | ------ |
+| type                  | 输入类型                                           | `enum` - `'text'\| 'textarea'\| 'password'` | text   |
+| model-value / v-model | 绑定值                                             | `string`                                    | —      |
+| size                  | 输入框尺寸，只在 type 不为 'textarea' 时有效       | `enum` - `'large'\| 'small'`                | —      |
+| placeholder           | 输入框占位文本                                     | `string`                                    | —      |
+| clearable             | 是否显示清除按钮，只有当 type 不是 textarea 时生效 | `boolean`                                   | false  |
+| disabled              | 是否禁用输入框                                     | `boolean`                                   | false  |
+| show-password         | 是否显示切换密码图标                               | `boolean`                                   | false  |
+| autofocus             | 原生 `autofocus` 属性                              | `boolean`                                   | false  |
+| readonly              | 原生 readonly 属性，是否只读                       | `boolean`                                   | false  |
+| form                  | 原生属性                                           | `string`                                    | —      |
+| autocomplete          | 原生 autocomplete 属性                             | `string`                                    | off    |
 
 ### Input Events
 
-| 事件名 | 说明                                                        | 类型       |
-| ------ | ----------------------------------------------------------- | ---------- |
-| change | 仅当 modelValue 改变时，当输入框失去焦点或用户按Enter时触发 | `Function` |
-| blur   | 当选择器的输入框失去焦点时触发                              | `Function` |
-| focus  | 当选择器的输入框获得焦点时触发                              | `Function` |
-| input  | 在 Input 值改变时触发                                       | `Function` |
-| clear  | 在点击由 clearable 属性生成的清空按钮时触发                 | `Function` |
+[width(12,52,36)]
+
+| 事件名 | 说明                                            | 类型       |
+| ------ | ----------------------------------------------- | ---------- |
+| change | 输入值改变且输入框失去焦点或用户按 Enter 时触发 | `Function` |
+| blur   | 当输入框失去焦点时触发                          | `Function` |
+| focus  | 当输入框获得焦点时触发                          | `Function` |
+| input  | 在 Input 值改变时触发                           | `Function` |
+| clear  | 在点击由 clearable 属性生成的清空按钮时触发     | `Function` |
 
 ### Input Exposes
+
+[width(11,36,53)]
 
 | 方法名 | 说明                           | 类型   |
 | ------ | ------------------------------ | ------ |

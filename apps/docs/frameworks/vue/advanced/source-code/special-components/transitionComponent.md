@@ -265,7 +265,7 @@ function forceReflow() {
 
 如果是普通的 DOM 操作，直接调用 `el.classList.add(cls)` 即可。但在 Vue 的响应式系统中，这么做会带来两个致命问题：
 
-- **多类名支持**：开发者可能传入的是一串包含空格的多个类名（例如使用 `Animate.css` 时：`enter-active-class="animate__animated animate__fadeIn`"），原生的 `classList.add` 无法直接处理包含空格的单个字符串。
+- **多类名支持**：开发者可能传入的是一串包含空格的多个类名（例如使用 `Animate.css` 时：`enter-active-class="animate__animated animate__fadeIn"`），原生的 `classList.add` 无法直接处理包含空格的单个字符串。
 - **状态覆盖冲突（核心痛点）**：如果在过渡动画播放期间，组件内部的响应式状态发生了变化（例如绑定的 :class 改变），Vue 的渲染引擎会触发 `patchClass` 来更新 DOM 的 class 属性。这个更新可能会意外覆盖并抹除正在执行的过渡类名，导致动画瞬间中断。
 
 :::code-group
@@ -471,7 +471,7 @@ const mountElement = (vnode, container, anchor, parentComponent) => {
 
 ### 4.2 卸载劫持 (Unmount) -> 最巧妙的延后销毁
 
-这是 Vue 解决“组件被销毁时无法播放动画”的核心机制：
+这是 Vue 解决“**组件被销毁时无法播放动画**”的核心机制：
 
 ```typescript
 const remove = vnode => {
@@ -525,5 +525,5 @@ const remove = vnode => {
 ## 6. 总结
 
 - **职责分离**：状态机 (`BaseTransition`) 与 平台实现 (`Transition`) 完全分离。这种设计使得在诸如 Weex、跨平台小程序等非 DOM 环境中，只需要重写平台实现层即可复用所有的动画生命周期逻辑。
-- **控制反转 (IoC)**：DOM 节点的“生死大权”原本掌握在渲染引擎手中。但 `<Transition>` 通过依赖注入的方式，将`remove`（卸载操作）的控制权反转交给了动画状态机，实现了完美的离开动画支持。
+- **控制反转 (IoC)**：DOM 节点的“**生死大权**”原本掌握在渲染引擎手中。但 `<Transition>` 通过依赖注入的方式，将`remove`（卸载操作）的控制权反转交给了动画状态机，实现了完美的离开动画支持。
 - **消除渲染帧合并**：源码中通过 `forceReflow()` 和双重 `requestAnimationFrame` (`nextFrame`)，彻底解决了由于浏览器优化机制（将同一帧内的 DOM 操作合并）导致的起点 CSS 样式失效的隐患。
