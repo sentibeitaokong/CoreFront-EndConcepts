@@ -15,11 +15,13 @@ Vue Router 提供了两种截然不同的底层物理实现来实现这一诉求
 
 - **外观表现**：URL 中必定带有一个井号 `#`。例如 `https://www.app.com/#/user/profile`。
 - **底层原理**：
-  1.  依赖浏览器原生的 `window.onhashchange` 事件。
-  2.  根据 HTTP 协议规范，**URL 中 `#` 号及其后面的内容，浏览器绝对不会发送给服务器！**
-  3.  因此，当你改变 `#` 后的内容时，只会触发前端事件，完全纯静态闭环。
-- **优点**：前端完全独立，兼容性极好（甚至支持 IE8），部署极其简单（丢到任何静态服务器或 CDN 都能直接跑）。
+  - 依赖浏览器原生的 `window.onhashchange` 事件。
+  - 根据 HTTP 协议规范，**URL 中 `#` 号及其后面的内容，浏览器绝对不会发送给服务器！**
+  - 因此，当你改变 `#` 后的内容时，只会触发前端事件，完全纯静态闭环。
+- **优点**：前端完全独立，兼容性极好，部署极其简单（丢到任何静态服务器或 CDN 都能直接跑）。
 - **缺点**：太丑了！且在做微信分享、第三方回调（如 OAuth 登录）时，某些平台会自动过滤掉 `#` 号后面的内容，导致业务阻断。
+
+:::details Hash 模式
 
 ```html
 <!DOCTYPE html>
@@ -90,16 +92,20 @@ Vue Router 提供了两种截然不同的底层物理实现来实现这一诉求
 </html>
 ```
 
+:::
+
 ### 1.2 History 模式 (`createWebHistory`)
 
 - **外观表现**：URL 干净漂亮，和传统的后端路由一模一样。例如 `https://www.app.com/user/profile`。
 - **底层原理**：
-  1.  依赖 HTML5 提供的高级 API：`history.pushState()` 和 `history.replaceState()`。
-  2.  这两个 API 可以在不刷新浏览器的情况下，强行修改地址栏的 URL 并产生历史记录。
+  - 依赖 HTML5 提供的高级 API：`history.pushState()` 和 `history.replaceState()`。
+  - 这两个 API 可以在不刷新浏览器的情况下，强行修改地址栏的 URL 并产生历史记录。
 - **致命痛点 (404 危机)**：
   - 虽然前端点击跳转时没有发请求，但如果用户在该页面**按下了 F5 手动刷新**，或者直接复制链接发给别人打开。
   - 浏览器此时会老老实实地拿着 `https://www.app.com/user/profile` 这个完整路径去向服务器（Nginx）发起真正的 GET 请求。
   - 服务器上只有前端打包出来的一个 `index.html`，根本没有 `/user/profile` 这个文件夹！服务器必然无情地抛出 **404 Not Found** 报错页面。
+
+:::details History 模式
 
 ```html
 <!DOCTYPE html>
@@ -191,6 +197,8 @@ Vue Router 提供了两种截然不同的底层物理实现来实现这一诉求
 </html>
 ```
 
+:::
+
 ### 1.3 Nginx 兜底配置 (History 模式必配)
 
 为了拯救 History 模式的 404 危机，我们必须赋予 Nginx（或其他服务器）一种“**耍赖**”的能力：
@@ -219,15 +227,13 @@ server {
 
 ## 2. 路由的高阶排兵布阵
 
-- **`<router-link>`**：相当于超级 `<a>` 标签。它用于创建导航链接。相比原生的 `<a>` 标签，`<router-link>` 能够正确地被 Vue Router 拦截，**防止页面重新加载**，并在对应的路由处于激活状态时，自动为其添加 active 的 CSS 类名。
-- **`<router-view>`**：这是一个占位符组件。当 URL 发生变化时，Vue Router 会查找路由配置，找到与当前 URL 匹配的组件，并**将其渲染在这个坑位中**。
-
 ### 2.1 基础路由配置
 
 在 Vue 3 中，我们使用 `createRouter` 函数来创建一个 router 实例，并使用 `createWebHistory` 或 `createWebHashHistory` 来指定历史记录模式。
 
-```javascript
-// src/router/index.js
+:::code-group
+
+```javascript [src/router/index.js]
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 
@@ -256,6 +262,8 @@ const router = createRouter({
 
 export default router
 ```
+
+:::
 
 ### 2.2 动态路由与路由参数
 
@@ -295,7 +303,7 @@ console.log('当前用户 ID:', route.params.id)
 
 真实的应用程序通常由多层嵌套的组件组合而成。URL 中各段动态路径也往往对应着某种嵌套的组件结构。
 
-例如，在一个后台管理系统中，你可能有一个包含侧边栏的主布局，而右侧的内容区域需要根据 URL 动态切换。
+在一个后台管理系统中，你可能有一个包含侧边栏的主布局，而右侧的内容区域需要根据 URL 动态切换。
 
 ```javascript
 const routes = [
@@ -320,7 +328,7 @@ const routes = [
 ]
 ```
 
-**关键：** 外层组件（如 `AdminLayout.vue`）的模板中必须包含自己的 `<router-view>`，用于渲染匹配到的子组件。
+**关键:** 外层组件(如`AdminLayout.vue`)的模板中必须包含自己的`<router-view>`，用于渲染匹配到的子组件。
 
 ```vue
 <!-- AdminLayout.vue -->
@@ -457,7 +465,7 @@ const routes = [
 
 **别名**
 
-将 `/` 别名为 `/home`，意味着当用户访问 `/home` 时，`URL` 仍然是 `/home`，但会被匹配为用户正在访问 `/`。
+将`/`别名为`/home`，意味着当用户访问 `/home` 时，`URL` 仍然是 `/home`，但会被匹配为用户正在访问 `/`。
 
 ```js
 const routes = [{ path: '/', component: Homepage, alias: '/home' }]
@@ -576,7 +584,7 @@ const routes = [
 ]
 ```
 
-一个路由匹配到的所有路由记录会暴露为 `route` 对象(还有在导航守卫中的路由对象)的`route.matched` 数组。
+一个路由匹配到的所有路由记录会暴露为`route`对象(还有在导航守卫中的路由对象)的`route.matched` 数组。
 
 ```js
 router.beforeEach((to, from) => {
@@ -696,8 +704,6 @@ const router = createRouter({
 
 ### 2.12 路由配置速查
 
-**高频属性速查：**
-
 [width(19,28,22,31)]
 
 | 属性 / 选项          | 常用取值                             | 适用场景                        | 注意点                                              |
@@ -710,8 +716,6 @@ const router = createRouter({
 | `meta`               | `{ requiresAuth: true }`             | 鉴权、页面标题、埋点            | 父子路由的 `meta` 会做非递归合并                    |
 | `props`              | `true`、对象、`route => ({ ... })`   | 解耦 `$route`、转换参数         | 命名视图需逐个视图配置                              |
 | `beforeEnter`        | `(to, from) => {}`                   | 单条路由独享守卫                | 只在进入该路由时触发                                |
-
-**高频场景：**
 
 [width(19,41,40)]
 
@@ -822,8 +826,8 @@ const routes = [
 
 写在 Vue 组件文件内部的守卫，用于处理与该组件强相关的跳转逻辑。在 `<script setup>` 中，需要通过特定 API 引入。
 
-1.  **`onBeforeRouteLeave`**：**离开守卫**。用户准备离开当前组件页面时触发。**防手抖神器**，常用于阻断用户意外离开未保存的表单。
-2.  **`onBeforeRouteUpdate`**：**更新守卫**。在当前路由改变，但**该组件被复用时触发**。比如从 `/user/1` 跳转到 `/user/2`，由于组件没被销毁重建，你需要在这个守卫里监听变化并重新发起请求。
+- **`onBeforeRouteLeave`**：**离开守卫**。用户准备离开当前组件页面时触发。**防手抖神器**，常用于阻断用户意外离开未保存的表单。
+- **`onBeforeRouteUpdate`**：**更新守卫**。在当前路由改变，但**该组件被复用时触发**。比如从 `/user/1` 跳转到 `/user/2`，由于组件没被销毁重建，你需要在这个守卫里监听变化并重新发起请求。
 
 ```vue
 <script setup>
@@ -853,8 +857,6 @@ onBeforeRouteUpdate(async (to, from) => {
 
 ### 3.4 守卫速查
 
-**高频属性速查（导航守卫）：**
-
 [width(33,13,28,26)]
 
 | 守卫                   | 作用域                | 常用场景                     | 注意点                                            |
@@ -867,8 +869,6 @@ onBeforeRouteUpdate(async (to, from) => {
 | `onBeforeRouteUpdate`  | 组件内                | 同一组件参数变化后重新请求   | 路由复用、组件未销毁时触发                        |
 | `beforeRouteEnter`     | 组件内（Options API） | 进入前预取数据               | 此时 `this` 不可用，`<script setup>` 中不能直接用 |
 
-**高频场景：**
-
 [width(20,48,32)]
 
 | 业务场景       | 推荐写法                                                | 为什么                               |
@@ -880,7 +880,7 @@ onBeforeRouteUpdate(async (to, from) => {
 | 全局进度条     | `beforeEach` 开始、`afterEach` 结束                     | 后置守卫无法阻断，适合收尾           |
 | 404 兜底       | 最后一条 `path: '/:pathMatch(.*)*'`                     | 放在动态路由之后，避免吞掉正常路由   |
 
-### 3.5 完整的导航解析流程 (面试必背)
+### 3.5 完整的导航解析流程
 
 当用户点击一个链接，试图从 A 页面跳到 B 页面时，Vue Router 的内部校验就像一台精密的齿轮，严格按照以下 11 步顺序执行。掌握它，你就能解决 99% 的时序 Bug。
 
@@ -936,8 +936,9 @@ router.beforeEach(async (to, from) => {
 
 ### 3.8 组件内离开拦截：防丢失表单
 
-```vue
-<!-- UserEditForm.vue -->
+:::code-group
+
+```vue [UserEditForm.vue]
 <script setup>
 import { ref } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
@@ -964,14 +965,14 @@ onBeforeRouteLeave((to, from) => {
 </script>
 ```
 
+:::
+
 ## 4. 常见问题 (FAQ) 与避坑指南
 
 ### 4.1 动态路由切换时（比如从 `/user/1` 跳转到 `/user/2`），页面为什么毫无反应，生命周期也不执行？
 
-这是 Vue 极其聪明的“**组件复用机制**”导致的新手大坑。
-
 - **原因**：Vue 发现你从 A 页面跳到 B 页面，用的居然是**同一个 Vue 组件文件**（`UserDetail.vue`）。为了榨干性能，它决定**不销毁也不重新创建这个组件**，仅仅在内部更新一下 `route.params.id` 的值。既然不创建，那 `onMounted` 等钩子自然就成了死人。
-- **终极解法 A (监听)**：在组件内部使用 `watch` 监听参数变化。
+- **解法 A (监听)**：在组件内部使用 `watch` 监听参数变化。
 
   ```js
   import { watch } from 'vue'
@@ -988,14 +989,14 @@ onBeforeRouteLeave((to, from) => {
   ) // immediate 保证初次挂载也能执行
   ```
 
-- **终极解法 B (暴力拆毁，推荐)**：直接在 `App.vue`（或者嵌套层）的 `<router-view>` 上绑一个跟全路径强相关的 `:key`。
+- **解法 B (暴力拆毁，推荐)**：直接在 `App.vue`（或者嵌套层）的 `<router-view>` 上绑一个跟全路径强相关的 `:key`。
 
   ```vue
   <!-- 只要路径变了哪怕一丁点，Vue 就会认为它是全新的组件，残忍销毁旧的，重新执行完整的生命周期！ -->
   <router-view :key="$route.fullPath" />
   ```
 
-- **终极解法 C（守卫）**：在组件内部引入并使用 `onBeforeRouteUpdate` 守卫，在这个钩子里获取最新的 `to.params.id` 并重新发起请求。
+- **解法 C（守卫）**：在组件内部引入并使用 `onBeforeRouteUpdate` 守卫，在这个钩子里获取最新的 `to.params.id` 并重新发起请求。
 
   ```vue
   <script setup>
@@ -1012,8 +1013,6 @@ onBeforeRouteLeave((to, from) => {
 
 ### 4.2 路由表中 `path` 开头带不带斜杠 `/` 有什么区别？
 
-这在嵌套路由中是致命的细节。
-
 - **带斜杠 (`/child`)**：会被当作**绝对路径**。无论你嵌套了多少层，访问它永远是 `app.com/child`。
 - **不带斜杠 (`child`)**：会被当作**相对路径**。它会自动把所有父级的 path 拼接起来。比如父级是 `/admin`，访问它就是 `app.com/admin/child`。
 - **避坑指南**：在 `children` 数组里的所有子路由，**强烈建议永远不要带开头的斜杠 `/`**，保持相对嵌套关系，这是最符合直觉的工程规范。
@@ -1022,33 +1021,33 @@ onBeforeRouteLeave((to, from) => {
 
 如果你的前端项目不是部署在域名的根目录，而是部署在 `https://www.app.com/my-project/` 下，你必须在两处同时动刀：
 
-1.  **Vue Router 配置修改**：传入基础路径给 History 引擎。
+**Vue Router 配置修改**：传入基础路径给 History 引擎。
 
-    ```js
-    const router = createRouter({
-      // 传入基础路径！
-      history: createWebHistory('/my-project/'),
-      routes,
-    })
-    ```
+```js
+const router = createRouter({
+  // 传入基础路径！
+  history: createWebHistory('/my-project/'),
+  routes,
+})
+```
 
-2.  **Nginx 配置修改**：`try_files` 的兜底路径必须精准指向子目录里的 html。
+**Nginx 配置修改**：`try_files` 的兜底路径必须精准指向子目录里的 html。
 
-    ```nginx
-    location /my-project {
-        alias /usr/share/nginx/html; # 或者用 root 根据实际物理路径搭配
-        index index.html;
-        # 核心：找不到时扔给这个子目录的 index.html
-        try_files $uri $uri/ /my-project/index.html;
-    }
-    ```
+```nginx
+location /my-project {
+    alias /usr/share/nginx/html; # 或者用 root 根据实际物理路径搭配
+    index index.html;
+    # 核心：找不到时扔给这个子目录的 index.html
+    try_files $uri $uri/ /my-project/index.html;
+}
+```
 
 ### 4.4 为什么我使用 `router.push({ name: 'user', params: { data: myData } })` 传递非路径参数，刷新页面后参数就变成了 `undefined`？
 
 - **原因**：从 Vue Router 4.1.4 开始，**官方正式废弃并移除了未在 `path` 中明确定义的隐式 `params` 传递**。也就是说，如果你的路由是 `path: '/user'`，你不能指望把一个对象隐藏在 `params` 里通过路由传给下一个页面。这种数据存储在内存中，一旦刷新页面内存清空，数据立刻丢失。
 - **正确做法**：
-  1.  如果参数应该出现在 URL 中（可分享、刷新不丢），请配置动态路径参数（`path: '/user/:id'`）或者使用 URL 查询参数（`query: { id: 123 }`）。
-  2.  如果传递的是不需要展示在 URL 中的大型对象或敏感状态，**必须使用全局状态管理（如 Pinia / Vuex）**。
+  - 如果参数应该出现在 URL 中（可分享、刷新不丢），请配置动态路径参数（`path: '/user/:id'`）或者使用 URL 查询参数（`query: { id: 123 }`）。
+  - 如果传递的是不需要展示在 URL 中的大型对象或敏感状态，**必须使用全局状态管理（如 Pinia / Vuex）**。
 
 ### 4.5 `router-link` 的 `active-class` 是怎么匹配的？
 
@@ -1075,8 +1074,6 @@ const router = createRouter({
 
 ### 4.6 为什么我的 `beforeEach` 陷入了无限死循环 (Maximum call stack size exceeded)？
 
-这是新手配置路由守卫时 100% 会遇到的坑。
-
 - **原因**：你写了 `if (!token) return '/login'`。当用户没有 token 时，系统将其重定向到 `/login`。**但是，去往 `/login` 的这个跳转动作，又会重新触发一次全局的 `beforeEach`！**
 - 此时系统再次检查，发现还是没有 token，于是再次重定向到 `/login`…… 从而引发光速的无限死循环。
 - **避坑指南**：**在重定向时，必须对“目标页面本身就是免鉴权页面”做排除处理！**
@@ -1097,3 +1094,20 @@ router.beforeEach(to => {
 - `beforeRouteEnter` 守卫在导航确认前被调用，因此**它执行时，即将登场的新组件连实例化（生成 `this` 和执行 `setup`）都还没开始！**
 - 既然 `setup` 还没执行，你自然无法在 `<script setup>` 的代码块里去声明这个钩子。
 - **替代方案**：如果你实在需要在进入组件前发请求，请将请求逻辑前置到**路由独享守卫 `beforeEnter`** 或全局的 `beforeResolve` 中。如果纯粹为了拿数据，不如直接在 `setup()` 同步代码里尽早发请求，或者拥抱 `<Suspense>` 顶层 `await` 架构。
+
+```js
+// ✅ 方案一：请求前移到路由独享守卫
+const routes = [
+  {
+    path: '/user/:id',
+    component: () => import('./UserDetail.vue'),
+    beforeEnter: async to => {
+      await store.fetchUser(to.params.id)
+    },
+  },
+]
+
+// ✅ 方案二：组件内尽早发起，配合 <Suspense> 使用
+const route = useRoute()
+const user = await store.fetchUser(route.params.id)
+```
