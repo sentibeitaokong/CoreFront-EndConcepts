@@ -54,7 +54,7 @@ Vue 3 的模板编译器会生成带有 `import` 语句的渲染函数，只引�
 </template>
 ```
 
-编译输出（简化）：
+:::details 编译输出（简化）
 
 ```javascript
 import {
@@ -67,7 +67,7 @@ import {
 // 只引入了 toDisplayString、createVNode、openBlock、createBlock
 ```
 
-如果模板中没有使用 `v-model`，则 `vModelText` 等指令相关的代码不会被引入。
+:::
 
 ### 3.3 内置组件的 Tree Shaking
 
@@ -81,6 +81,13 @@ import { Transition } from 'vue'
 ### 3.4 `sideEffects` 配置
 
 Vue 3 的 `package.json` 中声明了 `"sideEffects": false`，表示所有模块都没有副作用（除了特定的文件，如 `sideEffects: ["*.css"]`）。这告诉构建工具可以安全地对 Vue 的模块进行 Tree Shaking。
+
+```json
+{
+  "name": "@vue/runtime-core",
+  "sideEffects": false
+}
+```
 
 ## 4. 如何启用 Tree Shaking？
 
@@ -98,14 +105,16 @@ Vue 3 的 `package.json` 中声明了 `"sideEffects": false`，表示所有模�
 
 ### 4.3 配置 `sideEffects`
 
-在项目的 `package.json` 中声明：
+:::code-group
 
-```json
+```json [package.json]
 {
   "name": "my-project",
   "sideEffects": false // 表示所有文件都没有副作用
 }
 ```
+
+:::
 
 如果某些文件有副作用（如 polyfill、全局样式），可以指定数组：
 

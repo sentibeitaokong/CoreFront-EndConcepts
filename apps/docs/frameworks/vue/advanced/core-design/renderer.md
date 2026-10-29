@@ -8,6 +8,8 @@ Vue 3 的渲染器采用**可配置**的设计，核心渲染逻辑与平台无�
 
 ## 2. 渲染器的核心职责
 
+[width(20,80)]
+
 | 职责               | 描述                                                            |
 | ------------------ | --------------------------------------------------------------- |
 | **挂载 (mount)**   | 将 VNode 树转换为真实 DOM 并插入到容器中。                      |
@@ -18,8 +20,6 @@ Vue 3 的渲染器采用**可配置**的设计，核心渲染逻辑与平台无�
 | **事件处理**       | 绑定、更新和销毁 DOM 事件监听器。                               |
 
 ## 3. 渲染器的架构设计
-
-Vue 3 的渲染器分为三层：
 
 ### 3.1 平台无关核心 (`@vue/runtime-core`)
 
@@ -64,42 +64,89 @@ const { render, createApp } = createRenderer<Node, Element>({
 
 ## 4. 渲染器的核心工作流程
 
+渲染器对外只暴露一个入口`render(vnode, container)`,内部的挂载、更新、卸载最终都汇聚到两个核心函数:
+
+- **`patch`**：同时负责挂载与更新。旧 VNode 为空时走挂载分支，否则走对比分支。
+- **`unmount`**：负责递归拆除节点，并在过程中触发对应的生命周期钩子。
+
 ### 4.1 首次渲染 (Mount)
 
-```
-createApp(App).mount('#app')
-```
+应用启动时，`createApp(App).mount('#app')` 最终会调用渲染器的 `render(vnode, container)`：
 
-1. **创建 VNode**：调用组件的 `render` 函数（或编译模板生成的渲染函数），生成根 VNode。
-2. **调用渲染器的 `render` 函数**：传入 VNode 和容器。
-3. **执行 `patch`**：由于没有旧 VNode，进入**挂载**分支。
-4. **递归处理 VNode**：
-   - 元素 VNode：调用 `createElement` 创建 DOM 元素，`patchProps` 设置属性和事件，递归 `patch` 子节点。
-   - 组件 VNode：实例化组件，调用组件的 `render` 获取子 VNode，继续 patch。
-5. **将根 DOM 插入容器**：调用 `insert` 方法，最终显示在页面上。
+此时容器中没有旧 VNode，`patch` 走挂载分支：
+
+1. **创建根 VNode**：`createApp(App)` 以根组件为 `type` 创建 VNode，`mount` 再调用渲染器的 `render(vnode, container)`。
+2. **`patch(null, vnode, container)`**：容器中没有旧 VNode，跳过新旧对比，直接按 VNode 类型分发。
+3. **按类型挂载**：
+   - **元素 VNode**：`createElement` 创建宿主元素，`patchProp` 设置属性与事件，再递归 `patch` 子节点。
+   - **组件 VNode**：创建组件实例并执行 `setup`，再执行 `render` 得到子树 VNode，递归 `patch`。
+   - **文本 / 注释 VNode**：`createText` / `createComment` 创建宿主节点。
+4. **插入容器**：子树在内存中构建完成后，调用 `insert` 把根宿主节点一次性插入容器，减少页面重排。
 
 ### 4.2 更新流程 (Update)
 
-当响应式数据变化时，触发组件的**渲染 effect** 重新执行：
+响应式数据变化后，依赖它的渲染 effect 会被调度器放入微任务队列；同一轮事件循环内的多次修改会按组件去重，只触发一次重新渲染：
 
-1. **重新调用 `render` 函数**，得到新的 VNode 树。
-2. **调用 `patch(oldVNode, newVNode)`**：
-   - 比较新旧 VNode 的类型和 key。
-   - 如果相同，调用 `patchElement` 或 `patchComponent` 进行详细比较。
-   - 如果不同，直接卸载旧节点，挂载新节点。
-3. **`patchElement` 过程**：
-   - 更新属性：对比新旧属性，调用 `patchProp` 添加、移除或更新。
-   - 更新子节点：调用 `patchChildren`，根据子节点类型（文本、数组、空）采用不同策略（如双端 diff、快速 diff）。
-4. **最小化 DOM 操作**：所有变更累积后批量应用到真实 DOM。
+1. **重新执行 `render`**：得到新的 VNode 树。
+2. **`patch(oldVNode, newVNode)`**：先比较 `type` 与 `key`。
+   - **相同**：复用宿主节点，元素进入 `patchElement`，组件进入 `patchComponent`。
+   - **不同**：调用 `unmount` 拆除旧节点，再走挂载流程创建新节点。
+3. **`patchElement`**：
+   - `patchProps`：对比新旧 props，只更新发生变化的属性、事件和 `class` / `style`。
+   - `patchChildren`：根据子节点形态（文本、数组、空）选择策略；数组子树使用带 `key` 的快速 Diff，并借助最长递增子序列减少节点移动。
+4. **最小化 DOM 操作**：Diff 的目标是复用节点、只改动必要部分。真正的批处理发生在调度阶段，而不是把 DOM 操作攒到最后统一提交。
 
 ### 4.3 卸载流程 (Unmount)
 
-当组件被销毁或 `v-if` 条件变为假时：
+组件销毁、`v-if` 变为假，或更新时 `type` / `key` 不同，都会触发 `unmount(vnode)`：
 
-1. 调用 `unmount` 函数。
-2. 递归处理子节点和组件。
-3. 触发 `beforeUnmount` 和 `unmounted` 生命周期。
-4. 调用 `remove` 从 DOM 中删除节点。
+- **组件 VNode**：先调用 `beforeUnmount`，递归卸载组件子树，再在更新队列冲刷后调用 `unmounted`；同时停止组件的渲染 effect 与作用域。
+- **元素 VNode**：递归卸载全部子节点，再调用 `remove` 把宿主节点从父节点上摘除。
+- **指令钩子**：卸载过程中依次触发指令的 `beforeUnmount` / `unmounted`，确保事件监听、定时器等副作用被清理。
+
+### 4.4 完整流程图
+
+```mermaid
+flowchart TD
+    subgraph Mount["首次渲染（Mount）"]
+        M1(["render(vnode, container)"]) --> M2["patch(null, vnode)"]
+        M2 --> M3{"VNode 类型"}
+        M3 -->|元素| M4["createElement<br/>patchProp"]
+        M3 -->|组件| M5["创建组件实例<br/>setup → render"]
+        M3 -->|文本 / 注释| M6["createText / createComment"]
+        M4 --> M7["递归 patch 子节点"]
+        M5 --> M7
+        M7 --> M8["insert 插入容器"]
+        M6 --> M8
+    end
+
+    subgraph Update["更新（Update）"]
+        U1(["响应式数据变化"]) --> U2["调度器合并更新<br/>重新执行 render"]
+        U2 --> U3{"type 与 key 相同?"}
+        U3 -->|否| U4["unmount 旧节点<br/>走挂载流程"]
+        U3 -->|是| U5{"VNode 类型"}
+        U5 -->|元素| U6["patchElement"]
+        U5 -->|组件| U7["patchComponent"]
+        U6 --> U8["patchProps"]
+        U6 --> U10["patchChildren"]
+        U10 --> U11{"子节点形态"}
+        U11 -->|文本| U12["setElementText"]
+        U11 -->|数组| U9["keyed 快速 Diff<br/>最长递增子序列"]
+        U11 -->|空| U13["清空子节点"]
+        U7 --> U14["更新 props / 插槽<br/>递归 patch 子树"]
+    end
+
+    subgraph Unmount["卸载（Unmount）"]
+        D1(["组件销毁 / v-if 为假 / 类型变化"]) --> D2["unmount(vnode)"]
+        D2 --> D3{"VNode 类型"}
+        D3 -->|组件| D4["beforeUnmount<br/>递归卸载子树<br/>unmounted"]
+        D3 -->|元素| D5["递归卸载子节点"]
+        D4 --> D6["remove 宿主节点"]
+        D5 --> D6
+    end
+
+    U4 --> M2
+```
 
 ## 5. 虚拟 DOM 与 Diff 算法
 
@@ -146,8 +193,6 @@ export function render(_ctx) {
 - 动态节点标记了 `PatchFlags.TEXT`，渲染器更新时只需要检查文本内容。
 
 ## 7. 自定义渲染器示例
-
-以下是一个简单的 Canvas 渲染器，将 VNode 绘制到 Canvas 上：
 
 :::code-group
 
@@ -215,6 +260,8 @@ export const App = {
 - **缓存事件处理函数**：内联事件处理函数被缓存，避免子组件 props 变化导致的不必要更新。
 
 ## 9. 总结
+
+[width(13,87)]
 
 | 方面         | 说明                                                      |
 | ------------ | --------------------------------------------------------- |

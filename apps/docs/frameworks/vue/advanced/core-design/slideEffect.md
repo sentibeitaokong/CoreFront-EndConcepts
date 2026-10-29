@@ -63,6 +63,23 @@ watch(count, (newVal, oldVal) => {
 - **组件渲染副作用**：当组件被卸载时，渲染副作用会自动停止。
 - **在组件 `setup()` 中同步创建的 `watchEffect` / `watch`**：当组件卸载时，这些副作用也会自动停止。
 
+```vue
+<script setup>
+import { ref, watchEffect } from 'vue'
+
+const count = ref(0)
+
+// 在 setup 中同步创建：父组件用 v-if 卸载本组件时，副作用自动停止
+watchEffect(() => {
+  console.log('count is', count.value)
+})
+</script>
+
+<template>
+  <button @click="count++">count: {{ count }}</button>
+</template>
+```
+
 ### 4.2 手动停止副作用
 
 `watchEffect` 和 `watch` 返回一个停止函数，调用它可以手动停止副作用：
@@ -125,12 +142,12 @@ Vue 3.2+ 提供了便捷别名：`watchPostEffect` 和 `watchSyncEffect`。
 
 ## 5. 最佳实践
 
-1. **优先使用 `watchEffect` 自动收集依赖**，当需要精确控制依赖源或获取新旧值时使用 `watch`。
-2. **始终清理副作用**：在组件卸载时，确保移除事件监听器、清除定时器、取消网络请求。
-3. **处理异步竞态**：在 `watchEffect` 中使用 `onCleanup` 标记过期的异步操作。
-4. **避免在 `computed` 中产生副作用**，这会导致不可预测的行为和性能问题。
-5. **合理使用 `flush` 选项**：默认 `'pre'` 可满足大部分需求；访问 DOM 时使用 `'post'`；慎用 `'sync'`。
-6. **手动停止非组件内创建的副作用**：例如在全局模块或工具函数中创建的 `watchEffect`，需要在适当时机手动调用停止函数。
+- **优先使用 `watchEffect` 自动收集依赖**，当需要精确控制依赖源或获取新旧值时使用 `watch`。
+- **始终清理副作用**：在组件卸载时，确保移除事件监听器、清除定时器、取消网络请求。
+- **处理异步竞态**：在 `watchEffect` 中使用 `onCleanup` 标记过期的异步操作。
+- **避免在 `computed` 中产生副作用**，这会导致不可预测的行为和性能问题。
+- **合理使用 `flush` 选项**：默认 `'pre'` 可满足大部分需求；访问 DOM 时使用 `'post'`；慎用 `'sync'`。
+- **手动停止非组件内创建的副作用**：例如在全局模块或工具函数中创建的 `watchEffect`，需要在适当时机手动调用停止函数。
 
 ## 6. 总结
 

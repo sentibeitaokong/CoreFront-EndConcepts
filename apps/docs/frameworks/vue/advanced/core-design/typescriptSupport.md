@@ -1,6 +1,6 @@
 # TypeScript 支持
 
-Vue 3 从底层架构上对 TypeScript 提供了**一等公民**支持。整个框架的源码由 TypeScript 编写，并提供了完善的类型定义文件。这使得 Vue 3 能够与 TypeScript 无缝集成，为开发者提供强大的类型检查、智能提示和重构能力。
+Vue 3 从底层架构上对 TypeScript 提供了**一等公民**支持。整个框架的源码由TypeScript编写，并提供了完善的类型定义文件。这使得Vue 3能够与 TypeScript 无缝集成，为开发者提供强大的类型检查、智能提示和重构能力。
 
 ## 1. 设计目标与核心优势
 
@@ -201,8 +201,6 @@ const { count, inc } = useCounter(10)
 - 检查 props 传入是否正确
 - 对 `ref` 模板引用的类型推导
 
-示例：
-
 ```vue
 <template>
   <input ref="inputEl" />
@@ -226,9 +224,9 @@ const handleClick = (value: number) => {
 
 ### 7.1 扩展组件实例类型
 
-在 `env.d.ts` 或 `shims-vue.d.ts` 中：
+:::code-group
 
-```typescript
+```typescript [env.d.ts]
 declare module '@vue/runtime-core' {
   export interface ComponentCustomProperties {
     $http: typeof import('axios').default
@@ -236,10 +234,13 @@ declare module '@vue/runtime-core' {
 }
 ```
 
+:::
+
 ### 7.2 扩展全局组件
 
-```typescript
-// global-components.d.ts
+:::code-group
+
+```typescript [global-components.d.ts]
 import MyButton from './components/MyButton.vue'
 
 declare module '@vue/runtime-core' {
@@ -249,9 +250,13 @@ declare module '@vue/runtime-core' {
 }
 ```
 
+:::
+
 ## 8. 常见类型工具
 
 Vue 3 导出了一些辅助类型，用于提取组件或 API 的类型。
+
+[width(36,64)]
 
 | 类型                            | 作用                              |
 | ------------------------------- | --------------------------------- |
@@ -260,7 +265,7 @@ Vue 3 导出了一些辅助类型，用于提取组件或 API 的类型。
 | `PropType`                      | 用于复杂 props 类型标注           |
 | `MaybeRef` / `MaybeRefOrGetter` | 表示可能是 ref 或普通值的联合类型 |
 
-示例：使用 `PropType`
+:::details 示例
 
 ```typescript
 import { PropType } from 'vue'
@@ -275,6 +280,8 @@ export default defineComponent({
 })
 ```
 
+:::
+
 ## 9. 与构建工具的集成
 
 - **Vite**：开箱即用，直接支持 `.vue` 文件 + TypeScript。
@@ -282,6 +289,8 @@ export default defineComponent({
 - **推荐使用 `vite-plugin-vue` 或 `@vitejs/plugin-vue`**。
 
 ## 10. 总结
+
+[width(18,82)]
 
 | 方面             | Vue 3 的 TypeScript 支持                                     |
 | ---------------- | ------------------------------------------------------------ |

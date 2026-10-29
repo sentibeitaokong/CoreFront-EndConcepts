@@ -196,7 +196,7 @@ export const helperNameMap: any = {
 
 ### 3.2 `genFunctionPreamble`: 前置代码生成器
 
-它的核心任务只有两件事：“引入运行时工具库” 和 “声明静态常量”。
+它的核心任务只有两件事：“**引入运行时工具库**” 和 “**声明静态常量**”。
 
 :::code-group
 
@@ -478,7 +478,7 @@ function genVNodeCall(node, context) {
 
 #### 4.2.2 `genCallExpression`: 处理函数调用生成器
 
-把这些 AST 节点完美地“打印”成符合 JavaScript 语法的标准函数调用字符串。
+把这些 AST 节点完美地“**打印**”成符合 JavaScript 语法的标准函数调用字符串。
 
 :::code-group
 

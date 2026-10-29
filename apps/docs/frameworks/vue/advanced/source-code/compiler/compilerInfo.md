@@ -275,7 +275,7 @@ function parseChildren(context: ParserContext, ancestors: ElementNode[]) {
 
 ### 4.1 深度优先遍历与插件系统
 
-#### 4.1.1 深度优先遍历：从上到下的“探访”
+#### 4.1.1 深度优先遍历：从上到下的“**探访**”
 
 **transform** 阶段由 `transform` 函数启动，它内部调用 `traverseNode` 递归遍历整棵模板 AST，遵循**深度优先**的原则：先访问父节点，再递归访问子节点，最后在离开父节点时做收尾处理。
 
@@ -347,7 +347,7 @@ function traverseNode(node, context) {
 
 平台专属插件（如 `@vue/compiler-dom`）会在此基础上追加浏览器相关转换，如 `transformStyle`、`transformTransition` 等
 
-### 4.2 指令与语法的“降级翻译”
+### 4.2 指令与语法的“**降级翻译**”
 
 基础 AST 记录的是 Vue 特有的模板语法（如 `v-if`, `v-for`, `@click`），但浏览器 JavaScript 引擎并不认识这些。`transform` 的首要任务就是将模板中的指令编译为标准的 JavaScript 代码。
 
@@ -828,7 +828,7 @@ export function render(_ctx, _cache) {
 
 ![Logo](/img/generate.png)
 
-## 6. 总结：编译时“负重前行”，让运行时“轻装上阵”
+## 6. 总结：编译时“**负重前行**”，让运行时“**轻装上阵**”
 
 Vue 3 的编译器并不仅仅是一个模板到渲染函数的“**翻译官**”，它更像一个**编译时优化器**。它遵循的核心设计哲学是：**把能提前做的工作都在编译阶段完成，尽可能减小运行时的负担**。
 
