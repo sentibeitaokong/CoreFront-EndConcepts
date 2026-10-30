@@ -18,7 +18,7 @@
 
 ```typescript [renderer.ts]
 //核心接口api
-//必需方法：createElement、createText、insert、remove、parentNode、nextSibling、patchProp 是渲染器能够正常工作的最低要求。
+//必需方法：createElement、createText、createComment、insert、remove、setElementText、setText、parentNode、nextSibling、patchProp 是渲染器能够正常工作的最低要求。
 export interface RendererOptions<
   HostNode = RendererNode,
   HostElement = RendererElement,
@@ -57,10 +57,10 @@ export interface RendererOptions<
   // 查询元素是否匹配选择器（主要用于 SSR hydrate）
   querySelector?(selector: string): HostElement | null
 
-  // 获取元素作用域 ID（用于 CSS scope）
-  getElementId?(el: HostElement): string | null
+  // 设置元素作用域 ID（用于 scoped CSS）
+  setScopeId?(el: HostElement, id: string): void
 
-  // 插入静态内容（SSR 优化）
+  // 插入静态内容（静态节点提升，hoisted static 优化）
   insertStaticContent?(
     content: string,
     parent: HostElement,
@@ -323,6 +323,8 @@ function setStyle(style, name, val) {
 ```
 
 ```typescript [events.ts]
+import { hyphenate } from '@vue/shared'
+
 /**
  * 比较并更新 DOM 元素的事件监听器
  * @param {HTMLElement} el - 目标 DOM 元素
@@ -343,22 +345,47 @@ export function patchEvent(el, rawName, prevValue, nextValue) {
     // 最爽的情况：直接修改伪装者内部的 value，完全不需要调用底层的 DOM API！
     existingInvoker.value = nextValue
   } else {
-    // 处理原生事件名，例如将 "onClick" 转换为 "click"
-    const name = rawName.slice(2).toLowerCase()
+    // 解析原生事件名与事件选项修饰符
+    // 例如 "onClick" -> "click"；"@my-event" 会编译为 "onMyEvent"，
+    // 必须用 hyphenate 还原成 "my-event"（简单 toLowerCase 会得到 "myevent"）
+    const [name, options] = parseName(rawName)
 
     if (nextValue) {
       // 场景 B：全新绑定事件
       // 创建一个新的伪装者，并把它存到缓存里
       const invoker = (invokers[rawName] = createInvoker(nextValue))
       // 将伪装者绑定到真实的 DOM 事件上（这是唯一一次调用 addEventListener）
-      el.addEventListener(name, invoker)
+      el.addEventListener(name, invoker, options)
     } else if (existingInvoker) {
       // 场景 C：移除事件绑定 (nextValue 为空，说明用户删除了事件)
-      el.removeEventListener(name, existingInvoker)
+      el.removeEventListener(name, existingInvoker, options)
       // 清空缓存
       invokers[rawName] = undefined
     }
   }
+}
+
+const optionsModifierRE = /(?:Once|Passive|Capture)$/
+
+/**
+ * 解析事件名与修饰符，例如：
+ * - "onClick" -> ["click", undefined]
+ * - "onMyEvent" -> ["my-event", undefined]
+ * - "onClickOnce" -> ["click", { once: true }]
+ * - "on:click" -> ["click", undefined]
+ */
+function parseName(name) {
+  let options
+  if (optionsModifierRE.test(name)) {
+    options = {}
+    let m
+    while ((m = name.match(optionsModifierRE))) {
+      name = name.slice(0, name.length - m[0].length)
+      options[m[0].toLowerCase()] = true
+    }
+  }
+  const event = name[2] === ':' ? name.slice(3) : hyphenate(name.slice(2))
+  return [event, options]
 }
 
 /**
@@ -380,6 +407,8 @@ function createInvoker(initialValue) {
 ```
 
 ```typescript [props.ts]
+import { includeBooleanAttr } from '@vue/shared'
+
 // 简化的 patchDOMProp 实现
 export function patchDOMProp(
   el, // DOM 元素本身
@@ -412,16 +441,23 @@ export function patchDOMProp(
     }
     return
   }
-  // 3. 处理 Boolean 类型的 property (比如 disabled, checked)
-  // 在 HTML 中，<input disabled> 哪怕没有值也是 true。Vue 需要模拟这种行为
-  if (typeof value === 'boolean' || value === '') {
-    if (value === true || value === '') {
-      el[key] = true
-    } else {
-      // 设为 false 时，不仅要改 property，还要确保没有残留的 boolean attribute
-      el[key] = false
+  // 3. 处理空字符串以及 null/undefined
+  // 关键：源码判断的是 DOM 属性本身的类型 typeof el[key]，而不是传入的 value
+  let needRemove = false
+  if (value === '' || value == null) {
+    const type = typeof el[key]
+    if (type === 'boolean') {
+      // 例如 <select multiple> 会被编译成 { multiple: '' }
+      value = includeBooleanAttr(value)
+    } else if (value == null && type === 'string') {
+      // 例如 <div :id="null">，属性值回落为空字符串，并同步移除 attribute
+      value = ''
+      needRemove = true
+    } else if (type === 'number') {
+      // 例如 <img :width="null">，属性值回落为 0，并同步移除 attribute
+      value = 0
+      needRemove = true
     }
-    return
   }
   // 4. 常规 Property 赋值兜底
   // 大部分普通属性（如 id, title, className 等）都会走到这里
@@ -432,7 +468,7 @@ export function patchDOMProp(
     // 因为 DOM API 是一个黑盒，有些元素在某些特定状态下，某些 property 是只读的。
     // 例如某些浏览器不允许动态修改 input.type，或者给只读属性强行赋值会抛出异常。
     // Vue 的策略是：遇到报错直接吞掉并静默失败（开发环境下会打印警告），防止整个应用崩溃。
-    if (__DEV__) {
+    if (__DEV__ && !needRemove) {
       console.warn(
         `Failed setting prop "${key}" on <${el.tagName.toLowerCase()}>: ` +
           `value ${value} is invalid.`,
@@ -440,6 +476,8 @@ export function patchDOMProp(
       )
     }
   }
+  // 对于被转换为空串或 0 的属性，同步移除其 attribute，避免残留旧值
+  needRemove && el.removeAttribute(key)
 }
 ```
 
@@ -447,8 +485,15 @@ export function patchDOMProp(
 // 一些辅助判断函数 (模拟源码中的共享工具函数)
 // 判断是否是特殊的布尔值 attribute (没有对应的同名 DOM property，例如 itemScope)
 const isSpecialBooleanAttr = key =>
-  key === 'itemscope' || key === 'allowfullscreen'
+  key === 'itemscope' ||
+  key === 'allowfullscreen' ||
+  key === 'formnovalidate' ||
+  key === 'ismap' ||
+  key === 'nomodule' ||
+  key === 'novalidate' ||
+  key === 'readonly'
 // SVG 的 xlink 命名空间 URI
+const xlinkNS = 'http://www.w3.org/1999/xlink'
 
 /**
  * 更新普通的 HTML/SVG Attribute
@@ -472,7 +517,7 @@ function patchAttr(el, key, value) {
     const isBoolean = isSpecialBooleanAttr(key)
 
     // 场景 A: 值为 null/undefined，或者布尔属性的值为 false
-    // 比如 <div :id="null"> 或 <div :itemscope="false">
+    // 比如 <div :data-x="null"> 或 <div :itemscope="false">
     if (value == null || (isBoolean && value === false)) {
       el.removeAttribute(key)
     }

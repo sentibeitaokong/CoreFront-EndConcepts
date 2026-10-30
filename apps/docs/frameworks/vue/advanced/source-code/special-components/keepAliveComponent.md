@@ -20,7 +20,13 @@
 :::code-group
 
 ```typescript [keepAlive.ts]
-import { defineComponent, getCurrentInstance, SetupContext } from 'vue'
+import {
+  defineComponent,
+  getCurrentInstance,
+  onMounted,
+  onUpdated,
+  SetupContext,
+} from 'vue'
 
 export const KeepAliveImpl = {
   name: `KeepAlive`,
@@ -56,8 +62,9 @@ export const KeepAliveImpl = {
       },
     } = sharedContext
     // 2. 隐藏容器：用于存放"失活"组件的 DOM（不渲染到页面上）
+    // createElement 来自 renderer 注入的 internals（sharedContext.renderer.o），
     // 在浏览器中相当于 document.createElement('div')
-    const storageContainer = sharedContext.createElement('div')
+    const storageContainer = createElement('div')
 
     // 暴露内部方法给 Renderer 调用
     sharedContext.activate = (vnode, container, anchor, isSVG, optimized) => {
@@ -86,6 +93,19 @@ export const KeepAliveImpl = {
       })
     }
 
+    // 3. 缓存渲染后的子树
+    // render 返回的 rawVNode 可能被 clone / 规范化，不是最终挂载的 vnode，
+    // 所以先记下 pendingCacheKey，等真正渲染完成后缓存 instance.subTree。
+    let pendingCacheKey: CacheKey | null = null
+    const cacheSubtree = () => {
+      // pendingCacheKey 可能是 0，必须用 != null 判断
+      if (pendingCacheKey != null) {
+        cache.set(pendingCacheKey, getInnerChild(instance.subTree))
+      }
+    }
+    onMounted(cacheSubtree)
+    onUpdated(cacheSubtree)
+
     // 返回 render 函数 ...
   },
 }
@@ -101,6 +121,8 @@ export const KeepAliveImpl = {
 
 ```typescript [keepAlive.ts]
 return () => {
+  pendingCacheKey = null
+
   if (!slots.default) return null
 
   // 获取默认插槽的第一个子节点
@@ -113,13 +135,17 @@ return () => {
   const key = rawVNode.key == null ? comp : rawVNode.key
 
   // include / exclude 规则匹配校验
+  // include 配置下，没有 name 的组件同样不缓存
   if (
-    (name && props.include && !matches(props.include, name)) ||
-    (name && props.exclude && matches(props.exclude, name))
+    (props.include && (!name || !matches(props.include, name))) ||
+    (props.exclude && name && matches(props.exclude, name))
   ) {
     current = rawVNode
     return rawVNode // 不匹配则直接返回原始节点，不走缓存
   }
+
+  // 记录本次要写入的 key；真正写入发生在 onMounted / onUpdated 的 cacheSubtree 中
+  pendingCacheKey = key
 
   // 尝试从缓存中读取
   const cachedVNode = cache.get(key)
@@ -192,12 +218,19 @@ if (keys.size > max) {
 
 // 销毁缓存记录及实例
 function pruneCacheEntry(key: CacheKey) {
-  const cached = cache.get(key) as VNode
+  const cached = cache.get(key)
+  if (cached) {
+    // 只有不是当前正在渲染的节点时才立刻真正卸载
+    if (!current || !isSameVNodeType(cached, current)) {
+      unmount(cached)
+    } else {
+      // 当前活跃实例不能立刻卸载，先重置 keep-alive 标记
+      resetShapeFlag(current)
+    }
+  }
   // 从映射和集合中彻底移除
   cache.delete(key)
   keys.delete(key)
-  // 触发底层的真正卸载 (unmount)
-  unmount(cached)
 }
 ```
 
@@ -271,8 +304,8 @@ const currentComponent = ref(Home)
 
 ## 5. 总结
 
-- **缓存机制**：通过 `Map` 存储组件 VNode，实现实例复用。
+- **缓存机制**：通过 `Map` 缓存渲染后的组件 `subTree`（而非 render 中的 `rawVNode`），实现实例复用。
 - **LRU 淘汰**：利用 `keys` 集合维护访问顺序，超出 `max` 时卸载最老的缓存。
 - **DOM 保留**：失活时将 DOM 移入隐藏 `div`，激活时移回原容器
 - **生命周期**：扩展 `activated`/`deactivated` 钩子，使组件能感知缓存状态。
-- **渲染器配合**：通过 `COMPONENT_KEPT_ALIVE` 标记，让渲染器区分正常卸载和失活，避免销毁实例。
+- **渲染器配合**：通过 `COMPONENT_SHOULD_KEEP_ALIVE` 标记，让渲染器在卸载时调用 `deactivate` 而非真正卸载；`COMPONENT_KEPT_ALIVE` 则用于挂载时调用 `activate` 复用已有实例。

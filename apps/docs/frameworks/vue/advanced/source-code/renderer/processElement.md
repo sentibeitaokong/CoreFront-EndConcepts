@@ -69,8 +69,8 @@ const mountElement = (
     // 设置 文本子节点
     hostSetElementText(el, vnode.children as string)
   } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
-    // 设置 Array 子节点
-    mountChildren(vnode.children, el, anchor)
+    // 设置 Array 子节点：anchor 是 el 在父容器中的插入点，挂载子节点时应传 null
+    mountChildren(vnode.children, el, null)
   }
 
   // 3. 处理 Props (如 class, style, event)
@@ -233,11 +233,18 @@ const patchBlockChildren = (
     const oldVNode = oldChildren[i]
     const newVNode = newChildren[i]
 
-    // 3. 确定这个动态节点在真实 DOM 树中的挂载父级
-    // 1.如果是 Fragment (如多个根节点)，没有真实父级，用外面传进来的 fallbackContainer容器
-    // 2.如果是真实的节点，通过旧的真实 DOM 顺藤摸瓜找parentNode。”
+    // 3. 确定这个动态节点在真实 DOM 树中的挂载父级（依据旧节点判断）
+    // 1. Fragment (如多个根节点) 自身没有真实标签，需要它的真实父级来移动其子节点
+    // 2. 新旧节点类型不同会触发替换，同样需要正确的父容器
+    // 3. 组件 / Teleport 内部可能包含任意结构，也需要真实父级
+    // 4. 其余情况下父容器实际用不到，直接用传入的 fallbackContainer，省掉一次 parentNode 调用
     const container =
-      newVNode.type === Fragment ? fallbackContainer : oldVNode.el?.parentNode
+      oldVNode.el &&
+      (oldVNode.type === Fragment ||
+        !isSameVNodeType(oldVNode, newVNode) ||
+        oldVNode.shapeFlag & (ShapeFlags.COMPONENT | ShapeFlags.TELEPORT))
+        ? hostParentNode(oldVNode.el)
+        : fallbackContainer
 
     // 4. 触发靶向更新！直接调用底层的 patch 函数
     patch(
@@ -264,11 +271,11 @@ const patchBlockChildren = (
 ```typescript [renderer.ts]
 //对比children
 export function patchChildren(n1: any, n2: any, container: any, anchor: any) {
-  //新旧的vnode类型
-  const prevShapeFlag = n1.ShapeFlag
-  const nextShapeFlag = n2.ShapeFlag
+  //新旧的vnode类型（n1 可能为 null，此时视为没有旧子节点）
+  const prevShapeFlag = n1 ? n1.shapeFlag : 0
+  const nextShapeFlag = n2.shapeFlag
   //获取老新vnode的子节点信息
-  const c1: any = n1.children
+  const c1: any = n1 && n1.children
   const c2: any = n2.children
   //vnode节点有文本和数组两种类型，因此比对节点有四种情况
   //1.当新vnode节点是文本类型
@@ -277,24 +284,31 @@ export function patchChildren(n1: any, n2: any, container: any, anchor: any) {
     if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
       //1.把老vnode节点的children清空  2.将新节点设置成c2
       unmountChildren(n1.children)
+    }
+    //老节点是文本类型或没有子节点,直接将新节点设置成c2
+    if (c1 !== c2) {
       //直接设置新vnode节点为c2
       hostSetElementText(container, c2)
-    } else {
-      //老节点是文本类型,直接将新节点设置成c2
-      if (c1 !== c2) {
-        //直接设置新vnode节点为c2
-        hostSetElementText(container, c2)
-      }
     }
   } else {
-    //新节点是个文本节点
-    //1.直接清空旧节点的值
-    if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
-      hostSetElementText(container, '')
-      mountChildren(c2, container, anchor)
+    //新节点不是文本节点
+    if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+      if (nextShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+        //新老节点都是数组类型 快速 Diff（首尾同步 + key 映射 + LIS）
+        patchKeyedChildren(c1, c2, container, anchor)
+      } else {
+        //新节点没有子节点，只需要卸载旧的数组子节点
+        unmountChildren(c1)
+      }
     } else {
-      //新老节点都是数组类型 diff算法 双端对比
-      patchKeyedChildren(c1, c2, container, anchor)
+      //旧节点是文本类型，先清空旧文本
+      if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+        hostSetElementText(container, '')
+      }
+      //新节点是数组类型才需要挂载
+      if (nextShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+        mountChildren(c2, container, anchor)
+      }
     }
   }
 }
@@ -321,7 +335,13 @@ export function patchKeyedChildren(
 //1.新老props不相同且都有值，直接更新props
 //2.新props为null和undefined，直接删除老的props
 //3.新props里面没有老props的某个值，直接把这个值从props里面删除
-function patchProps(el: any, oldProps: any, newProps: any) {
+function patchProps(
+  el: any,
+  vnode: any,
+  oldProps: any,
+  newProps: any,
+  // ... 其他参数
+) {
   //老的props和新的props相等不需要去比对
   if (oldProps !== newProps) {
     //遍历新的props，当新旧props不一致就调用hostPatchprop方法更新props
@@ -378,11 +398,11 @@ render(vnode2, container)
 
 [width(22,36,42)]
 
-| 维度                        | 无编译优化 (手写 `h` 函数 / JSX)                                   | 有编译优化 (Vue 模板 `<template>`)                                                          |
-| --------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| **子节点比对 (`children`)** | 调用 `patchChildren` 执行全量树遍历或复杂的双端/快速 Diff 算法     | 命中 `dynamicChildren`，调用 `patchBlockChildren`，直接以 $O(1)$ 数组遍历方式更新动态节点   |
-| **属性比对 (`props`)**      | 调用 `patchProps` 遍历比对 `oldProps` 和 `newProps` 的每一个键值对 | 根据 `patchFlag` 位运算命中（如 `PatchFlags.CLASS`），直接调用 `hostPatchProp` 操作特定属性 |
-| **静态节点处理**            | 每次渲染都参与比对                                                 | 编译器自动提升，跳过比对阶段                                                                |
+| 维度                        | 无编译优化 (手写 `h` 函数 / JSX)                                                  | 有编译优化 (Vue 模板 `<template>`)                                                               |
+| --------------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| **子节点比对 (`children`)** | 调用 `patchChildren` 全量比对，数组子节点走快速 Diff（首尾同步 + key 映射 + LIS） | 命中 `dynamicChildren`，调用 `patchBlockChildren`，以 $O(k)$（`k` 为动态节点数）遍历更新动态节点 |
+| **属性比对 (`props`)**      | 调用 `patchProps` 遍历比对 `oldProps` 和 `newProps` 的每一个键值对                | 根据 `patchFlag` 位运算命中（如 `PatchFlags.CLASS`），直接调用 `hostPatchProp` 操作特定属性      |
+| **静态节点处理**            | 每次渲染都参与比对                                                                | 编译器自动提升，跳过比对阶段                                                                     |
 
 ## 6. 性能优化要点
 

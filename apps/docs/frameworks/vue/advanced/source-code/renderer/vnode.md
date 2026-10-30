@@ -8,7 +8,7 @@
 
 - **跨平台抽象**：`VNode` 是纯净的 JavaScript 对象，不耦合具体的浏览器 API。这使得同一份 `VNode` 可以被不同的渲染器解析，渲染到 Web、移动端（Weex/Native）、小程序甚至终端。
 - **性能优化**：直接频繁操作原生 DOM 代价极其昂贵。`VNode` 结合 Diff 算法，可以在内存中比对新旧状态，计算出最小的 DOM 操作集合（Patch），从而减少重绘与回流。
-- **承载编译期优化**：Vue 3 的编译器会在生成的 `VNode` 上打上静态标记（`PatchFlags`）和结构标记（`ShapeFlags`），指导运行时进行靶向更新。
+- **承载编译期优化**：Vue 3 的编译器会在生成的 `VNode` 上打上 `PatchFlags`（动态内容标记）；`ShapeFlags`（结构标记）则由运行时在创建 `VNode` 时计算组合，二者共同指导运行时进行靶向更新。
 
 ### 1.2 `VNode` 与真实 DOM 的简单对比
 
@@ -48,7 +48,7 @@ export function h(type: any, propsOrChildren?: any, children?: any): VNode {
       // 如果不是 VNode， 则第二个参数代表了 props
       return createVNode(type, propsOrChildren)
     }
-    // 如果第二个参数不是单纯的 object，则 第二个参数代表了 props
+    // 如果第二个参数不是单纯的 object，则省略 props，第二个参数作为 children
     else {
       return createVNode(type, null, propsOrChildren)
     }
@@ -136,10 +136,19 @@ export function createVNode(type, props, children?): VNode {
     shapeFlag = 0
   }
 
-  return createBaseVNode(type, props, children, shapeFlag)
+  return createBaseVNode(type, props, children, 0, null, shapeFlag, false, true)
 }
 
-function createBaseVNode(type, props, children, shapeFlag) {
+function createBaseVNode(
+  type,
+  props = null,
+  children = null,
+  patchFlag = 0,
+  dynamicProps = null,
+  shapeFlag = type === Fragment ? 0 : ShapeFlags.ELEMENT,
+  isBlockNode = false,
+  needFullChildrenNormalization = false,
+) {
   const vnode = {
     __v_isVNode: true,
     type,

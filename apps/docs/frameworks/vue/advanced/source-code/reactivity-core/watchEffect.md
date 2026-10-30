@@ -240,21 +240,20 @@ user.name = 'Bob' // 打印：当前 count 为 1，用户名为 Bob
 //2. 处理异步逻辑与竞态条件（使用 onCleanup）
 const keyword = ref('Vue')
 watchEffect(async onCleanup => {
+  // 在本次执行开始时保存关键词，避免清理时读到已被更新的值
+  const q = keyword.value
   // 1. 创建一个中止控制器
   const controller = new AbortController()
   // 2. 注册清理函数：当 keyword 再次改变，或者组件卸载时，会优先执行这里的逻辑
   onCleanup(() => {
-    console.log(`中止之前关于 ${keyword.value} 的请求`)
+    console.log(`中止之前关于 ${q} 的请求`)
     controller.abort()
   })
   try {
-    console.log(`开始请求 ${keyword.value} 的数据...`)
-    const res = await fetch(
-      `https://api.example.com/search?q=${keyword.value}`,
-      {
-        signal: controller.signal,
-      },
-    )
+    console.log(`开始请求 ${q} 的数据...`)
+    const res = await fetch(`https://api.example.com/search?q=${q}`, {
+      signal: controller.signal,
+    })
     const data = await res.json()
     console.log('请求成功:', data)
   } catch (error) {

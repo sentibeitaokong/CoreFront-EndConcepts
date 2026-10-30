@@ -112,8 +112,8 @@ export function isShallow(value: unknown): boolean {
 
 ```typescript [ref.ts]
 //判断是否是ref值
-export function isRef(ref: any) {
-  return !!ref.__v_isRef
+export function isRef(r: any): r is Ref {
+  return !!(r && r.__v_isRef === true)
 }
 ```
 
@@ -134,6 +134,7 @@ export const isFunction = (val: unknown): val is Function =>
 :::code-group
 
 ```typescript [apiWatch.ts]
+function doWatch(source, cb, options, instance) {
   // 3. 配置 scheduler (处理 flush 选项)
   let scheduler: EffectScheduler
   if (flush === 'sync') {
@@ -142,6 +143,9 @@ export const isFunction = (val: unknown): val is Function =>
     scheduler = () => queuePostRenderEffect(job, instance && instance.suspense) // 组件 DOM 更新后执行
   } else {
     // 默认是 'pre'
+    // 标记为 pre 任务，并记录组件实例 id，保证调度顺序
+    job.pre = true
+    if (instance) job.id = instance.uid
     scheduler = () => queueJob(job) // 放入异步更新队列，在 DOM 更新前执行
   }
 
@@ -190,7 +194,7 @@ const onCleanup = (fn: () => void) => {
   }
 }
 // job 是当数据变化时，真正推入调度队列执行的函数
-const job: Function = () => {
+const job: SchedulerJob = () => {
   //不是响应式数据直接返回
   if (!effect.active) return
   if (cb) {
@@ -198,7 +202,13 @@ const job: Function = () => {
     const newValue = effect.run()
 
     // 2. 比较新旧值，或者由于 deep/forceTrigger 强制触发
-    if (deep || forceTrigger || hasChanged(newValue, oldValue)) {
+    if (
+      deep ||
+      forceTrigger ||
+      (isMultiSource
+        ? (newValue as any[]).some((v, i) => hasChanged(v, oldValue[i]))
+        : hasChanged(newValue, oldValue))
+    ) {
       // 3. 触发清理函数 (处理竞态条件)
       if (cleanup) {
         cleanup()
@@ -231,8 +241,8 @@ const job: Function = () => {
 
 ```typescript [apiWatch.ts]
 export function traverse(value: unknown, seen?: Set<unknown>) {
-  // 如果不是对象，或者没有被代理，则直接返回
-  if (!isObject(value)) {
+  // 如果不是对象，或者被 markRaw 跳过，则直接返回
+  if (!isObject(value) || (value as any)[ReactiveFlags.SKIP]) {
     return value
   }
   // 使用 Set 避免循环引用导致死循环（如 obj.self = obj）
@@ -252,7 +262,7 @@ export function traverse(value: unknown, seen?: Set<unknown>) {
     value.forEach((v: any) => {
       traverse(v, seen)
     })
-  } else if (isObject(value)) {
+  } else if (isPlainObject(value)) {
     for (const key in value) {
       // 核心：读取对象的属性，触发 Proxy 的 get，进行依赖收集
       traverse((value as any)[key], seen)
@@ -264,8 +274,8 @@ export function traverse(value: unknown, seen?: Set<unknown>) {
 
 ```typescript [ref.ts]
 //判断是否是ref值
-export function isRef(ref: any) {
-  return !!ref.__v_isRef
+export function isRef(r: any): r is Ref {
+  return !!(r && r.__v_isRef === true)
 }
 ```
 
@@ -289,6 +299,10 @@ export const isMap = (val: unknown): val is Map<any, any> =>
 //判断是否是set对象
 export const isSet = (val: unknown): val is Set<any, any> =>
   toTypeString(val) === '[object Set]'
+
+//判断是否是普通对象
+export const isPlainObject = (val: unknown): val is object =>
+  toTypeString(val) === '[object Object]'
 ```
 
 :::
@@ -355,7 +369,7 @@ const keyword = ref('')
 watch(keyword, async (newVal, oldVal, onCleanup) => {
   // 利用 AbortController 中断 Fetch 请求
   const controller = new AbortController()
-  // 注册清理逻辑：当 keyword 再次变化时，会先执行这里的代码 [cite: 43]
+  // 注册清理逻辑：当 keyword 再次变化时，会先执行这里的代码
   onCleanup(() => {
     console.log(`取消对 ${oldVal} 的网络请求`)
     controller.abort()
@@ -395,7 +409,7 @@ watch(keyword, async (newVal, oldVal, onCleanup) => {
 
 - **懒执行 (Lazy by default)**：默认情况下，`watch` 不会立即执行回调，仅在被侦听的数据源发生实际变化时才会触发回调。可以通过配置 `{ immediate: true }` 改变此行为。
 - **多态数据源支持**：支持侦听 `Ref`、`Reactive` 对象、`Getter` 函数，甚至是由上述类型组成的数组（批量侦听）。
-- **深层侦听 (Deep Watching)**：对于 `reactive` 对象默认开启深层侦听；对于普通对象或包含复杂结构的 `ref`，可通过 `{ deep: true }` 强制递归收集依赖。
+- **深层侦听 (Deep Watching)**：对于 `reactive` 对象默认开启深层侦听；对于 `ref` 内部持有的普通对象，或用 `getter` 返回对象时，可通过 `{ deep: true }` 递归收集依赖。
 - **获取旧值**：回调函数中可以明确拿到变化前的 `oldValue` 和变化后的 `newValue`。
 - **副作用清理 (onCleanup)**：回调的第三个参数提供了一个注册清理函数的钩子，特别适合处理竞态条件（如节流防抖、取消过期的网络请求）。
 - **可配置刷新时机 (flush)**：

@@ -53,9 +53,10 @@ export const BaseTransitionImpl = {
       // 【核心一】解析生成 Transition 专属 Hooks
       const hooks = resolveTransitionHooks(child, props, state, instance)
 
-      // 【核心二】将 Hooks 挂载到子节点 VNode 的 transition 属性上
-      // 后续底层的 Renderer 渲染引擎会读取这个属性并执行拦截
-      child.transition = hooks
+      // 【核心二】将 Hooks 挂载到子节点上
+      // setTransitionHooks 会在子节点是组件时递归挂到其 subTree，
+      // 是 Suspense 时分别挂到 ssContent / ssFallback，普通节点才直接写入 vnode.transition
+      setTransitionHooks(child, hooks)
 
       return child
     }
@@ -94,59 +95,81 @@ export function useTransitionState(): TransitionState {
 
 :::
 
-### 2.2 状态机与帧调度：`resolveTransitionHooks`
+### 2.2 状态机与钩子时序：`resolveTransitionHooks`
 
-过渡动画最难处理的是时序问题。Vue 通过 `requestAnimationFrame` 巧妙地控制了 CSS 类名的添加时机。
+过渡动画最难处理的是时序问题，但要分清层级：`BaseTransition` 只负责**同步调用用户钩子**并维护完成回调；CSS 类名的增删和 `requestAnimationFrame` 帧调度都在 runtime-dom 的 `Transition.ts` 中完成。
 
 :::code-group
 
 ```typescript [BaseTransition.ts]
-export function resolveTransitionHooks(vnode, props, state, instance) {
-  const { onBeforeEnter, onEnter, onLeave } = props
-
-  return {
-    mode: props.mode,
-
-    // 1. 元素挂载前
-    beforeEnter(el) {
-      onBeforeEnter && onBeforeEnter(el)
-    },
-
-    // 2. 元素挂载后
-    enter(el, done) {
-      // 核心技巧：必须等待下一帧，确保浏览器的初始样式 (from) 已经被应用
-      nextFrame(() => {
-        if (!state.isLeaving) {
-          // 此时添加 to 类名，触发 CSS 过渡
-          onEnter && onEnter(el, done)
-        }
-      })
-    },
-
-    // 3. 元素即将卸载
-    leave(el, remove) {
-      // remove 参数是渲染引擎传进来的、用于真正拔除 DOM 的函数
-      state.isLeaving = true
-
-      const done = () => {
-        state.isLeaving = false
-        remove() // 只有当动画执行完毕调用 done 时，才真正卸载 DOM！
-      }
-
-      onLeave && onLeave(el, done)
-    },
+// 简化版：调用用户钩子（支持单个函数或函数数组）
+const callHook = (hook, args = []) =>
+  Array.isArray(hook) ? hook.forEach(h => h(...args)) : hook && hook(...args)
+// 钩子声明了 done 参数时由用户控制结束，否则立即结束
+const callAsyncHook = (hook, args) => {
+  callHook(hook, args)
+  const done = args[1]
+  if (Array.isArray(hook)) {
+    if (hook.every(h => h.length <= 1)) done()
+  } else if (hook.length <= 1) {
+    done()
   }
 }
 
-// Vue 内部的双重 RAF 封装，防止浏览器样式计算合并
-export function nextFrame(cb) {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(cb)
-  })
+export function resolveTransitionHooks(vnode, props, state, instance) {
+  const { onBeforeEnter, onEnter, onAfterEnter, onLeave, onAfterLeave } = props
+
+  return {
+    mode: props.mode,
+    persisted: props.persisted || false,
+
+    // 1. 元素挂载前：同步调用 onBeforeEnter，不做帧调度
+    beforeEnter(el) {
+      callHook(onBeforeEnter, [el])
+    },
+
+    // 2. 元素插入 DOM 后：同步调用 onEnter
+    //    BaseTransition 不等待下一帧，也不修改 isLeaving
+    enter(el) {
+      let called = false
+      const done = (el._enterCb = (cancelled?: boolean) => {
+        if (called) return
+        called = true
+        callHook(cancelled ? props.onEnterCancelled : onAfterEnter, [el])
+        el._enterCb = undefined
+      })
+      if (onEnter) {
+        callAsyncHook(onEnter, [el, done])
+      } else {
+        done()
+      }
+    },
+
+    // 3. 元素即将卸载：同步调用 onLeave，done 时才真正 remove
+    leave(el, remove) {
+      if (state.isUnmounting) return remove()
+      callHook(props.onBeforeLeave, [el])
+      let called = false
+      const done = (el._leaveCb = (cancelled?: boolean) => {
+        if (called) return
+        called = true
+        remove() // 只有动画结束调用 done 时，才真正卸载 DOM
+        callHook(cancelled ? props.onLeaveCancelled : onAfterLeave, [el])
+        el._leaveCb = undefined
+      })
+      if (onLeave) {
+        callAsyncHook(onLeave, [el, done])
+      } else {
+        done()
+      }
+    },
+  }
 }
 ```
 
 :::
+
+这里的关键是：`BaseTransition` 的 `enter` / `leave` 都不会修改 `state.isLeaving`。`isLeaving` 只在 render 中用于判断是否返回占位节点，以及在 `mode="out-in"` 的 `afterLeave` 中复位（`BaseTransition.ts:187、236-247、380-444`）。`nextFrame` 属于 runtime-dom 层，见下一节。
 
 ## 3. DOM 实现：Web 平台的 `<Transition>`
 
@@ -157,106 +180,110 @@ export function nextFrame(cb) {
 :::code-group
 
 ```typescript [Transition.ts]
-const Transition = (props, {slots}) => {
-    // 1. 解析生成所有相关的 CSS 类名
-    // 如果 props.name="fade"，生成 enterFromClass="fade-enter-from" 等
-    const {name = 'v', type, css = true, ...domProps} = props
-    const {enterFromClass, enterActiveClass, enterToClass, leaveFromClass...} = resolveTransitionClasses(props)
+// DOM 平台层：把用户 props 翻译成 BaseTransition 认识的 hooks
+export const Transition = (props, { slots }) =>
+  h(BaseTransition, resolveTransitionProps(props), slots)
 
-    // 2. 拼装传给 BaseTransition 的 props
-    const baseProps = {
-        ...domProps,
-        onBeforeEnter(el) {
-            if (css) {
-                // 添加: .fade-enter-from 和 .fade-enter-active
-                addTransitionClass(el, enterFromClass)
-                addTransitionClass(el, enterActiveClass)
-            }
-        },
-        onEnter(el, done) {
-            if (css) {
-                // 下一帧执行
-                nextFrame(() => {
-                    // 移除: .fade-enter-from
-                    removeTransitionClass(el, enterFromClass)
-                    // 添加: .fade-enter-to (此时浏览器开始播放动画)
-                    addTransitionClass(el, enterToClass)
-                })
-                // 监听动画结束事件，执行 done
-                whenTransitionEnds(el, type, done)
-            }
-        },
-        onLeave(el, done) {
-            if (css) {
-                addTransitionClass(el, leaveFromClass)
-                addTransitionClass(el, leaveActiveClass)
+const callHook = (hook, args = []) =>
+  Array.isArray(hook) ? hook.forEach(h => h(...args)) : hook && hook(...args)
 
-                // 【核心操作】强制重排 (Force Reflow)，保证动画起点生效
-                forceReflow()
+// 钩子是否声明了 done 参数（由用户自己控制结束时机）
+const hasExplicitCallback = hook =>
+  hook
+    ? Array.isArray(hook)
+      ? hook.some(h => h.length > 1)
+      : hook.length > 1
+    : false
 
-                nextFrame(() => {
-                    removeTransitionClass(el, leaveFromClass)
-                    addTransitionClass(el, leaveToClass)
-                })
-                whenTransitionEnds(el, type, done)
-            }
+export function resolveTransitionProps(rawProps) {
+  const baseProps = {}
+  for (const key in rawProps) {
+    if (!(key in DOMTransitionPropsValidators)) {
+      baseProps[key] = rawProps[key]
+    }
+  }
+  if (rawProps.css === false) return baseProps
+
+  // 解析 CSS 类名，如 name="fade" 时生成 fade-enter-from 等
+  const {
+    name = 'v',
+    type,
+    enterFromClass = `${name}-enter-from`,
+    enterActiveClass = `${name}-enter-active`,
+    enterToClass = `${name}-enter-to`,
+    leaveFromClass = `${name}-leave-from`,
+    leaveActiveClass = `${name}-leave-active`,
+    leaveToClass = `${name}-leave-to`,
+  } = rawProps
+  const { onBeforeEnter, onEnter, onLeave } = baseProps
+
+  const finishEnter = (el, done) => {
+    removeTransitionClass(el, enterToClass)
+    removeTransitionClass(el, enterActiveClass)
+    done && done()
+  }
+  const finishLeave = (el, done) => {
+    el._isLeaving = false
+    removeTransitionClass(el, leaveFromClass)
+    removeTransitionClass(el, leaveToClass)
+    removeTransitionClass(el, leaveActiveClass)
+    done && done()
+  }
+
+  const makeEnterHook = () => (el, done) => {
+    const resolve = () => finishEnter(el, done)
+    // 1. 先同步调用用户 JS 钩子
+    callHook(onEnter, [el, resolve])
+    nextFrame(() => {
+      // 2. 下一帧再改类名：移除 from，添加 to
+      removeTransitionClass(el, enterFromClass)
+      addTransitionClass(el, enterToClass)
+      // 3. 仅当用户没有显式声明 done 参数时，才由框架监听动画结束
+      if (!hasExplicitCallback(onEnter)) {
+        whenTransitionEnds(el, type, resolve)
+      }
+    })
+  }
+
+  return extend(baseProps, {
+    onBeforeEnter(el) {
+      callHook(onBeforeEnter, [el])
+      addTransitionClass(el, enterFromClass)
+      addTransitionClass(el, enterActiveClass)
+    },
+    onEnter: makeEnterHook(),
+    onLeave(el, done) {
+      el._isLeaving = true
+      const resolve = () => finishLeave(el, done)
+      // 顺序：leave-from -> 强制重排 -> leave-active
+      addTransitionClass(el, leaveFromClass)
+      forceReflow()
+      addTransitionClass(el, leaveActiveClass)
+      nextFrame(() => {
+        if (!el._isLeaving) return // 已被取消
+        removeTransitionClass(el, leaveFromClass)
+        addTransitionClass(el, leaveToClass)
+        if (!hasExplicitCallback(onLeave)) {
+          whenTransitionEnds(el, type, resolve)
         }
-    }
-
-    // 3. 渲染底层组件
-    return h(BaseTransitionImpl, baseProps, slots)
+      })
+      // 最后才调用用户 JS 钩子
+      callHook(onLeave, [el, resolve])
+    },
+  })
 }
 
-export interface TransitionClassInfo {
-    enterFromClass: string
-    enterActiveClass: string
-    enterToClass: string
-    appearFromClass: string
-    appearActiveClass: string
-    appearToClass: string
-    leaveFromClass: string
-    leaveActiveClass: string
-    leaveToClass: string
-}
-//负责将开发者传入的 props 标准化，解析并输出一套完整的、用于控制 DOM 动画的 CSS 类名集合。
-export function resolveTransitionClasses({
-         name = 'v', // 如果没有传入 name，默认前缀为 'v'
-         type,
-         css = true,
-         duration,
-         // --- Enter (进入阶段) ---
-         enterFromClass = `${name}-enter-from`,
-         enterActiveClass = `${name}-enter-active`,
-         enterToClass = `${name}-enter-to`,
-         // --- Appear (初始渲染阶段) ---
-         appearFromClass = enterFromClass,
-         appearActiveClass = enterActiveClass,
-         appearToClass = enterToClass,
-         // --- Leave (离开阶段) ---
-         leaveFromClass = `${name}-leave-from`,
-         leaveActiveClass = `${name}-leave-active`,
-         leaveToClass = `${name}-leave-to`
-     }: TransitionProps): TransitionClassInfo {
-
-    // 直接返回解析好的完整类名集合
-    return {
-        enterFromClass,
-        enterActiveClass,
-        enterToClass,
-        appearFromClass,
-        appearActiveClass,
-        appearToClass,
-        leaveFromClass,
-        leaveActiveClass,
-        leaveToClass
-    }
+// runtime-dom 内部的双重 RAF 封装，防止浏览器合并样式计算
+function nextFrame(cb) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(cb)
+  })
 }
 
-// 强制重排的实现，读取 offsetHeight 会强制浏览器立即计算布局
+// 强制重排，读取 offsetHeight 会强制浏览器立即计算布局
 function forceReflow() {
-    return document.body.offsetHeight
+  return document.body.offsetHeight
 }
-
 ```
 
 :::

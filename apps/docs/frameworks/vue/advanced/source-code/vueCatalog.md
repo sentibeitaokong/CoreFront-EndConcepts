@@ -13,13 +13,14 @@ vue-core/
 ├── test-dts/ # TypeScript 类型定义测试
 ├── .github/ # GitHub 相关配置（CI、Issue 模板等）
 ├── .vscode/ # VSCode 推荐配置
-├── rollup.config.js # Rollup 构建配置
-├── vitest.config.ts # Vitest 单元测试配置
+├── rollup.config.mjs # Rollup 构建配置
+├── vitest.config.ts # Vitest 基础配置
+├── vitest.unit.config.ts # Vitest 单元测试配置
+├── vitest.e2e.config.ts # Vitest 端到端测试配置
 ├── package.json # 根 package.json
 ├── pnpm-workspace.yaml # pnpm workspace 配置
 ├── tsconfig.json # 基础 TypeScript 配置
 ├── api-extractor.json # API Extractor 配置（生成 d.ts 汇总）
-├── vitest.workspace.ts # Vitest 工作区配置
 ├── CHANGELOG.md
 ├── README.md
 └── ... # 其他配置文件
@@ -39,6 +40,7 @@ packages/
 ├── compiler-core/ # 编译器核心（平台无关）
 ├── compiler-dom/ # 浏览器 DOM 编译器（基于 compiler-core）
 ├── compiler-ssr/ # SSR 专用编译器
+├── compiler-sfc/ # 单文件组件（SFC）编译器
 ├── shared/ # 内部共享工具函数
 ├── vue/ # 完整 Vue 入口（整合运行时+编译器）
 ├── vue-compat/ # Vue 2 兼容层
@@ -121,7 +123,7 @@ packages/
 
 **核心文件**：
 
-- `src/index.ts` – 导出 `baseCompile`, `compile`, `parse`, `transform` 等
+- `src/index.ts` – 导出 `baseCompile`, `baseParse`, `transform` 等底层 API
 - `src/parse.ts` – 模板 → AST（有限状态机）
 - `src/transform.ts` – AST 转换（包括静态提升、PatchFlag 标记等）
 - `src/codegen.ts` – 生成渲染函数代码
@@ -167,9 +169,9 @@ packages/
 
 **核心文件**：
 
-- `src/index.ts` – 入口，导出所有公共 API
+- `src/index.ts` – 完整版入口（整合运行时与编译器），导出所有公共 API
 - `src/runtime.ts` – 仅运行时导出
-- `src/runtimeWithCompiler.ts` – 包含编译器的版本
+- `src/dev.ts` – 开发环境初始化逻辑
 
 **构建产物**：
 
@@ -184,7 +186,7 @@ Vue 3 的测试分为单元测试（`__tests__`）和类型测试（`test-dts`�
 - `packages/reactivity/__tests__/` – 响应式单元测试
 - `packages/runtime-core/__tests__/` – 运行时核心测试
 - `packages/compiler-core/__tests__/` – 编译器测试
-- `test-dts/` – 类型定义正确性测试（使用 `tsd`）
+- `test-dts/` – 类型定义正确性测试（使用 `tsc`）
 
 ## 4. 模块依赖关系
 

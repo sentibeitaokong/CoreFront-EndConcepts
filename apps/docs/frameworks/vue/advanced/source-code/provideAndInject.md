@@ -46,13 +46,14 @@ const instance = {
 :::code-group
 
 ```typescript [apiInject.ts]
+import { currentInstance } from './component'
+
 export function provide(key, value) {
   if (!currentInstance) {
     // 只能在 setup() 中调用
     return
   }
-  //存当前组件实例
-  const currentInstance: any = getCurrentInstance()
+  // 直接使用模块级的 currentInstance
   let provides = currentInstance.provides
   const parentProvides =
     currentInstance.parent && currentInstance.parent.provides
@@ -65,10 +66,6 @@ export function provide(key, value) {
   // 挂载数据到自身的 provides 上
   provides[key] = value
 }
-//组件当前实例
-export function getCurrentInstance() {
-  return currentInstance
-}
 ```
 
 :::
@@ -80,9 +77,13 @@ export function getCurrentInstance() {
 :::code-group
 
 ```typescript [apiInject.ts]
-export function inject(key, defaultValue) {
-  // 获取当前组件或全局 App 实例
-  const currentInstance: any = getCurrentInstance()
+import { isFunction } from '@vue/shared'
+import { currentInstance } from './component'
+import { currentRenderingInstance } from './componentRenderContext'
+
+export function inject(key, defaultValue, treatDefaultAsFactory = false) {
+  // 获取当前组件实例；函数式组件没有 currentInstance，回退到 currentRenderingInstance
+  const instance = currentInstance || currentRenderingInstance
 
   if (instance) {
     // 注入的数据来源：直接指向【父组件】的 provides
@@ -96,16 +97,13 @@ export function inject(key, defaultValue) {
     if (provides && key in provides) {
       return provides[key]
     }
-    // 找不到则返回默认值
+    // 找不到则返回默认值；只有 treatDefaultAsFactory 为 true 时，函数才会被当作工厂调用
     else if (arguments.length > 1) {
-      return typeof defaultValue === 'function' ? defaultValue() : defaultValue
+      return treatDefaultAsFactory && isFunction(defaultValue)
+        ? defaultValue.call(instance.proxy)
+        : defaultValue
     }
   }
-}
-
-//组件当前实例
-export function getCurrentInstance() {
-  return currentInstance
 }
 ```
 

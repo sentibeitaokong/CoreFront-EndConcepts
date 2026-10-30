@@ -57,7 +57,6 @@ export enum ReactiveFlags {
   IS_READONLY = '__v_isReadonly', //判断一个对象是否为只读代理（readonly 或 shallowReadonly 创建）。
   IS_SHALLOW = '__v_isShallow', //标记当前代理是否为浅层代理（shallowReactive 或 shallowReadonly）。
   RAW = '__v_raw', //供内部获取代理所对应的原始对象，是实现 toRaw 的基础。
-  IS_REF = '__v_isRef', //标识一个对象是 ref 实例（RefImpl），以便与普通代理区分。
 }
 
 //创建响应性对象
@@ -84,7 +83,7 @@ function createReactiveObject(
     return existingProxy
   }
   //reactive特性
-  //1.Proxy的target属性只能传对象，所以reactive里面不能放简单数据类型，会报错
+  //1.Proxy的target属性只能传对象，所以reactive里面放简单数据类型不会被代理，只会告警并原样返回
   //2.Proxy代理的是reactive对象(目标对象)，所以解构reactive对象无法有效代理，也就失去了响应性，综上想对简单数据类型实现响应式，必须使用ref
   const proxy = new Proxy(target, baseHandlers)
 
@@ -162,6 +161,12 @@ function createGetter(isReadonly: any = false, shallow: any = false) {
     // 利用 Reflect 得到返回值   receier将this指向从目标对象转换成代理对象
     const res = Reflect.get(target, propertyKey, receiver)
 
+    //如果不是只读就进行依赖收集
+    if (!isReadonly) {
+      //依赖收集
+      track(target, TrackOpTypes.GET, propertyKey)
+    }
+
     //如果是shallowReadonly,则shallow为true,直接返回数据
     if (shallow) {
       return res
@@ -175,11 +180,6 @@ function createGetter(isReadonly: any = false, shallow: any = false) {
     if (isObject(res)) {
       //对象嵌套执行reactive和readonly方法
       return isReadonly ? readonly(res) : reactive(res)
-    }
-    //如果不是只读就进行依赖收集
-    if (!isReadonly) {
-      //依赖收集
-      track(target, TrackOpTypes.GET, propertyKey)
     }
     return res
   }
@@ -217,7 +217,8 @@ function createSetter(shallow = false) {
 ```
 
 ```typescript [arrayInstrumentations.ts]
-import { shouldTrack } from './effect'
+import { track, pauseTracking, resetTracking } from './effect'
+import { TrackOpTypes } from './operations'
 import { toRaw } from '@xunbei-vue/shared'
 
 export const arrayInstrumentations = createArrayInstrumentations()
@@ -248,9 +249,9 @@ function createArrayInstrumentations() {
   ;(['push', 'pop', 'shift', 'unshift', 'splice'] as const).forEach(key => {
     instrumentations[key] = function (this: unknown[], ...args: unknown[]) {
       // 暂停依赖收集和触发，避免在方法内部造成死循环或性能损耗
-      shouldTrack = false
+      pauseTracking()
       const res = (toRaw(this) as any)[key].apply(this, args)
-      shouldTrack = true
+      resetTracking()
       return res
     }
   })
@@ -311,7 +312,6 @@ export enum ReactiveFlags {
   IS_READONLY = '__v_isReadonly', //判断一个对象是否为只读代理（readonly 或 shallowReadonly 创建）。
   IS_SHALLOW = '__v_isShallow', //标记当前代理是否为浅层代理（shallowReactive 或 shallowReadonly）。
   RAW = '__v_raw', //供内部获取代理所对应的原始对象，是实现 toRaw 的基础。
-  IS_REF = '__v_isRef', //标识一个对象是 ref 实例（RefImpl），以便与普通代理区分。
 }
 ```
 
@@ -538,6 +538,8 @@ function triggerEffect(effect: ReactiveEffect) {
 :::code-group
 
 ```typescript [effect.ts]
+import type { ComputedRefImpl } from './computed'
+
 //响应性触发依赖时的执行类
 export let activeEffect: any
 export let shouldTrack: any
@@ -547,7 +549,7 @@ const effectStack: ReactiveEffect[] = []
 export class ReactiveEffect {
   private _fn: any
   //存在该属性，则表示当前的 effect 为计算属性的 effect
-  computed?: ComputedRefImpl<T>
+  computed?: ComputedRefImpl<any>
   //依赖数组
   deps = []
   //是否可用 响应式
@@ -568,6 +570,8 @@ export class ReactiveEffect {
     }
     //防止effect嵌套自增递归死循环  例： effect(() => {count.value++})
     if (!effectStack.includes(this)) {
+      // 保存进入前的收集状态，执行结束后恢复（_fn 抛错时也会走到 finally）
+      const lastShouldTrack = shouldTrack
       try {
         // 3. 将自己压入栈顶，并设置为 activeEffect
         effectStack.push(this)
@@ -575,10 +579,8 @@ export class ReactiveEffect {
         shouldTrack = true
         //将这个单例依赖类赋值给activeEffect
         activeEffect = this
-        //执行fn方法时会收集依赖，收集完依赖再把shouldTrack置为false，防止依赖再次重复收集
+        //执行fn方法时会收集依赖
         const result = this._fn()
-        //reset
-        shouldTrack = false
         // 4. 执行 getter 函数，期间所有 track 都依赖 activeEffect
         return result
       } finally {
@@ -586,6 +588,8 @@ export class ReactiveEffect {
         effectStack.pop()
         // 6. 恢复 activeEffect 为栈顶元素（若栈空则为 undefined）
         activeEffect = effectStack[effectStack.length - 1]
+        // 7. 恢复进入前的 shouldTrack 状态（含 _fn 抛错的场景）
+        shouldTrack = lastShouldTrack
       }
     }
   }
@@ -690,7 +694,7 @@ effect(() => {
 })
 
 // 修改属性触发更新
-state.count = 1 // 输出: count changed: 1
+state.count = 1 // 再次输出: 1（effect 创建时已输出过一次 0）
 ```
 
 ### 7.2 完整流程图
@@ -705,8 +709,12 @@ state.count = 1 // 输出: count changed: 1
 
 ```typescript
 function isReactive(value: any) {
+  // 若是 readonly 代理，递归检查其原始对象是否由 reactive 创建
+  if (isReadonly(value)) {
+    return isReactive(value[ReactiveFlags.RAW])
+  }
   //执行取值操作触发get方法
-  return !!value[ReactiveFlags.IS_REACTIVE]
+  return !!(value && value[ReactiveFlags.IS_REACTIVE])
 }
 ```
 
@@ -717,7 +725,7 @@ function isReactive(value: any) {
 ```typescript
 function isReadonly(value: any) {
   //执行取值操作触发get方法
-  return !!value[ReactiveFlags.IS_READONLY]
+  return !!(value && value[ReactiveFlags.IS_READONLY])
 }
 ```
 

@@ -39,7 +39,7 @@
 异步组件通过 `defineAsyncComponent` 函数定义，支持两种参数形式：
 
 - **工厂函数**：直接返回动态导入的 Promise。
-- **选项对象**：包含 `loader`、`loadingComponent`、`errorComponent`、`delay`、`timeout`、`retry` 等配置。
+- **选项对象**：包含 `loader`、`loadingComponent`、`errorComponent`、`delay`、`timeout`、`suspensible`、`onError` 等配置。
 
 :::code-group
 
@@ -81,8 +81,7 @@ export function defineAsyncComponent<
     errorComponent, // 加载失败时显示的组件
     delay = 200, // 延迟显示
     timeout, // 超时时间
-    retry = 0, // 默认不重试
-    onError: userOnError, // 自定义错误处理回调
+    onError: userOnError, // 自定义错误处理回调（重试需在回调中调用 retry）
     suspensible = true, // 是否交由外层 <Suspense> 控制
   } = source
   // ... 后续逻辑
@@ -218,7 +217,8 @@ return defineComponent({
       .then(() => {
         loaded.value = true // 触发重新 render
         if (instance.parent && isKeepAlive(instance.parent.vnode)) {
-          instance.parent.update()
+          // 父级是 KeepAlive 时强制更新，让内部组件名参与缓存判断
+          queueJob(instance.parent.update)
         }
       })
       .catch(err => {
@@ -236,7 +236,7 @@ return defineComponent({
         return createVNode(errorComponent, { error: error.value })
       } else if (loadingComponent && !delayed.value) {
         // 加载中 (且已过防闪烁期)：渲染 Loading 组件
-        return createInnerComp(loadingComponent, instance)
+        return createVNode(loadingComponent)
       }
       // 尚未开始或在 delay 期间，渲染空节点占位
       return null
@@ -267,8 +267,8 @@ function createInnerComp(comp: Component, parent: ComponentInternalInstance) {
   vnode.ref = ref
   vnode.ce = ce
 
-  // 擦除包装器上的 ref，防止冲突
-  delete vnode.props!.ref
+  // 擦除包装器上的 ce，防止自定义元素回调被重复执行
+  delete parent.vnode.ce
 
   return vnode
 }
@@ -280,7 +280,7 @@ function createInnerComp(comp: Component, parent: ComponentInternalInstance) {
 
 `defineAsyncComponent` 与 `<Suspense>` 的集成通过 **`suspensible` 选项** 控制：
 
-- 默认 `suspensible = true`：当异步组件处于 `<Suspense>` 内部时，`setup` 中的 `instance.suspense` 为 true，触发**分支2**——`setup` 返回一个 Promise，Suspense 负责管理加载状态，此时异步组件自身的 `loadingComponent` 和 `errorComponent` 被忽略，统一使用 `<Suspense>` 的 `#fallback` 和错误边界。
+- 默认 `suspensible = true`：当异步组件处于 `<Suspense>` 内部时，`setup` 中的 `instance.suspense` 为 true，触发**分支2**——`setup` 返回一个 Promise，Suspense 负责管理加载状态，此时异步组件自身的 `loadingComponent` 被忽略，加载期间统一使用 `<Suspense>` 的 `#fallback`；但 `errorComponent` 仍然生效，`load()` 失败时该分支返回 `createVNode(errorComponent, { error })`。
 - `suspensible = false`：即使被 `<Suspense>` 包裹，异步组件仍然使用自身的加载/错误组件，脱离父级 Suspense 的控制。
 
 ## 4. 完整流程示例
@@ -295,19 +295,28 @@ const AsyncComp = defineAsyncComponent(() => import('./HeavyComp.vue'))
 // 在模板或 render 函数中直接使用 <AsyncComp />
 ```
 
-- 首次渲染时，`HeavyComp.vue` 尚未加载，`resolveAsyncComponent` 返回注释节点。
-- 加载完成，`loadedComp` 被赋值，组件更新触发器重新渲染，现在返回真正的 `HeavyComp` 组件。
+- 首次渲染时，`HeavyComp.vue` 尚未加载，setup 返回的渲染函数返回 `null`，渲染成一个注释占位节点。
+- 加载完成后，`resolvedComp` 被赋值、`loaded` 被置为 `true`，组件重新渲染，返回真正的 `HeavyComp` 组件。
 
 ### 4.2 带 loading 和 error 的配置
 
 ```typescript
+import { defineAsyncComponent, h } from 'vue'
+
 const AsyncComp = defineAsyncComponent({
   loader: () => import('./HeavyComp.vue'),
   loadingComponent: () => h('div', 'Loading...'),
   errorComponent: ({ error }) => h('div', `Error: ${error.message}`),
   delay: 300,
   timeout: 5000,
-  retry: 2,
+  // 没有 retry 配置项，重试逻辑在 onError(err, retry, fail, attempts) 中自行控制
+  onError(error, retry, fail, attempts) {
+    if (attempts < 3) {
+      retry()
+    } else {
+      fail()
+    }
+  },
 })
 ```
 

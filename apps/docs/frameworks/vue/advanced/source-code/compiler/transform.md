@@ -30,8 +30,7 @@ interface TransformContext {
   currentNode: RootNode | TemplateChildNode | null // 当前正在处理的节点
   parent: ParentNode | null // 当前节点的父节点
   childIndex: number // 当前节点在父节点 children 中的索引
-  currentBlock: BlockStatement | null // 当前活跃的 Block
-  hoists: JSChildNode[] // 静态提升节点数组
+  hoists: (JSChildNode | null)[] // 静态提升节点数组
   identifiers: Set<string> // 作用域内声明的标识符集合
   scopes: { vFor: number; vSlot: number; vPre: number; vOnce: number } // 作用域计数器
 }
@@ -110,18 +109,22 @@ export function baseCompile(
   // 如果传入的是字符串模板，就调用 baseParse 生成基础 AST
   const ast = isString(template) ? baseParse(template, options) : template
 
+  // 先计算最终的 prefixIdentifiers，再分别传给 transform 和 generate。
+  // 它并不是默认 true：只有显式传入 prefixIdentifiers: true，或处于 module 模式时才为 true
+  const isModuleMode = options.mode === 'module'
+  const prefixIdentifiers =
+    !__BROWSER__ && (options.prefixIdentifiers === true || isModuleMode)
+
   // 获取基础的转换插件预设 (如处理 v-if, v-for, 元素的插件)
-  //options.prefixIdentifiers代码生成策略开关,直接决定了模板里的变量在编译后变成什么样。
-  //prefixIdentifiers: true 通过构建工具在 Node.js 环境下预编译
-  //prefixIdentifiers: false 在浏览器里当场编译模板
-  const [nodeTransforms, directiveTransforms] = getBaseTransformPreset(
-    options.prefixIdentifiers, //默认为true
-  )
+  // prefixIdentifiers 决定了模板里的变量在编译后会不会被加上 _ctx. 前缀
+  const [nodeTransforms, directiveTransforms] =
+    getBaseTransformPreset(prefixIdentifiers)
 
   // 第二步：Transform 转换与优化阶段
   // 将基础 AST 连同合并后的插件配置交由 transform 处理
   transform(ast, {
     ...options,
+    prefixIdentifiers,
     // 合并内部默认插件和用户自定义的插件
     nodeTransforms: [
       ...nodeTransforms,
@@ -136,7 +139,7 @@ export function baseCompile(
   // 第三步：Generate 代码生成阶段
   // 此时的 ast 已经被 transform 注入了灵魂 (打上了 PatchFlags 等)
   // 直接交给 generate 生成最终的 JS 渲染函数字符串
-  return generate(ast, options)
+  return generate(ast, { ...options, prefixIdentifiers })
 }
 ```
 
@@ -159,6 +162,9 @@ export function getBaseTransformPreset(
       transformIf, // v-if / v-else-if / v-else
       transformMemo, // v-memo 指令
       transformFor, // v-for 指令
+      // 仅在非浏览器构建且 prefixIdentifiers 开启时加入：
+      // 追踪 <template v-for> 上的 v-slot 作用域变量
+      trackVForSlotScopes,
       transformExpression, // 模板表达式处理
       transformSlotOutlet, // <slot> 插槽出口
       transformElement, // 元素节点处理（生成 codegenNode、计算 PatchFlag）
@@ -224,6 +230,7 @@ export function createTransformContext(
   {
     prefixIdentifiers = false,
     hoistStatic = false,
+    cacheHandlers = false,
     nodeTransforms = [],
     directiveTransforms = {},
     // ... 其他编译选项
@@ -231,9 +238,13 @@ export function createTransformContext(
 ): TransformContext {
   const context: TransformContext = {
     // 1. 静态配置与插件集合
+    // TransformContext 直接继承 TransformOptions，
+    // 因此 prefixIdentifiers / hoistStatic / cacheHandlers 等都直接挂在 context 上
+    prefixIdentifiers, // 编译开关
+    hoistStatic,
+    cacheHandlers,
     nodeTransforms, // 所有的节点转换插件
     directiveTransforms, // 所有的指令转换插件
-    options: { prefixIdentifiers, hoistStatic }, // 编译开关
 
     // 2. 动态游标与状态记录 (GPS)
     root, // 根节点引用
@@ -449,20 +460,12 @@ function walk(node, context) {
       // 策略一：全量节点提升 (Full Element Hoisting)
       // 检查：如果这整个节点连同它的子节点全都是纯静态的
       if (isStaticNode(codegenNode)) {
-        // 1. 把这个静态节点的生成逻辑，塞进 context.hoists 这个全局“储物箱”里
-        // push 返回的是新长度，减 1 就是它在数组里的索引 (比如 0, 1, 2...)
-        const hoistedIndex = context.hoists.push(codegenNode) - 1
+        // 1. 先把 patchFlag 设为 HOISTED(-1)，告诉运行时这是一个已提升的静态节点
+        codegenNode.patchFlag = PatchFlags.HOISTED
 
-        // 2. 打上标记，告诉后面的程序这个节点已经被提走了
-        codegenNode.isHoisted = true
-
-        // 3. 偷天换日：用一个极简的变量名替换掉原本庞大的生成逻辑！
-        // 比如替换成 "_hoisted_1"
-        child.codegenNode = {
-          type: NodeTypes.SIMPLE_EXPRESSION,
-          content: `_hoisted_${hoistedIndex + 1}`, // 生成变量名
-          isStatic: false,
-        }
+        // 2. 偷天换日：context.hoist 会把节点塞进 context.hoists，
+        // 并返回一个极简的变量引用表达式，比如 "_hoisted_1"
+        child.codegenNode = context.hoist(codegenNode)
         // 核心优化：既然这个节点整体都被提升了，那它内部的子节点就没必要再看了，直接跳过！
         continue
       }
@@ -471,18 +474,19 @@ function walk(node, context) {
       // 但是，我们还要压榨最后一点性能：它的属性(Props)有没有可能是纯静态的？
       else {
         // 获取靶向更新标记
-        const patchFlag = codegenNode.patchFlag
+        const flag = getPatchFlag(codegenNode)
 
-        // 如果这个节点只是文本是动态的 (TEXT=1)，且它身上有静态属性 (比如 class="box" id="app")
-        if (patchFlag === 1 /* TEXT */ && hasStaticProps(codegenNode)) {
-          // 1. 把纯静态的 props 对象塞进 hoists 储物箱
-          const hoistedPropsIndex = context.hoists.push(codegenNode.props) - 1
-
-          // 2. 偷天换日：把原来的 props 替换成变量引用 "_hoisted_2"
-          codegenNode.props = {
-            type: NodeTypes.SIMPLE_EXPRESSION,
-            content: `_hoisted_${hoistedPropsIndex + 1}`,
-          }
+        // 只有没有 patchFlag、或仅有 NEED_PATCH / TEXT 标记，且 props 可被提升时，
+        // 才单独提升静态 props（例如 <div id="app">{{ msg }}</div> 里的 id）
+        if (
+          (!flag ||
+            flag === PatchFlags.NEED_PATCH ||
+            flag === PatchFlags.TEXT) &&
+          getGeneratedPropsConstantType(child, context) >=
+            ConstantTypes.CAN_HOIST
+        ) {
+          // context.hoist 会把 props 塞进 context.hoists 这个“储物箱”，并返回 "_hoisted_2" 这样的引用
+          codegenNode.props = context.hoist(getNodeProps(child))
         }
       }
     }
@@ -501,9 +505,17 @@ function isStaticNode(node) {
   return true
 }
 
-// 模拟检查节点是否有静态属性的辅助函数
-function hasStaticProps(node) {
-  return node.props && node.props.type !== NodeTypes.JS_CALL_EXPRESSION
+// 源码中用于读取 / 判断 props 是否能提升的真实辅助函数
+function getPatchFlag(node) {
+  const flag = node.patchFlag
+  return flag ? parseInt(flag, 10) : undefined
+}
+
+function getNodeProps(node) {
+  const codegenNode = node.codegenNode
+  return codegenNode.type === NodeTypes.VNODE_CALL
+    ? codegenNode.props
+    : undefined
 }
 ```
 
@@ -517,23 +529,38 @@ function hasStaticProps(node) {
 
 ```typescript [transform.ts]
 function createRootCodegen(root: RootNode, context: TransformContext) {
+  const { helper } = context
   const { children } = root
-  // 如果只有一个根元素且不是 Fragment，直接使用该元素的 codegenNode
   if (children.length === 1) {
     const child = children[0]
-    if (child.type === NodeTypes.ELEMENT && child.codegenNode) {
-      root.codegenNode = child.codegenNode
-      return
+    // 单元素根：复用它的 codegenNode，并确保它被升级为 Block
+    if (isSingleElementRoot(root, child) && child.codegenNode) {
+      const codegenNode = child.codegenNode
+      if (codegenNode.type === NodeTypes.VNODE_CALL) {
+        makeBlock(codegenNode, context)
+      }
+      root.codegenNode = codegenNode
+    } else {
+      // 单个非元素子节点（文本 / v-if / v-for / <slot>）：
+      // 它们本身已是 Block 或会被直接 patch，直接作为根 codegenNode
+      root.codegenNode = child
     }
+  } else if (children.length > 1) {
+    // 多个子节点：创建一个 isBlock 为 true 的 Fragment
+    root.codegenNode = createVNodeCall(
+      context,
+      helper(FRAGMENT),
+      undefined,
+      root.children,
+      PatchFlags.STABLE_FRAGMENT,
+      undefined,
+      undefined,
+      true /* isBlock */,
+      undefined,
+      false /* isComponent */,
+    )
   }
-  // 否则创建 Fragment Block
-  root.codegenNode = createVNodeCall(
-    context,
-    FRAGMENT,
-    undefined,
-    root.children,
-    PatchFlags.STABLE_FRAGMENT,
-  )
+  // children 为空时不生成 codegenNode，codegen 阶段返回 null
 }
 ```
 
@@ -549,12 +576,12 @@ function createRootCodegen(root: RootNode, context: TransformContext) {
 
 | 插件                  | 进入时机   | 核心职责                                                            |
 | --------------------- | ---------- | ------------------------------------------------------------------- |
-| `transformOnce`       | enter      | 处理 `v-once` 指令，标记静态内容                                    |
+| `transformOnce`       | exit       | 处理 `v-once` 指令，退出时把 codegenNode 包进缓存                   |
 | `transformIf`         | exit       | 将 `v-if` / `v-else-if` / `v-else` 编译为三元表达式，创建条件 Block |
 | `transformMemo`       | exit       | 处理 `v-memo` 指令                                                  |
 | `transformFor`        | exit       | 将 `v-for` 编译为 `renderList` 调用                                 |
 | `transformExpression` | enter      | 将模板中的 JavaScript 字符串转为合法的表达式 AST                    |
-| `transformSlotOutlet` | exit       | 处理 `<slot>` 及其作用域                                            |
+| `transformSlotOutlet` | enter      | 处理 `<slot>`，在 enter 阶段同步生成 `renderSlot` 调用              |
 | `transformElement`    | exit       | 生成 `codegenNode`，计算 PatchFlag，收集动态属性                    |
 | `trackSlotScopes`     | enter/exit | 追踪插槽作用域信息                                                  |
 | `transformText`       | exit       | 合并相邻文本和插值节点为 `COMPOUND_EXPRESSION`                      |
@@ -636,8 +663,13 @@ export function compile(
 ```typescript [transformElement.ts]
 import { createVNodeCall } from './vnodeCall'
 export const transformElement = (node, context) => {
-  // 1. 如果不是元素节点 (Element 或 Component)，直接跳过，不归我管
-  if (node.type !== 1 /* NodeTypes.ELEMENT */) {
+  // 1. 只处理普通元素 (ElementTypes.ELEMENT) 与组件 (ElementTypes.COMPONENT)；
+  // <slot>（tagType 为 SLOT）等交给 transformSlotOutlet 等专属插件
+  if (
+    node.type !== 1 /* NodeTypes.ELEMENT */ ||
+    (node.tagType !== 0 /* ElementTypes.ELEMENT */ &&
+      node.tagType !== 1) /* ElementTypes.COMPONENT */
+  ) {
     return
   }
 
@@ -665,19 +697,28 @@ export const transformElement = (node, context) => {
 
     // 步骤 B：分析 Children (子节点)
     if (children.length > 0) {
-      vnodeChildren = children
-      // 场景 1：如果只有一个子节点，且是动态文本 (比如 <div>{{ msg }}</div>)
-      if (
-        children.length === 1 &&
-        children[0].type === NodeTypes.INTERPOLATION
-      ) {
-        // 累加文本级别的 PatchFlag
-        vnodePatchFlag |= 1 /* TEXT */
-      }
-      // 场景 2：有多个子节点，并且里面包含动态节点
-      else if (hasDynamicChildren(children)) {
-        // 累加子节点需要深度遍历的比对标记
-        vnodePatchFlag |= 16 /* FULL_PROPS */ // (此处为简化示例)
+      if (children.length === 1) {
+        const child = children[0]
+        // 动态文本子节点：插值（INTERPOLATION）或已合并的复合表达式（COMPOUND_EXPRESSION）
+        const hasDynamicTextChild =
+          child.type === NodeTypes.INTERPOLATION ||
+          child.type === NodeTypes.COMPOUND_EXPRESSION
+        if (
+          hasDynamicTextChild &&
+          getConstantType(child, context) === ConstantTypes.NOT_CONSTANT
+        ) {
+          vnodePatchFlag |= 1 /* TEXT */
+        }
+        // 单个文本子节点直接作为 vnodeChildren（不是数组），
+        // 运行时可以走直接设置 textContent 的快速路径
+        if (hasDynamicTextChild || child.type === NodeTypes.TEXT) {
+          vnodeChildren = child
+        } else {
+          vnodeChildren = children
+        }
+      } else {
+        // 多个子节点：保持数组，由 Block 在运行时收集其中的动态子节点
+        vnodeChildren = children
       }
     }
     // 步骤 C：打包生成 codegenNode
@@ -692,18 +733,13 @@ export const transformElement = (node, context) => {
       patchFlagStr,
       dynamicPropNames,
       undefined, // directives (这里省略)
-      false, // isBlock (通常由外层的 transformIf/For 决定，这里简写为 false)
+      false, // isBlock（真实源码由 shouldUseBlock 决定；v-if/v-for 之后还会用 makeBlock 升级）
     )
   }
 }
 
-// 模拟检查是否有动态子节点的辅助函数
-function hasDynamicChildren(children) {
-  // 只要子节点里有插值表达式、或者子节点身上带有 patchFlag，就说明是动态的
-  return children.some(
-    c => c.type === NodeTypes.INTERPOLATION || c.codegenNode?.patchFlag,
-  )
-}
+// getConstantType 由 hoistStatic.ts 提供：
+// 返回 NOT_CONSTANT 说明该文本子节点在运行时会变化，才需要 TEXT PatchFlag
 ```
 
 :::
@@ -741,7 +777,7 @@ export const transformExpression: NodeTransform = (node, context) => {
 //核心魔法：处理具体的 JS 表达式并注入 _ctx 前缀
 function processExpression(node, context) {
   // 1. 拦截器：如果在 CDN 浏览器直接运行模式下 (没有开启前缀)，或者表达式为空，直接原样返回
-  if (!context.options.prefixIdentifiers || !node.content.trim()) {
+  if (!context.prefixIdentifiers || !node.content.trim()) {
     return node
   }
   // 核心逻辑：判断变量是不是全局对象 (Math, Date) 或者局部变量 (v-for 里的 item)
@@ -772,38 +808,88 @@ function processExpression(node, context) {
 ```typescript [transformText.ts]
 import { isText } from './utils'
 export const transformText: NodeTransform = (node, context) => {
-  // 注意：文本合并必须在 Exit 阶段执行！
-  // 因为要等子节点的 v-if 等结构被处理完毕后，剩下的纯文本才会露出来。
-  return () => {
-    const children = node.children
-    let currentContainer = undefined // 容器
+  // 只有这些容器节点的 children 才需要合并文本。
+  // 若无条件返回 exit，TEXT / INTERPOLATION 等节点会因读取 node.children 抛 TypeError
+  if (
+    node.type === NodeTypes.ROOT ||
+    node.type === NodeTypes.ELEMENT ||
+    node.type === NodeTypes.FOR ||
+    node.type === NodeTypes.IF_BRANCH
+  ) {
+    // 注意：文本合并必须在 Exit 阶段执行！
+    // 因为要等子节点的 v-if 等结构被处理完毕后，剩下的纯文本才会露出来。
+    return () => {
+      const children = node.children
+      let currentContainer = undefined // 容器
+      let hasText = false
 
-    // 遍历当前节点的所有子节点
-    for (let i = 0; i < children.length; i++) {
-      const child = children[i]
+      // 遍历当前节点的所有子节点
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i]
 
-      if (isText(child)) {
-        // 如果遇到一个文本/插值节点，向后看一眼
-        for (let j = i + 1; j < children.length; j++) {
-          const next = children[j]
-          if (isText(next)) {
-            // 发现相邻的也是文本！启动合并！
-            if (!currentContainer) {
-              // 创建复合表达式节点 (NodeTypes.COMPOUND_EXPRESSION = 8)
-              currentContainer = children[i] = {
-                type: NodeTypes.COMPOUND_EXPRESSION,
-                children: [child],
+        if (isText(child)) {
+          hasText = true
+          // 如果遇到一个文本/插值节点，向后看一眼
+          for (let j = i + 1; j < children.length; j++) {
+            const next = children[j]
+            if (isText(next)) {
+              // 发现相邻的也是文本！启动合并！
+              if (!currentContainer) {
+                // 创建复合表达式节点 (NodeTypes.COMPOUND_EXPRESSION = 8)
+                currentContainer = children[i] = {
+                  type: NodeTypes.COMPOUND_EXPRESSION,
+                  children: [child],
+                }
               }
+              // 把后面的文本塞进复合节点，用 " + " 号连接
+              currentContainer.children.push(` + `, next)
+              // 把后面的节点从原树上删掉
+              children.splice(j, 1)
+              j--
+            } else {
+              // 遇到非文本节点，中断合并
+              currentContainer = undefined
+              break
             }
-            // 把后面的文本塞进复合节点，用 " + " 号连接
-            currentContainer.children.push(` + `, next)
-            // 把后面的节点从原树上删掉
-            children.splice(j, 1)
-            j--
-          } else {
-            // 遇到非文本节点，中断合并
-            currentContainer = undefined
-            break
+          }
+        }
+      }
+
+      // 没有文本，或元素只有单个文本子节点时保持原样：
+      // 运行时对单文本子节点有直接设置 textContent 的快速路径
+      if (
+        !hasText ||
+        (children.length === 1 &&
+          (node.type === NodeTypes.ROOT ||
+            (node.type === NodeTypes.ELEMENT &&
+              node.tagType === ElementTypes.ELEMENT)))
+      ) {
+        return
+      }
+
+      // 把文本节点预转换为 createTextVNode(text) 调用，避免运行时再归一化
+      for (let i = 0; i < children.length; i++) {
+        const child = children[i]
+        if (isText(child) || child.type === NodeTypes.COMPOUND_EXPRESSION) {
+          const callArgs = []
+          // createTextVNode 默认创建一个空格，单个空格可用空调用省字节
+          if (child.type !== NodeTypes.TEXT || child.content !== ' ') {
+            callArgs.push(child)
+          }
+          // 动态文本追加 TEXT(1) 标记，让它在 Block 内被正确 patch
+          if (
+            !context.ssr &&
+            getConstantType(child, context) === ConstantTypes.NOT_CONSTANT
+          ) {
+            callArgs.push('1 /* TEXT */') // PatchFlags.TEXT
+          }
+          children[i] = {
+            type: NodeTypes.TEXT_CALL, // NodeTypes.TEXT_CALL = 12
+            content: child,
+            codegenNode: createCallExpression(
+              context.helper(CREATE_TEXT),
+              callArgs,
+            ),
           }
         }
       }
@@ -852,11 +938,39 @@ export const transformIf = (node, context) => {
   if (!dir) return
 
   // 3. 进入核心处理逻辑，并返回 Exit (退出阶段) 的回调函数
-  return processIf(node, dir, context)
+  return processIf(node, dir, context, (ifNode, branch, isRoot) => {
+    // 计算分支 key 的基准值：同层链式 v-if 的 key 需要累加
+    const siblings = context.parent.children
+    let i = siblings.indexOf(ifNode)
+    let key = 0
+    while (i-- >= 0) {
+      const sibling = siblings[i]
+      if (sibling && sibling.type === NodeTypes.IF) {
+        key += sibling.branches.length
+      }
+    }
+
+    // Exit 回调：等待该分支的子节点全部处理完毕
+    return () => {
+      if (isRoot) {
+        // v-if 根分支：生成三元表达式，写入 ifNode.codegenNode
+        ifNode.codegenNode = createCodegenNodeForBranch(branch, key, context)
+      } else {
+        // v-else-if / v-else 分支：由分支自己的 exit 把结果写到
+        // 上一层三元表达式的 alternate 上
+        const parentCondition = getParentCondition(ifNode.codegenNode)
+        parentCondition.alternate = createCodegenNodeForBranch(
+          branch,
+          key + ifNode.branches.length - 1,
+          context,
+        )
+      }
+    }
+  })
 }
 
 //核心逻辑：结构重组
-function processIf(node, dir, context) {
+function processIf(node, dir, context, processCodegen) {
   // 场景 A：遇到 v-if (开疆拓土)
   if (dir.name === 'if') {
     // 1. 把当前的元素节点包装成一个 "分支 (branch)"
@@ -872,14 +986,7 @@ function processIf(node, dir, context) {
     context.replaceNode(ifNode)
 
     // 4. 返回 Exit 回调：等待内部所有分支处理完毕后，生成最终的三元表达式代码
-    return () => {
-      // 这里的逻辑会生成类似： condition ? vnode1 : vnode2
-      ifNode.codegenNode = createCodegenNodeForBranch(
-        ifNode.branches,
-        0,
-        context,
-      )
-    }
+    return processCodegen(ifNode, branch, true)
   }
 
   // 场景 B：遇到 v-else-if 或 v-else (投靠大哥)
@@ -893,17 +1000,21 @@ function processIf(node, dir, context) {
 
     // 3. 校验大哥身份：前一个节点必须是我们刚刚创建的那个 IF 容器！
     if (sibling && sibling.type === NodeTypes.IF) {
-      // 4. 认祖归宗：把我自己也包装成一个分支，塞进大哥的 branches 数组里
-      sibling.branches.push(createIfBranch(node, dir))
-
-      // 5. 结构突变：既然我已经存进了大哥的肚子里，那这棵 AST 树上就不需要我了。自杀！
+      // 4. 结构突变：先把当前节点从原树上移除，再包装成新分支
       context.removeNode()
+      const branch = createIfBranch(node, dir)
+      sibling.branches.push(branch)
+
+      // 5. 因为节点已被移除，不会再被正常遍历，这里手动遍历该分支，
+      //    并在遍历完成后调用它自己的 exit（它负责写 parentCondition.alternate）
+      const onExit = processCodegen(sibling, branch, false)
+      traverseNode(branch, context)
+      if (onExit) onExit()
+      context.currentNode = null
     } else {
       // 如果前面没有 v-if，直接报错：v-else 缺少对应的 v-if！
       context.onError(createCompilerError('v-else 缺少相邻的 v-if'))
     }
-    // else 节点不需要在 Exit 阶段做什么，所有的代码生成都由大哥 (v-if) 负责
-    return () => {}
   }
 }
 
@@ -911,7 +1022,7 @@ function processIf(node, dir, context) {
 function createIfBranch(node, dir) {
   return {
     type: NodeTypes.IF_BRANCH,
-    condition: dir.exp, // 条件表达式 (比如 "ok")，v-else 的 condition 为 undefined
+    condition: dir.name === 'else' ? undefined : dir.exp, // v-else 没有条件
     children: [node], // 原始节点
   }
 }
@@ -919,7 +1030,7 @@ function createIfBranch(node, dir) {
 
 :::
 
-**工作成果**：将散落的 DOM 节点聚合成一个带有 `branches` 的逻辑块，并在 Exit 阶段将其转化为 JavaScript 的 `ok ? _createVNode(...) : _createCommentVNode(...)` 三元表达式结构。
+**工作成果**：将散落的 DOM 节点聚合成一个带有 `branches` 的逻辑块，并在 Exit 阶段将其转化为 JavaScript 的 `ok ? _createElementBlock(...) : _createCommentVNode("v-if", true)` 三元表达式结构。分支的 `codegenNode` 各自在自己的 exit 中生成，`alternate` 由 v-else 分支的 exit 回填。
 
 ### 5.2 `transformFor`：循环列表的展开者
 
@@ -936,48 +1047,74 @@ export const transformFor: NodeTransform = (node, context) => {
   const dir = findDir(node, 'for')
   if (!dir) return
 
-  // 1. 解析 v-for="item in list" 里面的变量 (item, list)
-  const parseResult = parseForExpression(dir.exp)
-  const { source, valueAlias, keyAlias } = parseResult
+  // 1. 解析 v-for="item in list" 里面的变量
+  //    parseForExpression 返回 { source, value, key, index }
+  const parseResult = parseForExpression(dir.exp, context)
+  const { source, value, key, index } = parseResult
 
   // 2. 创建一个全新的 FOR 节点 (NodeTypes.FOR = 11)
+  //    ForNode 上的别名字段叫 valueAlias / keyAlias / objectIndexAlias
   const forNode = {
     type: NodeTypes.FOR,
     source, // list
-    valueAlias, // item
-    keyAlias, // index
+    valueAlias: value, // item
+    keyAlias: key,
+    objectIndexAlias: index,
+    parseResult,
     children: [node], // 把原节点包裹在内部
   }
 
   // 3. 替换原节点
   context.replaceNode(forNode)
 
-  // 4. Exit 阶段收尾
+  // 4. 选择 Fragment 的 patchFlag
+  const isStableFragment =
+    source.type === NodeTypes.SIMPLE_EXPRESSION &&
+    source.constType > ConstantTypes.NOT_CONSTANT
+  const keyProp = findProp(node, 'key')
+  const fragmentFlag = isStableFragment
+    ? PatchFlags.STABLE_FRAGMENT
+    : keyProp
+      ? PatchFlags.KEYED_FRAGMENT
+      : PatchFlags.UNKEYED_FRAGMENT
+
+  // 5. codegenNode 是一个包着 renderList 调用的 Fragment VNodeCall，
+  //    而不是 renderList 调用本身
+  forNode.codegenNode = createVNodeCall(
+    context,
+    context.helper(FRAGMENT),
+    undefined,
+    createCallExpression(context.helper(RENDER_LIST), [source]), // children
+    fragmentFlag,
+    undefined,
+    undefined,
+    true /* isBlock */,
+    !isStableFragment /* disableTracking */,
+    false /* isComponent */,
+  )
+
+  // 6. Exit 阶段：等子节点都被遍历完后，再把迭代回调与子节点接上
   return () => {
-    // 构造最终的代码生成节点：调用 renderList 函数
-    forNode.codegenNode = createCallExpression(context.helper(RENDER_LIST), [
-      source,
-      createFunctionExpression(
-        // 生成形如 (item, index) => createVNode(...) 的回调函数
-        createForLoopParams(parseResult),
-        // ...
-      ),
-    ])
+    // createForLoopParams(parseResult) 生成形如 (item, index) 的形参
   }
 }
 ```
 
 :::
 
-**工作成果**：为最终的 `renderList(list, (item) => {...})` 函数调用准备好所有参数。
+**工作成果**：`codegenNode` 是一个 `isBlock: true` 的 Fragment VNodeCall，其 `children` 才是 `renderList(list, (item) => {...})` 调用；Fragment 的 patchFlag 为 `STABLE_FRAGMENT` / `KEYED_FRAGMENT` / `UNKEYED_FRAGMENT` 之一。
 
 ### 5.3 `transformOn`：事件缓存
 
-`transformOn` 负责编译 `v-on` 或 `@` 事件绑定，默认启用**事件处理函数缓存**：
+`transformOn` 负责编译 `v-on` 或 `@` 事件绑定，在开启 `cacheHandlers` 时启用**事件处理函数缓存**：
 
 :::code-group
 
 ```typescript [transforms/vOn.ts]
+// 识别箭头函数 / function 表达式，用于区分成员引用与内联语句
+const fnExpRE =
+  /^\s*([\w$_]+|(async\s*)?\([^)]*?\))\s*(:[^=]+)?=>|^\s*(async\s+)?function(?:\s+[\w$]+)?\s*\(/
+
 export const transformOn: DirectiveTransform = (dir, node, context) => {
   // dir 就是当前遍历到的指令节点，包含指令名(name)、参数(arg)和表达式(exp)
   const { arg, exp, modifiers } = dir
@@ -1006,16 +1143,22 @@ export const transformOn: DirectiveTransform = (dir, node, context) => {
 
   // 2.1 检查是否是简单的成员引用 (Member Expression)
   // 比如 @click="foo" 或 @click="foo.bar" 都是标准的函数引用
-  const isMemberExp = isMemberExpression(expNode.content)
+  const isMemberExp = isMemberExpression(expNode.content, context)
 
   // 2.2 检查是否是内联语句 (Inline Statement)
   // 比如 @click="count++" 或 @click="foo($event)"
-  const isInlineStatement = !(isMemberExp || isFnPointer)
+  // 箭头函数 / function 表达式由 fnExpRE 识别，不算内联语句
+  const isInlineStatement = !(isMemberExp || fnExpRE.test(expNode.content))
+  const hasMultipleStatements = expNode.content.includes(';')
 
   // 2.3 封装函数表达式
   if (isInlineStatement) {
-    // 如果是内联语句，编译器会主动给它包一层形如 `$event => { ... }` 的匿名函数
-    expNode = createCompoundExpression([`$event => {`, expNode, `}`])
+    // 如果是内联语句，编译器会主动给它包一层形如 `$event => (...)` 的匿名函数
+    expNode = createCompoundExpression([
+      `$event => ${hasMultipleStatements ? '{' : '('}`,
+      expNode,
+      hasMultipleStatements ? '}' : ')',
+    ])
   }
 
   // 3. 性能优化：事件监听缓存 (Cache Handlers)
@@ -1023,31 +1166,33 @@ export const transformOn: DirectiveTransform = (dir, node, context) => {
     props: [createObjectProperty(eventName, expNode)], // 默认结果：{ onClick: handler }
   }
 
-  // 触发缓存的条件：
-  // 1. 开启了前缀标识符 (构建工具环境下)
-  // 2. 没有开启 SSR (SSR 不需要交互缓存)
-  // 3. 开发者开启了 cacheHandlers 优化选项
-  // 4. 不能是动态事件名 (动态事件名无法安全缓存)
-  if (
-    context.prefixIdentifiers &&
-    !context.ssr &&
-    context.options.cacheHandlers &&
-    !hasDynamicKey
-  ) {
-    if (isMemberExp) {
-      // 如果本来就是函数引用 (如 @click="foo")
-      // 即使是静态引用，如果在组件更新时 foo 的引用变了怎么办？
-      // Vue 的做法非常绝：缓存一个返回执行 foo 的闭包！
-      // 缓存结构：_cache[1] || (_cache[1] = (...args) => (_ctx.foo && _ctx.foo(...args)))
-      expNode = createCacheExpression(context, expNode)
-    } else {
-      // 如果是内联语句 (如 @click="count++")，直接缓存之前包裹好的 `$event => { ... }`
-      // 缓存结构：_cache[2] || (_cache[2] = $event => { _ctx.count++ })
-      expNode = createCacheExpression(context, expNode)
-    }
+  // 触发缓存的真实条件（与源码 vOn.ts 一致）：
+  // 1. 开启了 cacheHandlers，且不在 v-once 作用域内
+  // 2. 表达式不是运行时常量
+  // 3. 不是传给组件的成员引用（会丢失函数 arity）
+  // 4. 表达式没有引用 v-for / v-slot 等作用域变量
+  const shouldCache =
+    context.cacheHandlers &&
+    !context.inVOnce &&
+    !(expNode.type === NodeTypes.SIMPLE_EXPRESSION && expNode.constType > 0) &&
+    !(isMemberExp && node.tagType === ElementTypes.COMPONENT) &&
+    !hasScopeRef(expNode, context.identifiers)
 
-    // 更新返回值
-    ret.props[0].value = expNode
+  if (shouldCache) {
+    if (isMemberExp) {
+      // 把成员引用改成总是读取最新值的调用：
+      // _cache[0] || (_cache[0] = (...args) => (_ctx.foo && _ctx.foo(...args)))
+      expNode = createCompoundExpression([
+        `(...args) => (`,
+        expNode,
+        ` && `,
+        expNode,
+        `(...args))`,
+      ])
+    }
+    // context.cache 内部会分配缓存索引，生成 JS_CACHE_EXPRESSION
+    // （createCacheExpression(index, value, isVNode) 由它调用）
+    ret.props[0].value = context.cache(expNode)
   }
 
   return ret
@@ -1060,11 +1205,11 @@ export const transformOn: DirectiveTransform = (dir, node, context) => {
 
 ### 6.1 `createBlock`: 创建 Block 节点
 
-Block Tree 将模板基于结构指令（`v-if`、`v-for`、`<slot>`）切分为多个 Block，每个 Block 内部扁平收集所有动态后代节点：
+编译器只负责在生成的代码里插入 `openBlock` / `createBlock`（或 `createElementBlock`）调用；真正的动态节点收集发生在**运行时**的 `@vue/runtime-core` 中，不属于 transform 阶段。下面的 `createBlock` 实现位于运行时 `vnode.ts`：
 
 :::code-group
 
-```typescript [vnode.ts]
+```typescript [runtime-core/src/vnode.ts]
 // 全局状态变量：追踪当前正在活动的 Block
 // 这是一个栈，用于处理多层级 Block 嵌套 (比如 v-if 里面还有 v-for)
 const blockStack = []
@@ -1115,14 +1260,7 @@ export function createBlock(
 
 :::
 
-`transformElement` 在 exit 阶段发现节点有 patchFlag 时，会将其加入当前 Block 的 `dynamicChildren`：
-
-```typescript
-// 在 transformElement 的 exit 钩子中
-if (patchFlag > 0 && context.currentBlock) {
-  context.currentBlock.dynamicChildren.push(node)
-}
-```
+注意：`dynamicChildren` 是运行时 `createVNode` / `setupBlock` 依据 patchFlag 收集到 VNode 上的，编译器的 `TransformContext` 中并没有 `currentBlock` 字段，transform 阶段也不会向 `dynamicChildren` 写入任何内容。
 
 ### 6.2 `createVNodeCall`: 打包封装机制
 
@@ -1301,46 +1439,60 @@ export const helperNameMap: any = {
       "type": 13, // NodeTypes.VNODE_CALL (创建 VNode 的调用指令)
       "tag": "\"div\"",
       "props": {
-        "type": 4,
-        "content": "{ class: \"box\" }",
-        "isStatic": true // 静态属性对象，后续可被 hoistStatic 静态提升
+        // v-if 分支调用 injectProp 补上的 key: 0
+        "type": 15, // NodeTypes.JS_OBJECT_EXPRESSION
+        "properties": [
+          {
+            "type": 16, // NodeTypes.JS_PROPERTY
+            "key": { "type": 4, "content": "key", "isStatic": true },
+            "value": { "type": 4, "content": "0", "isStatic": false }
+          },
+          {
+            "type": 16, // 模板里的 class="box"
+            "key": { "type": 4, "content": "class", "isStatic": true },
+            "value": { "type": 4, "content": "box", "isStatic": true }
+          }
+        ]
       },
       "children": [
-        // 复合表达式节点 (transformText 插件合并相邻文本/插值生成)
+        // transformText 生成的 TEXT_CALL(12)，内部包裹复合表达式
         {
-          "type": 8, // NodeTypes.COMPOUND_EXPRESSION
-          "children": [
-            "Hello ",
-            " + ",
-            {
-              "type": 14, // NodeTypes.JS_CALL_EXPRESSION
-              "callee": "_toDisplayString", // 运行时格式化辅助函数
-              "arguments": [
-                {
+          "type": 12, // NodeTypes.TEXT_CALL
+          "content": {
+            "type": 8, // NodeTypes.COMPOUND_EXPRESSION
+            "children": [
+              { "type": 2, "content": "Hello " },
+              " + ",
+              {
+                "type": 5, // NodeTypes.INTERPOLATION（不是 JS_CALL_EXPRESSION）
+                "content": {
                   "type": 4,
                   "content": "_ctx.name", // 变量注入前缀
                   "isStatic": false
                 }
-              ]
-            },
-            " + ",
-            " "
-          ]
+              },
+              " + ",
+              { "type": 2, "content": " " }
+            ]
+          },
+          "codegenNode": {
+            "type": 14, // NodeTypes.JS_CALL_EXPRESSION
+            "callee": "Symbol(createTextVNode)",
+            "arguments": [, /* 上面的 COMPOUND_EXPRESSION */ "1 /* TEXT */"]
+          }
         },
-        // 注释节点调用指令
+        // 注释保留为 COMMENT(3)，代码生成时由 CREATE_COMMENT 转成 _createCommentVNode(...)
         {
-          "type": 13, // NodeTypes.VNODE_CALL
-          "callee": "_createCommentVNode",
-          "arguments": [{ "type": 2, "content": " 注释 " }]
+          "type": 3, // NodeTypes.COMMENT
+          "content": " 注释 "
         }
       ],
-      "patchFlag": "1 /* TEXT */", // 靶向标记：仅文本动态更新
-      "isBlock": true // 关键突变：v-if 的分支必须升级为 Block (区块) 以收集内部动态节点！
+      "isBlock": true // v-if 分支被升级为 Block
     },
     "alternate": {
       // 对应三元运算符的为假 (false) 分支
-      "type": 13, // NodeTypes.VNODE_CALL
-      "callee": "_createCommentVNode", // 默认生成一个空注释节点作为占位符
+      "type": 14, // NodeTypes.JS_CALL_EXPRESSION（不是 VNODE_CALL）
+      "callee": "Symbol(createCommentVNode)", // CREATE_COMMENT，不是字符串 callee
       "arguments": [
         "\"v-if\"",
         "true" // true 标记这是一个 v-if 的备用占位符

@@ -14,7 +14,7 @@
 <template> Hello, {{ name }}! </template>
 ```
 
-在这个模板中，`Hello, ` 和 `name` 都会被编译为独立的 `Text` 类型的 VNode。`processText` 就是专门用来处理这种“**没有任何标签包裹的纯净文本**”的挂载与更新。
+在这个模板中，编译器会把相邻的文本与插值合并成一个 `Text` 类型的 VNode（`patchFlag` 为 `TEXT`），而不是拆成多个独立的 `Text` VNode。`processText` 就是专门用来处理这种“**没有任何标签包裹的纯净文本**”的挂载与更新。
 
 ### 1.2 文本节点的极简生命周期
 

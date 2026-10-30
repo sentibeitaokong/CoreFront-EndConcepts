@@ -23,11 +23,15 @@
 
 ```typescript [parse.ts]
 interface ParserContext {
-  source: string // 剩余未解析的模板字符串
   options: Required<ParserOptions>
+  readonly originalSource: string // 完整的原始模板字符串，用于截取 loc.source
+  source: string // 剩余未解析的模板字符串
   offset: number // 已解析字符数
   line: number // 当前行号
   column: number // 当前列号
+  inPre: boolean // 是否处于 <pre> 标签内（保留空白）
+  inVPre: boolean // 是否处于 v-pre 指令内
+  onWarn: (msg: string, ...args: any[]) => void // 警告回调
 }
 ```
 
@@ -92,14 +96,21 @@ export function baseParse(
 
 ```typescript [parse.ts]
 //创建解析器上下文
-function createParserContext(content: string): ParserContext {
+function createParserContext(
+  content: string,
+  options: ParserOptions,
+): ParserContext {
   // 合成 context 上下文对象
   return {
     options,
     column: 1,
     line: 1,
     offset: 0,
+    originalSource: content,
     source: content,
+    inPre: false,
+    inVPre: false,
+    onWarn: options.onWarn,
   }
 }
 ```
@@ -136,16 +147,17 @@ export function getCursor(context: ParserContext): Position {
 ```typescript [parse.ts]
 function parseChildren(
   context: ParserContext,
+  mode: TextModes,
   ancestors: ElementNode[],
 ): TemplateChildNode[] {
   const nodes: TemplateChildNode[] = []
-  while (!isEnd(context, ancestors)) {
+  while (!isEnd(context, mode, ancestors)) {
     const s = context.source
     let node: TemplateChildNode | undefined
 
     // 状态机分支：根据字符模式决定进入哪种解析状态
     if (startsWith(s, '{{')) {
-      node = parseInterpolation(context) // → 插值状态
+      node = parseInterpolation(context, mode) // → 插值状态
     } else if (s[0] === '<') {
       if (/[a-z]/i.test(s[1])) {
         node = parseElement(context, ancestors) // → 元素状态
@@ -155,7 +167,7 @@ function parseChildren(
     }
     // 如果没有命中任何特殊模式，则进入文本状态
     if (!node) {
-      node = parseText(context)
+      node = parseText(context, mode)
     }
     nodes.push(node)
   }
@@ -218,14 +230,21 @@ function parseElement(
 ): ElementNode | ComponentNode {
   // 解析开始标签
   const element = parseTag(context, TagType.Start)
+  // 自闭合标签或 void 标签（如 <img>、<input>）没有子节点和闭合标签，直接返回
+  if (element.isSelfClosing || context.options.isVoidTag(element.tag)) {
+    return element
+  }
+  // 父节点用于确定文本模式（如 <textarea> 为 RCDATA，<script>/<style> 为 RAWTEXT）
+  const parent = ancestors[ancestors.length - 1]
   // 将当前元素压入祖先栈，以便子节点解析时知道父上下文
   ancestors.push(element)
-  // 递归解析子节点
-  element.children = parseChildren(context, ancestors)
+  // 递归解析子节点（逐层传递 mode）
+  const mode = context.options.getTextMode(element, parent)
+  element.children = parseChildren(context, mode, ancestors)
   // 子节点解析完毕，弹出祖先栈
   ancestors.pop()
   // 解析闭合标签（验证标签名一致性）
-  if (startsWith(context.source, `</${element.tag}`)) {
+  if (startsWithEndTagOpen(context.source, element.tag)) {
     parseTag(context, TagType.End)
   } else {
     // 缺少闭合标签的错误处理（开发模式下发出警告）
@@ -391,11 +410,20 @@ function parseAttribute(context) {
   // --------- 阶段三：归类（普通属性 vs Vue指令） ---------
   // 如果属性名是以 v- 开头，或者是 : (v-bind), @ (v-on), # (v-slot)
   if (/^(v-[A-Za-z0-9-]|:|@|#)/.test(name)) {
-    // 真实源码这里会极其复杂地解析出：指令名、参数、修饰符
+    // 剥离前缀得到真正的指令名：v-if → if，: → bind，@ → on，# → slot
+    let dirName = 'slot'
+    if (name.startsWith('v-')) {
+      dirName = name.slice(2)
+    } else if (name.startsWith(':')) {
+      dirName = 'bind'
+    } else if (name.startsWith('@')) {
+      dirName = 'on'
+    }
+    // 真实源码这里还会继续解析出参数、修饰符
     // 这里简化为返回指令 AST 节点 (NodeTypes.DIRECTIVE = 7)
     return {
       type: 7,
-      name: name,
+      name: dirName,
       exp: value ? { type: 4, content: value.content } : undefined,
     }
   }
@@ -564,7 +592,7 @@ function parseComment(context: ParserContext): CommentNode {
     // 说明开发者写了 '<!--' 但是忘了闭合
     content = context.source.slice(4) // 把剩下的全当成注释内容
     advanceBy(context, context.source.length) // 吃掉剩下的所有字符串
-    emitError(context, ErrorCodes.X_MISSING_COMMENT_END) // 抛出缺少闭合符的编译警告
+    emitError(context, ErrorCodes.EOF_IN_COMMENT) // 抛出缺少闭合符的编译错误
   }
 
   // 7. 构建并返回注释 AST 节点
@@ -592,27 +620,39 @@ function isEnd(
   ancestors: ElementNode[],
 ): boolean {
   const s = context.source
-  // 1. 最基础的判断：如果字符串已经被吃光了，当然就结束了
-  if (s.length === 0) {
-    return true
-  }
-  // 2. 核心容错判断：检查是否遇到了闭合标签
-  // 只有在解析普通 HTML 内容 (DATA) 或可包含实体的文本 (RCDATA) 时才做此检查
-  if (mode === TextModes.DATA || mode === TextModes.RCDATA) {
-    // 如果当前剩余的字符串是以 '</' 开头的，说明遇到了一个闭合标签
-    if (startsWith(s, '</')) {
-      // 重点：从栈顶（倒序）往栈底遍历整个祖先节点栈
-      for (let i = ancestors.length - 1; i >= 0; --i) {
-        // 利用我们之前讲过的 startsWithEndTagOpen 去比对
-        // 看看当前的闭合标签，是不是正好匹配栈里的某一个祖先标签
-        if (startsWithEndTagOpen(s, ancestors[i].tag)) {
-          return true
+
+  switch (mode) {
+    case TextModes.DATA:
+      // DATA 模式：从栈顶（倒序）遍历祖先栈，匹配任意一个祖先的闭合标签
+      if (startsWith(s, '</')) {
+        for (let i = ancestors.length - 1; i >= 0; --i) {
+          if (startsWithEndTagOpen(s, ancestors[i].tag)) {
+            return true
+          }
         }
       }
+      break
+
+    case TextModes.RCDATA:
+    case TextModes.RAWTEXT: {
+      // RCDATA / RAWTEXT 只检查直接父节点的闭合标签
+      const parent = ancestors[ancestors.length - 1]
+      if (parent && startsWithEndTagOpen(s, parent.tag)) {
+        return true
+      }
+      break
     }
+
+    case TextModes.CDATA:
+      // CDATA 以 ']]>' 结束
+      if (startsWith(s, ']]>')) {
+        return true
+      }
+      break
   }
-  // 如果上面都没命中，说明当前层级的子节点还没解析完，继续循环！
-  return false
+
+  // source 为空同样意味着当前层级的解析结束
+  return !s
 }
 ```
 
@@ -755,10 +795,10 @@ function startsWithEndTagOpen(source: string, tag: string): boolean {
 
 **输入模板:**
 
-```js
+```html
 <div v-if="ok" class="wrap">
-  {' '}
-  <span>hello</span> <p>{{ message }}</p>
+  <span>hello</span>
+  <p>{{ message }}</p>
 </div>
 ```
 
@@ -766,7 +806,7 @@ function startsWithEndTagOpen(source: string, tag: string): boolean {
 
 ```json
 {
-  "type": 1, // NodeTypes.ELEMENT (根节点 div)
+  "type": 1, // NodeTypes.ELEMENT (根节点的第一个子元素 div，外层是 ROOT)
   "tag": "div",
   "isSelfClosing": false,
   "props": [
@@ -796,14 +836,14 @@ function startsWithEndTagOpen(source: string, tag: string): boolean {
         "type": 2,
         "content": "wrap",
         "loc": {
-          "start": { "line": 1, "column": 23, "offset": 22 },
-          "end": { "line": 1, "column": 27, "offset": 26 },
-          "source": "wrap"
+          "start": { "line": 1, "column": 22, "offset": 21 },
+          "end": { "line": 1, "column": 28, "offset": 27 },
+          "source": "\"wrap\""
         }
       },
       "loc": {
         "start": { "line": 1, "column": 16, "offset": 15 },
-        "end": { "line": 1, "column": 29, "offset": 28 },
+        "end": { "line": 1, "column": 28, "offset": 27 },
         "source": "class=\"wrap\""
       }
     }
@@ -871,22 +911,22 @@ function startsWithEndTagOpen(source: string, tag: string): boolean {
           "loc": {
             // 外部插值节点的 loc 包裹了包括大括号在内的所有字符
             "start": { "line": 1, "column": 52, "offset": 51 },
-            "end": { "line": 1, "column": 66, "offset": 65 },
+            "end": { "line": 1, "column": 65, "offset": 64 },
             "source": "{{ message }}"
           }
         }
       ],
       "loc": {
         "start": { "line": 1, "column": 49, "offset": 48 },
-        "end": { "line": 1, "column": 70, "offset": 69 },
+        "end": { "line": 1, "column": 69, "offset": 68 },
         "source": "<p>{{ message }}</p>"
       }
     }
   ],
   "loc": {
-    // 根节点包裹整个字符串
+    // 该 div 元素包裹整个字符串
     "start": { "line": 1, "column": 1, "offset": 0 },
-    "end": { "line": 1, "column": 76, "offset": 75 },
+    "end": { "line": 1, "column": 75, "offset": 74 },
     "source": "<div v-if=\"ok\" class=\"wrap\"> <span>hello</span> <p>{{ message }}</p></div>"
   }
 }

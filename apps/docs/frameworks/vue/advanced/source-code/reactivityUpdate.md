@@ -84,9 +84,17 @@ function reactive(target) {
 ```javascript
 // 源码中 array.js
 const arrayProto = Array.prototype
-const arrayMethods = Object.create(arrayProto)[
-  ('push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse')
-].forEach(method => {
+const arrayMethods = Object.create(arrayProto)
+const methodsToPatch = [
+  'push',
+  'pop',
+  'shift',
+  'unshift',
+  'splice',
+  'sort',
+  'reverse',
+]
+methodsToPatch.forEach(method => {
   const original = arrayProto[method]
   Object.defineProperty(arrayMethods, method, {
     value: function mutator(...args) {
@@ -112,13 +120,15 @@ const arrayMethods = Object.create(arrayProto)[
 ```
 
 - 通过将数组的 `__proto__` 指向 `arrayMethods`，拦截数组变异方法。
-- 无法拦截直接通过索引赋值（如 `arr[0] = xxx`）或修改 `length`（如 `arr.length = 0`），需要借助 `Vue.set` / `delete` 或 `$set`。
+- 无法拦截直接通过索引赋值（如 `arr[0] = xxx`），需要借助 `Vue.set(arr, 0, xxx)` 或 `this.$set`。
+- 无法拦截直接修改 `length`（如 `arr.length = 0`），且 `Vue.set(arr, 'length', 0)` 也无效，需要改用 `arr.splice(0)` 才能触发更新。
+- 删除元素需要使用 `Vue.delete(arr, index)` 或 `this.$delete`。
 
 ### 2.2 Vue 3 数组响应式完美支持
 
 `Proxy` 可以拦截所有对数组的操作，包括索引赋值、`length` 修改、以及 `push`、`pop` 等变异方法（因为变异方法内部会触发 `set` 拦截）。
 
-```typescript
+```javascript
 // 拦截 arr[0] = 1  → 触发 set
 // 拦截 arr.length = 0 → 触发 set
 // 拦截 arr.push(1) → 内部会调用 set 设置新索引和修改 length
@@ -193,6 +203,8 @@ if (isObject(res)) {
 
 ## 6. 性能差异
 
+[width(20,38,42)]
+
 | 方面           | Vue 2                            | Vue 3                    |
 | -------------- | -------------------------------- | ------------------------ |
 | 初始化大型对象 | 递归遍历所有属性，较慢           | 懒代理，初始化快         |
@@ -202,6 +214,8 @@ if (isObject(res)) {
 | 内存占用       | 每个属性一个 `Dep` 实例，较大    | `targetMap` 结构更轻量   |
 
 ## 7. 总结对比表
+
+[width(23,30,47)]
 
 | 特性                 | Vue 2                                | Vue 3                                                                |
 | -------------------- | ------------------------------------ | -------------------------------------------------------------------- |

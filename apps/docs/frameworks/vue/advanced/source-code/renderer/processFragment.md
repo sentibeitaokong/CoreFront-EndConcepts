@@ -22,23 +22,26 @@ Fragment 是一个虚拟的容器，它在物理 DOM 树中是**不存在真实�
 - **开始锚点 (`n2.el`)**：标志着 Fragment 的起始位置。
 - **结束锚点 (`n2.anchor`)**：标志着 Fragment 的结束位置。
 
-在真实 DOM 中，这两个锚点通常是极其轻量的**空文本节点（`""`）**或**注释节点（``）**。
+在真实 DOM 中，客户端渲染始终使用极其轻量的**空文本节点（`""`）**作为这两个锚点；只有在 SSR 水合时，才会复用服务端输出的 `<!--[-->` / `<!--]-->` 注释锚点。
 
 ## 2. `processFragment`函数入口
 
 :::code-group
 
 ```typescript [renderer.ts]
-import { normalizeVNode } from './componentRenderUtils'
+import { normalizeVNode } from './vnode'
 
 const processFragment = (
   n1: VNode | null,
   n2: VNode,
   container: RendererElement,
   anchor: RendererNode | null,
+  parentComponent: ComponentInternalInstance | null,
+  // ... 其他参数
 ) => {
   // 1. 获取或创建 Fragment 的物理边界（开始锚点和结束锚点）
-  // 现代 Vue 3 版本为了极致性能，默认使用空文本节点 (hostCreateText('')) 作为锚点
+  // 客户端（无论 DEV 还是 PROD）始终使用空文本节点 (hostCreateText('')) 作为锚点
+  // 注释锚点只用于 SSR 水合时复用服务端输出的 <!--[--> / <!--]-->
   const fragmentStartAnchor = (n2.el = n1 ? n1.el : hostCreateText(''))!
   const fragmentEndAnchor = (n2.anchor = n1 ? n1.anchor : hostCreateText(''))!
   //patchFlag:patch标识 dynamicChildren：动态子节点
@@ -54,6 +57,7 @@ const processFragment = (
       n2.children as VNodeArrayChildren,
       container,
       fragmentEndAnchor, // <--- 关键参数：结束锚点
+      parentComponent,
     )
   }
   //patch
@@ -77,19 +81,20 @@ const processFragment = (
         n2,
         container,
         fragmentEndAnchor, // <--- 更新时依然需要结束锚点来限制范围
+        parentComponent,
       )
     }
   }
 }
 
-const mountChildren = (children, container, anchor) => {
+const mountChildren = (children, container, anchor, parentComponent) => {
   // 处理 Cannot assign to read only property '0' of string 'xxx'
   if (isString(children)) {
     children = children.split('')
   }
   for (let i = 0; i < children.length; i++) {
     const child = (children[i] = normalizeVNode(children[i]))
-    patch(null, child, container, anchor)
+    patch(null, child, container, anchor, parentComponent)
   }
 }
 //靶向更新 只更新动态子节点
@@ -116,14 +121,14 @@ export function patchChildren(
   n1: any,
   n2: any,
   container: any,
-  parentComponent: any,
   anchor: any,
+  parentComponent: any,
 ) {
-  //新旧的vnode类型
-  const prevShapeFlag = n1.ShapeFlag
-  const nextShapeFlag = n2.ShapeFlag
+  //新旧的vnode类型（n1 可能为 null，此时视为没有旧子节点）
+  const prevShapeFlag = n1 ? n1.shapeFlag : 0
+  const nextShapeFlag = n2.shapeFlag
   //获取老新vnode的子节点信息
-  const c1: any = n1.children
+  const c1: any = n1 && n1.children
   const c2: any = n2.children
   //vnode节点有文本和数组两种类型，因此比对节点有四种情况
   //1.当新vnode节点是文本类型
@@ -132,42 +137,61 @@ export function patchChildren(
     if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
       //1.把老vnode节点的children清空  2.将新节点设置成c2
       unmountChildren(n1.children)
+    }
+    //老节点是文本类型或没有子节点,直接将新节点设置成c2
+    if (c1 !== c2) {
       //直接设置新vnode节点为c2
       hostSetElementText(container, c2)
-    } else {
-      //老节点是文本类型,直接将新节点设置成c2
-      if (c1 !== c2) {
-        //直接设置新vnode节点为c2
-        hostSetElementText(container, c2)
-      }
     }
   } else {
-    //新节点是个文本节点
-    //1.直接清空旧节点的值
-    if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
-      hostSetElementText(container, '')
-      mountChildren(c2, container, parentComponent, anchor)
+    //新节点不是文本节点
+    if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+      if (nextShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+        //新老节点都是数组类型 快速 Diff（首尾同步 + key 映射 + LIS）
+        patchKeyedChildren(c1, c2, container, anchor, parentComponent)
+      } else {
+        //新节点没有子节点，只需要卸载旧的数组子节点
+        unmountChildren(c1)
+      }
     } else {
-      //新老节点都是数组类型 diff算法 双端对比
-      patchKeyedChildren(c1, c2, container, parentComponent, anchor)
+      //旧节点是文本类型，先清空旧文本
+      if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+        hostSetElementText(container, '')
+      }
+      //新节点是数组类型才需要挂载
+      if (nextShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+        mountChildren(c2, container, anchor, parentComponent)
+      }
     }
   }
 }
 ```
 
-```typescript [componentRenderUtils.ts]
+```typescript [vnode.ts]
 //规范化vnode
 export function normalizeVNode(child) {
-  if (typeof child === 'object') {
+  if (child == null || typeof child === 'boolean') {
+    // 空占位：null / boolean 统一变成注释节点
+    return createVNode(Comment)
+  } else if (isArray(child)) {
+    // 数组：包成一个 Fragment
+    return createVNode(Fragment, null, child.slice())
+  } else if (typeof child === 'object') {
     return cloneIfMounted(child)
   } else {
+    // 字符串 / 数字：变成文本节点
     return createVNode(Text, null, String(child))
   }
 }
 
 //clone VNode
 export function cloneIfMounted(child) {
-  return child
+  // 未挂载（el 为 null）且非 HOISTED，或带有 memo 时可以直接复用；
+  // 否则（已挂载 / 静态提升节点）必须克隆，避免新旧树复用同一个 VNode 实例造成引用污染
+  return (child.el === null && child.patchFlag !== PatchFlags.HOISTED) ||
+    child.memo
+    ? child
+    : cloneVNode(child)
 }
 ```
 
@@ -183,7 +207,7 @@ const fragmentEndAnchor = (n2.anchor = n1 ? n1.anchor : hostCreateText(''))!
 ```
 
 **为什么要用 `hostCreateText('')` 制造空文本？**
-在早期的 Vue 3 或开发环境（DEV）下，Vue 会使用 ``（注释节点）作为锚点以方便开发者调试。但在生产环境（PROD），Vue 3 改用了没有任何内容的文本节点 `createText('')`。因为对于浏览器渲染引擎来说，空文本节点的创建和内存开销比注释节点更小，是名副其实的“**零成本占位符**”。
+客户端渲染时，Vue 3 无论开发环境（DEV）还是生产环境（PROD）都使用没有任何内容的文本节点 `createText('')` 作为锚点；注释锚点（`<!--[-->` / `<!--]-->`）只出现在 SSR 水合场景中，用于让客户端识别服务端渲染出的 Fragment 边界。对于浏览器渲染引擎来说，空文本节点的创建和内存开销很小，是名副其实的“**零成本占位符**”。
 
 ### 3.2 挂载阶段的沙盘推演
 
@@ -218,9 +242,15 @@ DOM 树里会变成这样（假设插入到 `#app` 中）：
 虽然 `processFragment` 里没有写卸载逻辑，但我们可以去看看底层的 `unmount` 函数是如何对待 Fragment 的：
 
 ```typescript [renderer.ts]
-if (shapeFlag & ShapeFlags.SUSPENSE || type === Fragment) {
+if (shapeFlag & ShapeFlags.SUSPENSE) {
+  // Suspense 边界自行处理整棵子树的卸载与 DOM 移除，处理完直接返回
+  vnode.suspense.unmount(parentSuspense, doRemove)
+  return
+}
+
+if (type === Fragment) {
   // 1. 调用 unmountChildren 卸载两个锚点之间的所有真实节点
-  unmountChildren(vnode.children, parentComponent, ...)
+  unmountChildren(vnode.children, parentComponent)
   // 2. 移除开始锚点
   hostRemove(vnode.el)
   // 3. 移除结束锚点
@@ -246,7 +276,7 @@ if (shapeFlag & ShapeFlags.SUSPENSE || type === Fragment) {
 ```
 
 这个模板编译后是一个 `Fragment`。由于它没有用 `v-if` 或 `v-for` 来改变结构的顺序或数量，它的 DOM 结构是**绝对稳定**的。
-对于稳定的 `Fragment`，Vue **绝不会**去调用昂贵的 `patchChildren` 对比新旧节点顺序。它会直接调用 `patchBlockChildren`，精准地跳过 `<header>` 和 `<footer>`，以 $O(1)$ 的速度直接去更新 `<main>` 身上的 `theme` 属性。这就是 Vue 3 能够做到按需更新的底层基石。
+对于稳定的 `Fragment`，只要命中 `STABLE_FRAGMENT` 且存在 `dynamicChildren`，Vue 就不会调用昂贵的 `patchChildren` 对比新旧节点顺序。它会直接调用 `patchBlockChildren`，精准地跳过 `<header>` 和 `<footer>`，以 $O(k)$（`k` 为动态节点数）的代价更新 `<main>` 身上的 `theme` 属性。这就是 Vue 3 能够做到按需更新的底层基石。
 
 ## 4. 性能与优化
 

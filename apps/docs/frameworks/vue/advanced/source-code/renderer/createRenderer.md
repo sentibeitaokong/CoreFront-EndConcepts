@@ -36,7 +36,7 @@ export function createRenderer(options: RendererOptions) {
 }
 
 //核心接口api
-//必需方法：createElement、createText、insert、remove、parentNode、nextSibling、patchProp 是渲染器能够正常工作的最低要求。
+//必需方法：createElement、createText、createComment、insert、remove、setElementText、setText、parentNode、nextSibling、patchProp 是渲染器能够正常工作的最低要求。
 export interface RendererOptions<
   HostNode = RendererNode,
   HostElement = RendererElement,
@@ -65,9 +65,9 @@ export interface RendererOptions<
   nextSibling(node: HostNode): HostNode | null
   // 查询元素是否匹配选择器（主要用于 SSR hydrate）
   querySelector?(selector: string): HostElement | null
-  // 获取元素作用域 ID（用于 CSS scope）
-  getElementId?(el: HostElement): string | null
-  // 插入静态内容（SSR 优化）
+  // 设置元素作用域 ID（用于 scoped CSS）
+  setScopeId?(el: HostElement, id: string): void
+  // 插入静态内容（静态节点提升，hoisted static 优化）
   insertStaticContent?(
     content: string,
     parent: HostElement,
@@ -140,7 +140,7 @@ function baseCreateRenderer(options: RendererOptions): any {
         break
       default:
         if (shapeFlag & ShapeFlags.ELEMENT) {
-          //文本
+          // 普通元素
           processElement(oldVNode, newVNode, container, anchor)
         } else if (shapeFlag & ShapeFlags.COMPONENT) {
           // 组件
@@ -298,8 +298,9 @@ const nodeOps = {
       return rect
     }
   },
-  patchProp(el, key, val) {
-    el[key] = val
+  // 渲染器调用 hostPatchProp 时，第三参 prev 是旧值，第四参 next 是新值
+  patchProp(el, key, prev, next) {
+    el[key] = next
   },
   insert(el, parent) {
     parent.addChild(el)
@@ -335,6 +336,6 @@ createApp(App).mount(app.stage)
 Ops）”开放给外部**，`createRenderer` 造就了 Vue 的繁荣生态。
 
 - **设计亮点**：闭包配合依赖注入，让长达数千行的 VDOM 渲染逻辑变得纯粹且可复用。
-- **性能优化**：在 `createBaseRenderer` 内部结合了块级树（Block Tree）和静态提升（Static Hoisting）的快速路径逻辑。
+- **性能优化**：在 `baseCreateRenderer` 内部结合了块级树（Block Tree）和静态提升（Static Hoisting）的快速路径逻辑。
 - **扩展性**：提供了 `createApp` 工厂，使得基于 Vue 语法的各种跨平台框架（如 Taro、UniApp 等基于 Vue 3
   的版本）能够轻松接入，极大地降低了框架底层的开发成本。

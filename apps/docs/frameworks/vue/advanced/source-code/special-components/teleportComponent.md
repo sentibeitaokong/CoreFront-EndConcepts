@@ -98,25 +98,36 @@ function process(
       insert(targetAnchor, target)
     }
 
-    // 3. 判断是否禁用传送
-    const disabled = n2.props && n2.props.disabled
-    // 根据 disabled 决定最终挂载的容器位置
-    //禁用就挂载在父容器中，不禁用就挂载在目标容器中
-    const mountLocation = disabled ? container : target
-    const mountAnchor = disabled ? mainAnchor : targetAnchor
+    // 3. 判断是否禁用传送：disabled 为 true 或空字符串（<Teleport disabled>）都算禁用
+    const disabled = isTeleportDisabled(n2.props)
 
-    // 4. 将实际的子节点挂载到计算好的容器中
-    mountChildren(
-      children,
-      mountLocation,
-      mountAnchor,
-      // ...
-    )
+    // 4. 根据 disabled / target 决定挂载位置
+    //    禁用 -> 留在原容器；启用且 target 存在 -> 挂载到目标容器；
+    //    target 为空且未禁用 -> 不挂载子节点
+    if (disabled) {
+      mountChildren(
+        children,
+        container,
+        mainAnchor,
+        // ...
+      )
+    } else if (target) {
+      mountChildren(
+        children,
+        target,
+        targetAnchor,
+        // ...
+      )
+    }
   } else {
     // 更新阶段 (Patch)
     // ...
   }
 }
+
+const isTeleportDisabled = (props: VNode['props']): boolean =>
+  props && (props.disabled || props.disabled === '')
+
 //调用解析函数，根据 n2.props.to 获取真实的 DOM 元素。
 //如果 to 是字符串，则通过 querySelector 查找 DOM；如果已经是 DOM 元素则直接返回。
 const resolveTarget = <T = RendererElement>(
@@ -152,73 +163,159 @@ const resolveTarget = <T = RendererElement>(
 
 ```typescript [Teleport.ts]
 function process(
-    n1: TeleportVNode | null,
-    n2: TeleportVNode,
-    container: RendererElement,
-    anchor: RendererNode | null,
-    parentComponent: ComponentInternalInstance | null,
-    parentSuspense: SuspenseBoundary | null,
-    isSVG: boolean,
-    slotScopeIds: string[] | null,
-    optimized: boolean,
-    internals: RendererInternals // 渲染器底层方法集
+  n1: TeleportVNode | null,
+  n2: TeleportVNode,
+  container: RendererElement,
+  anchor: RendererNode | null,
+  parentComponent: ComponentInternalInstance | null,
+  parentSuspense: SuspenseBoundary | null,
+  isSVG: boolean,
+  slotScopeIds: string[] | null,
+  optimized: boolean,
+  internals: RendererInternals, // 渲染器底层方法集
 ) {
-    if (n1 == null) {
-        // 首次挂载阶段 (Mount)
-        //...
-    } else {
-        // 更新阶段 (Patch)
-        // 1. 常规 Diff：对子节点内部进行比对更新
-        patchChildren(n1, n2, container, anchor, parentComponent, ...)
+  const {
+    mc: mountChildren,
+    pc: patchChildren,
+    pbc: patchBlockChildren,
+    o: { insert, querySelector, createText, createComment },
+  } = internals
+  let { shapeFlag, children, dynamicChildren } = n2
 
-        // 2. 判断属性变更
-        const wasDisabled = n1.props && n1.props.disabled
-        const isDisabled = n2.props && n2.props.disabled
-        const currentTarget = n1.target
-        const nextTarget = (n2.target = resolveTarget(n2.props, querySelector))
+  if (n1 == null) {
+    // 首次挂载阶段 (Mount)
+    //...
+  } else {
+    // 更新阶段 (Patch)
+    // 1. 先沿用上一次的锚点，并算出现有子节点真正所在的容器/锚点
+    n2.el = n1.el
+    const mainAnchor = (n2.anchor = n1.anchor)!
+    const target = (n2.target = n1.target)!
+    const targetAnchor = (n2.targetAnchor = n1.targetAnchor)!
+    const wasDisabled = isTeleportDisabled(n1.props)
+    const currentContainer = wasDisabled ? container : target
+    const currentAnchor = wasDisabled ? mainAnchor : targetAnchor
 
-        // 3. 物理移动策略
-        if (wasDisabled && !isDisabled) {
-            // 【禁用 -> 启用】：把 DOM 从原位置搬移到外部 target
-            moveTeleport(n2, nextTarget, nextTargetAnchor, internals, MoveType.TARGET_DIRTY)
-        } else if (!wasDisabled && isDisabled) {
-            // 【启用 -> 禁用】：把 DOM 从外部抽回来，搬回原位置的 mainAnchor
-            moveTeleport(n2, container, mainAnchor, internals, MoveType.TARGET_DIRTY)
-        } else if (!isDisabled && currentTarget !== nextTarget) {
-            // 【目标改变】：带着所有子节点集体搬迁到新 target
-            moveTeleport(n2, nextTarget, nextTargetAnchor, internals, MoveType.TARGET_DIRTY)
-        }
-
-        // 底层移动逻辑：遍历所有子 DOM 并使用原生的 insertBefore 移动，不销毁组件！
-        function moveTeleport(vnode, container, parentAnchor, internals) {
-            const { move } = internals
-            const children = vnode.children
-            for (let i = 0; i < children.length; i++) {
-                move(children[i], container, parentAnchor)
-            }
-        }
+    // 2. 在正确的容器中对子节点做 Diff
+    if (dynamicChildren) {
+      // block 优化路径
+      patchBlockChildren(
+        n1.dynamicChildren!,
+        dynamicChildren,
+        currentContainer,
+        parentComponent,
+        parentSuspense,
+        isSVG,
+        slotScopeIds,
+      )
+      // 让根级节点继承旧 DOM 引用，方便后续移动
+      traverseStaticChildren(n1, n2, true)
+    } else if (!optimized) {
+      patchChildren(
+        n1,
+        n2,
+        currentContainer,
+        currentAnchor,
+        parentComponent,
+        parentSuspense,
+        isSVG,
+        slotScopeIds,
+        false,
+      )
     }
+
+    // 3. 根据 disabled 与 to 的变化决定是否移动
+    const disabled = isTeleportDisabled(n2.props)
+    if (disabled) {
+      if (!wasDisabled) {
+        // 【启用 -> 禁用】：把 DOM 从 target 搬回原位置的 mainAnchor
+        moveTeleport(
+          n2,
+          container,
+          mainAnchor,
+          internals,
+          TeleportMoveTypes.TOGGLE,
+        )
+      }
+    } else {
+      if ((n2.props && n2.props.to) !== (n1.props && n1.props.to)) {
+        // 【目标改变】：搬到新 target；moveTeleport 内部会先搬 targetAnchor
+        const nextTarget = (n2.target = resolveTarget(n2.props, querySelector))
+        if (nextTarget) {
+          moveTeleport(
+            n2,
+            nextTarget,
+            null,
+            internals,
+            TeleportMoveTypes.TARGET_CHANGE,
+          )
+        }
+      } else if (wasDisabled) {
+        // 【禁用 -> 启用】：把 DOM 从原位置搬移到外部 target
+        moveTeleport(
+          n2,
+          target,
+          targetAnchor,
+          internals,
+          TeleportMoveTypes.TOGGLE,
+        )
+      }
+    }
+  }
+}
+
+const isTeleportDisabled = (props: VNode['props']): boolean =>
+  props && (props.disabled || props.disabled === '')
+
+// 底层移动逻辑：按 moveType 决定搬哪些锚点与子节点，不销毁组件！
+function moveTeleport(
+  vnode,
+  container,
+  parentAnchor,
+  { o: { insert }, m: move }: RendererInternals,
+  moveType = TeleportMoveTypes.REORDER,
+) {
+  // target 变化时先移动 targetAnchor
+  if (moveType === TeleportMoveTypes.TARGET_CHANGE) {
+    insert(vnode.targetAnchor!, container, parentAnchor)
+  }
+  const { el, anchor, shapeFlag, children, props } = vnode
+  const isReorder = moveType === TeleportMoveTypes.REORDER
+  if (isReorder) {
+    insert(el!, container, parentAnchor)
+  }
+  // 只有非 REORDER，或 Teleport 已禁用（内容在主视图）时才移动子节点
+  if (!isReorder || isTeleportDisabled(props)) {
+    if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+      for (let i = 0; i < children.length; i++) {
+        move(children[i], container, parentAnchor, MoveType.REORDER)
+      }
+    }
+  }
+  if (isReorder) {
+    insert(anchor!, container, parentAnchor)
+  }
 }
 //调用解析函数，根据 n2.props.to 获取真实的 DOM 元素。
 //如果 to 是字符串，则通过 querySelector 查找 DOM；如果已经是 DOM 元素则直接返回。
 const resolveTarget = <T = RendererElement>(
-    props: TeleportProps | null,
-    select: RendererOptions['querySelector']
+  props: TeleportProps | null,
+  select: RendererOptions['querySelector'],
 ): T | null => {
-    const targetSelector = props && props.to
-    if (isString(targetSelector)) {
-        // 1. 如果 to 是字符串，则作为 CSS 选择器去查找元素
-        if (!select) {
-            // 极端情况：如果环境没有提供 querySelector (如在某些测试环境)，返回 null
-            return null
-        } else {
-            const target = select(targetSelector)
-            return target as any
-        }
+  const targetSelector = props && props.to
+  if (isString(targetSelector)) {
+    // 1. 如果 to 是字符串，则作为 CSS 选择器去查找元素
+    if (!select) {
+      // 极端情况：如果环境没有提供 querySelector (如在某些测试环境)，返回 null
+      return null
     } else {
-        // 2. 如果是其他类型 (通常为真实 DOM 元素)，直接返回
-        return targetSelector as any
+      const target = select(targetSelector)
+      return target as any
     }
+  } else {
+    // 2. 如果是其他类型 (通常为真实 DOM 元素)，直接返回
+    return targetSelector as any
+  }
 }
 ```
 

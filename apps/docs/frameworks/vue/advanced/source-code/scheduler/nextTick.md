@@ -34,19 +34,20 @@ export function nextTick<T = void>(
 
 ## 3. 与调度器的协作
 
-调度器 `queueFlush` 利用 `nextTick` 来异步触发 `flushJobs`,负责在下一个微任务中执行刷新函数。
+方向要反过来理解：`queueFlush` 自己通过 `resolvedPromise.then(flushJobs)` 把刷新注册到下一个微任务，并把该 Promise 记录到 `currentFlushPromise`；`nextTick` 并不触发刷新，而是复用 `currentFlushPromise`，等 `flushJobs` 执行完成后再执行回调。
 
 :::code-group
 
 ```typescript [scheduler.ts]
 //对应 promise 的 pending 状态，保证同时只有一个微任务被注册
 let isFlushPending = false
+let isFlushing = false
 //当前的执行任务
 let currentFlushPromise: Promise<void> | null = null
 const resolvedPromise = Promise.resolve() as Promise<any>
 function queueFlush() {
-  //当队列已经在处理时，则不进入
-  if (!isFlushPending) {
+  //正在刷新或已有微任务在等待时，不重复注册
+  if (!isFlushing && !isFlushPending) {
     isFlushPending = true
     //返回执行结果
     currentFlushPromise = resolvedPromise.then(flushJobs)
@@ -61,23 +62,27 @@ function queueFlush() {
 ### 4.1 回调函数形式
 
 ```javascript
-import { nextTick } from 'vue'
+import { nextTick, ref } from 'vue'
 
-setup() {
-  const count = ref(0)
-  count.value++
+export default {
+  setup() {
+    const count = ref(0)
+    count.value++
 
-  nextTick(() => {
-    console.log('DOM 已更新')
-    // 操作 DOM 元素
-  })
+    nextTick(() => {
+      console.log('DOM 已更新')
+      // 操作 DOM 元素
+    })
+  },
 }
 ```
 
 ### 4.2 Promise 形式
 
 ```javascript
-import { nextTick } from 'vue'
+import { nextTick, ref } from 'vue'
+
+const count = ref(0)
 
 async function handleClick() {
   count.value++
@@ -92,6 +97,8 @@ async function handleClick() {
 
 ## 6. 与 Vue 2 的 `nextTick` 对比
 
+[width(17,42,41)]
+
 | 方面         | Vue 2                                                               | Vue 3                                              |
 | ------------ | ------------------------------------------------------------------- | -------------------------------------------------- |
 | 底层 API     | 优先 `Promise` → `MutationObserver` → `setImmediate` → `setTimeout` | 仅依赖 `Promise`（要求现代环境）                   |
@@ -100,9 +107,11 @@ async function handleClick() {
 
 ## 7. 总结
 
-| 组件                  | 实现核心                                              | 作用                                |
-| --------------------- | ----------------------------------------------------- | ----------------------------------- |
-| `nextTick`            | `Promise.resolve().then` + 共享 `currentFlushPromise` | 在 DOM 更新后执行回调               |
-| `resolvedPromise`     | 立即 resolve 的 Promise                               | 作为默认微任务生成器                |
-| `currentFlushPromise` | 调度器更新期间持有的 Promise                          | 确保回调等待完整的 `flushJobs` 完成 |
-| 降级策略              | 无（要求原生 Promise）                                | 通过 polyfill 支持旧浏览器          |
+[width(27,32,41)]
+
+| 组件                  | 实现核心                                              | 作用                                             |
+| --------------------- | ----------------------------------------------------- | ------------------------------------------------ |
+| `nextTick`            | `Promise.resolve().then` + 共享 `currentFlushPromise` | 在 DOM 更新后执行回调                            |
+| `resolvedPromise`     | 立即 resolve 的 Promise                               | 作为默认微任务生成器                             |
+| `currentFlushPromise` | 调度器更新期间持有的 Promise                          | 确保回调等待完整的 `flushJobs` 完成              |
+| 降级策略              | 无（要求原生 Promise）                                | 不内置 polyfill，旧浏览器需自行提供 Promise 实现 |

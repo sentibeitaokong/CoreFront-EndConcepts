@@ -56,7 +56,7 @@ function isRef(r: any): r is Ref {
 
 ```typescript [ref.ts]
 import { hasChanged } from '@vue/shared'
-import { toReactive } from './reactive'
+import { toReactive, isShallow, isReadonly, toRaw } from './reactive'
 import { Dep } from './dep'
 
 export interface Ref<T = any> {
@@ -86,14 +86,18 @@ class RefImpl<T> {
     return this._value
   }
   set value(newVal) {
+    // shallowRef 或传入 shallow/readonly 值时直接使用新值，不做深层转换
+    const useDirectValue =
+      this.__v_isShallow || isShallow(newVal) || isReadonly(newVal)
+    newVal = useDirectValue ? newVal : toRaw(newVal)
     //newVal 为新数据，this._rawValue 为旧数据（原始数据),对比两个数据是否发生了变化
     if (hasChanged(newVal, this._rawValue)) {
       // 更新原始数据
       this._rawValue = newVal
       // 更新 .value 的值
-      this._value = toReactive(newVal)
+      this._value = useDirectValue ? newVal : toReactive(newVal)
       // 触发依赖
-      triggerRefValue(this)
+      triggerRefValue(this, newVal)
     }
   }
 }
@@ -135,9 +139,11 @@ export const toReactive = <T extends unknown>(value: T): T =>
 ```typescript [ref.ts]
 import { createDep, Dep } from './dep'
 import { activeEffect, trackEffects } from './effect'
+import { toRaw } from './reactive'
 //收集依赖
 export function trackRefValue(ref) {
   if (isTracking()) {
+    ref = toRaw(ref)
     trackEffects(ref.dep || (ref.dep = createDep()))
   }
 }
@@ -183,8 +189,10 @@ export function trackEffects(dep: Dep) {
 
 ```typescript [ref.ts]
 import { triggerEffects } from './effect'
+import { toRaw } from './reactive'
 //触发依赖
 export function triggerRefValue(ref) {
+  ref = toRaw(ref)
   if (ref.dep) {
     triggerEffects(ref.dep)
   }
@@ -271,11 +279,10 @@ export function unref<T>(ref: T | Ref<T>): T {
 
 ### `toRef`
 
-可以将值、`refs` 或 `getters` 规范化为 `refs`。
-
-也可以基于响应式对象上的一个属性，创建一个对应的 `ref`。这样创建的 `ref` 与其源属性保持同步：改变源属性的值将更新 `ref` 的值，反之亦然。
+该实现基于响应式对象上的一个属性，创建一个对应的 `ref`。这样创建的 `ref` 与其源属性保持同步：改变源属性的值将更新 `ref` 的值，反之亦然。
 
 ```typescript
+// Vue 3.2实现
 // 核心类：对象属性引用
 class ObjectRefImpl {
   constructor(object, key) {

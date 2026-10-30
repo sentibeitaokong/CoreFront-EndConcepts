@@ -183,13 +183,17 @@ Vue 3 的解析器并没有显式的状态变量，而是通过**函数调用**�
 :::code-group
 
 ```typescript [parse.ts]
-function parseChildren(context: ParserContext, ancestors: ElementNode[]) {
+function parseChildren(
+  context: ParserContext,
+  mode: TextModes,
+  ancestors: ElementNode[],
+) {
   const nodes = []
-  while (!isEnd(context, ancestors)) {
+  while (!isEnd(context, mode, ancestors)) {
     const s = context.source
     let node
     if (startsWith(s, '{{')) {
-      node = parseInterpolation(context) // → 插值状态
+      node = parseInterpolation(context, mode) // → 插值状态
     } else if (s[0] === '<') {
       if (/[a-z]/i.test(s[1])) {
         node = parseElement(context, ancestors) // → 元素状态
@@ -198,7 +202,7 @@ function parseChildren(context: ParserContext, ancestors: ElementNode[]) {
       }
     }
     if (!node) {
-      node = parseText(context) // → 保持文本状态
+      node = parseText(context, mode) // → 保持文本状态
     }
     nodes.push(node)
   }
@@ -218,7 +222,7 @@ function parseChildren(context: ParserContext, ancestors: ElementNode[]) {
 
 ```json
 {
-  "type": 1, // NodeTypes.ELEMENT (元素节点)
+  "type": 1, // NodeTypes.ELEMENT (根节点的第一个子元素，外层是 ROOT)
   "tag": "div",
   "isSelfClosing": false,
   "props": [
@@ -298,7 +302,7 @@ export function transform(root, options) {
   }
 
   // 5. 将收集到的辅助函数 (如 _openBlock, _createElementVNode) 挂载到根节点
-  root.helpers = [...context.helpers]
+  root.helpers = new Set([...context.helpers.keys()])
 }
 function traverseNode(node, context) {
   // 获取所有插件
@@ -330,7 +334,7 @@ function traverseNode(node, context) {
 
 #### 4.1.2 **插件系统：职责分离的转换单元**
 
-每个转换插件都是一个函数（或有 `enter`/`exit` 两个属性的对象），接收当前节点和 `TransformContext`，可以修改节点、向上下文注入信息，或从上下文中读取状态。
+每个转换插件都是一个函数（`NodeTransform`），接收当前节点和 `TransformContext`，可以修改节点、向上下文注入信息，或从上下文中读取状态。函数体本身就是 `enter` 阶段，若它返回一个函数，则该函数会在子节点处理完后作为 `exit` 阶段调用。
 
 [width(27,73)]
 
@@ -353,16 +357,16 @@ function traverseNode(node, context) {
 
 [width(35,65)]
 
-| 指令/结构                       | 编译行为                                                                          |
-| ------------------------------- | --------------------------------------------------------------------------------- |
-| `v-if` / `v-else-if` / `v-else` | 编译为三元表达式 `(condition) ? trueBlock : falseBlock`，并划分 Block 边界        |
-| `v-for`                         | 编译为 `_renderList(list, (item, index) => { ... })` 调用，每次循环生成独立 Block |
-| `v-on` / `@`                    | 事件绑定转换为 `onXxx` 属性，并标记 `HYDRATE_EVENTS`                              |
-| `v-bind` / `:`                  | 动态属性转换为属性值表达式，可能标记 `PROPS` 或 `FULL_PROPS`                      |
-| `v-model`                       | 按平台展开为 `:value` + `@input` 等对应绑定                                       |
-| `v-show`                        | 编译为 `v-show` 指令，生成条件展示逻辑                                            |
-| `v-once`                        | 标记为静态内容，跳过后续变更                                                      |
-| `<slot>`                        | 转换为插槽渲染函数调用                                                            |
+| 指令/结构                       | 编译行为                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------- |
+| `v-if` / `v-else-if` / `v-else` | 编译为三元表达式 `(condition) ? trueBlock : falseBlock`，并划分 Block 边界            |
+| `v-for`                         | 编译为 `_renderList(list, (item, index) => { ... })` 调用，每次循环生成独立 Block     |
+| `v-on` / `@`                    | 事件绑定转换为 `onXxx` 属性，并标记 `HYDRATE_EVENTS`（`@click` 例外，只标记 `PROPS`） |
+| `v-bind` / `:`                  | 动态属性转换为属性值表达式，可能标记 `PROPS` 或 `FULL_PROPS`                          |
+| `v-model`                       | 按平台展开为 `:value` + `@input` 等对应绑定                                           |
+| `v-show`                        | 编译为 `v-show` 指令，生成条件展示逻辑                                                |
+| `v-once`                        | 标记为静态内容，跳过后续变更                                                          |
+| `<slot>`                        | 转换为插槽渲染函数调用                                                                |
 
 ### 4.3 编译时优化技术
 
@@ -372,21 +376,28 @@ function traverseNode(node, context) {
 
 如果某个节点及其子树完全不依赖于任何响应式数据，则会被标记为“**静态**”。在代码生成阶段，这些节点的创建逻辑会被**提升到渲染函数外部**，无论组件重新渲染（Re-render）多少次，被提升的节点只在初始化时创建一次。后续渲染直接复用同一个内存地址，极大地降低了内存占用和垃圾回收 (GC) 的压力。
 
-```js
-// 编译前模板
-;<div>
+```html
+<!-- 编译前模板 -->
+<div>
   <span>静态文本</span>
   <p>{{ msg }}</p>
 </div>
+```
 
+```js
 // 转换后生成的代码（示意）
-const _hoisted_1 = /*#__PURE__*/ _createStaticVNode('<span>静态文本</span>')
+const _hoisted_1 = /*#__PURE__*/ _createElementVNode(
+  'span',
+  null,
+  '静态文本',
+  -1 /* HOISTED */,
+)
 export function render(_ctx) {
   return (
     _openBlock(),
     _createElementBlock('div', null, [
       _hoisted_1,
-      _createTextVNode(_toDisplayString(_ctx.msg), 1 /* TEXT */),
+      _createElementVNode('p', null, _toDisplayString(_ctx.msg), 1 /* TEXT */),
     ])
   )
 }
@@ -403,18 +414,20 @@ export function render(_ctx) {
 
 常见的 `PatchFlag`：
 
-[width(26,38,36)]
+[width(26,39,35)]
 
-| PatchFlag 常量        | 含义                                   | 触发示例                        |
-| --------------------- | -------------------------------------- | ------------------------------- |
-| `TEXT` (1)            | 文本内容是动态的                       | `<p>{{ msg }}</p>`              |
-| `CLASS` (2)           | class 属性是动态的                     | `<div :class="c">`              |
-| `STYLE` (4)           | style 是动态的                         | `<div :style="s">`              |
-| `PROPS` (8)           | 除 class / style 以外的 props 是动态的 | `<div :id="id">`                |
-| `FULL_PROPS` (16)     | 存在动态 key（需要完整 diff props）    | `<div v-bind="obj">`            |
-| `HYDRATE_EVENTS` (32) | 存在需要水合的事件                     | `<div @click="handler">`        |
-| `NEED_PATCH` (64)     | 需要递归 patch 子节点                  | 动态子节点，如 `v-for` / `slot` |
-| `DYNAMIC_SLOTS` (512) | 动态插槽                               | `<slot name="dynamicName">`     |
+| PatchFlag 常量         | 含义                                         | 触发示例                                        |
+| ---------------------- | -------------------------------------------- | ----------------------------------------------- |
+| `TEXT` (1)             | 文本内容是动态的                             | `<p>{{ msg }}</p>`                              |
+| `CLASS` (2)            | class 属性是动态的                           | `<div :class="c">`                              |
+| `STYLE` (4)            | style 是动态的                               | `<div :style="s">`                              |
+| `PROPS` (8)            | 除 class / style 以外的 props 是动态的       | `<div :id="id">`                                |
+| `FULL_PROPS` (16)      | 存在动态 key（需要完整 diff props）          | `<div v-bind="obj">`                            |
+| `HYDRATE_EVENTS` (32)  | 存在需要水合的事件（`click` 除外）           | `<div @mouseover="handler">`                    |
+| `NEED_PATCH` (512)     | 需要额外 patch 的非 props 内容（ref / 指令） | `<div ref="r">`                                 |
+| `DYNAMIC_SLOTS` (1024) | 组件存在动态插槽                             | `<Comp><template #[name]>...</template></Comp>` |
+
+需要注意：`@click` 会被排除在 `HYDRATE_EVENTS` 之外，实际只得到 `8 /* PROPS */`，`@mouseover` 才会得到 `40 /* PROPS, HYDRATE_EVENTS */`（3.5 起该常量改名为 `NEED_HYDRATION`）；`NEED_PATCH` 来自 `ref`、`onVnodeXXX` 等 VNode 钩子或自定义指令，`v-for` 生成的是 Fragment（如 `256 /* UNKEYED_FRAGMENT */`），而 `<slot>` 出口本身不带 `DYNAMIC_SLOTS`。
 
 #### 4.3.3 块级追踪（Block Tree）
 
@@ -463,7 +476,7 @@ export function render(_ctx, _cache) {
 
 ```json
 {
-  "type": 1, // NodeTypes.ELEMENT (元素节点)
+  "type": 1, // NodeTypes.ELEMENT (根节点的第一个子元素，外层是 ROOT)
   "tag": "div",
   "isSelfClosing": false,
   "props": [
@@ -518,47 +531,52 @@ export function render(_ctx, _cache) {
   "codegenNode": {
     "type": 13, // NodeTypes.VNODE_CALL (创建 VNode 的调用)
     "tag": "\"div\"", // 标签名被转成了字符串字面量
+    // 静态 props 在 hoistStatic 阶段被提升为模块级常量 _hoisted_1
     "props": {
       "type": 4, // NodeTypes.SIMPLE_EXPRESSION
-      "content": "{ class: \"box\" }",
-      "isStatic": true
+      "content": "_hoisted_1",
+      "isStatic": false
     },
     "children": [
-      // 1. 复合表达式节点 (由 transformText 插件合并生成)
+      // 1. 文本调用节点 (由 transformText 插件生成)
       {
-        "type": 8, // NodeTypes.COMPOUND_EXPRESSION
-        "children": [
-          "Hello ",
-          " + ",
-          {
-            "type": 14, // NodeTypes.JS_CALL_EXPRESSION (函数调用)
-            "callee": "_toDisplayString", // 引入运行时辅助函数
-            "arguments": [
-              {
-                "type": 4, // NodeTypes.SIMPLE_EXPRESSION
-                "content": "_ctx.name", // 注入了 _ctx 前缀
-                "isStatic": false
-              }
-            ]
-          },
-          " + ",
-          " " // 紧跟在插值后的空格
-        ]
+        "type": 12, // NodeTypes.TEXT_CALL
+        "content": {
+          "type": 8, // NodeTypes.COMPOUND_EXPRESSION
+          "children": [
+            "Hello ",
+            " + ",
+            {
+              "type": 14, // NodeTypes.JS_CALL_EXPRESSION (函数调用)
+              "callee": "_toDisplayString", // 引入运行时辅助函数
+              "arguments": [
+                {
+                  "type": 4, // NodeTypes.SIMPLE_EXPRESSION
+                  "content": "_ctx.name", // 注入了 _ctx 前缀
+                  "isStatic": false
+                }
+              ]
+            },
+            " + ",
+            " " // 紧跟在插值后的空格
+          ]
+        },
+        // codegen 阶段生成 _createTextVNode(..., 1 /* TEXT */)
+        "codegenNode": {
+          "type": 14, // NodeTypes.JS_CALL_EXPRESSION
+          "callee": "_createTextVNode",
+          "arguments": [
+            { "type": 8 }, // 即上方的 COMPOUND_EXPRESSION
+            1 // PatchFlags.TEXT
+          ]
+        }
       },
-      // 2. 注释节点调用
+      // 2. 注释节点 (由 genComment 生成 _createCommentVNode(" 注释 "))
       {
-        "type": 13, // NodeTypes.VNODE_CALL
-        "callee": "_createCommentVNode",
-        "arguments": [
-          {
-            "type": 2, // NodeTypes.TEXT
-            "content": " 注释 "
-          }
-        ]
+        "type": 3, // NodeTypes.COMMENT
+        "content": " 注释 "
       }
     ],
-    // 靶向更新标记 (计算得出只有文本是动态的)
-    "patchFlag": "1 /* TEXT */",
     "dynamicProps": null,
     "isBlock": true // 因为是根节点，自动成为 Block 收集动态子节点
   }
@@ -597,16 +615,22 @@ export function generate(
   const context = createCodegenContext(ast, options)
 
   // 2. 解构出上下文中常用的拼接方法
-  const { push, newline, indent, deindent } = context
+  const { push, newline, indent, deindent, mode } = context
 
   // 3. 生成前置代码 (Preamble)
-  // 包括：import 引入辅助函数、声明静态提升变量 (hoists)
-  genFunctionPreamble(ast, context)
+  // module 模式由 genModulePreamble 生成 import 语句和 `export ` 前缀
+  // function 模式由 genFunctionPreamble 生成 `const _Vue = Vue` 和 `return ` 前缀
+  if (mode === 'module') {
+    genModulePreamble(ast, context, false)
+  } else {
+    genFunctionPreamble(ast, context)
+  }
 
   // 4. 生成渲染函数的函数签名
-  // 例如：export function render(_ctx, _cache) {
+  // module 模式下与前缀拼成：export function render(_ctx, _cache) {
+  // function 模式下与前缀拼成：return function render(_ctx, _cache) {
   const args = ['_ctx', '_cache']
-  const signature = `export function render(${args.join(', ')}) {`
+  const signature = `function render(${args.join(', ')}) {`
   push(signature)
   indent() // 缩进级别 +1
 
@@ -648,7 +672,12 @@ export function render(_ctx, _cache) {
 `transform` 阶段将纯静态节点收集到 `context.hoists` 中。代码生成阶段为每个提升节点生成对应的常量声明，放在渲染函数外部：
 
 ```javascript
-const _hoisted_1 = /*#__PURE__*/ _createStaticVNode('<span>静态文本</span>')
+const _hoisted_1 = /*#__PURE__*/ _createElementVNode(
+  'span',
+  null,
+  '静态文本',
+  -1 /* HOISTED */,
+)
 ```
 
 这些常量只在模块初始化时创建一次，后续每次渲染直接复用，避免重复创建 VNode。
@@ -686,7 +715,7 @@ _createElementBlock(
 
 #### 5.2.5 生成辅助函数导入
 
-编译过程中使用到的辅助函数（如 `toDisplayString`、`createElementBlock`、`openBlock` 等）会被 `transform` 阶段收集到 `context.helpers` 集合中。代码生成阶段通过 `generateImports` 函数，从 `vue` 包中按需导入这些辅助函数：
+编译过程中使用到的辅助函数（如 `toDisplayString`、`createElementBlock`、`openBlock` 等）会被 `transform` 阶段收集到 `context.helpers` 集合中。代码生成阶段在 module 模式下由 `genModulePreamble` 生成从 `vue` 包按需导入这些辅助函数的 import 语句（用户自定义 import 则由 `genImports` 处理）：
 
 ```javascript
 import {
@@ -709,7 +738,7 @@ _createElementBlock('div', null, children, 1 /* TEXT */)
 如果存在动态属性列表（`dynamicProps`），也会一并传入，以便运行时 diff 时跳过无需检查的属性：
 
 ```javascript
-_createElementBlock('div', null, children, 8 /* PROPS */, ['id', 'class'])
+_createElementBlock('div', null, children, 10 /* CLASS, PROPS */, ['id'])
 ```
 
 #### 5.2.7 处理 Block Tree
@@ -760,7 +789,10 @@ onClick: _cache[0] || (_cache[0] = $event => _ctx.handleClick($event))
   ],
   "components": [],
   "directives": [],
-  "hoists": [], // 如果有多个静态节点会被收集到这里
+  "hoists": [
+    // 被提升的静态 props 对象，即渲染函数外的 const _hoisted_1 = { class: "box" }
+    { "type": 15 } // NodeTypes.JS_OBJECT_EXPRESSION
+  ],
   "temps": 0,
   "cached": 0,
 
@@ -770,8 +802,8 @@ onClick: _cache[0] || (_cache[0] = $event => _ctx.handleClick($event))
     "tag": "\"div\"",
     "props": {
       "type": 4, // NodeTypes.SIMPLE_EXPRESSION
-      "content": "{ class: \"box\" }",
-      "isStatic": true
+      "content": "_hoisted_1",
+      "isStatic": false
     },
     "children": [
       // transformText 插件生成的复合表达式
@@ -811,13 +843,15 @@ import {
   createElementBlock as _createElementBlock,
 } from 'vue'
 
+const _hoisted_1 = { class: 'box' }
+
 export function render(_ctx, _cache) {
   return (
     _openBlock(),
     _createElementBlock(
       'div',
-      { class: 'box' },
-      ['Hello ' + _toDisplayString(_ctx.name)],
+      _hoisted_1,
+      'Hello ' + _toDisplayString(_ctx.name),
       1 /* TEXT */,
     )
   )

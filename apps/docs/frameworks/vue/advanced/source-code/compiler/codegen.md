@@ -9,7 +9,7 @@
 - **技术特点**：
   - 递归下降翻译器（`genNode` 根据节点类型分派到具体生成函数）
   - 字符串拼接驱动（通过 `CodegenContext.push` 逐步构建代码）
-  - 按需导入辅助函数（`generateImports` 生成 `import { ... } from "vue"` 语句）
+  - 按需导入辅助函数（module 模式下由 `genModulePreamble` 生成 `import { ... } from "vue"` 语句）
   - 优化信息直接注入（`PatchFlag`、`dynamicProps` 作为数字和数组参数写入调用）
   - 静态提升常量前置声明（`hoists` 提取为模块级 `const`，放在函数外部）
   - Block Tree 代码生成（`openBlock` / `createElementBlock` 配合，实现扁平化 diff）
@@ -26,7 +26,6 @@
 ```typescript [codegen.ts]
 interface CodegenContext {
   code: string // 正在构建的代码字符串
-  preamble: string // 前置代码（静态常量声明等）
   source: string // 原始模板，用于 Source Map
   indentLevel: number // 当前缩进级别
   push(code: string): void // 向 code 追加字符串
@@ -34,8 +33,6 @@ interface CodegenContext {
   deindent(): void // 减少一级缩进
   newline(): void // 换行并追加缩进
   helper(key: symbol): string // 获取辅助函数的别名（如 _openBlock）
-  pushScope(): void // 进入新的作用域
-  popScope(): void // 退出作用域
 }
 ```
 
@@ -51,7 +48,7 @@ interface CodegenContext {
 interface CodegenResult {
   code: string // 最终生成的 JavaScript 渲染函数的主体代码字符串。
   ast: RootNode // 经过 parse 解析、transform 转换并最终用于生成代码的 完整抽象语法树根节点
-  preamble: string // 辅助函数导入 + 前置常量声明
+  preamble: string // 仅 inline（setup 内联）模式有值，存放子上下文生成的前置代码；普通编译时为空串
   map?: SourceMap // Source Map（源码映射）对象(可选)
 }
 ```
@@ -71,18 +68,49 @@ export function generate(
 ): CodegenResult {
   // 1. 创建代码生成上下文（工作台）
   const context = createCodegenContext(ast, options)
-  const { push, indent, deindent } = context
+  const { push, indent, deindent, mode, prefixIdentifiers } = context
+  const useWithBlock = !prefixIdentifiers && mode !== 'module'
+  // setup 内联模式会使用独立子上下文生成 preamble
+  const isSetupInlined = !__BROWSER__ && !!options.inline
+  const preambleContext = isSetupInlined
+    ? createCodegenContext(ast, options)
+    : context
 
-  // 2. 生成前置代码（引入 helper 辅助函数、静态提升变量等）
-  genFunctionPreamble(ast, context)
+  // 2. 按 mode 生成前置代码：
+  //    module 模式 → genModulePreamble（生成 import，并追加 export）
+  //    function 模式 → genFunctionPreamble（生成 const _Vue = Vue 与 return）
+  if (!__BROWSER__ && mode === 'module') {
+    genModulePreamble(
+      ast,
+      preambleContext,
+      /* genScopeId */ false,
+      isSetupInlined,
+    )
+  } else {
+    genFunctionPreamble(ast, preambleContext)
+  }
 
-  // 3. 生成函数签名
+  // 3. 生成函数签名（module 模式的 export 已由 genModulePreamble 追加）
   const functionName = `render`
   const args = ['_ctx', '_cache']
-  const signature = `export function ${functionName}(${args.join(', ')}) {`
+  const signature = `function ${functionName}(${args.join(', ')}) {`
 
   push(signature)
   indent() // 进入函数体，缩进级别 +1
+
+  // function 模式使用 with (_ctx) { ... }，helpers 在 with 块内解构
+  if (useWithBlock) {
+    push(`with (_ctx) {`)
+    indent()
+    // helpers 在 with 块内从 _Vue 解构
+    if (ast.helpers.size) {
+      const helpers = Array.from(ast.helpers)
+      push(
+        `const { ${helpers.map(s => `${helperNameMap[s]}: _${helperNameMap[s]}`).join(', ')} } = _Vue`,
+      )
+      push(`\n`)
+    }
+  }
 
   // 4. 生成函数体（核心执行）
   push(`return `)
@@ -94,6 +122,10 @@ export function generate(
   }
 
   // 5. 收尾闭合
+  if (useWithBlock) {
+    deindent()
+    push(`}`)
+  }
   deindent() // 退出函数体，缩进级别 -1
   push(`}`)
 
@@ -101,6 +133,8 @@ export function generate(
   return {
     ast,
     code: context.code,
+    // 只有 setup 内联模式会在独立子上下文中生成 preamble
+    preamble: isSetupInlined ? preambleContext.code : ``,
     map: context.map ? context.map.toJSON() : undefined,
   }
 }
@@ -194,57 +228,64 @@ export const helperNameMap: any = {
 
 :::
 
-### 3.2 `genFunctionPreamble`: 前置代码生成器
+### 3.2 `genModulePreamble` / `genFunctionPreamble`: 前置代码生成器
 
 它的核心任务只有两件事：“**引入运行时工具库**” 和 “**声明静态常量**”。
 
 :::code-group
 
 ```typescript [codegen.ts]
-function genFunctionPreamble(ast, context) {
-  const {
-    push,
-    newline,
-    runtimeGlobalName,
-    runtimeModuleName,
-    prefixIdentifiers,
-  } = context
+function genModulePreamble(ast, context, genScopeId, inline) {
+  const { push, newline, runtimeModuleName } = context
 
-  // 准备弹药：注入运行时 Helpers
-  if (ast.helpers.length > 0) {
-    // 场景 A：Module 模式 (针对 Vite/Webpack 等构建工具)
+  // ast.helpers 是 Set，要先 Array.from 才能 map
+  const helpers = Array.from(ast.helpers)
+  if (helpers.length > 0) {
     // 目标产物: import { createVNode as _createVNode } from "vue"
-    if (prefixIdentifiers) {
-      const imports = ast.helpers
-        .map(s => `${helperNameMap[s]} as _${helperNameMap[s]}`)
-        .join(', ')
-      push(`import { ${imports} } from "${runtimeModuleName}"\n`)
-    }
-    // 场景 B：Function 模式 (针对浏览器直接 <script> 引入)
-    // 目标产物: const { createVNode: _createVNode } = Vue
-    else {
-      const helpers = ast.helpers
-        .map(s => `${helperNameMap[s]}: _${helperNameMap[s]}`)
-        .join(', ')
-      push(`const { ${helpers} } = ${runtimeGlobalName}\n`)
-    }
+    const imports = helpers
+      .map(s => `${helperNameMap[s]} as _${helperNameMap[s]}`)
+      .join(', ')
+    push(`import { ${imports} } from "${runtimeModuleName}"\n`)
   }
-  newline() // 换行，保持代码整洁
 
-  // 性能外挂：生成静态提升 (Hoists)
-  if (ast.hoists.length > 0) {
-    // 遍历所有在 transform 阶段被标记为纯静态的节点
-    ast.hoists.forEach((hoistNode, i) => {
-      if (hoistNode) {
-        // 声明全局常量名，按索引递增，如：_hoisted_1, _hoisted_2
-        push(`const _hoisted_${i + 1} = `)
-        // 核心魔法：将静态节点丢给 genNode，递归拼接出创建该节点的 JS 代码
-        genNode(hoistNode, context)
-        newline()
-      }
-    })
-  }
+  genHoists(ast.hoists, context)
   newline()
+
+  // module 模式的 export 前缀在这里追加，后面紧跟 function render
+  if (!inline) {
+    push(`export `)
+  }
+}
+
+function genFunctionPreamble(ast, context) {
+  const { push, newline, runtimeGlobalName } = context
+
+  const helpers = Array.from(ast.helpers)
+  if (helpers.length > 0) {
+    // function / with 模式：先把 Vue 存到独立的 _Vue，避免与用户变量冲突；
+    // helpers 的 const 解构会放在后面 with (_ctx) { ... } 块内部
+    push(`const _Vue = ${runtimeGlobalName}\n`)
+  }
+
+  genHoists(ast.hoists, context)
+  newline()
+  // function 模式下 render 函数本身也是被 return 出去的
+  push(`return `)
+}
+
+function genHoists(hoists, context) {
+  if (!hoists.length) return
+  const { push, newline } = context
+  // 遍历所有在 transform 阶段被标记为纯静态的节点
+  hoists.forEach((hoistNode, i) => {
+    if (hoistNode) {
+      // 声明全局常量名，按索引递增，如：_hoisted_1, _hoisted_2
+      push(`const _hoisted_${i + 1} = `)
+      // 核心魔法：将静态节点丢给 genNode，递归拼接出创建该节点的 JS 代码
+      genNode(hoistNode, context)
+      newline()
+    }
+  })
 }
 ```
 
@@ -258,12 +299,18 @@ function genFunctionPreamble(ast, context) {
 
 ```typescript [codegen.ts]
 // 极简版 genNode 核心调度器
+import { isSymbol } from '@vue/shared'
 import { NodeTypes } from './ast'
 
 function genNode(node, context) {
   // 1. 如果是最基础的纯字符串，直接让 context 拼接写入，结束战斗
   if (typeof node === 'string') {
     context.push(node)
+    return
+  }
+  // 1.1 如果是 Symbol（runtime helper），先转成 _xxx 别名再写入
+  if (isSymbol(node)) {
+    context.push(context.helper(node))
     return
   }
   // 2. 核心分发：根据 AST 节点的类型 (type)，派发给专属的“子生成器”
@@ -288,7 +335,7 @@ function genNode(node, context) {
 
     // 第二类：虚拟 DOM 与函数调用 (最核心)
     case NodeTypes.VNODE_CALL:
-      // 处理元素节点：生成 _createVNode("div", null, ...)
+      // 处理元素节点：根元素会生成 _createElementBlock("div", null, ...)
       genVNodeCall(node, context)
       break
     case NodeTypes.JS_CALL_EXPRESSION:
@@ -365,9 +412,10 @@ function genText(node, context) {
 
 ```typescript [codegen.ts]
 function genExpression(node, context) {
-  // 表达式通常是变量名或简单的 JS 语句，不需要加引号，直接拼接
+  // isStatic 为 true 表示这是静态字符串字面量，必须用 JSON.stringify 加引号；
+  // 否则是变量名或 JS 表达式，直接拼接
   // 在 module 模式下，这里的 node.content 可能在 transform 阶段已经被处理成了 "_ctx.msg"
-  context.push(node.content)
+  context.push(node.isStatic ? JSON.stringify(node.content) : node.content)
 }
 ```
 
@@ -426,25 +474,38 @@ function genCompoundExpression(node, context) {
 
 ### 4.2 核心虚拟 DOM 生成器（重中之重）
 
-这是 Vue 渲染能力的核心，负责将 HTML 标签转化为 `_createVNode` 函数调用。
+这是 Vue 渲染能力的核心，负责将 HTML 标签转化为 `_createElementVNode` / `_createElementBlock`（组件则是 `_createVNode` / `_createBlock`）函数调用。
 
 #### 4.2.1 `genVNodeCall` (处理元素节点)
 
-以 `<div>文本</div>` 转化为 `_createVNode("div", null, "文本", -1)` 为例。
+以 `<div>文本</div>` 转化为 `(_openBlock(), _createElementBlock("div", null, "文本"))` 为例（根元素会被升级为 Block，普通元素使用 `createElementBlock` 而不是 `createVNode`）。
 
 :::code-group
 
 ```typescript [codegen.ts]
 function genVNodeCall(node, context) {
   const { push, helper } = context
-  const { tag, props, children, patchFlag, dynamicProps, isBlock } = node
+  const {
+    tag,
+    props,
+    children,
+    patchFlag,
+    dynamicProps,
+    isBlock,
+    isComponent,
+  } = node
 
-  // 1. 判断是创建普通 VNode 还是 Block 节点
-  const callHelper = isBlock ? CREATE_BLOCK : CREATE_VNODE
+  // 1. 判断是创建普通 VNode 还是 Block 节点，
+  //    以及是组件还是普通元素：
+  //    非组件用 CREATE_ELEMENT_VNODE / CREATE_ELEMENT_BLOCK，
+  //    组件用 CREATE_VNODE / CREATE_BLOCK
+  const callHelper = isBlock
+    ? getVNodeBlockHelper(context.inSSR, isComponent)
+    : getVNodeHelper(context.inSSR, isComponent)
   if (isBlock) {
     push(`(${helper(OPEN_BLOCK)}(), `)
   }
-  push(`${helper(callHelper)}(`) // 例如拼出 "_createVNode("
+  push(`${helper(callHelper)}(`) // 例如普通元素根节点会拼出 "_createElementBlock("
 
   // 2. 递归生成标签名、属性、子节点
   const args = [tag, props, children, patchFlag, dynamicProps]
@@ -484,20 +545,15 @@ function genVNodeCall(node, context) {
 
 ```typescript [codegen.ts]
 function genCallExpression(node, context) {
-  const { push } = context
-  const callee = node.callee // 调用的函数名 (如: '_createVNode')
+  const { push, helper } = context
   const args = node.arguments // 传递的参数数组 (如: ['div', null, 'msg'])
 
   // 1. 打印函数名 (Callee)
-  // 如果是普通字符串标识符直接 push，如果是复杂结构（闭包/其他函数产物）则丢回 genNode 递归
-  if (typeof callee === 'string') {
-    push(callee)
-  } else {
-    genNode(callee, context)
-  }
+  // callee 是字符串时直接输出；是 Symbol(runtime helper) 时先用 helper() 转成 _xxx 别名
+  const callee = isString(node.callee) ? node.callee : helper(node.callee)
 
   // 2. 打印左括号
-  push(`(`)
+  push(callee + `(`)
 
   // 3. 打印参数列表 (Arguments)
   // 借助通用的 genNodeList 方法，把数组里的参数逐个打印出来，并用逗号拼接
@@ -634,13 +690,31 @@ function genObjectExpression(node, context) {
     const prop = node.properties[i]
     if (i > 0) push(`, `)
 
-    // 递归生成 Key
-    genNode(prop.key, context)
+    // Key 必须走 genExpressionAsPropertyKey：
+    // 静态字符串键要按需加引号（如 "data-id"），计算键要输出 [expr]
+    genExpressionAsPropertyKey(prop.key, context)
     push(`: `)
     // 递归生成 Value
     genNode(prop.value, context)
   }
   push(` }`)
+}
+
+function genExpressionAsPropertyKey(node, context) {
+  const { push } = context
+  if (node.type === NodeTypes.COMPOUND_EXPRESSION) {
+    push(`[`)
+    genCompoundExpression(node, context)
+    push(`]`)
+  } else if (node.isStatic) {
+    // 简单标识符可以不加引号，其余静态字符串必须 JSON.stringify
+    const text = isSimpleIdentifier(node.content)
+      ? node.content
+      : JSON.stringify(node.content)
+    push(text)
+  } else {
+    push(`[${node.content}]`)
+  }
 }
 ```
 
@@ -667,6 +741,7 @@ function genObjectExpression(node, context) {
 
   // 核心看点 1：全局收集的 Helpers 集合
   // Transform 阶段所有的插件在这里“交接”了它们需要的运行时方法
+  // 注意：源码中 root.helpers 是 Set<symbol>，这里按展开后的数组展示
   "helpers": [
     "Symbol(openBlock)", // 用于开启区块 (Block) 追踪
     "Symbol(createElementBlock)", // 用于创建基础元素区块
@@ -683,32 +758,31 @@ function genObjectExpression(node, context) {
     "type": 13, // NodeTypes.VNODE_CALL (创建虚拟节点的函数调用)
     "tag": "\"div\"",
     "props": {
-      "type": 4, // NodeTypes.SIMPLE_EXPRESSION
-      "content": "{ class: \"box\" }",
-      "isStatic": true
+      "type": 15, // NodeTypes.JS_OBJECT_EXPRESSION
+      "properties": [
+        {
+          "type": 16, // NodeTypes.JS_PROPERTY
+          "key": { "type": 4, "content": "class", "isStatic": true },
+          "value": { "type": 4, "content": "box", "isStatic": true }
+        }
+      ]
     },
-    "children": [
-      // transformText 插件生成的复合表达式
-      {
-        "type": 8, // NodeTypes.COMPOUND_EXPRESSION
-        "children": [
-          "Hello ",
-          " + ",
-          {
-            "type": 14, // NodeTypes.JS_CALL_EXPRESSION (JS 函数调用)
-            // 注意这里：直接引用了全局 helpers 里的 Symbol
-            "callee": "Symbol(toDisplayString)",
-            "arguments": [
-              {
-                "type": 4, // NodeTypes.SIMPLE_EXPRESSION
-                "content": "_ctx.name", // transformExpression 注入的作用域前缀
-                "isStatic": false
-              }
-            ]
+    "children": {
+      // 单文本子节点直接就是复合表达式，不会被包成数组
+      "type": 8, // NodeTypes.COMPOUND_EXPRESSION
+      "children": [
+        { "type": 2, "content": "Hello " },
+        " + ",
+        {
+          "type": 5, // NodeTypes.INTERPOLATION（不是 JS_CALL_EXPRESSION）
+          "content": {
+            "type": 4, // NodeTypes.SIMPLE_EXPRESSION
+            "content": "_ctx.name", // transformExpression 注入的作用域前缀
+            "isStatic": false
           }
-        ]
-      }
-    ],
+        }
+      ]
+    },
     "patchFlag": "1 /* TEXT */", // 靶向标记：仅文本是动态的
     "dynamicProps": null,
     "isBlock": true // 由于是根节点，自动晋升为 Block，触发 openBlock 和 createElementBlock
@@ -731,7 +805,7 @@ export function render(_ctx, _cache) {
     _createElementBlock(
       'div',
       { class: 'box' },
-      ['Hello ' + _toDisplayString(_ctx.name)],
+      'Hello ' + _toDisplayString(_ctx.name),
       1 /* TEXT */,
     )
   )

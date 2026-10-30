@@ -1,17 +1,19 @@
 # `computed`
 
 `computed` 是 Vue 3 中基于响应式依赖进行缓存的派生状态 API。它根据依赖的响应式数据自动计算值，并提供**懒计算**和**缓存**
-能力：只有在访问 `computed` 的值，或其依赖发生变化时才重新计算；否则直接返回缓存。
+能力：依赖变化时只标记为脏，只有在访问 `.value` 时才重新计算；否则直接返回缓存。
 
 ## 1. `computed` 的作用与设计动机
 
 ### 1.1 为什么需要 `computed`？
 
 - 避免在模板中编写复杂表达式，提高可读性与可维护性。
-- **缓存机制**：只有当依赖的响应式数据变化时，才会重新计算，否则返回上一次的结果，避免不必要的重复计算。
+- **缓存机制**：只有当依赖的响应式数据变化时,才会重新计算,否则返回上一次的结果，避免不必要的重复计算。
 - 与普通函数的区别：普通函数每次访问都会重新执行，而 `computed` 会缓存结果，性能更优。
 
 ### 1.2 核心特性
+
+[width(17,83)]
 
 | 特性             | 说明                                                                         |
 | ---------------- | ---------------------------------------------------------------------------- |
@@ -22,12 +24,14 @@
 
 ### 1.3 与普通 `effect` / `watch` 的对比
 
-| 特性   | `computed`         | `effect`                      | `watch`                  |
-| ------ | ------------------ | ----------------------------- | ------------------------ |
-| 返回值 | 计算结果           | 无（或 `runner`）             | 无                       |
-| 缓存   | 有                 | 无                            | 无                       |
-| 懒计算 | 是（仅访问时计算） | 否（立即执行，可配置 `lazy`） | 是（可配置 `immediate`） |
-| 用途   | 派生状态           | 响应式副作用                  | 监听特定数据变化         |
+[width(13,23,23,41)]
+
+| 特性   | `computed`         | `effect`                      | `watch`                       |
+| ------ | ------------------ | ----------------------------- | ----------------------------- |
+| 返回值 | 计算结果           | 无（或 `runner`）             | 取消侦听的函数（stop handle） |
+| 缓存   | 有                 | 无                            | 无                            |
+| 懒计算 | 是（仅访问时计算） | 否（立即执行，可配置 `lazy`） | 是（可配置 `immediate`）      |
+| 用途   | 派生状态           | 响应式副作用                  | 监听特定数据变化              |
 
 ## 2. 核心实现：`ComputedRefImpl` 类
 
@@ -132,6 +136,8 @@ export const createDep = (effects?: ReactiveEffect[]): Dep => {
 ```
 
 ```typescript [effect.ts]
+import type { ComputedRefImpl } from './computed'
+
 //响应性触发依赖时的执行类
 let activeEffect: any
 let shouldTrack: any
@@ -140,7 +146,7 @@ let shouldTrack: any
 export class ReactiveEffect {
   private _fn: any
   //存在该属性，则表示当前的 effect 为计算属性的 effect
-  computed?: ComputedRefImpl<T>
+  computed?: ComputedRefImpl<any>
   //依赖数组
   deps = []
   //是否可用 响应式
@@ -159,14 +165,19 @@ export class ReactiveEffect {
     if (!this.active) {
       return this._fn()
     }
-    shouldTrack = true
-    //将这个单例依赖类赋值给activeEffect
-    activeEffect = this
-    //执行fn方法时会收集依赖，收集完依赖再把shouldTrack置为false，防止依赖再次重复收集
-    const result = this._fn()
-    //reset
-    shouldTrack = false
-    return result
+    // 保存进入前的状态，执行结束后恢复（_fn 抛错时也会恢复）
+    const lastShouldTrack = shouldTrack
+    const prevEffect = activeEffect
+    try {
+      shouldTrack = true
+      //将这个单例依赖类赋值给activeEffect
+      activeEffect = this
+      //执行fn方法时会收集依赖
+      return this._fn()
+    } finally {
+      shouldTrack = lastShouldTrack
+      activeEffect = prevEffect
+    }
   }
 
   stop() {
@@ -353,7 +364,7 @@ count.value = 3 // 触发 computed 脏标记，然后 effect 重新执行，输�
 
 ### 6.3 `computed` 中抛出错误
 
-如果在 `computed` 的 `getter` 中抛出异常，异常会被捕获并作为下一次 `.value` 访问时的返回值（实际上是 Re-throw）。需要确保
+如果在 `computed` 的 `getter` 中抛出异常，异常会在触发求值的 `.value` 访问时直接抛出，不会被缓存为值。因此需要确保
 `getter` 是纯函数且稳定。
 
 ### 6.4 可写 `computed` 与 `v-model`
@@ -372,7 +383,7 @@ count.value = 3 // 触发 computed 脏标记，然后 effect 重新执行，输�
 
 - **缓存**：极大减少不必要的重复计算。
 - **懒执行**：未被使用的 `computed` 永远不会计算，节省资源。
-- **通过 `scheduler` 异步标记脏**：依赖变化时不立即计算，避免过多中间状态。
+- **通过 `scheduler` 同步标脏、求值延迟到访问 `.value` 时**：依赖变化时仅标记脏值，不立即计算，避免过多中间状态。
 
 ### 7.2 注意事项
 
@@ -383,6 +394,8 @@ count.value = 3 // 触发 computed 脏标记，然后 effect 重新执行，输�
   UI 会因组件渲染而访问 `computed`）。
 
 ## 8. 总结
+
+[width(20,40,40)]
 
 | 模块            | 核心实现                            | 关键优化                       |
 | --------------- | ----------------------------------- | ------------------------------ |
