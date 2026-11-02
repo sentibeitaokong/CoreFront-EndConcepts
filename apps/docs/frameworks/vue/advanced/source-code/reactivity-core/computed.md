@@ -335,13 +335,13 @@ const writableComputed = computed({
 ```ts
 import { ref, computed, effect } from 'vue'
 
-const count = ref(0)
+const count = ref(1)
 const double = computed(() => count.value * 2)
 
 effect(() => {
   console.log(double.value)
 })
-// 立即输出: 0
+// 立即输出: 2
 
 count.value = 3 // 触发 computed 脏标记，然后 effect 重新执行，输出: 6
 ```
@@ -356,7 +356,7 @@ count.value = 3 // 触发 computed 脏标记，然后 effect 重新执行，输�
 
 `computed` 可以依赖另一个 `computed`。依赖链上的任一个变化都会导致最终值重新计算，并且只会计算一次（因为缓存机制避免重复计算）。
 
-- 内部 `effect` 嵌套时会形成依赖树，`scheduler` 会沿着依赖链向上传递脏标记。
+内部 `effect` 嵌套时会形成依赖树，`scheduler` 会沿着依赖链向上传递脏标记。
 
 ### 6.2 多处读取同一 `computed`
 
@@ -375,7 +375,7 @@ count.value = 3 // 触发 computed 脏标记，然后 effect 重新执行，输�
 <input v-model="writableComputed" />
 ```
 
-- 输入变化时会自动触发 `computed.set`，更新依赖的数据。
+输入变化时会自动触发 `computed.set`，更新依赖的数据。
 
 ## 7. 性能优化与注意事项
 

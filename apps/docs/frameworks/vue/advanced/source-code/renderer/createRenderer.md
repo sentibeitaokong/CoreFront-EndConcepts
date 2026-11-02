@@ -274,10 +274,13 @@ export function isSameVNodeType(n1: VNode, n2: VNode): boolean {
 
 ## 3. 完整流程示例
 
-### 3.1 基础使用示例 (自定义 Canvas 渲染器简写)
+### 3.1 自定义 Canvas 渲染器
 
 ```ts
+import * as PIXI from 'pixi.js'
 import { createRenderer, h } from '@vue/runtime-core'
+
+// PixiJS v8：Application 需要异步 init
 const app = new PIXI.Application()
 // 异步初始化
 await app.init({

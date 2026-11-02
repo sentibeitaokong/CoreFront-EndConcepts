@@ -240,7 +240,7 @@ function flushPostFlushCbs(seen?: CountMap) {
 
 :::
 
-注意 `flushJobs` 本身**不执行 pre 队列**。pre 回调由 renderer 在组件 props 更新后、render 之前调用 `flushPreFlushCbs` 触发（`renderer.ts:1585`）；根级 `render` 结束时也会再调用一次（`renderer.ts:2326`），随后才执行 `flushPostFlushCbs`。
+注意 `flushJobs` 本身**不执行 pre 队列**。pre 回调由 renderer 在组件 props 更新后、render 之前调用 `flushPreFlushCbs` 触发；根级 `render` 结束时也会再调用一次，随后才执行 `flushPostFlushCbs`。
 
 ## 4. 调度策略与 `watch` 的 `flush` 选项
 
@@ -262,7 +262,7 @@ if (flush === 'sync') {
   scheduler = job as any
 } else if (flush === 'post') {
   //组件更新后执行，可以访问新 DOM。
-  scheduler = () => queuePostRenderEffect(job)
+  scheduler = () => queuePostRenderEffect(job, instance && instance.suspense)
 } else {
   //pre：标记任务并复用组件 uid 作为排序 id，之后与组件更新任务共用主队列。
   job.pre = true

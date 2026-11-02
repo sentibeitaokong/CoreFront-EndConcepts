@@ -41,7 +41,7 @@ const instance = {
 
 ## 3. `provide` API 实现
 
-`provide` 可以在 `setup()` 函数或选项式 API 的 `provide` 选项中使用。组合式 API 中，`provide` 函数定义在 `packages/runtime-core/src/apiInject.ts`。
+`provide` 可以在 `setup()` 函数或选项式 API 的 `provide` 选项中使用。
 
 :::code-group
 
@@ -66,6 +66,11 @@ export function provide(key, value) {
   // 挂载数据到自身的 provides 上
   provides[key] = value
 }
+```
+
+```typescript [component.ts]
+// 当前正在执行的组件实例（在 setup() 执行期间被赋值）
+export let currentInstance: ComponentInternalInstance | null = null
 ```
 
 :::
@@ -105,6 +110,22 @@ export function inject(key, defaultValue, treatDefaultAsFactory = false) {
     }
   }
 }
+```
+
+```typescript [component.ts]
+// 当前正在执行的组件实例（在 setup() 执行期间被赋值）
+export let currentInstance: ComponentInternalInstance | null = null
+```
+
+```typescript [componentRenderContext.ts]
+// 当前正在渲染的组件实例（函数式组件没有 currentInstance 时回退到它）
+export let currentRenderingInstance: ComponentInternalInstance | null = null
+```
+
+```typescript [shared/index.ts]
+// 判断是否为一个函数
+export const isFunction = (val: unknown): val is Function =>
+  typeof val === 'function'
 ```
 
 :::

@@ -22,7 +22,7 @@ Fragment 是一个虚拟的容器，它在物理 DOM 树中是**不存在真实�
 - **开始锚点 (`n2.el`)**：标志着 Fragment 的起始位置。
 - **结束锚点 (`n2.anchor`)**：标志着 Fragment 的结束位置。
 
-在真实 DOM 中，客户端渲染始终使用极其轻量的**空文本节点（`""`）**作为这两个锚点；只有在 SSR 水合时，才会复用服务端输出的 `<!--[-->` / `<!--]-->` 注释锚点。
+在真实 DOM 中，客户端渲染始终使用极其轻量的 **空文本节点（`""`）** 作为这两个锚点；只有在 SSR 水合时，才会复用服务端输出的 `<!--[-->` / `<!--]-->` 注释锚点。
 
 ## 2. `processFragment`函数入口
 
@@ -30,6 +30,13 @@ Fragment 是一个虚拟的容器，它在物理 DOM 树中是**不存在真实�
 
 ```typescript [renderer.ts]
 import { normalizeVNode } from './vnode'
+
+// baseCreateRenderer 中从 options 解构并重命名
+const {
+  createText: hostCreateText,
+  insert: hostInsert,
+  setElementText: hostSetElementText,
+} = options
 
 const processFragment = (
   n1: VNode | null,
@@ -195,6 +202,22 @@ export function cloneIfMounted(child) {
 }
 ```
 
+```typescript [nodeOps.ts]
+const doc = (typeof document !== 'undefined' ? document : null) as Document
+
+export const nodeOps = {
+  createText: text => doc.createTextNode(text),
+
+  insert: (child, parent, anchor) => {
+    parent.insertBefore(child, anchor || null)
+  },
+
+  setElementText: (el, text) => {
+    el.textContent = text
+  },
+}
+```
+
 :::
 
 ## 3. 核心机制深度拆解
@@ -239,7 +262,7 @@ DOM 树里会变成这样（假设插入到 `#app` 中）：
 
 ### 3.3 卸载（Unmount）如何处理？
 
-虽然 `processFragment` 里没有写卸载逻辑，但我们可以去看看底层的 `unmount` 函数是如何对待 Fragment 的：
+虽然`processFragment`里没有写卸载逻辑，但我们可以去看看底层的`unmount`函数是如何对待 Fragment 的：
 
 ```typescript [renderer.ts]
 if (shapeFlag & ShapeFlags.SUSPENSE) {

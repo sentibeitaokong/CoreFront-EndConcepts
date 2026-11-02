@@ -290,6 +290,8 @@ function createInnerComp(comp: Component, parent: ComponentInternalInstance) {
 ```typescript
 import { defineAsyncComponent } from 'vue'
 
+// 传入一个返回动态 import() 的工厂函数
+// 打包器会把 HeavyComp.vue 拆成独立 chunk，首次渲染时才发起请求
 const AsyncComp = defineAsyncComponent(() => import('./HeavyComp.vue'))
 
 // 在模板或 render 函数中直接使用 <AsyncComp />
@@ -304,16 +306,23 @@ const AsyncComp = defineAsyncComponent(() => import('./HeavyComp.vue'))
 import { defineAsyncComponent, h } from 'vue'
 
 const AsyncComp = defineAsyncComponent({
+  // 真正加载组件的函数，返回一个 Promise
   loader: () => import('./HeavyComp.vue'),
+  // 加载中的占位组件（只有超过 delay 后才展示）
   loadingComponent: () => h('div', 'Loading...'),
+  // 加载失败且不再重试时展示的兜底组件
   errorComponent: ({ error }) => h('div', `Error: ${error.message}`),
+  // 延迟 300ms 再显示 loading，避免加载过快导致闪烁
   delay: 300,
+  // 超过 5s 仍未加载完成，触发超时错误
   timeout: 5000,
   // 没有 retry 配置项，重试逻辑在 onError(err, retry, fail, attempts) 中自行控制
   onError(error, retry, fail, attempts) {
+    // 前 3 次失败自动重试
     if (attempts < 3) {
       retry()
     } else {
+      // 超过重试次数，进入 fail 分支，渲染 errorComponent
       fail()
     }
   },

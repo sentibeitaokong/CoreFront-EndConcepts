@@ -9,7 +9,7 @@
 
 对于开发者而言，HTML 注释 `<!-- 注释 -->` 通常是为了代码的可读性，而在生产环境打包时往往会被剥离。那么，为什么 Vue 的核心运行时还需要专门分出一个函数来处理和生成注释节点呢？
 
-原因在于，Vue 在内部大量使用真实 DOM 中的注释节点作为**结构锚点（Anchors）**和**状态占位符（Placeholders）**：
+Vue 在内部大量使用真实 DOM 中的注释节点作为**结构锚点（Anchors）**和**状态占位符（Placeholders）**：
 
 - **`v-if="false"` 的占位：** 当条件为假时，Vue 不会直接在 DOM 中留下真空。为了记住这个节点原本应该在的位置（以便条件变为 `true` 时能精确插入），Vue 会渲染一个 `<!--v-if-->` 作为占位（生产环境则为空的 `<!---->`）。
 - **Fragment 和 Teleport 的锚点：** 对于多根节点组件（Fragment）或传送门（Teleport），Vue 需要知道它们的边界在哪里。客户端渲染时，二者使用空的文本节点（`hostCreateText('')`）作为锚点（Teleport 在开发环境下会改用带 `teleport start` / `teleport end` 内容的注释节点以便调试）；注释节点本身主要用于 `v-if` 不成立、异步组件未加载完成或渲染结果为空时的占位。
@@ -26,6 +26,9 @@
 :::code-group
 
 ```typescript [renderer.ts]
+// baseCreateRenderer 中从 options 解构并重命名
+const { createComment: hostCreateComment } = options
+
 const processCommentNode: ProcessFn = (
   n1: VNode | null,
   n2: VNode,
@@ -50,6 +53,14 @@ const processCommentNode: ProcessFn = (
     // 唯一需要做的，就是把旧节点关联的真实 DOM 物理引用，直接移交给新节点
     n2.el = n1.el
   }
+}
+```
+
+```typescript [nodeOps.ts]
+const doc = (typeof document !== 'undefined' ? document : null) as Document
+
+export const nodeOps = {
+  createComment: text => doc.createComment(text),
 }
 ```
 

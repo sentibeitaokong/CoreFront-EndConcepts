@@ -129,13 +129,79 @@ export const isFunction = (val: unknown): val is Function =>
 
 `watch` 的核心是通过 `ReactiveEffect` 收集依赖，并通过 `scheduler` 调度器控制回调 `cb` 的执行。
 
-### 3.1 实例化 Effect 与生命周期
+### 3.1 定义 Job（回调包装器）
 
 :::code-group
 
 ```typescript [apiWatch.ts]
 function doWatch(source, cb, options, instance) {
-  // 3. 配置 scheduler (处理 flush 选项)
+  //定义job(回调包装器)
+  let oldValue = isMultiSource ? [] : INITIAL_WATCHER_VALUE
+  // 1. 定义内部的 cleanup 变量，初始为空
+  let cleanup: (() => void) | undefined
+
+  // 2. 定义暴露给开发者的 onCleanup 函数
+  const onCleanup = (fn: () => void) => {
+    // 当开发者调用 onCleanup(fn) 时，Vue 会做两件事：
+    // a. 将 fn 赋值给内部的 cleanup 变量
+    // b. 将 fn 挂载到底层 effect.onStop 上（确保侦听器被停止/组件卸载时也能触发）
+    cleanup = effect.onStop = () => {
+      // 执行开发者传入的清理逻辑
+      fn()
+      // 执行完毕后重置清理函数，避免重复调用
+      cleanup = undefined
+    }
+  }
+  // job 是当数据变化时，真正推入调度队列执行的函数
+  const job: SchedulerJob = () => {
+    //不是响应式数据直接返回
+    if (!effect.active) return
+    if (cb) {
+      // 1. 执行 effect.run() 获取新值，并重新收集依赖
+      const newValue = effect.run()
+
+      // 2. 比较新旧值，或者由于 deep/forceTrigger 强制触发
+      if (
+        deep ||
+        forceTrigger ||
+        (isMultiSource
+          ? (newValue as any[]).some((v, i) => hasChanged(v, oldValue[i]))
+          : hasChanged(newValue, oldValue))
+      ) {
+        // 3. 触发清理函数 (处理竞态条件)
+        if (cleanup) {
+          cleanup()
+        }
+
+        // 4. 执行用户传入的 cb 回调，传入新值、旧值和 onCleanup 钩子
+        cb(
+          newValue,
+          oldValue === INITIAL_WATCHER_VALUE ? undefined : oldValue,
+          onCleanup,
+        )
+
+        // 5. 更新旧值
+        oldValue = newValue
+      }
+    } else {
+      // watchEffect 的处理分支
+      effect.run()
+    }
+  }
+}
+```
+
+:::
+
+### 3.2 实例化 Effect 与生命周期
+
+:::code-group
+
+```typescript [apiWatch.ts]
+function doWatch(source, cb, options, instance) {
+  // ...标准化数据源,函数递归读取以收集深层依赖 (见 2.2)
+
+  // 配置 scheduler (处理 flush 选项)
   let scheduler: EffectScheduler
   if (flush === 'sync') {
     scheduler = job // 同步立即执行
@@ -149,10 +215,10 @@ function doWatch(source, cb, options, instance) {
     scheduler = () => queueJob(job) // 放入异步更新队列，在 DOM 更新前执行
   }
 
-  // 4. 实例化底层的 ReactiveEffect
+  // 实例化底层的 ReactiveEffect
   const effect = new ReactiveEffect(getter, scheduler)
 
-  // 5. 初始化执行 (处理 immediate 选项)
+  // 初始化执行 (处理 immediate 选项)
   if (cb) {
     if (immediate) {
       // 立即执行一次 job，触发用户回调
@@ -166,67 +232,6 @@ function doWatch(source, cb, options, instance) {
   // 返回停止侦听的函数
   return () => {
     effect.stop()
-  }
-}
-```
-
-:::
-
-### 3.2 定义 Job（回调包装器）
-
-:::code-group
-
-```typescript [apiWatch.ts]
-let oldValue = isMultiSource ? [] : INITIAL_WATCHER_VALUE
-// 1. 定义内部的 cleanup 变量，初始为空
-let cleanup: (() => void) | undefined
-
-// 2. 定义暴露给开发者的 onCleanup 函数
-const onCleanup = (fn: () => void) => {
-  // 当开发者调用 onCleanup(fn) 时，Vue 会做两件事：
-  // a. 将 fn 赋值给内部的 cleanup 变量
-  // b. 将 fn 挂载到底层 effect.onStop 上（确保侦听器被停止/组件卸载时也能触发）
-  cleanup = effect.onStop = () => {
-    // 执行开发者传入的清理逻辑
-    fn()
-    // 执行完毕后重置清理函数，避免重复调用
-    cleanup = undefined
-  }
-}
-// job 是当数据变化时，真正推入调度队列执行的函数
-const job: SchedulerJob = () => {
-  //不是响应式数据直接返回
-  if (!effect.active) return
-  if (cb) {
-    // 1. 执行 effect.run() 获取新值，并重新收集依赖
-    const newValue = effect.run()
-
-    // 2. 比较新旧值，或者由于 deep/forceTrigger 强制触发
-    if (
-      deep ||
-      forceTrigger ||
-      (isMultiSource
-        ? (newValue as any[]).some((v, i) => hasChanged(v, oldValue[i]))
-        : hasChanged(newValue, oldValue))
-    ) {
-      // 3. 触发清理函数 (处理竞态条件)
-      if (cleanup) {
-        cleanup()
-      }
-
-      // 4. 执行用户传入的 cb 回调，传入新值、旧值和 onCleanup 钩子
-      cb(
-        newValue,
-        oldValue === INITIAL_WATCHER_VALUE ? undefined : oldValue,
-        onCleanup,
-      )
-
-      // 5. 更新旧值
-      oldValue = newValue
-    }
-  } else {
-    // watchEffect 的处理分支
-    effect.run()
   }
 }
 ```
@@ -405,7 +410,7 @@ watch(keyword, async (newVal, oldVal, onCleanup) => {
 
 ## 7. 总结
 
-基于上述源码分析，`watch` 具备以下核心特性：
+`watch` 具备以下核心特性：
 
 - **懒执行 (Lazy by default)**：默认情况下，`watch` 不会立即执行回调，仅在被侦听的数据源发生实际变化时才会触发回调。可以通过配置 `{ immediate: true }` 改变此行为。
 - **多态数据源支持**：支持侦听 `Ref`、`Reactive` 对象、`Getter` 函数，甚至是由上述类型组成的数组（批量侦听）。

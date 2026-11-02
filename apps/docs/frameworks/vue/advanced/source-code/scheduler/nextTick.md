@@ -57,7 +57,7 @@ function queueFlush() {
 
 :::
 
-## 4. 使用示例
+## 4. `nextTick` 使用示例
 
 ### 4.1 回调函数形式
 

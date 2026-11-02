@@ -6,9 +6,7 @@
 
 ### 1.1 为什么需要独立的文本节点处理？
 
-在 Vue 2 中，由于组件必须有一个唯一的根节点，纯文本通常会被包裹在一个 `<span>` 或 `<div>` 中。但在 Vue 3 中，引入了 `Fragment`（片段）的概念，允许组件直接返回纯文本，或者返回平级的多个文本/元素组合。
-
-例如：
+在 Vue 2 中，由于组件必须有一个唯一的根节点，纯文本通常会被包裹在一个 `<span>` 或 `<div>` 中。但在 Vue 3 中，引入了`Fragment`(片段)的概念，允许组件直接返回纯文本，或者返回平级的多个文本/元素组合。
 
 ```html
 <template> Hello, {{ name }}! </template>
@@ -28,6 +26,13 @@
 :::code-group
 
 ```typescript [renderer.ts]
+// baseCreateRenderer 中从 options 解构并重命名
+const {
+  insert: hostInsert,
+  createText: hostCreateText,
+  setText: hostSetText,
+} = options
+
 const processText: ProcessFn = (
   n1: VNode | null,
   n2: VNode,
@@ -59,15 +64,35 @@ const processText: ProcessFn = (
 }
 ```
 
+```typescript [nodeOps.ts]
+const doc = (typeof document !== 'undefined' ? document : null) as Document
+
+export const nodeOps = {
+  insert: (child, parent, anchor) => {
+    parent.insertBefore(child, anchor || null)
+  },
+
+  createText: text => doc.createTextNode(text),
+
+  setText: (node, text) => {
+    node.nodeValue = text
+  },
+}
+```
+
 :::
 
 ## 3. 核心机制拆解
 
 ### 3.1 挂载阶段的连环操作
 
-```typescript
+:::code-group
+
+```typescript [renderer.ts]
 hostInsert((n2.el = hostCreateText(n2.children as string)), container, anchor)
 ```
+
+:::
 
 - `hostCreateText(...)`：在浏览器环境下，它对应的是 `document.createTextNode(text)`，在内存中凭空捏造一段文本片段。
 - `n2.el = ...`：将这个真实的 DOM 文本片段绑定到 VNode 上，这至关重要，因为后续的更新（Patch）必须依赖这个引用找到真实的物理节点。
@@ -75,12 +100,16 @@ hostInsert((n2.el = hostCreateText(n2.children as string)), container, anchor)
 
 ### 3.2 更新阶段的极致复用
 
-```typescript
+:::code-group
+
+```typescript [renderer.ts]
 const el = (n2.el = n1.el!)
 if (n2.children !== n1.children) {
   hostSetText(el, n2.children as string)
 }
 ```
+
+:::
 
 - Vue 发现这是一个旧文本节点的更新，它做的第一件事就是把 `n1.el` 抢过来给 `n2.el` 用。
 - 比较内容，如果 `Hello` 变成了 `World`，才会去调接口。

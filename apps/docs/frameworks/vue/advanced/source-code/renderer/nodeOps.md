@@ -182,6 +182,7 @@ export const nodeOps = {
 ```typescript [patchProp.ts]
 import { patchAttr } from './modules/attrs'
 import { patchClass } from './modules/class'
+import { patchDOMProp } from './modules/props'
 import { patchEvent } from './modules/events'
 import { patchStyle } from './modules/style'
 
@@ -541,9 +542,15 @@ function patchAttr(el, key, value) {
 :::code-group
 
 ```typescript [runtime-dom/src/index.ts]
-import { createRenderer } from '@vue/runtime-core'
+import {
+  createRenderer,
+  Renderer,
+  HydrationRenderer,
+  CreateAppFunction,
+} from '@vue/runtime-core'
 import { nodeOps } from './nodeOps'
 import { patchProp } from './patchProp'
+import { isString } from '@vue/shared'
 
 // 1. 合并浏览器平台的节点操作和属性处理机制
 const rendererOptions = Object.assign({ patchProp }, nodeOps)
@@ -578,6 +585,108 @@ function normalizeContainer(container: Element | string): Element | null {
   }
   return container
 }
+```
+
+```typescript [renderer.ts]
+// 渲染器入口：RendererOptions 定义见 2.1，baseCreateRenderer 见 2.2
+export function createRenderer(options: RendererOptions) {
+  return baseCreateRenderer(options)
+}
+```
+
+```typescript [nodeOps.ts]
+// 浏览器平台的节点操作集合（各方法实现见 2.1–2.3）
+export const svgNS = 'http://www.w3.org/2000/svg'
+const doc = (typeof document !== 'undefined' ? document : null) as Document
+
+export const nodeOps = {
+  insert: (child, parent, anchor) => {
+    parent.insertBefore(child, anchor || null)
+  },
+
+  remove: child => {
+    const parent = child.parentNode
+    if (parent) {
+      parent.removeChild(child)
+    }
+  },
+
+  createElement: (tag, isSVG, is, props): Element => {
+    const el = isSVG
+      ? doc.createElementNS(svgNS, tag)
+      : doc.createElement(tag, is ? { is } : undefined)
+    if (tag === 'select' && props && props.multiple != null) {
+      ;(el as HTMLSelectElement).setAttribute('multiple', props.multiple)
+    }
+    return el
+  },
+
+  createText: text => doc.createTextNode(text),
+  createComment: text => doc.createComment(text),
+
+  setElementText: (el, text) => {
+    el.textContent = text
+  },
+
+  setText: (node, text) => {
+    node.nodeValue = text
+  },
+
+  parentNode: node => node.parentNode as Element | null,
+  nextSibling: node => node.nextSibling,
+}
+```
+
+```typescript [patchProp.ts]
+// patchProp 入口：按属性类型分派到具体处理器（各处理器实现见 2.4）
+import { patchDOMProp } from './modules/props'
+import { patchAttr } from './modules/attrs'
+import { patchClass } from './modules/class'
+import { patchEvent } from './modules/events'
+import { patchStyle } from './modules/style'
+
+const onRE = /^on[^a-z]/
+export const isOn = (key: string) => onRE.test(key)
+
+export function patchProp(
+  el: Element,
+  key: string,
+  prevValue: any,
+  nextValue: any,
+) {
+  if (key === 'class') {
+    patchClass(el, nextValue)
+  } else if (key === 'style') {
+    patchStyle(el, prevValue, nextValue)
+  } else if (isOn(key)) {
+    patchEvent(el, key, prevValue, nextValue)
+  } else if (shouldSetAsProp(el, key)) {
+    patchDOMProp(el, key, nextValue)
+  } else {
+    patchAttr(el, key, nextValue)
+  }
+}
+
+function shouldSetAsProp(el: Element, key: string) {
+  if (key === 'spellcheck' || key === 'draggable' || key === 'translate') {
+    return false
+  }
+  if (key === 'form') {
+    return false
+  }
+  if (key === 'list' && el.tagName === 'INPUT') {
+    return false
+  }
+  if (key === 'type' && el.tagName === 'TEXTAREA') {
+    return false
+  }
+  return key in el
+}
+```
+
+```typescript [shared/index.ts]
+// 判断是否为字符串
+export const isString = (val: unknown): val is string => typeof val === 'string'
 ```
 
 :::

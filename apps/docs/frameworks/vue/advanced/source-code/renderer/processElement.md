@@ -182,29 +182,6 @@ const patchElement = (
         patchProps(el, n2, oldProps, newProps, ...)
     }
 }
-
-//挂载children
-export function mountChildren(
-    children: any,
-    container: any,
-    anchor: any,
-) {
-    //vnode  多个虚拟节点需要判断子节点是否是组件还是element
-    children.forEach((vnode: any) => {
-        //再次判断子节点是否是组件还是element
-        patch(null, vnode, container, anchor)
-    })
-}
-
-//卸载children节点
-function unmountChildren(children: any) {
-    //遍历children获取每个子节点的根节点，然后调用hostRemove方法删除这些节点
-    for (let i = 0; i < children.length; i++) {
-        const el = children[i].el
-        //remove
-        hostRemove(el)
-    }
-}
 ```
 
 :::
@@ -310,6 +287,25 @@ export function patchChildren(n1: any, n2: any, container: any, anchor: any) {
         mountChildren(c2, container, anchor)
       }
     }
+  }
+}
+
+//挂载children
+export function mountChildren(children: any, container: any, anchor: any) {
+  //vnode  多个虚拟节点需要判断子节点是否是组件还是element
+  children.forEach((vnode: any) => {
+    //再次判断子节点是否是组件还是element
+    patch(null, vnode, container, anchor)
+  })
+}
+
+//卸载children节点
+function unmountChildren(children: any) {
+  //遍历children获取每个子节点的根节点，然后调用hostRemove方法删除这些节点
+  for (let i = 0; i < children.length; i++) {
+    const el = children[i].el
+    //remove
+    hostRemove(el)
   }
 }
 

@@ -6,7 +6,7 @@
 
 ### 1.1 为什么需要 `watchEffect`？
 
-- **自动依赖收集**：开发者无需手动维护庞大的依赖数组或显式声明数据源，极大简化了复杂业务逻辑的代码量。
+- **自动依赖收集**：开发者无需手动维护庞大的依赖数组或显式声明数据源,极大简化了复杂业务逻辑的代码量。
 - **立即执行**：在组件创建时（或调用时）会默认立即执行一次，以完成依赖的初始化收集。
 - **生命周期绑定**：与 `watch` 一样，在组件 `setup()` 中同步调用时，会自动绑定到当前组件实例，组件卸载时自动停止侦听。
 
@@ -20,8 +20,6 @@
 | **首次执行**   | 创建时立刻执行一次（收集依赖） | 默认懒执行（除非配置 `immediate: true`） |
 | **新旧值比对** | 无法获取变化前后的旧值         | 回调提供 `newVal` 和 `oldVal` 参数       |
 | **适用场景**   | 多个依赖项共同触发同一个副作用 | 针对明确目标触发特定副作用               |
-
----
 
 ## 2. 核心实现：入口函数与数据源构建
 
@@ -135,12 +133,49 @@ export const isFunction = (val: unknown): val is Function =>
 
 因为 `watchEffect` 没有 `cb`，它的 `job` 执行逻辑远比 `watch` 简单：不需要比对新旧值，也不需要判断 `deep`，只需要让底层的 `ReactiveEffect` 重新运行即可。
 
-### 3.1 实例化 Effect 与生命周期
+### 3.1 极简的 Job 触发机制
 
 :::code-group
 
 ```typescript [apiWatch.ts]
-  // 3. 配置 scheduler（根据 flush 配置放入微任务队列）
+function doWatch(
+  source: WatchSource | WatchSource[] | WatchEffect | object,
+  cb: WatchCallback | null, // 对于 watchEffect，cb 为 null
+  { immediate, deep, flush, onTrack, onTrigger }: WatchOptions = EMPTY_OBJ,
+) {
+  // ...标准化数据格式 (见上节)
+
+  //定义job回调函数
+  const job: SchedulerJob = () => {
+    //不是响应式，直接返回
+    if (!effect.active) return
+
+    if (cb) {
+      // ... watch 的处理分支（获取新旧值并比较） ...
+    } else {
+      // watchEffect 的处理分支：直接执行底层的 effect.run()
+      // 内部实际上会调用我们上面包装好的 getter，从而重新收集依赖并执行回调
+      effect.run()
+    }
+  }
+}
+```
+
+:::
+
+### 3.2 实例化 Effect 与生命周期
+
+:::code-group
+
+```typescript [apiWatch.ts]
+function doWatch(
+  source: WatchSource | WatchSource[] | WatchEffect | object,
+  cb: WatchCallback | null, // 对于 watchEffect，cb 为 null
+  { immediate, deep, flush, onTrack, onTrigger }: WatchOptions = EMPTY_OBJ,
+) {
+  // ...标准化数据格式 (见上节)
+
+  // 配置 scheduler（根据 flush 配置放入微任务队列）
   let scheduler: EffectScheduler
   if (flush === 'sync') {
     scheduler = job
@@ -150,17 +185,20 @@ export const isFunction = (val: unknown): val is Function =>
     scheduler = () => queueJob(job)
   }
 
-  // 4. 实例化底层的 ReactiveEffect
+  // 实例化底层的 ReactiveEffect
   const effect = new ReactiveEffect(getter, scheduler)
 
-  // 5. 初始化执行 (watchEffect 强制立即执行)
+  // 初始化执行 (watchEffect 强制立即执行)
   if (cb) {
     // ... watch 的 immediate 处理
   } else {
     // watchEffect 的标志性行为：无论有没有 explicit 的 immediate 配置，
     // 在创建时都会立即执行一次以收集依赖
     if (flush === 'post') {
-      queuePostRenderEffect(effect.run.bind(effect), instance && instance.suspense)
+      queuePostRenderEffect(
+        effect.run.bind(effect),
+        instance && instance.suspense,
+      )
     } else {
       effect.run()
     }
@@ -169,29 +207,6 @@ export const isFunction = (val: unknown): val is Function =>
   // 返回停止侦听的函数
   return () => {
     effect.stop()
-  }
-}
-```
-
-:::
-
-### 3.2 极简的 Job 触发机制
-
-:::code-group
-
-```typescript [apiWatch.ts]
-// 此时的 effect 是通过 ReactiveEffect 实例化的对象
-// 它的执行(run) 会触发依赖收集
-const job: SchedulerJob = () => {
-  //不是响应式，直接返回
-  if (!effect.active) return
-
-  if (cb) {
-    // ... watch 的处理分支（获取新旧值并比较） ...
-  } else {
-    // watchEffect 的处理分支：直接执行底层的 effect.run()
-    // 内部实际上会调用我们上面包装好的 getter，从而重新收集依赖并执行回调
-    effect.run()
   }
 }
 ```
@@ -292,7 +307,7 @@ setInterval(() => {
 
 ## 6. 总结
 
-基于上述源码分析，`watchEffect` 具备以下核心特性：
+`watchEffect` 具备以下核心特性：
 
 - **极简的入参约定**：将用户的回调直接作为 `ReactiveEffect` 的 `getter`，省略了繁琐的数据源声明步骤。
 - **强制立即执行**：由于没有 `cb` 且没有明确的依赖目标，唯一能知道依赖是什么的方法就是**立即执行一次回调**，利用 Vue 的 `Proxy` 和 `track` 机制“**摸排**”出所有被访问到的响应式对象。
