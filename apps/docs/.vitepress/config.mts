@@ -115,7 +115,17 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
                 minify: 'esbuild',
                 sourcemap: enableSentryUpload,
                 chunkSizeWarningLimit: 1000,
-                rollupOptions: {}
+                rollupOptions: {
+                    onwarn(warning, warn) {
+                        // VitePress 的 markdown transform 不产出 sourcemap，
+                        // 开启 build.sourcemap 后 Rollup 会对每个 md 模块报 SOURCEMAP_BROKEN；
+                        // 这是 VitePress 1.x 的已知限制，只过滤这一条，其他警告照常输出。
+                        if (warning.code === 'SOURCEMAP_BROKEN' && warning.plugin === 'vitepress') {
+                            return
+                        }
+                        warn(warning)
+                    }
+                }
             },
             ssr: {
                 external: [
