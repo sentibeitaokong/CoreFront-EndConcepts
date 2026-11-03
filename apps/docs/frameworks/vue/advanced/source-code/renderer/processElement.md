@@ -107,6 +107,61 @@ const mountChildren = (children, container, anchor) => {
 }
 ```
 
+```typescript [nodeOps.ts]
+export const svgNS = 'http://www.w3.org/2000/svg'
+const doc = (typeof document !== 'undefined' ? document : null) as Document
+
+export const nodeOps = {
+  // 创建普通元素或 SVG 元素
+  createElement: (tag, isSVG, is, props): Element => {
+    const el = isSVG
+      ? doc.createElementNS(svgNS, tag)
+      : doc.createElement(tag, is ? { is } : undefined)
+    if (tag === 'select' && props && props.multiple != null) {
+      ;(el as HTMLSelectElement).setAttribute('multiple', props.multiple)
+    }
+    return el
+  },
+
+  // 设置元素纯文本
+  setElementText: (el, text) => {
+    el.textContent = text
+  },
+
+  // 简化版属性更新；完整分派见 nodeOps.md 第 2.4 节
+  patchProp: (el, key, prev, next) => {
+    el[key] = next
+  },
+
+  // 在 parent 的 anchor 前插入节点
+  insert: (child, parent, anchor) => {
+    parent.insertBefore(child, anchor || null)
+  },
+}
+```
+
+```typescript [shared/index.ts]
+// 判断是否为字符串
+export const isString = (val: unknown): val is string => typeof val === 'string'
+```
+
+```typescript [renderer.ts（别名）]
+// baseCreateRenderer 中从 options 解构并重命名
+const {
+  insert: hostInsert,
+  createElement: hostCreateElement,
+  setElementText: hostSetElementText,
+  patchProp: hostPatchProp,
+} = options
+```
+
+```typescript [renderer.ts（补充）]
+// Suspense 开启时交给 suspense.effects，否则直接进入 post 队列
+export const queuePostRenderEffect = __FEATURE_SUSPENSE__
+  ? queueEffectWithSuspense
+  : queuePostFlushCb
+```
+
 :::
 
 ### 3.2 节点更新：`patchElement`
@@ -184,6 +239,25 @@ const patchElement = (
 }
 ```
 
+```typescript [nodeOps.ts]
+export const nodeOps = {
+  // 简化版属性更新；完整分派见 nodeOps.md 第 2.4 节
+  patchProp: (el, key, prev, next) => {
+    el[key] = next
+  },
+
+  // 设置元素纯文本
+  setElementText: (el, text) => {
+    el.textContent = text
+  },
+}
+```
+
+```typescript [renderer.ts（别名）]
+// baseCreateRenderer 中从 options 解构并重命名
+const { setElementText: hostSetElementText, patchProp: hostPatchProp } = options
+```
+
 :::
 
 #### 3.2.1 `patchBlockChildren`: 靶向更新
@@ -237,6 +311,25 @@ const patchBlockChildren = (
     )
   }
 }
+```
+
+```typescript [vnode.ts]
+// 判断新旧 VNode 是否同类型且同 key
+export function isSameVNodeType(n1: VNode, n2: VNode): boolean {
+  return n1.type === n2.type && n1.key === n2.key
+}
+```
+
+```typescript [nodeOps.ts]
+export const nodeOps = {
+  // 获取父节点
+  parentNode: node => node.parentNode as Element | null,
+}
+```
+
+```typescript [renderer.ts（别名）]
+// baseCreateRenderer 中从 options 解构并重命名
+const { parentNode: hostParentNode } = options
 ```
 
 :::
@@ -320,6 +413,28 @@ export function patchKeyedChildren(
 }
 ```
 
+```typescript [nodeOps.ts]
+export const nodeOps = {
+  // 设置元素纯文本
+  setElementText: (el, text) => {
+    el.textContent = text
+  },
+
+  // 移除节点
+  remove: child => {
+    const parent = child.parentNode
+    if (parent) {
+      parent.removeChild(child)
+    }
+  },
+}
+```
+
+```typescript [renderer.ts（别名）]
+// baseCreateRenderer 中从 options 解构并重命名
+const { setElementText: hostSetElementText, remove: hostRemove } = options
+```
+
 :::
 
 #### 3.3.3 `patchProps`: 比对更新props
@@ -359,6 +474,20 @@ function patchProps(
     }
   }
 }
+```
+
+```typescript [nodeOps.ts]
+export const nodeOps = {
+  // 简化版属性更新；完整分派见 nodeOps.md 第 2.4 节
+  patchProp: (el, key, prev, next) => {
+    el[key] = next
+  },
+}
+```
+
+```typescript [renderer.ts（别名）]
+// baseCreateRenderer 中从 options 解构并重命名
+const { patchProp: hostPatchProp } = options
 ```
 
 :::

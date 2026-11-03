@@ -60,11 +60,13 @@ export const TeleportImpl = {
 
 ### 2.2 `process` 核心处理与占位机制
 
-在首次挂载时，`<Teleport>` 的关键动作是在原来组件树的位置留下**锚点（注释节点）**，以便组件在逻辑上不脱节。
+在首次挂载时,`<Teleport>`的关键动作是在原来组件树的位置留下**锚点(注释节点)**，以便组件在逻辑上不脱节。
 
 :::code-group
 
 ```typescript [Teleport.ts]
+import { isString } from '@vue/shared'
+
 function process(
   n1: TeleportVNode | null,
   n2: TeleportVNode,
@@ -80,9 +82,12 @@ function process(
   if (n1 == null) {
     // 首次挂载阶段 (Mount)
     const {
-      insert,
-      o: { createComment, createText },
+      mc: mountChildren, // 挂载子节点
+      insert, // 插入节点
+      o: { createComment, createText, querySelector }, // 宿主节点操作
     } = internals
+    // Teleport 的子节点始终是数组
+    const { children } = n2
 
     // 1. 占位机制：在当前原父组件的 DOM 树位置插入两个锚点（隐藏占位符）
     const placeholder = (n2.el = createComment('teleport start'))
@@ -149,6 +154,60 @@ const resolveTarget = <T = RendererElement>(
     return targetSelector as any
   }
 }
+```
+
+```typescript [renderer.ts]
+// 渲染器内部方法：逐个规范化并挂载子节点
+function mountChildren(
+  children,
+  container,
+  anchor,
+  parentComponent,
+  parentSuspense,
+  isSVG,
+  slotScopeIds,
+  optimized = false,
+) {
+  for (let i = 0; i < children.length; i++) {
+    const child = (children[i] = normalizeVNode(children[i]))
+    patch(
+      null,
+      child,
+      container,
+      anchor,
+      parentComponent,
+      parentSuspense,
+      isSVG,
+      slotScopeIds,
+      optimized,
+    )
+  }
+}
+```
+
+```typescript [nodeOps.ts]
+const doc = (typeof document !== 'undefined' ? document : null) as Document
+
+export const nodeOps = {
+  // 在 parent 的 anchor 前插入节点，anchor 为空时相当于 appendChild
+  insert: (child, parent, anchor) => {
+    parent.insertBefore(child, anchor || null)
+  },
+
+  // 创建注释节点：用作 teleport start / teleport end 占位锚点
+  createComment: text => doc.createComment(text),
+
+  // 创建空文本节点：用作目标容器中的 targetAnchor
+  createText: text => doc.createTextNode(text),
+
+  // 把字符串形式的 to 解析成真实 DOM 元素
+  querySelector: selector => doc.querySelector(selector),
+}
+```
+
+```typescript [shared/index.ts]
+// 判断是否为字符串
+export const isString = (val: unknown): val is string => typeof val === 'string'
 ```
 
 :::
@@ -317,6 +376,11 @@ const resolveTarget = <T = RendererElement>(
     return targetSelector as any
   }
 }
+```
+
+```typescript [shared/index.ts]
+// 判断是否为字符串
+export const isString = (val: unknown): val is string => typeof val === 'string'
 ```
 
 :::

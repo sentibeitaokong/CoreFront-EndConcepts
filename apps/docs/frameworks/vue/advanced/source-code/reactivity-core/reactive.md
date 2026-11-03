@@ -261,6 +261,9 @@ function createArrayInstrumentations() {
 ```
 
 ```typescript [shared/index.ts]
+//判断是否为字符串
+export const isString = (val: unknown): val is string => typeof val === 'string'
+
 //判断是不是object对象
 export const isObject = (value: any) => {
   return value !== null && typeof value === 'object'

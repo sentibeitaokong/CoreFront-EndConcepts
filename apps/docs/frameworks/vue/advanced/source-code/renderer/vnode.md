@@ -320,6 +320,14 @@ function parseStringStyle(cssText) {
 }
 ```
 
+```typescript [vnode.ts（类型守卫）]
+// 判断是否为 Suspense
+export const isSuspense = (type: any): boolean => type.__isSuspense
+
+// 判断是否为 Teleport
+export const isTeleport = (type: any): boolean => type.__isTeleport
+```
+
 :::
 
 ### 2.3 `VNode` 接口定义

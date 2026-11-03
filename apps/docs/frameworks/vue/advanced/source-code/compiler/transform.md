@@ -143,6 +143,11 @@ export function baseCompile(
 }
 ```
 
+```typescript [shared/index.ts]
+// 判断是否为字符串
+export const isString = (val: unknown): val is string => typeof val === 'string'
+```
+
 :::
 
 ### 3.1 获取内置转换插件预设
@@ -393,6 +398,11 @@ export function traverseNode(
 }
 ```
 
+```typescript [shared/index.ts]
+// 判断是否为数组
+export const isArray = Array.isArray
+```
+
 :::
 
 #### 3.2.3 `traverseChildren`: 遍历子节点
@@ -428,6 +438,11 @@ export function traverseChildren(
     traverseNode(child, context)
   }
 }
+```
+
+```typescript [shared/index.ts]
+// 判断是否为字符串
+export const isString = (val: unknown): val is string => typeof val === 'string'
 ```
 
 :::

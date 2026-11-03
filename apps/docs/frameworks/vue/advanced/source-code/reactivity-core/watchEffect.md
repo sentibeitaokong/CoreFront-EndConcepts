@@ -211,6 +211,33 @@ function doWatch(
 }
 ```
 
+```typescript [renderer.ts]
+// Suspense 开启时交给 suspense.effects，否则直接进入 post 队列
+export const queuePostRenderEffect = __FEATURE_SUSPENSE__
+  ? queueEffectWithSuspense
+  : queuePostFlushCb
+```
+
+```typescript [scheduler.ts]
+// 把任务推入主队列，由 queueFlush 注册微任务统一刷新
+export function queueJob(job: SchedulerJob) {
+  if (
+    !queue.length ||
+    !queue.includes(
+      job,
+      isFlushing && job.allowRecurse ? flushIndex + 1 : flushIndex,
+    )
+  ) {
+    if (job.id == null) {
+      queue.push(job)
+    } else {
+      queue.splice(findInsertionIndex(job.id), 0, job)
+    }
+    queueFlush()
+  }
+}
+```
+
 :::
 
 ## 4. 副作用清理 (`onCleanup`) 机制

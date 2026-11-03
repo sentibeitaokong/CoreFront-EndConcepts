@@ -111,6 +111,54 @@ export const KeepAliveImpl = {
 }
 ```
 
+```typescript [apiDefineComponent.ts]
+// defineComponent 近乎空实现：函数形式包装成 setup，对象形式原样返回
+// 主要价值是提供 TypeScript 类型推导
+export function defineComponent(options: unknown) {
+  return isFunction(options) ? { setup: options, name: options.name } : options
+}
+```
+
+```typescript [component.ts]
+// 获取当前正在执行的组件实例
+// 函数式组件没有 currentInstance，回退到 currentRenderingInstance
+export const getCurrentInstance: () => ComponentInternalInstance | null = () =>
+  currentInstance || currentRenderingInstance
+```
+
+```typescript [apiLifecycle.ts]
+// createHook 是生命周期注册的工厂：把钩子注入到当前组件实例上
+export const createHook =
+  <T extends Function = () => any>(lifecycle: LifecycleHooks) =>
+  (hook: T, target: ComponentInternalInstance | null = currentInstance) =>
+    (!isInSSRComponentSetup || lifecycle === LifecycleHooks.SERVER_PREFETCH) &&
+    injectHook(lifecycle, (...args: unknown[]) => hook(...args), target)
+
+// onMounted / onUpdated 都是 createHook 的柯里化产物
+export const onMounted = createHook(LifecycleHooks.MOUNTED)
+export const onUpdated = createHook(LifecycleHooks.UPDATED)
+```
+
+```typescript [renderer.ts]
+// Suspense 开启时交给 suspense.effects，否则直接进入 post 队列
+export const queuePostRenderEffect = __FEATURE_SUSPENSE__
+  ? queueEffectWithSuspense
+  : queuePostFlushCb
+```
+
+```typescript [shared/index.ts]
+// 依次执行钩子数组
+export const invokeArrayFns = (fns: Function[], arg?: any) => {
+  for (let i = 0; i < fns.length; i++) {
+    fns[i](arg)
+  }
+}
+
+// 判断是否为函数
+export const isFunction = (val: unknown): val is Function =>
+  typeof val === 'function'
+```
+
 :::
 
 ### 2.2 render 函数与缓存命中逻辑
@@ -193,6 +241,17 @@ function matches(pattern: any, name: string): boolean {
 }
 ```
 
+```typescript [shared/index.ts]
+// 判断是否为正则
+export const isRegExp = (val: unknown): val is RegExp =>
+  toTypeString(val) === '[object RegExp]'
+
+// 获取值的内部类型字符串
+export const objectToString = Object.prototype.toString
+export const toTypeString = (value: unknown): string =>
+  objectToString.call(value)
+```
+
 :::
 
 ## 3. LRU 算法与渲染器劫持
@@ -231,6 +290,13 @@ function pruneCacheEntry(key: CacheKey) {
   // 从映射和集合中彻底移除
   cache.delete(key)
   keys.delete(key)
+}
+```
+
+```typescript [vnode.ts]
+// 判断新旧 VNode 是否同类型且同 key
+export function isSameVNodeType(n1: VNode, n2: VNode): boolean {
+  return n1.type === n2.type && n1.key === n2.key
 }
 ```
 
@@ -283,17 +349,20 @@ const processComponent = (n1, n2, container, anchor, parentComponent) => {
 
 ```vue
 <template>
-  <!-- max 控制最大缓存数量，避免内存溢出 -->
+  <!-- include 只缓存名称匹配的组件；max 控制缓存上限，避免内存溢出 -->
   <KeepAlive :max="10" include="Home,Profile">
+    <!-- 切换 currentComponent 时，Home / Profile 的实例与 DOM 会被移入隐藏容器 -->
     <component :is="currentComponent" />
   </KeepAlive>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+// 这两个组件都能命中 include 规则，切换后状态不会丢失
 import Home from './Home.vue'
 import Profile from './Profile.vue'
 
+// 当前要渲染的组件，修改它会触发动态组件切换
 const currentComponent = ref(Home)
 </script>
 ```

@@ -60,8 +60,17 @@ const processCommentNode: ProcessFn = (
 const doc = (typeof document !== 'undefined' ? document : null) as Document
 
 export const nodeOps = {
+  insert: (child, parent, anchor) => {
+    parent.insertBefore(child, anchor || null)
+  },
+
   createComment: text => doc.createComment(text),
 }
+```
+
+```typescript [renderer.ts（别名）]
+// baseCreateRenderer 中从 options 解构并重命名
+const { insert: hostInsert } = options
 ```
 
 :::
@@ -70,13 +79,34 @@ export const nodeOps = {
 
 ### 3.1 初次挂载（Mount）的依赖注入
 
-```typescript
+:::code-group
+
+```typescript [renderer.ts]
 hostInsert(
   (n2.el = hostCreateComment((n2.children as string) || '')),
   container,
   anchor,
 )
 ```
+
+```typescript [renderer.ts（别名）]
+// baseCreateRenderer 中从 options 解构并重命名
+const { insert: hostInsert, createComment: hostCreateComment } = options
+```
+
+```typescript [nodeOps.ts]
+const doc = (typeof document !== 'undefined' ? document : null) as Document
+
+export const nodeOps = {
+  insert: (child, parent, anchor) => {
+    parent.insertBefore(child, anchor || null)
+  },
+
+  createComment: text => doc.createComment(text),
+}
+```
+
+:::
 
 - **`hostCreateComment`**：这不是写死的浏览器 API。在 `runtime-dom`（浏览器环境）中，它被注入为 `document.createComment(text)`。如果你在编写一个自定义的 Canvas 渲染器，你完全可以将其实现为一个不执行任何操作的空函数，因为 Canvas 里不需要 DOM 注释。
 - **`hostInsert`**：在浏览器环境下，它对应的是 `parent.insertBefore(el, anchor)`。通过 `anchor` 参数，Vue 能将这个注释节点极其精准地插入到列表的特定位置，作为后续真实元素的插入基准。

@@ -39,7 +39,9 @@ function defineReactive(obj, key, val) {
 
 Vue 3 使用 `Proxy` 代理整个对象，而不是遍历属性。`Proxy` 可以拦截对象上的多种操作（读取、设置、删除、`in` 操作等）。
 
-```typescript
+:::code-group
+
+```typescript [reactive.ts]
 // 简化版 reactive
 function reactive(target) {
   return new Proxy(target, {
@@ -70,6 +72,20 @@ function reactive(target) {
   })
 }
 ```
+
+```typescript [shared/index.ts]
+// 判断是否为对象
+export const isObject = (val: unknown): val is Record<any, any> =>
+  val !== null && typeof val === 'object'
+
+// 判断对象自身是否有某个 key
+export const hasOwn = (
+  val: object,
+  key: string | symbol,
+): key is keyof typeof val => Object.prototype.hasOwnProperty.call(val, key)
+```
+
+:::
 
 - 依赖收集和触发更新不再使用 `Dep` 类，而是通过全局的 `track` 和 `trigger` 函数。
 - `track` 函数内部会建立 `target -> key -> effect` 的映射关系（`WeakMap` 存储）。

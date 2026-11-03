@@ -169,7 +169,7 @@ export function resolveTransitionHooks(vnode, props, state, instance) {
 
 :::
 
-这里的关键是：`BaseTransition` 的 `enter` / `leave` 都不会修改 `state.isLeaving`。`isLeaving` 只在 render 中用于判断是否返回占位节点，以及在 `mode="out-in"` 的 `afterLeave` 中复位（`BaseTransition.ts:187、236-247、380-444`）。`nextFrame` 属于 runtime-dom 层，见下一节。
+这里的关键是：`BaseTransition` 的 `enter` / `leave` 都不会修改 `state.isLeaving`。`isLeaving` 只在 render 中用于判断是否返回占位节点，以及在 `mode="out-in"` 的 `afterLeave` 中复位。
 
 ## 3. DOM 实现：Web 平台的 `<Transition>`
 
@@ -284,6 +284,11 @@ function nextFrame(cb) {
 function forceReflow() {
   return document.body.offsetHeight
 }
+```
+
+```typescript [shared/index.ts]
+// 合并对象
+export const extend = Object.assign
 ```
 
 :::
@@ -473,7 +478,17 @@ function toMs(s: string): number {
 
 当渲染器要把一个真实的 DOM 插入到页面中时：
 
-```typescript
+:::code-group
+
+```typescript [renderer.ts]
+// baseCreateRenderer 中从 options 解构并重命名
+const { insert } = options
+
+// Suspense 开启时交给 suspense.effects，否则直接进入 post 队列
+export const queuePostRenderEffect = __FEATURE_SUSPENSE__
+  ? queueEffectWithSuspense
+  : queuePostFlushCb
+
 const mountElement = (vnode, container, anchor, parentComponent) => {
   // ... 创建真实的 DOM 元素 el ...
 
@@ -496,11 +511,28 @@ const mountElement = (vnode, container, anchor, parentComponent) => {
 }
 ```
 
+```typescript [nodeOps.ts]
+const doc = (typeof document !== 'undefined' ? document : null) as Document
+
+export const nodeOps = {
+  insert: (child, parent, anchor) => {
+    parent.insertBefore(child, anchor || null)
+  },
+}
+```
+
+:::
+
 ### 4.2 卸载劫持 (Unmount) -> 最巧妙的延后销毁
 
 这是 Vue 解决“**组件被销毁时无法播放动画**”的核心机制：
 
-```typescript
+:::code-group
+
+```typescript [renderer.ts]
+// baseCreateRenderer 中从 options 解构并重命名
+const { remove: hostRemove } = options
+
 const remove = vnode => {
   const { el, transition } = vnode
 
@@ -520,6 +552,19 @@ const remove = vnode => {
   }
 }
 ```
+
+```typescript [nodeOps.ts]
+export const nodeOps = {
+  remove: child => {
+    const parent = child.parentNode
+    if (parent) {
+      parent.removeChild(child)
+    }
+  },
+}
+```
+
+:::
 
 ## 5. 完整流程示例
 

@@ -9,7 +9,7 @@
 组件（`Component`）与普通元素（`Element`）在物理形态和逻辑复杂度上有天壤之别：
 
 - **逻辑封装体**：普通元素只是静态的 DOM 描述，而组件拥有自己的内部状态（`data` / `setup` 中的 `ref` / `reactive`）、生命周期（`mounted`、`updated`）、计算属性（`computed`）以及监听器（`watch`）。
-- **渲染的间接性**：组件本身并不会直接映射为某一个特定的真实 DOM 节点。它是一个黑盒，其最终长什么样，取决于它的 `render` 函数（或 `<template>` 编译出的渲染函数）执行后返回的次级 VNode 树（`SubTree`）。
+- **渲染的间接性**：组件本身并不会直接映射为某一个特定的真实DOM节点。它是一个黑盒，其最终长什么样，取决于它的`render`函数(或`<template>`编译出的渲染函数)执行后返回的次级VNode树(`SubTree`)。
 - **响应式边界**：在 Vue 3 中，组件是响应式更新的最小粒度（即依赖收集和触发更新的最小单位）。当一个组件的状态发生变化时，理想情况下应该只重新渲染该组件的 `SubTree`，而不应波及父组件或兄弟组件。
 
 ### 1.2 与普通元素的对比
@@ -36,6 +36,7 @@ const processComponent = (
   container: RendererElement,
   anchor: RendererNode | null,
   parentComponent: ComponentInternalInstance | null,
+  optimized: boolean,
 ) => {
   // 阶段一：初次挂载 (n1 为空)
   if (n1 == null) {
@@ -53,7 +54,7 @@ const processComponent = (
   } else {
     // 阶段二：父组件 patch 传入了新的 VNode（n1 存在）
     // 注意：组件自身响应式数据变化不会走这里，而是由调度器直接执行 instance.update
-    updateComponent(n1, n2)
+    updateComponent(n1, n2, optimized)
   }
 }
 ```
@@ -100,6 +101,12 @@ const mountComponent: MountComponentFn = (
   // 这是 Vue 数据驱动视图的魔法核心！将 render 函数包裹在一个 effect 中。
   setupRenderEffect(instance, initialVNode, container, anchor)
 }
+```
+
+```typescript [vnode.ts]
+// 判断是否为 KeepAlive
+export const isKeepAlive = (vnode: VNode): boolean =>
+  (vnode.type as any).__isKeepAlive
 ```
 
 :::
@@ -247,8 +254,6 @@ export function setupComponent(instance: ComponentInternalInstance) {
 
 #### 3.2.1 `initProps`
 
-初始化 `Props`
-
 ```typescript [componentProps.ts]
 export function initProps(instance, rawProps) {
   const props = {}
@@ -263,8 +268,6 @@ export function initProps(instance, rawProps) {
 ```
 
 #### 3.2.2 `initSlots`
-
-初始化 `Slots`
 
 ```typescript [componentSlots.ts]
 export function initSlots(instance, children) {
@@ -965,9 +968,34 @@ export const onBeforeMount = createHook(LifecycleHooks.BEFORE_MOUNT)
 export const onMounted = createHook(LifecycleHooks.MOUNTED)
 ```
 
+```typescript [shared/index.ts]
+// 判断是否为 Promise
+export const isPromise = <T = any>(val: unknown): val is Promise<T> => {
+  return isObject(val) && isFunction(val.then) && isFunction(val.catch)
+}
+
+// 判断是否为对象
+export const isObject = (val: unknown): val is Record<any, any> =>
+  val !== null && typeof val === 'object'
+
+// 判断是否为函数
+export const isFunction = (val: unknown): val is Function =>
+  typeof val === 'function'
+
+// 把单个值统一成数组
+export const toArray = <T>(value: T | T[]): T[] =>
+  isArray(value) ? value : [value]
+
+// 判断是否为数组
+export const isArray = Array.isArray
+
+// 判断是否为字符串
+export const isString = (val: unknown): val is string => typeof val === 'string'
+```
+
 :::
 
-### 3.3 `setupRenderEffect`
+### 3.3 `setupRenderEffect`(挂载逻辑)
 
 创建组件的渲染 `effect`，它会在依赖的响应式数据变化时重新执行，触发组件的更新。该 `effect` 的 `scheduler` 被设置为 `queueJob(instance.update)`，实现异步批量更新。
 
@@ -977,6 +1005,11 @@ export const onMounted = createHook(LifecycleHooks.MOUNTED)
 import { renderComponentRoot } from './componentRenderUtils'
 import { updateProps } from './componentProps.ts'
 import { updateSlots } from './componentSlots.ts'
+
+// Suspense 开启时交给 suspense.effects，否则直接进入 post 队列
+export const queuePostRenderEffect = __FEATURE_SUSPENSE__
+  ? queueEffectWithSuspense
+  : queuePostFlushCb
 const setupRenderEffect = (
   instance: ComponentInternalInstance,
   initialVNode: VNode,
@@ -1102,13 +1135,156 @@ export function cloneIfMounted(child) {
 }
 ```
 
+```typescript [shared/index.ts]
+// 依次执行钩子数组
+export const invokeArrayFns = (fns: Function[], arg?: any) => {
+  for (let i = 0; i < fns.length; i++) {
+    fns[i](arg)
+  }
+}
+
+// 判断是否为数组
+export const isArray = Array.isArray
+```
+
+```typescript [scheduler.ts]
+// 把任务推入主队列，由 queueFlush 注册微任务统一刷新
+export function queueJob(job: SchedulerJob) {
+  if (
+    !queue.length ||
+    !queue.includes(
+      job,
+      isFlushing && job.allowRecurse ? flushIndex + 1 : flushIndex,
+    )
+  ) {
+    if (job.id == null) {
+      queue.push(job)
+    } else {
+      queue.splice(findInsertionIndex(job.id), 0, job)
+    }
+    queueFlush()
+  }
+}
+```
+
 :::
 
 ## 4. 更新分支：`updateComponent`
 
-### 4.1 `setupRenderEffect`
+### 4.1 `updateComponent`（更新入口）
 
-组件更新触发`setupRenderEffect`方法中的`update`方法，执行更新操作
+当组件需要更新时，执行`patch`方法,内部调用`updateComponent`决定是否真的需要更新，并执行更新流程。
+
+:::code-group
+
+```typescript [renderer.ts]
+import { shouldUpdateComponent } from './componentUpdateUtils.ts'
+const updateComponent = (n1: VNode, n2: VNode, optimized: boolean) => {
+  const instance = (n2.component = n1.component)!
+  if (shouldUpdateComponent(n1, n2, optimized)) {
+    // async setup 尚未 resolve：渲染 effect 还没建立，只更新 props / slots
+    if (instance.asyncDep && !instance.asyncResolved) {
+      updateComponentPreRender(instance, n2, optimized)
+      return
+    }
+    // 正常更新：先移除已排队中的重复任务，避免同一轮 flush 里重复更新
+    instance.next = n2
+    invalidateJob(instance.update)
+    instance.update()
+  } else {
+    // 不需要更新，仅传递部分属性
+    n2.component = n1.component
+    n2.el = n1.el
+    instance.vnode = n2
+  }
+}
+```
+
+```typescript [componentRenderUtils.ts]
+//shouldUpdateComponent 会极其精细地比对新旧 VNode，只要确定组件的输入（Props、Slots）没有发生实质性改变，
+//它就会果断返回 false，彻底截断该组件及所有子孙组件的渲染瀑布。
+export function shouldUpdateComponent(prevVNode, nextVNode, optimized) {
+  const { props: prevProps, children: prevChildren, component } = prevVNode
+  const { props: nextProps, children: nextChildren, patchFlag } = nextVNode
+  const emits = component.emitsOptions
+
+  // 运行时指令 (dirs) 或 Transition 会直接操作 DOM，必须强制子组件更新
+  if (nextVNode.dirs || nextVNode.transition) {
+    return true
+  }
+
+  // 检查点 1：极速路径 (基于编译器的 PatchFlags 优化)
+  // 如果模板是 Vue 编译器生成的，它会带上 patchFlag
+  if (optimized && patchFlag >= 0) {
+    // 情况 A：动态插槽（插槽内容引用了可能变化的值，如 v-for）
+    if (patchFlag & PatchFlags.DYNAMIC_SLOTS) {
+      return true
+    }
+    // 情况 B：带有动态 Key 的全量 Props (比如写了 v-bind="object")
+    if (patchFlag & PatchFlags.FULL_PROPS) {
+      if (!prevProps) {
+        return !!nextProps
+      }
+      return hasPropsChanged(prevProps, nextProps, emits)
+    }
+    // 情况 C：只有部分 Props 是动态绑定的 (这是最常见的情况！)
+    else if (patchFlag & PatchFlags.PROPS) {
+      // dynamicProps 是编译器提取的动态属性名数组，比如 ['msg', 'count']
+      const dynamicProps = nextVNode.dynamicProps
+      for (let i = 0; i < dynamicProps.length; i++) {
+        const key = dynamicProps[i]
+        // O(1) 级别的靶向比对；事件监听器（onXxx）跳过
+        if (nextProps[key] !== prevProps[key] && !isEmitListener(emits, key)) {
+          return true
+        }
+      }
+    }
+    // 优化路径下没有命中任何变化条件，拒绝更新
+    return false
+  }
+
+  // 检查点 2：慢速路径 (手写 render 函数，没有编译器优化)
+  // 编译生成的插槽自带 $stable 标记；手写 render 的 children 没有这个标记
+  if (prevChildren || nextChildren) {
+    if (!nextChildren || !nextChildren.$stable) {
+      // 只要新的插槽不是“静态稳定”的，就认为可能变了，放行更新
+      return true
+    }
+  }
+  // 退化为最稳妥的全量 Props 浅比较
+  return hasPropsChanged(prevProps, nextProps, emits)
+}
+
+// 辅助函数：全量 Props 浅比较
+function hasPropsChanged(prevProps, nextProps, emits) {
+  // 1. 如果本来都没有 props，直接认为没变
+  if (prevProps === nextProps) return false
+  // 2. 只有一方有 props，肯定变了
+  if (!prevProps || !nextProps) return true
+
+  const nextKeys = Object.keys(nextProps)
+  const prevKeys = Object.keys(prevProps)
+
+  // 3. 连属性的数量都不一样，肯定变了 (比如突然多传了一个 prop)
+  if (nextKeys.length !== prevKeys.length) return true
+
+  // 4. 老老实实遍历所有 key，跳过事件监听器
+  for (let i = 0; i < nextKeys.length; i++) {
+    const key = nextKeys[i]
+    if (nextProps[key] !== prevProps[key] && !isEmitListener(emits, key)) {
+      return true
+    }
+  }
+  // 历经千辛万苦都没变，放行失败，拦截更新！
+  return false
+}
+```
+
+:::
+
+### 4.2 `setupRenderEffect`(更新逻辑)
+
+组件更新触发`setupRenderEffect`方法中的`update`方法，执行更新操作。
 
 :::code-group
 
@@ -1116,6 +1292,14 @@ export function cloneIfMounted(child) {
 import { renderComponentRoot } from './componentRenderUtils'
 import { updateProps } from './componentProps.ts'
 import { updateSlots } from './componentSlots.ts'
+
+// baseCreateRenderer 中从 options 解构并重命名
+const { parentNode: hostParentNode } = options
+// Suspense 开启时交给 suspense.effects，否则直接进入 post 队列
+export const queuePostRenderEffect = __FEATURE_SUSPENSE__
+  ? queueEffectWithSuspense
+  : queuePostFlushCb
+
 const setupRenderEffect = (
   instance: ComponentInternalInstance,
   initialVNode: VNode,
@@ -1139,7 +1323,7 @@ const setupRenderEffect = (
         //将老节点的dom赋值给新节点
         next.el = vnode.el
         //更新组件实例属性
-        updateComponentPreRender(instance, next)
+        updateComponentPreRender(instance, next, optimized)
       } else {
         //没有新节点 直接赋值老节点
         next = vnode
@@ -1166,7 +1350,7 @@ const setupRenderEffect = (
       // 5. 更新 DOM 引用
       next.el = nextTree.el
       // 6. 自触发更新（next 为 null）且存在 HOC 时，同步父组件 vnode 的 el
-      if (originNext === null && nextTree.el) {
+      if (originNext === null) {
         updateHOCHostEl(instance, nextTree.el)
       }
       // updated hook：同样推入 post-render 队列
@@ -1189,32 +1373,6 @@ const setupRenderEffect = (
   update.id = instance.uid // 给任务打上 ID，保证更新时的父子顺序
   // 手动调用一次，启动初次挂载流程
   update()
-}
-
-//更新组件实例属性
-export const updateComponentPreRender = (
-  instance: ComponentInternalInstance,
-  nextVNode: VNode,
-  optimized: boolean = false,
-) => {
-  // 1. 物理引用的双向绑定与清理
-  // 让新 VNode 指向当前的组件实例
-  nextVNode.component = instance
-  // 保存旧的 Props，等下比对要用
-  const prevProps = instance.vnode.props
-  // 让组件实例的 vnode 指针指向最新的 VNode
-  instance.vnode = nextVNode
-  // 清空 next 标记，表示“待更新的节点”已经开始处理了
-  instance.next = null
-
-  // 2. 更新组件的 Props (极其核心)
-  updateProps(instance, nextVNode.props, prevProps, optimized)
-
-  // 3. 更新组件的 Slots (插槽)
-  updateSlots(instance, nextVNode.children)
-
-  // 4. 清理由于 Props 改变而可能触发的同步 Watcher
-  // (确保在 render 执行前，所有的状态都已落定)
 }
 ```
 
@@ -1284,6 +1442,96 @@ export function cloneIfMounted(child) {
     : cloneVNode(child)
 }
 ```
+
+```typescript [shared/index.ts]
+// 依次执行钩子数组
+export const invokeArrayFns = (fns: Function[], arg?: any) => {
+  for (let i = 0; i < fns.length; i++) {
+    fns[i](arg)
+  }
+}
+
+// 判断是否为数组
+export const isArray = Array.isArray
+
+// 判断对象自身是否有某个 key
+export const hasOwn = (
+  val: object,
+  key: string | symbol,
+): key is keyof typeof val => Object.prototype.hasOwnProperty.call(val, key)
+```
+
+```typescript [nodeOps.ts]
+export const nodeOps = {
+  // 获取父节点
+  parentNode: node => node.parentNode as Element | null,
+}
+```
+
+```typescript [scheduler.ts]
+// 把任务推入主队列，由 queueFlush 注册微任务统一刷新
+export function queueJob(job: SchedulerJob) {
+  if (
+    !queue.length ||
+    !queue.includes(
+      job,
+      isFlushing && job.allowRecurse ? flushIndex + 1 : flushIndex,
+    )
+  ) {
+    if (job.id == null) {
+      queue.push(job)
+    } else {
+      queue.splice(findInsertionIndex(job.id), 0, job)
+    }
+    queueFlush()
+  }
+}
+```
+
+:::
+
+### 4.3 `updateComponentPreRender`
+
+`updateComponentPreRender`方法用于更新组件`props`，`slots`等实例属性以及暂停依赖收集
+
+:::code-group
+
+```typescript [renderer.ts]
+//
+export const updateComponentPreRender = (
+  instance: ComponentInternalInstance,
+  nextVNode: VNode,
+  optimized: boolean = false,
+) => {
+  // 1. 物理引用的双向绑定与清理
+  // 让新 VNode 指向当前的组件实例
+  nextVNode.component = instance
+  // 保存旧的 Props，等下比对要用
+  const prevProps = instance.vnode.props
+  // 让组件实例的 vnode 指针指向最新的 VNode
+  instance.vnode = nextVNode
+  // 清空 next 标记，表示“待更新的节点”已经开始处理了
+  instance.next = null
+
+  // 2. 更新组件的 Props (极其核心)
+  updateProps(instance, nextVNode.props, prevProps, optimized)
+
+  // 3. 更新组件的 Slots (插槽)
+  updateSlots(instance, nextVNode.children, optimized)
+
+  // 4. 暂停依赖收集，先执行 props 更新可能触发的 pre watcher
+  // (确保在 render 执行前，所有的状态都已落定)
+  pauseTracking()
+  flushPreFlushCbs()
+  resetTracking()
+}
+```
+
+:::
+
+#### 4.3.1 `updateProps`
+
+:::code-group
 
 ```typescript [componentProps.ts]
 export function updateProps(
@@ -1399,6 +1647,12 @@ export function updateProps(
 }
 ```
 
+:::
+
+#### 4.3.2 `updateSlots`
+
+:::code-group
+
 ```typescript [componentSlots.ts]
 function updateSlots(instance, newChildren) {
   // 拿到组件当前的旧插槽对象 (这里面存的是上一轮的渲染函数)
@@ -1428,112 +1682,6 @@ function updateSlots(instance, newChildren) {
       delete oldSlots[key]
     }
   }
-}
-```
-
-:::
-
-### 4.2 `updateComponent`
-
-当组件需要更新时，执行`patch`方法，内部调用`updateComponent` 决定是否真的需要更新，并执行更新流程。
-
-:::code-group
-
-```typescript [renderer.ts]
-import { shouldUpdateComponent } from './componentUpdateUtils.ts'
-const updateComponent = (n1: VNode, n2: VNode, optimized: boolean) => {
-  const instance = (n2.component = n1.component)!
-  if (shouldUpdateComponent(n1, n2, optimized)) {
-    // async setup 尚未 resolve：渲染 effect 还没建立，只更新 props / slots
-    if (instance.asyncDep && !instance.asyncResolved) {
-      updateComponentPreRender(instance, n2, optimized)
-      return
-    }
-    // 正常更新：先移除已排队中的重复任务，避免同一轮 flush 里重复更新
-    instance.next = n2
-    invalidateJob(instance.update)
-    instance.update()
-  } else {
-    // 不需要更新，仅传递部分属性
-    n2.component = n1.component
-    n2.el = n1.el
-    instance.vnode = n2
-  }
-}
-```
-
-```typescript [componentRenderUtils.ts]
-//shouldUpdateComponent 会极其精细地比对新旧 VNode，只要确定组件的输入（Props、Slots）没有发生实质性改变，
-//它就会果断返回 false，彻底截断该组件及所有子孙组件的渲染瀑布。
-export function shouldUpdateComponent(prevVNode, nextVNode, optimized) {
-  const { props: prevProps, children: prevChildren, component } = prevVNode
-  const { props: nextProps, children: nextChildren, patchFlag } = nextVNode
-  const emits = component.emitsOptions
-
-  // 检查点 1：极速路径 (基于编译器的 PatchFlags 优化)
-  // 如果模板是 Vue 编译器生成的，它会带上 patchFlag
-  if (optimized && patchFlag >= 0) {
-    // 情况 A：动态插槽（插槽内容引用了可能变化的值，如 v-for）
-    if (patchFlag & PatchFlags.DYNAMIC_SLOTS) {
-      return true
-    }
-    // 情况 B：带有动态 Key 的全量 Props (比如写了 v-bind="object")
-    if (patchFlag & PatchFlags.FULL_PROPS) {
-      if (!prevProps) {
-        return !!nextProps
-      }
-      return hasPropsChanged(prevProps, nextProps, emits)
-    }
-    // 情况 C：只有部分 Props 是动态绑定的 (这是最常见的情况！)
-    else if (patchFlag & PatchFlags.PROPS) {
-      // dynamicProps 是编译器提取的动态属性名数组，比如 ['msg', 'count']
-      const dynamicProps = nextVNode.dynamicProps
-      for (let i = 0; i < dynamicProps.length; i++) {
-        const key = dynamicProps[i]
-        // O(1) 级别的靶向比对；事件监听器（onXxx）跳过
-        if (nextProps[key] !== prevProps[key] && !isEmitListener(emits, key)) {
-          return true
-        }
-      }
-    }
-    // 优化路径下没有命中任何变化条件，拒绝更新
-    return false
-  }
-
-  // 检查点 2：慢速路径 (手写 render 函数，没有编译器优化)
-  // 编译生成的插槽自带 $stable 标记；手写 render 的 children 没有这个标记
-  if (prevChildren || nextChildren) {
-    if (!nextChildren || !nextChildren.$stable) {
-      // 只要新的插槽不是“静态稳定”的，就认为可能变了，放行更新
-      return true
-    }
-  }
-  // 退化为最稳妥的全量 Props 浅比较
-  return hasPropsChanged(prevProps, nextProps, emits)
-}
-
-// 辅助函数：全量 Props 浅比较
-function hasPropsChanged(prevProps, nextProps, emits) {
-  // 1. 如果本来都没有 props，直接认为没变
-  if (prevProps === nextProps) return false
-  // 2. 只有一方有 props，肯定变了
-  if (!prevProps || !nextProps) return true
-
-  const nextKeys = Object.keys(nextProps)
-  const prevKeys = Object.keys(prevProps)
-
-  // 3. 连属性的数量都不一样，肯定变了 (比如突然多传了一个 prop)
-  if (nextKeys.length !== prevKeys.length) return true
-
-  // 4. 老老实实遍历所有 key，跳过事件监听器
-  for (let i = 0; i < nextKeys.length; i++) {
-    const key = nextKeys[i]
-    if (nextProps[key] !== prevProps[key] && !isEmitListener(emits, key)) {
-      return true
-    }
-  }
-  // 历经千辛万苦都没变，放行失败，拦截更新！
-  return false
 }
 ```
 

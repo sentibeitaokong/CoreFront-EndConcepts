@@ -120,6 +120,11 @@ export function queuePostFlushCb(cb: SchedulerJobs) {
 }
 ```
 
+```typescript [shared/index.ts]
+// 判断是否为数组
+export const isArray = Array.isArray
+```
+
 :::
 
 ### 3.2 注册微任务
@@ -256,7 +261,9 @@ function flushPostFlushCbs(seen?: CountMap) {
 
 在 `doWatch` 中创建 `ReactiveEffect` 时，会根据 `flush` 选项设置 `scheduler`：
 
-```typescript
+:::code-group
+
+```typescript [apiWatch.ts]
 if (flush === 'sync') {
   //同步执行，适用于需要立即响应的场景（效率较低）。
   scheduler = job as any
@@ -271,17 +278,70 @@ if (flush === 'sync') {
 }
 ```
 
+```typescript [scheduler.ts]
+// 把任务推入主队列，由 queueFlush 注册微任务统一刷新
+export function queueJob(job: SchedulerJob) {
+  if (
+    !queue.length ||
+    !queue.includes(
+      job,
+      isFlushing && job.allowRecurse ? flushIndex + 1 : flushIndex,
+    )
+  ) {
+    if (job.id == null) {
+      queue.push(job)
+    } else {
+      queue.splice(findInsertionIndex(job.id), 0, job)
+    }
+    queueFlush()
+  }
+}
+```
+
+```typescript [renderer.ts]
+// Suspense 开启时交给 suspense.effects，否则直接进入 post 队列
+export const queuePostRenderEffect = __FEATURE_SUSPENSE__
+  ? queueEffectWithSuspense
+  : queuePostFlushCb
+```
+
+:::
+
 ## 5. 组件渲染与调度器的整合
 
 在组件初始化时，会创建一个渲染 `effect`，其 `scheduler` 为 `queueJob(instance.update)`。
 
-```typescript
+:::code-group
+
+```typescript [renderer.ts]
 //当响应式数据变化，`trigger` 调用该 `scheduler`，将 `instance.update` 加入主队列。
 //在 `flushJobs` 执行主队列时，`instance.update` 会调用 `patch` 更新 DOM。
 const effect = new ReactiveEffect(componentUpdateFn, () =>
   queueJob(instance.update),
 )
 ```
+
+```typescript [scheduler.ts]
+// 把任务推入主队列，由 queueFlush 注册微任务统一刷新
+export function queueJob(job: SchedulerJob) {
+  if (
+    !queue.length ||
+    !queue.includes(
+      job,
+      isFlushing && job.allowRecurse ? flushIndex + 1 : flushIndex,
+    )
+  ) {
+    if (job.id == null) {
+      queue.push(job)
+    } else {
+      queue.splice(findInsertionIndex(job.id), 0, job)
+    }
+    queueFlush()
+  }
+}
+```
+
+:::
 
 ## 6. 完整流程图
 

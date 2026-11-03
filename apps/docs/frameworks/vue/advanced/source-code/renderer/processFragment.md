@@ -218,6 +218,14 @@ export const nodeOps = {
 }
 ```
 
+```typescript [shared/index.ts]
+// 判断是否为字符串
+export const isString = (val: unknown): val is string => typeof val === 'string'
+
+// 判断是否为数组
+export const isArray = Array.isArray
+```
+
 :::
 
 ## 3. 核心机制深度拆解

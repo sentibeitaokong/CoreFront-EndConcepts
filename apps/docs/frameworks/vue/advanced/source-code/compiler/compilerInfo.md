@@ -69,6 +69,14 @@ export function baseCompile(
 }
 ```
 
+```typescript [shared/index.ts]
+// 判断是否为字符串
+export const isString = (val: unknown): val is string => typeof val === 'string'
+
+// 合并对象
+export const extend = Object.assign
+```
+
 :::
 
 ## 3. 解析阶段：从字符串到模板 AST

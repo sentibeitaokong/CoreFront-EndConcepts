@@ -121,6 +121,9 @@ export function isRef(r: any): r is Ref {
 //是否为一个 function
 export const isFunction = (val: unknown): val is Function =>
   typeof val === 'function'
+
+//判断传入的值是否为数组
+export const isArray = Array.isArray
 ```
 
 :::
@@ -191,6 +194,12 @@ function doWatch(source, cb, options, instance) {
 }
 ```
 
+```typescript [shared/index.ts]
+// 用 Object.is 比较新旧值，能正确处理 NaN 和 ±0
+export const hasChanged = (value: any, oldValue: any): boolean =>
+  !Object.is(value, oldValue)
+```
+
 :::
 
 ### 3.2 实例化 Effect 与生命周期
@@ -232,6 +241,33 @@ function doWatch(source, cb, options, instance) {
   // 返回停止侦听的函数
   return () => {
     effect.stop()
+  }
+}
+```
+
+```typescript [renderer.ts]
+// Suspense 开启时交给 suspense.effects，否则直接进入 post 队列
+export const queuePostRenderEffect = __FEATURE_SUSPENSE__
+  ? queueEffectWithSuspense
+  : queuePostFlushCb
+```
+
+```typescript [scheduler.ts]
+// 把任务推入主队列，由 queueFlush 注册微任务统一刷新
+export function queueJob(job: SchedulerJob) {
+  if (
+    !queue.length ||
+    !queue.includes(
+      job,
+      isFlushing && job.allowRecurse ? flushIndex + 1 : flushIndex,
+    )
+  ) {
+    if (job.id == null) {
+      queue.push(job)
+    } else {
+      queue.splice(findInsertionIndex(job.id), 0, job)
+    }
+    queueFlush()
   }
 }
 ```

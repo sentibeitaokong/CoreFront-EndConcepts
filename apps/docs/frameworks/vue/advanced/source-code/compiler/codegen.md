@@ -603,6 +603,11 @@ function genNodeListAsArray(nodes, context) {
 }
 ```
 
+```typescript [shared/index.ts]
+// 判断是否为字符串
+export const isString = (val: unknown): val is string => typeof val === 'string'
+```
+
 :::
 
 ### 4.3 JavaScript 逻辑结构生成器
@@ -716,6 +721,13 @@ function genExpressionAsPropertyKey(node, context) {
     push(`[${node.content}]`)
   }
 }
+```
+
+```typescript [compiler/utils.ts]
+// 判断是否是合法的 JS 标识符
+const simpleIdentifierRE = /^[A-Za-z_$][\w$]*$/
+export const isSimpleIdentifier = (name: string): boolean =>
+  simpleIdentifierRE.test(name)
 ```
 
 :::

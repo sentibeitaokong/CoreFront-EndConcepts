@@ -92,6 +92,20 @@ export const nodeOps = {
 hostInsert((n2.el = hostCreateText(n2.children as string)), container, anchor)
 ```
 
+```typescript [nodeOps.ts]
+export const nodeOps = {
+  // 在 parent 的 anchor 前插入节点
+  insert: (child, parent, anchor) => {
+    parent.insertBefore(child, anchor || null)
+  },
+}
+```
+
+```typescript [renderer.ts（别名）]
+// baseCreateRenderer 中从 options 解构并重命名
+const { insert: hostInsert } = options
+```
+
 :::
 
 - `hostCreateText(...)`：在浏览器环境下，它对应的是 `document.createTextNode(text)`，在内存中凭空捏造一段文本片段。
@@ -107,6 +121,20 @@ const el = (n2.el = n1.el!)
 if (n2.children !== n1.children) {
   hostSetText(el, n2.children as string)
 }
+```
+
+```typescript [nodeOps.ts]
+export const nodeOps = {
+  // 设置文本节点内容
+  setText: (node, text) => {
+    node.nodeValue = text
+  },
+}
+```
+
+```typescript [renderer.ts（别名）]
+// baseCreateRenderer 中从 options 解构并重命名
+const { setText: hostSetText } = options
 ```
 
 :::

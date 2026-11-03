@@ -270,6 +270,15 @@ export function isSameVNodeType(n1: VNode, n2: VNode): boolean {
 }
 ```
 
+```typescript [shared/index.ts]
+// 判断是否为函数
+export const isFunction = (val: unknown): val is Function =>
+  typeof val === 'function'
+
+// 判断是否为字符串
+export const isString = (val: unknown): val is string => typeof val === 'string'
+```
+
 :::
 
 ## 3. 完整流程示例

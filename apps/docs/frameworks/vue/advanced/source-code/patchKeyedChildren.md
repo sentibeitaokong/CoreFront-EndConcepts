@@ -555,6 +555,20 @@ function getSequence(arr) {
 }
 ```
 
+```typescript [nodeOps.ts]
+export const nodeOps = {
+  // 在 parent 的 anchor 前插入节点
+  insert: (child, parent, anchor) => {
+    parent.insertBefore(child, anchor || null)
+  },
+}
+```
+
+```typescript [renderer.ts（别名）]
+// baseCreateRenderer 中从 options 解构并重命名
+const { insert: hostInsert } = options
+```
+
 :::
 
 ### 4.3 图解

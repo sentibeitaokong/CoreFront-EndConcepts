@@ -126,6 +126,12 @@ export const toReactive = <T extends unknown>(value: T): T =>
   isObject(value) ? reactive(value as object) : value
 ```
 
+```typescript [shared/index.ts]
+// 判断是否为对象
+export const isObject = (val: unknown): val is Record<any, any> =>
+  val !== null && typeof val === 'object'
+```
+
 :::
 
 ## 3. 依赖收集与触发更新
@@ -230,6 +236,11 @@ export function triggerEffect(effect: ReactiveEffect) {
     effect.run()
   }
 }
+```
+
+```typescript [shared/index.ts]
+// 判断是否为数组
+export const isArray = Array.isArray
 ```
 
 :::

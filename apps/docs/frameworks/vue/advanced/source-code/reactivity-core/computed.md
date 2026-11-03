@@ -312,6 +312,11 @@ export function triggerEffect(effect: ReactiveEffect) {
 }
 ```
 
+```typescript [shared/index.ts]
+// 判断是否为数组
+export const isArray = Array.isArray
+```
+
 :::
 
 ## 4. 可写 `computed` 的实现

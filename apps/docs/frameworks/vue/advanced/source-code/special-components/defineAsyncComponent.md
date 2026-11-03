@@ -245,6 +245,32 @@ return defineComponent({
 })
 ```
 
+```typescript [vnode.ts]
+// 判断是否为 KeepAlive
+export const isKeepAlive = (vnode: VNode): boolean =>
+  (vnode.type as any).__isKeepAlive
+```
+
+```typescript [scheduler.ts]
+// 把任务推入主队列，由 queueFlush 注册微任务统一刷新
+export function queueJob(job: SchedulerJob) {
+  if (
+    !queue.length ||
+    !queue.includes(
+      job,
+      isFlushing && job.allowRecurse ? flushIndex + 1 : flushIndex,
+    )
+  ) {
+    if (job.id == null) {
+      queue.push(job)
+    } else {
+      queue.splice(findInsertionIndex(job.id), 0, job)
+    }
+    queueFlush()
+  }
+}
+```
+
 :::
 
 ### 2.4 `createInnerComp` 属性透传
