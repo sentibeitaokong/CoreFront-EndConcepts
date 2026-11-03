@@ -35,7 +35,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 - **遍历新节点**：拿着新节点去旧节点列表里找（比对 `key`）。
 - **找到可复用的节点（打补丁 patch）**：如果找到了 `key` 相同的旧节点，先更新它的内容。
-- **判断是否需要移动 DOM**：这是算法的灵魂。记录一个 `lastIndex`（在遍历过程中遇到的**最大旧节点索引**）。
+- **判断是否需要移动 DOM**：这是算法的灵魂。记录一个`lastIndex`(在遍历过程中遇到的**最大旧节点索引**)。
   - 如果当前找到的旧节点索引 `j` **小于** `lastIndex`，说明它在新序列中被排到了后面，**需要移动**。
   - 如果 `j` **大于或等于** `lastIndex`，说明相对顺序没变，不需要移动，并把 `lastIndex` 更新为 `j`。
 - **处理新增和删除**：找不到旧节点的新节点就挂载（Mount）；新序列遍历完后，再遍历一次旧序列，没在新序列中出现的旧节点全部卸载（Unmount）。
@@ -562,11 +562,6 @@ export const nodeOps = {
     parent.insertBefore(child, anchor || null)
   },
 }
-```
-
-```typescript [renderer.ts（别名）]
-// baseCreateRenderer 中从 options 解构并重命名
-const { insert: hostInsert } = options
 ```
 
 :::

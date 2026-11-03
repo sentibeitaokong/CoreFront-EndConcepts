@@ -20,11 +20,11 @@ Vue 3 的编译器是整个框架的“**静态分析引擎**”，它会在编�
 
 Vue 3 的编译器被拆分为多个包，通过**核心 + 平台插件**的方式实现跨平台复用：
 
-```
-@vue/compiler-core     → 平台无关的核心编译逻辑（解析、转换、代码生成）
-@vue/compiler-dom      → 浏览器平台专用的转换与优化（基于 compiler-core）
-@vue/compiler-sfc      → 解析 .vue 单文件组件，拆解 template / script / style
-@vue/compiler-ssr      → 服务端渲染专用的编译逻辑
+```markdown
+@vue/compiler-core → 平台无关的核心编译逻辑（解析、转换、代码生成）
+@vue/compiler-dom → 浏览器平台专用的转换与优化（基于 compiler-core）
+@vue/compiler-sfc → 解析 .vue 单文件组件，拆解 template / script / style
+@vue/compiler-ssr → 服务端渲染专用的编译逻辑
 ```
 
 - **`compiler-core`** 提供了通用的 `baseCompile` 函数，它组合了 parser、transformer 和 codegen 三部分。
@@ -186,7 +186,7 @@ function tokenize(template) {
 
 Vue 3 的解析器并没有显式的状态变量，而是通过**函数调用**和**循环分支**来模拟状态。核心函数 `parseChildren` 是一个 `while` 循环，每次根据剩余字符串的开头字符判断“**当前处于哪种解析模式**”，然后调用对应的解析函数（`parseElement`、`parseInterpolation`、`parseText` 等）。每一个解析函数内部又会根据情况继续调用其他解析函数，形成递归下降。
 
-简单来说，解析器的“**状态**”由**当前正在执行的解析函数**体现。状态转移则通过**函数返回**和新的**解析函数调用**来实现。
+解析器的“**状态**”由**当前正在执行的解析函数**体现。状态转移则通过**函数返回**和新的**解析函数调用**来实现。
 
 :::code-group
 
@@ -378,7 +378,7 @@ function traverseNode(node, context) {
 
 ### 4.3 编译时优化技术
 
-`transform` 阶段的最主要价值在于它能在编译时“**看到**”模板的静态和动态部分，并注入运行时优化所需的元信息。
+`transform`阶段的最主要价值在于它能在编译时**看到**模板的静态和动态部分,并注入运行时优化所需的元信息。
 
 #### 4.3.1 静态提升（Static Hoisting)
 
@@ -420,8 +420,6 @@ export function render(_ctx) {
 - 侦测动态样式：遇到 `<div :style="bgStyle">`，打上 `4 /* STYLE */`。
 - 多重特性叠加：如果既有动态文本又有动态类名，则打上 `1 | 2 = 3`。
 
-常见的 `PatchFlag`：
-
 [width(26,39,35)]
 
 | PatchFlag 常量         | 含义                                         | 触发示例                                        |
@@ -434,8 +432,6 @@ export function render(_ctx) {
 | `HYDRATE_EVENTS` (32)  | 存在需要水合的事件（`click` 除外）           | `<div @mouseover="handler">`                    |
 | `NEED_PATCH` (512)     | 需要额外 patch 的非 props 内容（ref / 指令） | `<div ref="r">`                                 |
 | `DYNAMIC_SLOTS` (1024) | 组件存在动态插槽                             | `<Comp><template #[name]>...</template></Comp>` |
-
-需要注意：`@click` 会被排除在 `HYDRATE_EVENTS` 之外，实际只得到 `8 /* PROPS */`，`@mouseover` 才会得到 `40 /* PROPS, HYDRATE_EVENTS */`（3.5 起该常量改名为 `NEED_HYDRATION`）；`NEED_PATCH` 来自 `ref`、`onVnodeXXX` 等 VNode 钩子或自定义指令，`v-for` 生成的是 Fragment（如 `256 /* UNKEYED_FRAGMENT */`），而 `<slot>` 出口本身不带 `DYNAMIC_SLOTS`。
 
 #### 4.3.3 块级追踪（Block Tree）
 
@@ -458,10 +454,11 @@ Vue 3 的编译器在 `transform` 阶段会默认启用 **事件处理函数缓�
 // 编译后的代码示意
 export function render(_ctx, _cache) {
   return (
-    _openBlock(),
+    _openBlock(), // 开启 Block，收集动态子节点
     _createBlock(
       'button',
       {
+        // 首次渲染写入缓存，后续复用同一个包装函数，保证事件引用稳定
         onClick: _cache[0] || (_cache[0] = $event => _ctx.handleClick($event)),
       },
       'Click Me',
@@ -600,7 +597,7 @@ export function render(_ctx, _cache) {
 代码生成阶段的本质是一个**从 AST 到字符串的递归下降翻译器**。它不像解析器那样使用有限状态机，也不像 transform 阶段那样通过插件系统完成复杂分析，而是采用**直接的分支判断**：根据 JavaScript AST 节点的类型，调用对应的代码生成函数（如 `genNode`、`genVNodeCall`、`genCompoundExpression` 等），将每个节点转换成一段 JavaScript 代码字符串，最终拼接成完整的渲染函数, 整个过程主要完成以下事项：
 
 - **生成渲染函数头部**：定义 `render` 函数及其参数（`_ctx`, `_cache`）。
-- **生成静态提升常量声明**：将 `context.hoists` 中的静态节点提取为模块级常量（如 `const _hoisted_1 = ...`）。
+- **生成静态提升常量声明**:将`context.hoists`中的静态节点提取为模块级常量(如 `const _hoisted_1 = .`)。
 - **生成渲染函数体**：遍历 AST，生成 `return` 语句以及其中的 VNode 创建调用。
 - **生成辅助函数导入语句**：根据 `helpers` 集合，生成从 `vue` 包导入所需辅助函数的代码。
 - **处理 PatchFlag 和动态属性**：将 PatchFlag 作为数字参数注入 VNode 创建调用。
@@ -680,11 +677,12 @@ export function render(_ctx, _cache) {
 `transform` 阶段将纯静态节点收集到 `context.hoists` 中。代码生成阶段为每个提升节点生成对应的常量声明，放在渲染函数外部：
 
 ```javascript
+// 静态节点提升为模块级常量，只创建一次
 const _hoisted_1 = /*#__PURE__*/ _createElementVNode(
   'span',
   null,
   '静态文本',
-  -1 /* HOISTED */,
+  -1 /* HOISTED */, // 静态提升标记，运行时直接复用
 )
 ```
 
@@ -710,14 +708,12 @@ const _hoisted_1 = /*#__PURE__*/ _createElementVNode(
 
 `genVNodeCall` 是代码生成阶段最核心的函数之一，负责生成 `createVNode` 或 `createElementBlock` 等 VNode 创建函数的调用代码。
 
-典型输出：
-
 ```javascript
 _createElementBlock(
-  'div',
-  { class: 'container' },
-  [_createTextVNode('Hello ' + _toDisplayString(_ctx.name) + ' ')],
-  1 /* TEXT */,
+  'div', // 元素类型
+  { class: 'container' }, // 静态 props
+  [_createTextVNode('Hello ' + _toDisplayString(_ctx.name) + ' ')], // 动态文本子节点
+  1 /* TEXT */, // PatchFlag：只需更新文本
 )
 ```
 
@@ -727,9 +723,9 @@ _createElementBlock(
 
 ```javascript
 import {
-  toDisplayString as _toDisplayString,
-  createElementBlock as _createElementBlock,
-  openBlock as _openBlock,
+  toDisplayString as _toDisplayString, // 插值：把值安全转成字符串
+  createElementBlock as _createElementBlock, // 创建元素并标记为 Block
+  openBlock as _openBlock, // 开启 Block，收集动态子节点
 } from 'vue'
 ```
 
@@ -754,7 +750,8 @@ _createElementBlock('div', null, children, 10 /* CLASS, PROPS */, ['id'])
 对于 Block 结构的节点，代码生成阶段会生成 `openBlock` 和 `createElementBlock` 的配合调用：
 
 ```javascript
-(_openBlock(), _createElementBlock("div", ...))
+// openBlock 建立动态节点收集作用域，createElementBlock 创建 Block 根节点
+;(_openBlock(), _createElementBlock('div', null, []))
 ```
 
 `openBlock` 会创建一个新的 Block 并将其推入 Block 栈，随后的 VNode 创建调用会自动收集到该 Block 的 `dynamicChildren` 中。这种结构使得运行时可以跳过静态子树，直接定位到动态节点。
@@ -764,6 +761,7 @@ _createElementBlock('div', null, children, 10 /* CLASS, PROPS */, ['id'])
 `transformOn` 插件在转换 `v-on` 指令时，若开启了 `cacheHandlers`（默认开启），会生成 `JS_CACHE_EXPRESSION` 节点。代码生成阶段将其转换为 `_cache[x]` 表达式：
 
 ```javascript
+// 首次渲染写入缓存，后续直接复用同一个事件函数引用
 onClick: _cache[0] || (_cache[0] = $event => _ctx.handleClick($event))
 ```
 
@@ -846,21 +844,22 @@ onClick: _cache[0] || (_cache[0] = $event => _ctx.handleClick($event))
 
 ```javascript
 import {
-  toDisplayString as _toDisplayString,
-  openBlock as _openBlock,
-  createElementBlock as _createElementBlock,
+  toDisplayString as _toDisplayString, // 插值：把值安全转成字符串
+  openBlock as _openBlock, // 开启 Block，收集动态子节点
+  createElementBlock as _createElementBlock, // 创建元素并标记为 Block
 } from 'vue'
 
+// 静态 props 提升到 render 外，模块初始化时只创建一次
 const _hoisted_1 = { class: 'box' }
 
 export function render(_ctx, _cache) {
   return (
-    _openBlock(),
+    _openBlock(), // 建立动态节点收集上下文
     _createElementBlock(
       'div',
-      _hoisted_1,
-      'Hello ' + _toDisplayString(_ctx.name),
-      1 /* TEXT */,
+      _hoisted_1, // 复用提升后的静态 props
+      'Hello ' + _toDisplayString(_ctx.name), // 只有这段文本是动态的
+      1 /* TEXT */, // PatchFlag：运行时只需检查文本变化
     )
   )
 }

@@ -320,7 +320,7 @@ function parseStringStyle(cssText) {
 }
 ```
 
-```typescript [vnode.ts（类型守卫）]
+```typescript [vnode.ts]
 // 判断是否为 Suspense
 export const isSuspense = (type: any): boolean => type.__isSuspense
 
@@ -389,21 +389,11 @@ export const enum ShapeFlags {
 }
 ```
 
-```typescript [判断示例]
-// 验证一个 VNode 是否是普通元素且包含数组子节点
-if (
-  vnode.shapeFlag & ShapeFlags.ELEMENT &&
-  vnode.shapeFlag & ShapeFlags.ARRAY_CHILDREN
-) {
-  // 执行挂载元素的逻辑，并遍历挂载子节点
-}
-```
-
 :::
 
 ### 3.2 `PatchFlags` (描述动态变化)
 
-由 Vue 编译器静态分析后注入，指导运行时 Diff 算法进行靶向更新（例如只更新 `class`，跳过全量属性对比）。
+由 Vue 编译器静态分析后注入，指导运行时 Diff 算法进行靶向更新(例如只更新`class`，跳过全量属性对比)。
 
 :::code-group
 

@@ -1,6 +1,6 @@
 # 解析阶段（Parser）
 
-解析阶段是 Vue 3 模板编译的第一环，负责将 HTML 模板字符串解析为一棵抽象语法树（AST),它采用**有限状态机**与**递归下降**相结合的设计，能够高效地将字符流转换为结构化的 AST，同时具备错误容错和源码位置追踪能力。
+解析阶段是Vue 3模板编译的第一环，负责将HTML模板字符串解析为一棵抽象语法树(AST),它采用**有限状态机**与**递归下降**相结合的设计，能够高效地将字符流转换为结构化的AST，同时具备错误容错和源码位置追踪能力。
 
 ## 1. 解析器概述
 
@@ -102,15 +102,15 @@ function createParserContext(
 ): ParserContext {
   // 合成 context 上下文对象
   return {
-    options,
-    column: 1,
-    line: 1,
-    offset: 0,
-    originalSource: content,
-    source: content,
-    inPre: false,
-    inVPre: false,
-    onWarn: options.onWarn,
+    options, // 编译选项（isPreTag、getNamespace 等平台相关配置）
+    column: 1, // 当前列号，从 1 开始
+    line: 1, // 当前行号，从 1 开始
+    offset: 0, // 当前字符在 source 中的偏移量
+    originalSource: content, // 原始模板，始终保持不变
+    source: content, // 正在消费的源码，会随解析推进被截断
+    inPre: false, // 是否处于 <pre> 内（内部空白不压缩）
+    inVPre: false, // 是否处于 v-pre 范围（跳过编译）
+    onWarn: options.onWarn, // 解析警告的回调
   }
 }
 ```

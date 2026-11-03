@@ -53,6 +53,19 @@ const processElement = (oldVNode, newVNode, container, anchor) => {
 :::code-group
 
 ```typescript [renderer.ts]
+// baseCreateRenderer 中从 options 解构并重命名
+const {
+  insert: hostInsert,
+  createElement: hostCreateElement,
+  setElementText: hostSetElementText,
+  patchProp: hostPatchProp,
+} = options
+
+// Suspense 开启时交给 suspense.effects，否则直接进入 post 队列
+export const queuePostRenderEffect = __FEATURE_SUSPENSE__
+  ? queueEffectWithSuspense
+  : queuePostFlushCb
+
 const mountElement = (
   vnode,
   container,
@@ -145,23 +158,6 @@ export const nodeOps = {
 export const isString = (val: unknown): val is string => typeof val === 'string'
 ```
 
-```typescript [renderer.ts（别名）]
-// baseCreateRenderer 中从 options 解构并重命名
-const {
-  insert: hostInsert,
-  createElement: hostCreateElement,
-  setElementText: hostSetElementText,
-  patchProp: hostPatchProp,
-} = options
-```
-
-```typescript [renderer.ts（补充）]
-// Suspense 开启时交给 suspense.effects，否则直接进入 post 队列
-export const queuePostRenderEffect = __FEATURE_SUSPENSE__
-  ? queueEffectWithSuspense
-  : queuePostFlushCb
-```
-
 :::
 
 ### 3.2 节点更新：`patchElement`
@@ -171,6 +167,9 @@ export const queuePostRenderEffect = __FEATURE_SUSPENSE__
 :::code-group
 
 ```typescript [renderer.ts]
+// baseCreateRenderer 中从 options 解构并重命名
+const { setElementText: hostSetElementText, patchProp: hostPatchProp } = options
+
 const EMPTY_OBJ={}
 const patchElement = (
     n1: VNode,
@@ -253,11 +252,6 @@ export const nodeOps = {
 }
 ```
 
-```typescript [renderer.ts（别名）]
-// baseCreateRenderer 中从 options 解构并重命名
-const { setElementText: hostSetElementText, patchProp: hostPatchProp } = options
-```
-
 :::
 
 #### 3.2.1 `patchBlockChildren`: 靶向更新
@@ -265,6 +259,9 @@ const { setElementText: hostSetElementText, patchProp: hostPatchProp } = options
 :::code-group
 
 ```typescript [renderer.ts]
+// baseCreateRenderer 中从 options 解构并重命名
+const { parentNode: hostParentNode } = options
+
 //靶向更新 只更新动态子节点
 //如果在编译阶段使用了 Vue 的 `<template>`，编译器会将动态节点展平并收集。此时子节点的更新将无视真实的 DOM 层级深度，直接遍历动态数组。
 const patchBlockChildren = (
@@ -327,11 +324,6 @@ export const nodeOps = {
 }
 ```
 
-```typescript [renderer.ts（别名）]
-// baseCreateRenderer 中从 options 解构并重命名
-const { parentNode: hostParentNode } = options
-```
-
 :::
 
 #### 3.2.2 `patchChildren`: 全量diff算法
@@ -339,6 +331,9 @@ const { parentNode: hostParentNode } = options
 :::code-group
 
 ```typescript [renderer.ts]
+// baseCreateRenderer 中从 options 解构并重命名
+const { setElementText: hostSetElementText, remove: hostRemove } = options
+
 //对比children
 export function patchChildren(n1: any, n2: any, container: any, anchor: any) {
   //新旧的vnode类型（n1 可能为 null，此时视为没有旧子节点）
@@ -430,11 +425,6 @@ export const nodeOps = {
 }
 ```
 
-```typescript [renderer.ts（别名）]
-// baseCreateRenderer 中从 options 解构并重命名
-const { setElementText: hostSetElementText, remove: hostRemove } = options
-```
-
 :::
 
 #### 3.3.3 `patchProps`: 比对更新props
@@ -442,6 +432,9 @@ const { setElementText: hostSetElementText, remove: hostRemove } = options
 :::code-group
 
 ```typescript [renderer.ts]
+// baseCreateRenderer 中从 options 解构并重命名
+const { patchProp: hostPatchProp } = options
+
 //比对新旧props
 //1.新老props不相同且都有值，直接更新props
 //2.新props为null和undefined，直接删除老的props
@@ -483,11 +476,6 @@ export const nodeOps = {
     el[key] = next
   },
 }
-```
-
-```typescript [renderer.ts（别名）]
-// baseCreateRenderer 中从 options 解构并重命名
-const { patchProp: hostPatchProp } = options
 ```
 
 :::

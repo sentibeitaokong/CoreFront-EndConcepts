@@ -38,7 +38,7 @@ interface TransformContext {
 
 :::
 
-### 2.2 JavaScript AST 节点类型（转换阶段新增）
+### 2.2 JavaScript AST 节点类型
 
 转换阶段在模板 AST 的基础上，引入了大量面向 JavaScript 代码生成的节点类型：
 

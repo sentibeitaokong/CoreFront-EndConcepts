@@ -48,7 +48,7 @@ interface CodegenContext {
 interface CodegenResult {
   code: string // 最终生成的 JavaScript 渲染函数的主体代码字符串。
   ast: RootNode // 经过 parse 解析、transform 转换并最终用于生成代码的 完整抽象语法树根节点
-  preamble: string // 仅 inline（setup 内联）模式有值，存放子上下文生成的前置代码；普通编译时为空串
+  preamble: string // 仅inline（setup内联）模式有值，存放子上下文生成的前置代码；普通编译时为空串
   map?: SourceMap // Source Map（源码映射）对象(可选)
 }
 ```
@@ -806,19 +806,19 @@ export const isSimpleIdentifier = (name: string): boolean =>
 
 ```javascript
 import {
-  toDisplayString as _toDisplayString,
-  openBlock as _openBlock,
-  createElementBlock as _createElementBlock,
+  toDisplayString as _toDisplayString, // 插值：把值安全转成字符串
+  openBlock as _openBlock, // 开启 Block，收集动态子节点
+  createElementBlock as _createElementBlock, // 创建元素并标记为 Block
 } from 'vue'
 
 export function render(_ctx, _cache) {
   return (
-    _openBlock(),
+    _openBlock(), // 建立动态节点收集上下文
     _createElementBlock(
       'div',
-      { class: 'box' },
-      'Hello ' + _toDisplayString(_ctx.name),
-      1 /* TEXT */,
+      { class: 'box' }, // 静态 class 直接内联
+      'Hello ' + _toDisplayString(_ctx.name), // 动态文本插值
+      1 /* TEXT */, // PatchFlag：只追踪文本更新
     )
   )
 }
