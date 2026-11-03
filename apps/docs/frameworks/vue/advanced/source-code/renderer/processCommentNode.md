@@ -28,7 +28,6 @@ Vue 在内部大量使用真实 DOM 中的注释节点作为**结构锚点（Anc
 ```typescript [renderer.ts]
 // baseCreateRenderer 中从 options 解构并重命名
 const { createComment: hostCreateComment } = options
-
 const processCommentNode: ProcessFn = (
   n1: VNode | null,
   n2: VNode,
