@@ -60,7 +60,9 @@ jobs:
       - name: Build with VitePress
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_UPLOAD: "true"
+          # 默认不上传 sourcemap（Sentry 上传会明显拖慢构建）；
+          # 只有手动触发 workflow_dispatch 时才开启上传
+          SENTRY_UPLOAD: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
           #  告诉 Node 尽情使用内存，限制在 6GB 左右，防止把 GitHub Runner 彻底卡死
           NODE_OPTIONS: "--max-old-space-size=6144"
         run: pnpm run docs:build
