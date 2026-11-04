@@ -85,6 +85,8 @@ function reconcileChildren(current, workInProgress, nextChildren, renderLanes) {
 }
 ```
 
+[width(25,32,43)]
+
 | 新 child 的形态      | 分派到的函数              | 说明                     |
 | -------------------- | ------------------------- | ------------------------ |
 | 单个 Element         | `reconcileSingleElement`  | 单节点，匹配即停         |
@@ -112,11 +114,11 @@ function reconcileSingleElement(
   while (child !== null) {
     if (child.key === key) {
       if (child.elementType === element.type) {
-        // ✅ key 同 + type 同：复用，删除其余兄弟
+        // key 同 + type 同：复用，删除其余兄弟
         deleteRemainingChildren(returnFiber, child.sibling)
         return useFiber(child, element.props)
       }
-      // ❌ key 同 + type 不同：整条旧链表删除重建
+      // key 同 + type 不同：整条旧链表删除重建
       deleteRemainingChildren(returnFiber, child)
       break
     } else {
@@ -191,6 +193,8 @@ function placeChild(newFiber, lastPlacedIndex, newIndex) {
 
 三趟遍历最终把每个节点归入五种协调条件，每种对应不同的 Fiber 标记：
 
+[width(13,33,23,31)]
+
 | 协调条件 | 判断依据                  | 标记                          | 结果                      |
 | -------- | ------------------------- | ----------------------------- | ------------------------- |
 | **复用** | key 相同 + type 相同      | 无（仅更新 `pendingProps`）   | 复用旧 DOM，更新属性      |
@@ -204,7 +208,7 @@ function placeChild(newFiber, lastPlacedIndex, newIndex) {
 `key` 是 React 在多节点协调中识别「**同一个节点**」的唯一依据，只在 `reconcileChildrenArray` 中发挥作用。无 key 的节点在第二轮建 `Map` 时退化为以 **`index` 为键**——身份完全由位置决定，一旦增删导致 index 错位，内容就会错配到错误的 Fiber 上。这正是「不能用 index 当 key」的底层原因。
 
 ```jsx
-// ❌ 用 index 作为 key：头部插入导致整列错配
+// 用 index 作为 key：头部插入导致整列错配
 const list = ['A', 'B', 'C']
 list.unshift('D') // 新列表: ['D', 'A', 'B', 'C']
 
@@ -215,7 +219,7 @@ list.unshift('D') // 新列表: ['D', 'A', 'B', 'C']
 ```
 
 ```jsx
-// ✅ 用稳定的唯一 ID 作为 key：只新增 D，A/B/C 全部复用
+// 用稳定的唯一 ID 作为 key：只新增 D，A/B/C 全部复用
 list.map(item => <TodoItem key={item.id} item={item} />)
 ```
 
@@ -398,6 +402,8 @@ function patchUnkeyedChildren(c1, c2, container) {
 更关键的是，Vue 3 对**带 key 的 `v-for` 且大部分为静态内容**的模板，编译器会生成 **Block Tree**：把动态节点收集到 `dynamicChildren` 数组，更新时只遍历该数组，直接**跳过整个静态子树**的 patch。此时 keyed diff 甚至很少真正运行，这也是 Vue 3 比 React 在静态内容密集场景下更省 diff 开销的根源。
 
 ## 3. 对比总结
+
+[width(18,42,40)]
 
 | 维度             | React                                           | Vue 3                                                   |
 | ---------------- | ----------------------------------------------- | ------------------------------------------------------- |

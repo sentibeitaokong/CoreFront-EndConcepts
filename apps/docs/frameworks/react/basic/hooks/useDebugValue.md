@@ -99,29 +99,44 @@ export function useSpecialDate() {
 
 ### 3.1 为什么我在代码里写了 `useDebugValue`，页面上却什么都没变？
 
-- **答**：这是一个经典的“表错情”误区。
-  - `useDebugValue` 绝对没有任何操纵真实 DOM、改变业务逻辑、或者在页面上打印日志的能力。
-  - 它的数据**唯一且只显示在浏览器开发者工具（F12）的 `React DevTools` 插件的 Components 审查面板中**。如果你没装这个插件，或者没打开控制台，这个 Hook 等同于空气。
+这是一个经典的“**表错情**”误区。
+
+- `useDebugValue` 绝对没有任何操纵真实 DOM、改变业务逻辑、或者在页面上打印日志的能力。
+- 它的数据**唯一且只显示在浏览器开发者工具（F12）的 `React DevTools` 插件的 Components 审查面板中**。如果你没装这个插件，或者没打开控制台，这个 Hook 等同于空气。
 
 ### 3.2 我应该在每一个自定义 Hook 里都加上 `useDebugValue` 吗？
 
-- **答**：**官方极其不推荐这种“脱裤子放屁”的做法。**
-  - 如果你的自定义 Hook 极其简单，比如 `useCounter`，里面只是包装了一个普通的数字 `count`。React DevTools 本来就能很清晰地把这个数字显示在 State 栏里，你再加个 `useDebugValue` 纯属画蛇添足。
-  - **黄金准则**：`useDebugValue` **仅且只适用于**作为那些“共享的、高度封装的、内部状态极其复杂的开源基础 Hook 库”（比如你写了一个给全公司 100 个人用的 `useForm` 或者开源了像 `react-use` 这样的库）提供友好的底层探查接口时使用。对于纯业务级别的简单 Hook，无需劳神去写。
+**官方极其不推荐这种“脱裤子放屁”的做法。**
+
+- 如果你的自定义 Hook 极其简单，比如 `useCounter`，里面只是包装了一个普通的数字 `count`。React DevTools 本来就能很清晰地把这个数字显示在 State 栏里，你再加个 `useDebugValue` 纯属画蛇添足。
+- **黄金准则**：`useDebugValue` **仅且只适用于**作为那些“**共享的、高度封装的、内部状态极其复杂的开源基础 Hook 库**”（比如你写了一个给全公司 100 个人用的 `useForm` 或者开源了像 `react-use` 这样的库）提供友好的底层探查接口时使用。对于纯业务级别的简单 Hook，无需劳神去写。
 
 ### 3.3 我把 `useDebugValue` 写在了普通的函数组件（如 `<App />`）里，为什么报错了？
 
-- **答**：**这是严格的领地限制。**
-  - `useDebugValue` 只能被调用在**顶层作用域的自定义 Hook 内部**（也就是函数名以 `use` 开头的函数中）。
-  - 如果在普通组件（返回 JSX 的函数）中调用，React Linter 会直接报警，并且由于它并没有“附着”在某个具体的抽象概念（Custom Hook）上，即便你强行运行，DevTools 也不知道该把它挂在谁的名下展示，毫无意义。
+**这是严格的领地限制。**
+
+- `useDebugValue` 只能被调用在**顶层作用域的自定义 Hook 内部**（也就是函数名以 `use` 开头的函数中）。
+- 如果在普通组件（返回 JSX 的函数）中调用，React Linter 会直接报警，并且由于它并没有“**附着**”在某个具体的抽象概念（Custom Hook）上，即便你强行运行，DevTools 也不知道该把它挂在谁的名下展示，毫无意义。
+
+```jsx
+function useOnlineStatus() {
+  const [isOnline, setIsOnline] = useState(true)
+
+  // 只能写在自定义 Hook 里，DevTools 会把它挂在 useOnlineStatus 名下
+  useDebugValue(isOnline ? '联网' : '断网')
+
+  return isOnline
+}
+```
 
 ### 3.4 它可以接收多个值吗？
 
-- **答**：**不能直接在一个调用里传多个值，但可以多次调用。**
-  - 如果你想在一个 Hook 里同时展示“请求状态”和“当前网络状态”两个维度的调试信息。
-  - 你可以合法地写两个：
-    ```jsx
-    useDebugValue(isFetching ? '加载中' : '已完成')
-    useDebugValue(isOnline ? '联网' : '断网')
-    ```
-  - 在 DevTools 里，它们会被组织成一个数组清晰地并列展示出来。
+**不能直接在一个调用里传多个值，但可以多次调用。**
+
+- 如果你想在一个 Hook 里同时展示“**请求状态**”和“**当前网络状态**”两个维度的调试信息。
+- 你可以合法地写两个：
+  ```jsx
+  useDebugValue(isFetching ? '加载中' : '已完成')
+  useDebugValue(isOnline ? '联网' : '断网')
+  ```
+- 在 DevTools 里，它们会被组织成一个数组清晰地并列展示出来。

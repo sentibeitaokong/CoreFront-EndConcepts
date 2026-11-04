@@ -205,7 +205,7 @@ function App() {
 
 **业务痛点**：子组件负责极其复杂的底层逻辑计算（比如追踪鼠标当前坐标、处理极其复杂的表格数据过滤），但**它不知道该怎么展示这些数据**，展示的决定权在父组件手里。
 
-在 Vue 中这叫“作用域插槽”（子传数据给父模板）。在 React 中，这被称为 **Render Props 模式**：**父组件传一个“函数”给子组件，子组件执行这个函数，并把自己的内部数据作为参数传进去，最后渲染这个函数的执行结果。**
+在 Vue 中这叫“**作用域插槽**”（子传数据给父模板）。在 React 中，这被称为 **Render Props 模式**：**父组件传一个“函数”给子组件，子组件执行这个函数，并把自己的内部数据作为参数传进去，最后渲染这个函数的执行结果。**
 
 **子组件 (只做逻辑，不决定 UI)：**
 
@@ -252,7 +252,7 @@ function App() {
 
 ### 1.7 父传子： Portals（传送门）
 
-它允许你将子组件的**真实物理 DOM 节点**，直接“传送”并插入到 HTML 文档中**任意一个独立于 React 根节点之外的真实 DOM 容器中**（通常是 `<body>` 的最底层）。
+它允许你将子组件的**真实物理 DOM 节点**，直接“**传送**”并插入到 HTML 文档中**任意一个独立于 React 根节点之外的真实 DOM 容器中**（通常是 `<body>` 的最底层）。
 
 `createPortal` 是 `react-dom` 包提供的一个极其轻量、却又拥有降维打击能力的 API。
 
@@ -343,7 +343,7 @@ export default function DeepWidget() {
 
 #### 1. Context 实战与代码实现
 
-当数据需要从第 1 层传到第 10 层时，一层层写 props 会导致极其痛苦的 **Prop Drilling (属性透传地狱)**。Context 允许你在组件树的高处建立一个“广播站”，底层的任何组件可以直接接收广播。
+当数据需要从第 1 层传到第 10 层时，一层层写 props 会导致极其痛苦的 **Prop Drilling (属性透传地狱)**。Context 允许你在组件树的高处建立一个“**广播站**”，底层的任何组件可以直接接收广播。
 
 ![Logo](/img/reactPropsDrilling.webp)
 
@@ -459,7 +459,7 @@ export default function ProfileHeader() {
 }
 ```
 
-#### 3. 高阶优化：如何解决“嵌套地狱 (Provider Hell)”？
+#### 3. 高阶优化：如何解决“**嵌套地狱 (Provider Hell)**”？
 
 当你的项目拆分了 10 个 Context 时，`App.jsx` 里会出现 10 层极度恶心的代码缩进，也就是著名的 **Provider Hell**。
 
@@ -703,101 +703,141 @@ export default api
 
 ### 4.1 既然 Context 这么好用，我是不是该把所有数据都放进 Context，彻底抛弃 Props？
 
-- **答**：**这是极其危险的架构灾难！官方文档极力反对滥用 Context。**
-  - **性能核爆**：Context 有一个致命缺陷。**只要 Provider 的 `value` 发生变化，它内部所有消费了这个 Context (调用了 useContext) 的组件，无论藏得多深，都会被强制重新渲染！**
-  - 如果你把频繁变化的表单输入或者秒表数据扔进全局 Context，整个应用会卡到爆炸。
-  - **组件复用性丧失**：子组件一旦写了 `useContext`，就被死死绑在了这个特定的 Provider 环境中，无法再被单独抽离到其他项目使用。
-  - **正解**：Context **仅限于**全局的、低频变动的数据（如：当前登录账号、主题色、语言偏好）。业务数据传递依然必须首选 Props 和状态提升。
+**这是极其危险的架构灾难！官方文档极力反对滥用 Context。**
+
+- **性能核爆**：Context 有一个致命缺陷。**只要 Provider 的 `value` 发生变化，它内部所有消费了这个 Context (调用了 useContext) 的组件，无论藏得多深，都会被强制重新渲染！**
+- 如果你把频繁变化的表单输入或者秒表数据扔进全局 Context，整个应用会卡到爆炸。
+- **组件复用性丧失**：子组件一旦写了 `useContext`，就被死死绑在了这个特定的 Provider 环境中，无法再被单独抽离到其他项目使用。
+- **正解**：Context **仅限于**全局的、低频变动的数据（如：当前登录账号、主题色、语言偏好）。业务数据传递依然必须首选 Props 和状态提升。
 
 ### 4.2 我把一个对象传给 Context Provider 的 `value`，为什么会导致子组件疯狂重渲染？
 
-- **答**：这是一个经典的内存地址对比陷阱。
+这是一个经典的内存地址对比陷阱。
 
-  ```jsx
-  function App() {
-    // 假设由于别的不相干状态变化引起了 App 重渲染
-    const [count, setCount] = useState(0)
+```jsx
+function App() {
+  // 假设由于别的不相干状态变化引起了 App 重渲染
+  const [count, setCount] = useState(0)
 
-    // ❌ 灾难：每次 App 重渲染，{ theme: 'dark', lang: 'zh' } 都是在内存里现造出来的一个全新对象！
-    // Provider 浅比较发现内存地址变了，大喊一声"数据变了！"，强迫底下所有用 Context 的组件全部重渲染一次！
-    return (
-      <ThemeContext.Provider value={{ theme: 'dark', lang: 'zh' }}>
-        ...
-      </ThemeContext.Provider>
-    )
+  // 灾难：每次 App 重渲染，{ theme: 'dark', lang: 'zh' } 都是在内存里现造出来的一个全新对象！
+  // Provider 浅比较发现内存地址变了，大喊一声"数据变了！"，强迫底下所有用 Context 的组件全部重渲染一次！
+  return (
+    <ThemeContext.Provider value={{ theme: 'dark', lang: 'zh' }}>
+      ...
+    </ThemeContext.Provider>
+  )
+}
+```
+
+- **终极解法**：如果 Provider 的 `value` 是一个对象或函数，**必须使用 `useMemo` 或 `useCallback` 把它在内存里死死“冻住”**。
+
+```jsx
+// 正确做法：只要依赖项 [] 不变，这个对象的内存地址永远不变
+const contextValue = useMemo(() => ({ theme: 'dark', lang: 'zh' }), [])
+return <ThemeContext.Provider value={contextValue}>...</ThemeContext.Provider>
+```
+
+### 4.3 兄弟组件通信，我是用“**状态提升**”好，还是弄个“**事件总线 (EventBus / PubSub)**”好？
+
+在 React 中，**坚决抵制使用 EventBus。**
+
+- 在 Vue 2 时代，EventBus `$on/$emit` 很流行，但在大型项目中它是一场维护噩梦。你根本不知道一个事件是在哪里发出的，又是在宇宙的哪个角落被接收的，数据流完全是个无法溯源的黑盒，且极易引发忘记解绑导致的内存泄漏。
+- React 社区有极强的代码洁癖，推崇绝对可预测的**显式数据流**。
+- **正解**：老老实实把状态提升到共同的父组件。如果实在嫌太远或者性能吃不消，直接引入 Zustand 或 Redux 等现代状态管理库，它们有极其严密的追踪体系。
+
+### 4.4 状态提升后，父组件变得极其臃肿，长达 1000 行，如何优化这种“**巨型父组件**”？
+
+状态提升确实容易导致父组件承担过多的业务逻辑。
+
+- **优化方案（自定义 Hook 🌟）**：这是现代 React 开发的最优解。你可以把相关的多个 `useState` 和操作这些 state 的回调函数，打包封装进一个单独的外部文件（比如 `useTemperature.js`）中。
+- 然后在父组件中 `const { celsius, fahrenheit, setC, setF } = useTemperature()` 一行代码引入。这既保证了状态的集中提升管理，又让父组件的 UI 结构清爽无比。
+
+```jsx
+// useTemperature.js：把状态和操作它的回调一起收进 Hook
+function useTemperature() {
+  const [celsius, setCelsius] = useState(0)
+  const [fahrenheit, setFahrenheit] = useState(32)
+
+  const setC = value => {
+    setCelsius(value)
+    setFahrenheit(value * 1.8 + 32)
   }
-  ```
 
-  - **终极解法**：如果 Provider 的 `value` 是一个对象或函数，**必须使用 `useMemo` 或 `useCallback` 把它在内存里死死“冻住”**。
+  const setF = value => {
+    setFahrenheit(value)
+    setCelsius((value - 32) / 1.8)
+  }
 
-  ```jsx
-  // ✅ 正确做法：只要依赖项 [] 不变，这个对象的内存地址永远不变
-  const contextValue = useMemo(() => ({ theme: 'dark', lang: 'zh' }), [])
-  return <ThemeContext.Provider value={contextValue}>...</ThemeContext.Provider>
-  ```
+  return { celsius, fahrenheit, setC, setF }
+}
 
-### 4.3 兄弟组件通信，我是用“状态提升”好，还是弄个“事件总线 (EventBus / PubSub)”好？
+function Parent() {
+  // 父组件只负责渲染，状态逻辑全部收进 Hook
+  const { celsius, fahrenheit, setC, setF } = useTemperature()
 
-- **答**：在 React 中，**坚决抵制使用 EventBus。**
-  - 在 Vue 2 时代，EventBus `$on/$emit` 很流行，但在大型项目中它是一场维护噩梦。你根本不知道一个事件是在哪里发出的，又是在宇宙的哪个角落被接收的，数据流完全是个无法溯源的黑盒，且极易引发忘记解绑导致的内存泄漏。
-  - React 社区有极强的代码洁癖，推崇绝对可预测的**显式数据流**。
-  - **正解**：老老实实把状态提升到共同的父组件。如果实在嫌太远或者性能吃不消，直接引入 Zustand 或 Redux 等现代状态管理库，它们有极其严密的追踪体系。
-
-### 4.4 状态提升后，父组件变得极其臃肿，长达 1000 行，如何优化这种“巨型父组件”？
-
-- **答**：状态提升确实容易导致父组件承担过多的业务逻辑。
-  - **优化方案（自定义 Hook 🌟）**：这是现代 React 开发的最优解。你可以把相关的多个 `useState` 和操作这些 state 的回调函数，打包封装进一个单独的外部文件（比如 `useTemperature.js`）中。
-  - 然后在父组件中 `const { celsius, fahrenheit, setC, setF } = useTemperature()` 一行代码引入。这既保证了状态的集中提升管理，又让父组件的 UI 结构清爽无比。
+  return (
+    <TemperatureForm
+      celsius={celsius}
+      fahrenheit={fahrenheit}
+      onC={setC}
+      onF={setF}
+    />
+  )
+}
+```
 
 ### 4.5 对于同一个状态，我是应该拆分成 `StateContext` 和 `DispatchContext` 两个吗？
 
-- **答**：**这是高级前端架构非常推荐的最佳实践！**
-  - **痛点**：如果你把 `{ state, dispatch }` 放进同一个 Context。底层的 `Header` 组件只需要读 `state`，底层的 `Button` 组件只需要用 `dispatch` 去触发修改。当 `state` 变了的时候，`Button` 也会因为 Context 变化而被连累重渲染（哪怕它只需要执行函数）。
-  - **极致优化拆分法**：
-    ```jsx
-    // 物理切断读与写的重渲染连带关系
-    <ThemeStateContext.Provider value={theme}>
-      <ThemeDispatchContext.Provider value={setTheme}>
-        {children}
-      </ThemeDispatchContext.Provider>
-    </ThemeStateContext.Provider>
-    ```
-    底层 `Button` 只 `useContext(ThemeDispatchContext)`。因为 `setTheme` 函数的内存地址永远不变，所以即使 `theme` 变了，`Button` 绝对不会重渲染！这叫**读写分离**。
+**这是高级前端架构非常推荐的最佳实践！**
+
+- **痛点**：如果你把 `{ state, dispatch }` 放进同一个 Context。底层的 `Header` 组件只需要读 `state`，底层的 `Button` 组件只需要用 `dispatch` 去触发修改。当 `state` 变了的时候，`Button` 也会因为 Context 变化而被连累重渲染（哪怕它只需要执行函数）。
+- **极致优化拆分法**：
+  ```jsx
+  // 物理切断读与写的重渲染连带关系
+  <ThemeStateContext.Provider value={theme}>
+    <ThemeDispatchContext.Provider value={setTheme}>
+      {children}
+    </ThemeDispatchContext.Provider>
+  </ThemeStateContext.Provider>
+  ```
+  底层 `Button` 只 `useContext(ThemeDispatchContext)`。因为 `setTheme` 函数的内存地址永远不变，所以即使 `theme` 变了，`Button` 绝对不会重渲染！这叫**读写分离**。
 
 ### 4.6 既然拆分 Context 这么麻烦，还要考虑那么多性能优化，我直接上 Zustand / Redux 不好吗？
 
-- **答**：**非常好！这也是业界目前的绝对共识。**
-  - **Context 的真实定位**：React 官方明确表示，Context 的设计初衷是**“依赖注入”**（比如穿透传递表单实例、UI 库的主题配置），它**并不是一个全局状态管理工具**！
-  - 如果你的状态**变动非常频繁**（比如秒表、滚动位置、多页面高频交互的数据），强行使用 Context 拆分不仅心智负担极重，而且性能极难调优。
-  - **选型结论**：
-    - 低频变动的全局配置（Theme、I18n 语言、User Session） => **用 Context**。
-    - 高频变动的复杂业务状态流转 => **果断上 Zustand 或 Redux Toolkit**，它们在底层利用了类似于 `useSyncExternalStore` 的机制，能够实现真正意义上的**订阅级精准细粒度更新**（不渲染任何不相关的组件）。
+**非常好！这也是业界目前的绝对共识。**
+
+- **Context 的真实定位**：React 官方明确表示，Context 的设计初衷是“**依赖注入**”（比如穿透传递表单实例、UI 库的主题配置），它**并不是一个全局状态管理工具**！
+- 如果你的状态**变动非常频繁**（比如秒表、滚动位置、多页面高频交互的数据），强行使用 Context 拆分不仅心智负担极重，而且性能极难调优。
+- **选型结论**：
+  - 低频变动的全局配置（Theme、I18n 语言、User Session） => **用 Context**。
+  - 高频变动的复杂业务状态流转 => **果断上 Zustand 或 Redux Toolkit**，它们在底层利用了类似于 `useSyncExternalStore` 的机制，能够实现真正意义上的**订阅级精准细粒度更新**（不渲染任何不相关的组件）。
 
 ### 4.7 为什么有的时候 `props.children` 是个数组，有的时候是个对象，有的时候报错？我怎么安全地遍历它？
 
-- **答**：这是 React 底层对于 `children` 的诡异处理。
-  - **现象**：
-    - 如果你传了 `<Card><A /><B /></Card>`，`children` 是一个**数组**。
-    - 如果你只传了一个 `<Card><A /></Card>`，`children` 突然变成了**一个单独的对象**！
-    - 如果你没传任何东西，`children` 是 `undefined`。
-  - **灾难**：如果你在子组件里天真地写了 `children.map(...)`，当用户只传了一个节点或者没传时，程序会直接报错崩溃 (`children.map is not a function`)！
-  - **终极避坑方案**：**永远不要直接操作原生的 `children` 变量！** React 官方提供了一套专门的 API 来安全处理它：**`React.Children`**。
+这是 React 底层对于 `children` 的诡异处理。
 
-  ```jsx
-  import React from 'react'
+- **现象**：
+  - 如果你传了 `<Card><A /><B /></Card>`，`children` 是一个**数组**。
+  - 如果你只传了一个 `<Card><A /></Card>`，`children` 突然变成了**一个单独的对象**！
+  - 如果你没传任何东西，`children` 是 `undefined`。
+- **灾难**：如果你在子组件里天真地写了 `children.map(...)`，当用户只传了一个节点或者没传时，程序会直接报错崩溃 (`children.map is not a function`)！
+- **终极避坑方案**：**永远不要直接操作原生的 `children` 变量！** React 官方提供了一套专门的 API 来安全处理它：**`React.Children`**。
 
-  function TabList({ children }) {
-    // ✅ 极其安全的遍历方式，不管传了几个都不会报错！
-    return (
-      <ul className="tabs">
-        {React.Children.map(children, (child, index) => {
-          // 你甚至可以在这里劫持每一个传进来的虚拟 DOM，给它们强行注入新的 props 属性！
-          return React.cloneElement(child, {
-            key: index,
-            className: 'tab-item-active',
-          })
-        })}
-      </ul>
-    )
-  }
-  ```
+```jsx
+import React from 'react'
+
+function TabList({ children }) {
+  // 极其安全的遍历方式，不管传了几个都不会报错！
+  return (
+    <ul className="tabs">
+      {React.Children.map(children, (child, index) => {
+        // 你甚至可以在这里劫持每一个传进来的虚拟 DOM，给它们强行注入新的 props 属性！
+        return React.cloneElement(child, {
+          key: index,
+          className: 'tab-item-active',
+        })
+      })}
+    </ul>
+  )
+}
+```

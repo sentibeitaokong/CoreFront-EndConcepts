@@ -40,7 +40,7 @@ flowchart TB
     LIST -.->|commitHookEffectListMount / Unmount 遍历| LAY
 ```
 
-- **Effect 是数据，不是调用**——Render 阶段只把副作用"**声明**"成 Effect 对象挂到链表上，真正的执行在 Commit。
+- **Effect 是数据，不是调用**——Render 阶段只把副作用“**声明**”成 Effect 对象挂到链表上，真正的执行在 Commit。
 - **`tag` 位标记决定执行时机与是否需要执行**——类型靠 `Passive/Layout/Insertion` 区分，依赖变化靠 `HasEffect` 标记。
 - **环形链表是执行时遍历的载体**——Commit 阶段通过 `fiber.updateQueue.lastEffect` 拿到链表，逐个执行。
 
@@ -79,7 +79,7 @@ export const Passive = 0b1000 // useEffect
 :::
 
 > [!NOTE]
-> `tag` 同时承载**两类信息**：低 4 位（`HasEffect`）表示"**是否需要执行**"，其余位（`Passive/Layout/Insertion`）表示"**是什么类型**"。Commit 阶段用位运算 `effect.tag & flags` 一次性判断，无需拆字段。
+> `tag` 同时承载**两类信息**：低 4 位（`HasEffect`）表示“**是否需要执行**”，其余位（`Passive/Layout/Insertion`）表示“**是什么类型**”。Commit 阶段用位运算 `effect.tag & flags` 一次性判断，无需拆字段。
 
 ### 3.2 Effect 环形链表
 
@@ -104,7 +104,7 @@ fiber.updateQueue = {
 }
 ```
 
-环形结构的好处：**执行时从 `lastEffect.next` 出发，遍历一圈就能访问到所有 Effect**，无需额外的"**头指针**"或数组。
+环形结构的好处：**执行时从 `lastEffect.next` 出发，遍历一圈就能访问到所有 Effect**，无需额外的“**头指针**”或数组。
 
 ## 4. Effect 的创建与依赖比较
 
@@ -262,9 +262,11 @@ function is(x, y) {
 
 ## 5. Commit 阶段的执行
 
-Render 阶段只负责"**声明**"，真正的执行在 **Commit 阶段**（同步、不可中断）。完整的四个子阶段及遍历机制见 [Render 与 Commit 阶段](./renderCommit.md)，这里只聚焦 Effect 如何被执行。
+Render 阶段只负责“**声明**”，真正的执行在 **Commit 阶段**（同步、不可中断）。完整的四个子阶段及遍历机制见 [Render 与 Commit 阶段](./renderCommit.md)，这里只聚焦 Effect 如何被执行。
 
 ### 5.1 子阶段与 Effect 的归属
+
+[width(13,30,57)]
 
 | 子阶段          | 入口函数                                       | Effect 相关动作                                                                 |
 | --------------- | ---------------------------------------------- | ------------------------------------------------------------------------------- |
@@ -325,6 +327,8 @@ function commitHookEffectListUnmount(
 :::
 
 调用时传入的 `flags` 揭示了执行的语义：
+
+[width(13,56,31)]
 
 | 动作        | Layout 阶段传入的 flags                                         | Passive 阶段传入的 flags          |
 | ----------- | --------------------------------------------------------------- | --------------------------------- |
@@ -412,6 +416,8 @@ sequenceDiagram
     P->>E: Passive 阶段异步执行（数据请求等）
 ```
 
+[width(23,31,13,33)]
+
 | Hook                 | 执行时机                              | 阻塞绘制 | 主要场景                   |
 | -------------------- | ------------------------------------- | -------- | -------------------------- |
 | `useInsertionEffect` | Layout 阶段最先（useLayoutEffect 前） | 是       | CSS-in-JS 库注入样式       |
@@ -448,7 +454,9 @@ useEffect(() => {
 // dep1 或 dep2 变化 → 重新执行 Effect
 ```
 
-依赖数组不是"**Effect 运行的触发条件**"，而是"**本次 Effect 使用了哪些 React 状态的声明**"。React 在每次渲染后比较依赖数组中的值，如果有变化则重新执行 Effect。
+依赖数组不是“**Effect 运行的触发条件**”，而是“**本次 Effect 使用了哪些 React 状态的声明**”。React 在每次渲染后比较依赖数组中的值，如果有变化则重新执行 Effect。
+
+[width(39,61)]
 
 | 依赖数组                         | 行为                            |
 | -------------------------------- | ------------------------------- |
@@ -456,11 +464,11 @@ useEffect(() => {
 | `useEffect(fn, [])` — 空数组     | 仅在首次渲染后执行一次（mount） |
 | `useEffect(fn, [a, b])` — 有依赖 | a 或 b 变化时执行               |
 
-常见误区：将 Effect 当作"**watch**"使用（"当 a 变化时执行 B"），而实际上应该理解为"**声明了 a 和 b 的同步逻辑**"。
+常见误区：将 Effect 当作“**watch**”使用（“**当 a 变化时执行 B**”），而实际上应该理解为“**声明了 a 和 b 的同步逻辑**”。
 
 ## 9. Strict Mode 与 Effect
 
-React 的 Strict Mode 在**开发环境**会对 Effect 进行"双重调用"验证：
+React 的 Strict Mode 在**开发环境**会对 Effect 进行“**双重调用**”验证：
 
 ```markdown
 // 开发环境下的执行顺序：
@@ -472,14 +480,14 @@ React 的 Strict Mode 在**开发环境**会对 Effect 进行"双重调用"验�
 这用于**发现不对称的副作用**。如果你的 Effect 在开发环境下表现异常，说明 cleanup 函数没有正确还原 Effect 产生的副作用。
 
 ```jsx
-// ❌ cleanup 没有正确还原
+// cleanup 没有正确还原
 useEffect(() => {
   server.connect()
   return () => server.disconnect()
 }, [])
 // Mount: connect → disconnect → connect（双重连接后只有一个 disconnect → 可能泄漏）
 
-// ✅ cleanup 正确还原
+// cleanup 正确还原
 useEffect(() => {
   let cancelled = false
   fetch(url).then(data => {
@@ -493,21 +501,23 @@ useEffect(() => {
 
 ## 10. Effect 不应用于特定场景
 
-| 场景                    | 不要用 Effect        | 应该用                        |
-| ----------------------- | -------------------- | ----------------------------- |
-| 基于 props/state 的计算 | ❌ Effect + setState | ✅ 直接在渲染中计算 / useMemo |
-| 用户事件响应            | ❌ Effect + 标志位   | ✅ 事件处理函数               |
-| 组件间通信              | ❌ Effect 链式触发   | ✅ 提升状态 / Context         |
-| 初始化第三方库          | ❌ 放入渲染函数      | ✅ useRef + useEffect         |
+[width(27,20,53)]
+
+| 场景                    | 不要用 Effect     | 应该用                     |
+| ----------------------- | ----------------- | -------------------------- |
+| 基于 props/state 的计算 | Effect + setState | 直接在渲染中计算 / useMemo |
+| 用户事件响应            | Effect + 标志位   | 事件处理函数               |
+| 组件间通信              | Effect 链式触发   | 提升状态 / Context         |
+| 初始化第三方库          | 放入渲染函数      | useRef + useEffect         |
 
 ```jsx
-// ❌ 用 Effect 计算派生值
+// 用 Effect 计算派生值
 const [fullName, setFullName] = useState('')
 useEffect(() => {
   setFullName(`${firstName} ${lastName}`)
 }, [firstName, lastName])
 
-// ✅ 直接在渲染中计算
+// 直接在渲染中计算
 const fullName = `${firstName} ${lastName}`
 ```
 

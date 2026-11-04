@@ -96,7 +96,7 @@ export default function FadeModal() {
 
 ### 2.2 掌控两元素交替：`SwitchTransition`
 
-**痛点**：如果你有两个互斥的组件(比如“登录”和“注册”面板,或者一个不断被点击换数字的按钮),你想让旧的元素**先播完消失动画完全消失，新的元素再开始播入场动画**，防止两个元素同时出现在屏幕上导致页面排版撑爆。
+**痛点**：如果你有两个互斥的组件(比如“**登录**”和“**注册**”面板,或者一个不断被点击换数字的按钮),你想让旧的元素**先播完消失动画完全消失，新的元素再开始播入场动画**，防止两个元素同时出现在屏幕上导致页面排版撑爆。
 
 `SwitchTransition` 是完美解法。它通过其内部唯一的 `key` 属性来识别元素是否发生了切换。
 
@@ -168,35 +168,55 @@ export default function TodoList() {
 
 ### 3.1 致命报错：`findDOMNode is deprecated in StrictMode` 怎么解决？
 
-- **答**：这是使用该库最臭名昭著的 React 18+ 兼容性警告。
-  - **原因**：该库的底层历史极度悠久。在早年，它依赖 React 极其底层的、已被废弃的 `findDOMNode` API 来从组件内部“暴力”扒出真实的 DOM 节点以便挂载 CSS 类名。而 React 的严格模式已经全线封杀了这个 API。
-  - **终极解法 (使用 `nodeRef`)**：如果你包裹的是自定义组件，或者严格模式报错。你必须自己创建一个 `useRef` 钩住真实的 DOM，并把这个 ref **同时**传给你的 DOM 元素和 `CSSTransition` 的 `nodeRef` 属性。
-  ```jsx
-  const nodeRef = useRef(null)
-  return (
-    // 明确告诉 CSSTransition：别去猜了，真实的 DOM 在这个箱子里！
-    <CSSTransition nodeRef={nodeRef} in={show} timeout={200} classNames="fade">
-      <div ref={nodeRef}>我的动画不会报黄字警告了</div>
-    </CSSTransition>
-  )
-  ```
+这是使用该库最臭名昭著的 React 18+ 兼容性警告。
+
+- **原因**：该库的底层历史极度悠久。在早年，它依赖 React 极其底层的、已被废弃的 `findDOMNode` API 来从组件内部“**暴力**”扒出真实的 DOM 节点以便挂载 CSS 类名。而 React 的严格模式已经全线封杀了这个 API。
+- **终极解法 (使用 `nodeRef`)**：如果你包裹的是自定义组件，或者严格模式报错。你必须自己创建一个 `useRef` 钩住真实的 DOM，并把这个 ref **同时**传给你的 DOM 元素和 `CSSTransition` 的 `nodeRef` 属性。
+
+```jsx
+const nodeRef = useRef(null)
+return (
+  // 明确告诉 CSSTransition：别去猜了，真实的 DOM 在这个箱子里！
+  <CSSTransition nodeRef={nodeRef} in={show} timeout={200} classNames="fade">
+    <div ref={nodeRef}>我的动画不会报黄字警告了</div>
+  </CSSTransition>
+)
+```
 
 ### 3.2 为什么我的离开 (Exit) 动画死活不执行，元素瞬间就消失了？
 
-- **答**：这是新手犯错率最高的坑，通常有两大元凶：
-  1.  **没有配置 `unmountOnExit` 但又乱用了 `v-if` 的思维**：如果你在 `CSSTransition` 外面或者里面自己手写了 `{show && <div/>}`。当 `show` 变假时，React 直接连根拔起了整个 DOM 树，`CSSTransition` 根本来不及反应。**正确的做法是永远只改变 `in` 属性，并配上 `unmountOnExit`，让库自己去销毁 DOM。**
-  2.  **CSS 权重被覆盖了**：你写的 `.fade-exit-active` 里面写了 `opacity: 0`，但你原来这个 `<div className="my-box">` 里写了死死的 `opacity: 1 !important` 或者拥有更高优先级的选择器。导致动画类名虽然挂上去了，但样式被覆盖了。
+这是新手犯错率最高的坑，通常有两大元凶：
+
+1.  **没有配置 `unmountOnExit` 但又乱用了 `v-if` 的思维**：如果你在 `CSSTransition` 外面或者里面自己手写了 `{show && <div/>}`。当 `show` 变假时，React 直接连根拔起了整个 DOM 树，`CSSTransition` 根本来不及反应。**正确的做法是永远只改变 `in` 属性，并配上 `unmountOnExit`，让库自己去销毁 DOM。**
+2.  **CSS 权重被覆盖了**：你写的 `.fade-exit-active` 里面写了 `opacity: 0`，但你原来这个 `<div className="my-box">` 里写了死死的 `opacity: 1 !important` 或者拥有更高优先级的选择器。导致动画类名虽然挂上去了，但样式被覆盖了。
+
+```jsx
+// 只改变 in，并交给 unmountOnExit 决定什么时候销毁 DOM
+<CSSTransition in={show} timeout={500} classNames="fade" unmountOnExit>
+  <div className="my-box">内容</div>
+</CSSTransition>
+```
 
 ### 3.3 为什么动画执行完毕后，页面还会卡顿一下，或者样式错乱？
 
-- **答**：**你的 `timeout` 时间和你在 CSS 里写的 `transition duration` 没对齐！**
-  - **原理**：`timeout={500}` 是 `CSSTransition` 的“倒计时炸弹”。它才不管你 CSS 动画有没有播完，只要 500 毫秒一到，它就会无情地把挂载的 `.fade-enter-active` 剥离，或者把整个节点从 DOM 里拔除！
-  - 如果你 CSS 里写了 `transition: opacity 1s`，但 timeout 写了 500。动画播到一半，元素突然就被强行拔除了，画面极其突兀。
-  - **黄金准则**：`timeout` 设定的毫秒数，**必须必须绝对**大于或等于你所有相关 CSS 属性中最长的那个 `transition` 或 `animation` 持续时间。
+**你的 `timeout` 时间和你在 CSS 里写的 `transition duration` 没对齐！**
+
+- **原理**：`timeout={500}` 是 `CSSTransition` 的“**倒计时炸弹**”。它才不管你 CSS 动画有没有播完，只要 500 毫秒一到，它就会无情地把挂载的 `.fade-enter-active` 剥离，或者把整个节点从 DOM 里拔除！
+- 如果你 CSS 里写了 `transition: opacity 1s`，但 timeout 写了 500。动画播到一半，元素突然就被强行拔除了，画面极其突兀。
+- **黄金准则**：`timeout` 设定的毫秒数，**必须必须绝对**大于或等于你所有相关 CSS 属性中最长的那个 `transition` 或 `animation` 持续时间。
+
+```jsx
+// 对应 CSS：.fade-enter-active { transition: opacity 1s; }
+// timeout 必须和 CSS 里的 1s 对齐，否则动画播到一半就会被强行中断
+<CSSTransition in={show} timeout={1000} classNames="fade" unmountOnExit>
+  <div className="my-box">内容</div>
+</CSSTransition>
+```
 
 ### 3.4 Vue 里的 `<transition-group>` 有一个神仙般的 `v-move` 平滑移动算法，React 这个库有吗？
 
-- **答**：**很遗憾，并没有内置。**
-  - Vue 的 `<transition-group>` 底层内置了极其复杂的 FLIP 动画引擎，当你删除列表第一项时，底下的项会自动平滑地“滑”上去填补空缺。
-  - React 的 `TransitionGroup` 仅仅负责帮你触发“进入和离开”的透明度/缩放动画。至于剩下的元素怎么排版，它完全不管，底层元素会“瞬间”跳上去。
-  - **高级解法**：如果在 React 中你想实现极其丝滑的列表拖拽、移动填补重排动画，建议直接放弃这个基础库，**转向更加现代且霸道的顶级 React 物理动画引擎：`Framer Motion` (使用它的 `<AnimatePresence>` 和 `layout` 属性) 或 `AutoAnimate`**。
+**很遗憾，并没有内置。**
+
+- Vue 的 `<transition-group>` 底层内置了极其复杂的 FLIP 动画引擎，当你删除列表第一项时，底下的项会自动平滑地“**滑**”上去填补空缺。
+- React 的 `TransitionGroup` 仅仅负责帮你触发“**进入和离开**”的透明度/缩放动画。至于剩下的元素怎么排版，它完全不管，底层元素会“**瞬间**”跳上去。
+- **高级解法**：如果在 React 中你想实现极其丝滑的列表拖拽、移动填补重排动画，建议直接放弃这个基础库，**转向更加现代且霸道的顶级 React 物理动画引擎：`Framer Motion` (使用它的 `<AnimatePresence>` 和 `layout` 属性) 或 `AutoAnimate`**。

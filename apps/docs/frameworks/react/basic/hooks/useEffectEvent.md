@@ -8,14 +8,14 @@ outline: [2, 3]
 `useEffectEvent` 目前仍处于 React 的 **Experimental（实验性）** 频道中。在稳定版 React（如 18.2.0）中尚不可用，预计将在未来版本中正式发布。
 :::
 
-## 1. 核心背景：Effect 的“反应性”困境
+## 1. 核心背景：Effect 的“**反应性**”困境
 
 在 React 的 `useEffect` 中，我们经常面临一个两难的境地：某个逻辑需要用到最新的 Props 或 State，但我们**不希望**当这些值变化时重新触发 Effect 的执行。
 
 > **痛点场景:**
-> 假设你有一个聊天室,当用户进入时发送一个日志.日志需要包含当前的“主题”。
+> 假设你有一个聊天室,当用户进入时发送一个日志.日志需要包含当前的“**主题**”。
 >
-> - 如果你把 `theme` 放入 `useEffect` 的依赖数组，那么用户每切换一次主题，就会触发一次“进入聊天室”的日志，这显然是错误的。
+> - 如果你把 `theme` 放入 `useEffect` 的依赖数组，那么用户每切换一次主题，就会触发一次“**进入聊天室**”的日志，这显然是错误的。
 > - 如果你不把 `theme` 放入依赖数组，那么日志里记录的将永远是初始值，这又是过时的。
 
 **`useEffectEvent` 的使命**：它允许你将逻辑从 Effect 中提取出来，使其能够读取最新的状态，但**不再具有反应性**（即它的变化不会导致 Effect 重新运行）。
@@ -28,6 +28,8 @@ outline: [2, 3]
 const onSomething = useEffectEvent(callback)
 ```
 
+[width(13,87)]
+
 | 特性         | 说明                                                      |
 | :----------- | :-------------------------------------------------------- |
 | **定义位置** | 必须在组件函数的顶层定义。                                |
@@ -38,12 +40,12 @@ const onSomething = useEffectEvent(callback)
 **基础代码对比**
 
 ```jsx
-// ❌ 传统写法：逻辑耦合
+// 传统写法：逻辑耦合
 useEffect(() => {
   logVisit(roomId, theme) // theme 变了，这里会重新运行，导致逻辑错误
 }, [roomId, theme])
 
-// ✅ useEffectEvent 写法：逻辑解耦
+// useEffectEvent 写法：逻辑解耦
 const onVisit = useEffectEvent(roomId => {
   logVisit(roomId, theme) // 永远能拿到最新的 theme，但 theme 变了不会触发 Effect
 })
@@ -65,7 +67,7 @@ function ChatRoom({ roomId, theme }) {
   // 定义一个 Effect Event
   // 它像是一个“黑洞”，能吸纳最新的环境数据，但不对外发出引力信号
   const onConnected = useEffectEvent(() => {
-    console.log(`✅ 已连接到 ${roomId}`)
+    console.log(`已连接到 ${roomId}`)
     console.log(`当前使用的 UI 主题是: ${theme}`) // 读取最新值
     showNotification('欢迎回来', theme)
   })
@@ -90,7 +92,9 @@ function ChatRoom({ roomId, theme }) {
 
 ## 4. 深度对比：useEffectEvent vs useCallback
 
-这是最容易混淆的两个 Hook，它们的本质区别在于“身份（Identity）”的变化。
+这是最容易混淆的两个 Hook，它们的本质区别在于“**身份（Identity）**”的变化。
+
+[width(13,50,37)]
 
 | 维度         | useCallback                                    | useEffectEvent                                       |
 | :----------- | :--------------------------------------------- | :--------------------------------------------------- |
@@ -103,30 +107,74 @@ function ChatRoom({ roomId, theme }) {
 
 ### 5.1 为什么不能把 `useEffectEvent` 返回的函数传给子组件？
 
-- **答**：这是该 Hook 的安全限制。
-  - `useEffectEvent` 的设计初衷是处理“副作用中的非反应逻辑”。它在 React 内部的执行时机是与渲染周期绑定的。
-  - 如果你把它传给子组件并在 `onClick` 中调用，由于它没有闭包快照保护，可能会引发难以调试的竞态条件。
-  - **准则**：它只能被 `useEffect` 消费。
+这是该 Hook 的安全限制。
+
+- `useEffectEvent` 的设计初衷是处理“**副作用中的非反应逻辑**”。它在 React 内部的执行时机是与渲染周期绑定的。
+- 如果你把它传给子组件并在 `onClick` 中调用，由于它没有闭包快照保护，可能会引发难以调试的竞态条件。
+- **准则**：它只能被 `useEffect` 消费。
 
 ### 5.2 我可以用 `useRef` 来模拟 `useEffectEvent` 吗？
 
-- **答**：**可以模拟，但不完美。**
-  - 在 `useEffectEvent` 出现前，高级开发者常用 `useRef` 存储最新的函数来避开依赖检查。
-  - **缺点**：你需要手动在每次渲染时更新 `ref.current`，代码冗余且容易在 Concurrent（并发）模式下出现撕裂问题。
-  - `useEffectEvent` 是 React 官方提供的原生方案，底层处理了并发安全性。
+**可以模拟，但不完美。**
+
+- 在 `useEffectEvent` 出现前，高级开发者常用 `useRef` 存储最新的函数来避开依赖检查。
+- **缺点**：你需要手动在每次渲染时更新 `ref.current`，代码冗余且容易在 Concurrent（并发）模式下出现撕裂问题。
+- `useEffectEvent` 是 React 官方提供的原生方案，底层处理了并发安全性。
+
+```jsx
+function useLatest(value) {
+  const ref = useRef(value)
+  ref.current = value // 每次渲染手动同步最新值
+  return ref
+}
+
+function Page({ url }) {
+  const urlRef = useLatest(url)
+
+  useEffect(() => {
+    // 读 ref.current 拿到最新 url，又不用把 url 写进依赖
+    logVisit(urlRef.current)
+  }, [])
+
+  return <div />
+}
+```
 
 ### 5.3 为什么我的 Linter（插件）没报错让我把它加进依赖？
 
-- **答**：React 团队专门为 `useEffectEvent` 修改了 `eslint-plugin-react-hooks` 规则。
-  - Linter 能够识别 `useEffectEvent` 的特殊身份，并**禁止**你将其加入 `useEffect` 的依赖数组。这与 `useRef` 产生的 `ref` 对象行为一致。
+React 团队专门为 `useEffectEvent` 修改了 `eslint-plugin-react-hooks` 规则。
+
+- Linter 能够识别 `useEffectEvent` 的特殊身份，并**禁止**你将其加入 `useEffect` 的依赖数组。这与 `useRef` 产生的 `ref` 对象行为一致。
 
 ### 5.4 什么时候该用它，什么时候该直接写在 Effect 里？
 
-- **答**：判断标准只有一条：**“这个值变化时，我希望副作用重新执行吗？”**
-  - **希望**：直接写在 Effect 内部，并把值加入依赖数组。
-  - **不希望，但我需要读取它的最新值**：使用 `useEffectEvent` 提取出来。
+判断标准只有一条：“**这个值变化时，我希望副作用重新执行吗？**”
+
+- **希望**：直接写在 Effect 内部，并把值加入依赖数组。
+- **不希望，但我需要读取它的最新值**：使用 `useEffectEvent` 提取出来。
+
+```jsx
+function ChatRoom({ roomId }) {
+  const [theme, setTheme] = useState('dark')
+
+  // theme 变化不需要重连，但连接成功时又想读它的最新值
+  const onConnected = useEffectEvent(() => {
+    showToast(`已连接 ${roomId}，主题 ${theme}`)
+  })
+
+  useEffect(() => {
+    const connection = createConnection(roomId)
+    connection.on('connected', onConnected)
+    connection.connect()
+    return () => connection.disconnect()
+  }, [roomId]) // 只有 roomId 变化才重连，theme 不参与依赖
+
+  return <div />
+}
+```
 
 ### 5.5 它可以像普通函数一样传参吗？
 
-- **答**：**是的。**
-  - 它非常适合接收参数。最佳实践是在 `useEffect` 内部计算好一些即时变量，作为参数传给 `useEffectEvent`，而将那些长期存在的配置（如 `theme`, `url`）放在内部直接读取。
+**是的。**
+
+- 它非常适合接收参数。最佳实践是在 `useEffect` 内部计算好一些即时变量，作为参数传给 `useEffectEvent`，而将那些长期存在的配置（如 `theme`, `url`）放在内部直接读取。

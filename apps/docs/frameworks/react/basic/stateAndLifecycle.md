@@ -6,7 +6,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ## 1. 核心概念与范式演进
 
-在 React 的世界里，**State (状态)** 是驱动 UI 变化的唯一引擎。如果说 **Props** 是组件的“基因”（由外部决定，不可改变），那么 State 就是组件的“记忆”与“心情”（由组件内部自我管理，随交互而改变）。
+在 React 的世界里，**State (状态)** 是驱动 UI 变化的唯一引擎。如果说 **Props** 是组件的“**基因**”（由外部决定，不可改变），那么 State 就是组件的“**记忆**”与“**心情**”（由组件内部自我管理，随交互而改变）。
 
 React 的组件开发范式经历了从 **Class 组件 (面向对象)** 到 **Function 组件 + Hooks (函数式)** 的历史性跨越。
 
@@ -15,6 +15,8 @@ React 的组件开发范式经历了从 **Class 组件 (面向对象)** 到 **Fu
 在 `React` 中，无论是 `Class` 组件时代的 `this.setState()`，还是现代 `Hooks` 时代的 `useState` 返回的 `setXxx()` 函数，它们执行的都是一项绝对神圣的任务：通知 `React` 数据变了，你需要重新渲染`（Re-render）`当前组件。
 
 无论你使用哪种范式，操作 React State 都必须遵守两条最高级别的军规：
+
+[width(18,39,43)]
 
 | 核心铁律                           | 深度解释                                                                                                                                 | 灾难后果                                                                                                                                     |
 | :--------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -100,13 +102,13 @@ function Counter() {
   const [count, setCount] = useState(0)
 
   const incrementBy3 = () => {
-    // ❌ 错误示范：由于“快照”特性，这三行代码里的 count 都是 0。
+    // 错误示范：由于“快照”特性，这三行代码里的 count 都是 0。
     // 相当于执行了三次 setCount(0 + 1)，最终结果是 1！
     // setCount(count + 1);
     // setCount(count + 1);
     // setCount(count + 1);
 
-    // ✅ 正确示范：传入一个回调函数 (prev => ...)
+    // 正确示范：传入一个回调函数 (prev => ...)
     // React 会把这个函数放进队列，保证每次计算都能拿到【绝对最新】的那个值
     setCount(prevCount => prevCount + 1) // 0 + 1 = 1
     setCount(prevCount => prevCount + 1) // 1 + 1 = 2
@@ -151,10 +153,10 @@ React 通过**组件在渲染树中的位置**来关联和管理 state，而非 
 
 #### 3. 重要陷阱：组件嵌套定义导致意外重置
 
-**切勿将组件定义嵌套在另一个组件内部！** 每次父组件渲染都会创建**新的函数**，导致子组件类型“不同”，从而引发状态重置。
+**切勿将组件定义嵌套在另一个组件内部！** 每次父组件渲染都会创建**新的函数**，导致子组件类型“**不同**”，从而引发状态重置。
 
 ```jsx
-// ❌ 错误示例：每次渲染都会重置 MyTextField 的状态
+// 错误示例：每次渲染都会重置 MyTextField 的状态
 function MyComponent() {
   function MyTextField() {
     /* ... */
@@ -162,7 +164,7 @@ function MyComponent() {
   return <MyTextField />
 }
 
-// ✅ 正确做法：始终在顶层定义组件
+// 正确做法：始终在顶层定义组件
 function MyTextField() {
   /* ... */
 }
@@ -206,7 +208,7 @@ function MyComponent() {
 }
 ```
 
-> 🔑 **原理**：`key` 成为了组件在父组件内“位置”的一部分，React 通过 `key` + 位置来唯一标识组件。
+> 🔑 **原理**：`key` 成为了组件在父组件内“**位置**”的一部分，React 通过 `key` + 位置来唯一标识组件。
 
 #### 3. 典型应用：重置表单
 
@@ -371,7 +373,7 @@ export default ClassicLifecycleDemo
 
 随着 Hooks 的到来，Class 那些碎步般的生命周期被一个无所不能的神器彻底统一：**`useEffect`**。
 
-它不再按时间线去切割生命周期，而是按照**“业务逻辑的副作用”**去组织代码。
+它不再按时间线去切割生命周期，而是按照“**业务逻辑的副作用**”去组织代码。
 
 ### 4.1 模拟 `componentDidMount` (只执行一次)
 
@@ -424,43 +426,68 @@ useEffect(() => {
 
 ### 5.1 为什么我的 `setState` 在 `for` 循环或者异步的 `setTimeout` 里表现得不一样？(React 17 vs 18 的惊天差异)
 
-- **答**：这是关于**批处理 (Batching)** 的高阶问题。
-  - **React 17 及以前**：批处理只有在 React 掌管的合成事件（如 `onClick`）中才有效。如果你把 `setState` 写在了 `setTimeout`、`Promise.then` 或者原生的 `addEventListener` 里，React 管不到它们。此时你连续写 3 个 `setState`，会引发**3次极其卡顿的重复渲染**！
-  - **React 18 伟大革新**：引入了 **Automatic Batching (自动批处理)** 机制。现在，无论你把 `setState` 写在宇宙的哪个角落（定时器、Fetch 回调里），React 都能极其智能地把它们打包拦截，合并成**1次渲染**。性能得到了史诗级提升。
+这是关于**批处理 (Batching)** 的高阶问题。
+
+- **React 17 及以前**：批处理只有在 React 掌管的合成事件（如 `onClick`）中才有效。如果你把 `setState` 写在了 `setTimeout`、`Promise.then` 或者原生的 `addEventListener` 里，React 管不到它们。此时你连续写 3 个 `setState`，会引发**3次极其卡顿的重复渲染**！
+- **React 18 伟大革新**：引入了 **Automatic Batching (自动批处理)** 机制。现在，无论你把 `setState` 写在宇宙的哪个角落（定时器、Fetch 回调里），React 都能极其智能地把它们打包拦截，合并成**1次渲染**。性能得到了史诗级提升。
 
 ### 5.2 为什么组件每次挂载时，`useEffect` 里的 `console.log` 会打印两次？
 
-- **答**：这绝对是 React 18 新手踩坑率第一的问题，并非 Bug。
-  - **原因**：你在入口文件使用了 `<React.StrictMode>` (严格模式) 标签。
-  - **机制**：在**开发环境 (Development)** 中，严格模式会故意强制执行一遍：`挂载 -> 立即卸载(执行 return 函数) -> 再次挂载`。
-  - **目的**：逼迫你暴露并修复代码里潜藏的副作用 Bug（比如你如果忘了在 return 里清定时器，就会发现定时器疯狂翻倍）。
-  - **影响**：上线生产环境 (`npm run build`) 后，此行为会自动彻底消失，恢复为执行一次。
+这绝对是 React 18 新手踩坑率第一的问题，并非 Bug。
+
+- **原因**：你在入口文件使用了 `<React.StrictMode>` (严格模式) 标签。
+- **机制**：在**开发环境 (Development)** 中，严格模式会故意强制执行一遍：`挂载 -> 立即卸载(执行 return 函数) -> 再次挂载`。
+- **目的**：逼迫你暴露并修复代码里潜藏的副作用 Bug（比如你如果忘了在 return 里清定时器，就会发现定时器疯狂翻倍）。
+- **影响**：上线生产环境 (`npm run build`) 后，此行为会自动彻底消失，恢复为执行一次。
 
 ### 5.3 为什么 `useEffect` 会导致疯狂的无限死循环 (Maximum update depth exceeded)？
 
-- **答**：这是由于违背了单向数据流与依赖更新机制。
-  - **致命罪魁祸首 1**：忘了写依赖数组 `[]`。导致每次渲染都会触发 Effect，Effect 里又 `setState` 导致新渲染，光速死循环。
-  - **致命罪魁祸首 2**：在 Effect 里更新了 A，但又把 A 写进了依赖数组。
-  - **致命罪魁祸首 3**：依赖了每次渲染都会被重新创建的对象或函数。
-    ```jsx
-    // ❌ 错误示范：每次组件重新渲染，options 都会被重新分配一个全新的内存地址！
-    // React 浅比对发现 options 地址变了，又去执行 useEffect，死循环！
-    const options = { id: 1 }
-    useEffect(() => {
-      fetch(options)
-    }, [options])
-    ```
-  - **解法**：把不需要响应式的对象移到组件外部定义，或者使用 `useMemo` / `useCallback` 强行锁死它们的内存地址。
+这是由于违背了单向数据流与依赖更新机制。
+
+- **致命罪魁祸首 1**：忘了写依赖数组 `[]`。导致每次渲染都会触发 Effect，Effect 里又 `setState` 导致新渲染，光速死循环。
+- **致命罪魁祸首 2**：在 Effect 里更新了 A，但又把 A 写进了依赖数组。
+- **致命罪魁祸首 3**：依赖了每次渲染都会被重新创建的对象或函数。
+  ```jsx
+  // 错误示范：每次组件重新渲染，options 都会被重新分配一个全新的内存地址！
+  // React 浅比对发现 options 地址变了，又去执行 useEffect，死循环！
+  const options = { id: 1 }
+  useEffect(() => {
+    fetch(options)
+  }, [options])
+  ```
+- **解法**：把不需要响应式的对象移到组件外部定义，或者使用 `useMemo` / `useCallback` 强行锁死它们的内存地址。
 
 ### 5.4 Class 组件的 `this.setState` 和 Hooks 的 `useState` 在合并机制上有什么不同？
 
-- **答**：
-  - **Class 组件**：`this.setState({ a: 1 })` 是**浅合并 (Merge)**。如果你原本的 state 是 `{ a: 0, b: 2 }`，更新后变成 `{ a: 1, b: 2 }`，`b` 会被自动保留。
-  - **Hooks (`useState`)**：`setObj({ a: 1 })` 是**全量覆盖 (Replace)**。原本的 `b` 会瞬间灰飞烟灭！如果你用 `useState` 管理对象，更新时必须自己手动写展开运算符把旧数据拉过来：`setObj(prev => ({ ...prev, a: 1 }))`。因此在 Hooks 中，更推荐把复杂的对象打散成多个独立的 `useState` 来管理。
+- **Class 组件**：`this.setState({ a: 1 })` 是**浅合并 (Merge)**。如果你原本的 state 是 `{ a: 0, b: 2 }`，更新后变成 `{ a: 1, b: 2 }`，`b` 会被自动保留。
+- **Hooks (`useState`)**：`setObj({ a: 1 })` 是**全量覆盖 (Replace)**。原本的 `b` 会瞬间灰飞烟灭！如果你用 `useState` 管理对象，更新时必须自己手动写展开运算符把旧数据拉过来：`setObj(prev => ({ ...prev, a: 1 }))`。因此在 Hooks 中，更推荐把复杂的对象打散成多个独立的 `useState` 来管理。
+
+```jsx
+function Profile() {
+  const [state, setState] = useState({ a: 0, b: 2 })
+
+  const updateA = () => {
+    // useState 是全量覆盖，必须手动展开旧值，否则 b 会丢失
+    setState(prev => ({ ...prev, a: 1 }))
+  }
+
+  return <button onClick={updateA}>{state.a}</button>
+}
+```
 
 ### 5.5 既然直接修改对象和数组这么麻烦，有没有好用的第三方库能帮我？
 
-- **答**：**有，绝对的神器 `Immer.js`。**
-  - 在处理嵌套了五六层的深层对象时，原生的展开运算符 `...` 会让你写出令人窒息的垃圾代码（著名的“展开地狱”）。
-  - `Immer` 暴露出一个 `produce` 代理函数。它允许你**用最习惯的直接修改（Mutate）语法**去操作数据（比如直接 `obj.a.b.c = 1`，直接 `arr.push()`），它会在底层通过 `Proxy` 拦截你的操作，并自动为你生成一个符合 React “不可变性”要求的心全新数据副本。
-  - 强烈建议在极度复杂的局部状态管理中配合 `useImmer` hook 使用！
+**有，绝对的神器 `Immer.js`。**
+
+- 在处理嵌套了五六层的深层对象时，原生的展开运算符 `...` 会让你写出令人窒息的垃圾代码（著名的“**展开地狱**”）。
+- `Immer` 暴露出一个 `produce` 代理函数。它允许你**用最习惯的直接修改（Mutate）语法**去操作数据（比如直接 `obj.a.b.c = 1`，直接 `arr.push()`），它会在底层通过 `Proxy` 拦截你的操作，并自动为你生成一个符合 React “**不可变性**”要求的心全新数据副本。
+- 强烈建议在极度复杂的局部状态管理中配合 `useImmer` hook 使用！
+
+```js
+import { produce } from 'immer'
+
+const nextState = produce(state, draft => {
+  // 直接“修改”草稿，Immer 自动生成符合不可变性的新对象
+  draft.user.profile.name = '小红'
+})
+```

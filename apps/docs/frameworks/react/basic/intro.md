@@ -4,7 +4,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 # React.js 框架
 
-在前端开发的世界里，React 凭借其“声明式、组件化、Learn Once Write Anywhere”的设计哲学，定义了现代前端开发的范式。它的核心思想可以用一个极其优雅的公式概括：`UI = f(state)`（视图是状态的映射）。无论 React 如何从 Class 时代演进到 Hooks 时代，甚至步入并发渲染模式，其核心始终围绕着**单向数据流**与**不可变性 (Immutability)**。
+在前端开发的世界里，React 凭借其“**声明式、组件化、Learn Once Write Anywhere**”的设计哲学，定义了现代前端开发的范式。它的核心思想可以用一个极其优雅的公式概括：`UI = f(state)`（视图是状态的映射）。无论 React 如何从 Class 时代演进到 Hooks 时代，甚至步入并发渲染模式，其核心始终围绕着**单向数据流**与**不可变性 (Immutability)**。
 
 ## 1. 核心基石：JSX 与 单向数据流
 
@@ -30,9 +30,9 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ### 2.2 Effect 与 生命周期 (useEffect & useEffectEvent)
 
-- **`useEffect` -> 与外部系统同步**：它是逃生舱。用于处理如网络请求、DOM 订阅、定时器等“副作用”。
+- **`useEffect` -> 与外部系统同步**：它是逃生舱。用于处理如网络请求、DOM 订阅、定时器等“**副作用**”。
 - **依赖数组 (Deps)**：这是 Hooks 最容易翻车的地方。如果依赖漏写，会拿到旧数据（闭包陷阱）；如果乱写，会导致无限循环。
-- **高级进阶 (`useEffectEvent`)**：React 官方正在推进的实验性 Hook。完美解决了“我想在 Effect 里读取最新的状态，但又不想因为这个状态的改变而重新触发 Effect 重新执行”的痛点，将响应式依赖与非响应式逻辑彻底解耦。
+- **高级进阶 (`useEffectEvent`)**：React 官方正在推进的实验性 Hook。完美解决了“**我想在 Effect 里读取最新的状态，但又不想因为这个状态的改变而重新触发 Effect 重新执行**”的痛点，将响应式依赖与非响应式逻辑彻底解耦。
 
 ## 3. 核心进阶：Virtual DOM 与 Fiber 架构
 
@@ -52,13 +52,13 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 - **父 -> 子**：`Props`。
 - **子 -> 父**：通过父组件传递下来的回调函数 (Callback Props) 传递数据。
-- **跨层级透传**：`Context API`。解决多层级“属性钻取” (Prop Drilling) 的痛苦。
+- **跨层级透传**：`Context API`。解决多层级“**属性钻取**” (Prop Drilling) 的痛苦。
 - **全局状态**：Zustand, Redux, Jotai 等。
 
 ### 4.2 逻辑复用的终极形态：Custom Hooks
 
 - **过去时代的眼泪**：早期 React 依靠 Mixins、高阶组件 (HOC) 和 Render Props 来复用逻辑，导致了可怕的“**嵌套地狱**” (Wrapper Hell) 和 Props 命名冲突。
-- **现在的标准解法**：**自定义 Hook**（以 `use` 开头的函数）。只需将相关的 State 和 Effect 抽离到一个纯函数中（如 `useFetch` 或 `useMousePosition`），便可实现纯粹的逻辑复用，且与 UI 渲染完美剥离，状态完全独立。
+- **现在的标准解法**：**自定义 Hook**（以 `use` 开头的函数）。只需将相关的State和 Effect抽离到一个纯函数中(如 `useFetch`或`useMousePosition`)，便可实现纯粹的逻辑复用，且与 UI 渲染完美剥离，状态完全独立。
 
 ## 5. 核心周边：前端路由与状态管理
 
@@ -79,27 +79,88 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ### 6.1 为什么我调用了 `setCount(count + 1)`，下一行 `console.log(count)` 打印的还是旧的值？
 
-- **答**：**因为 React 的状态更新是“快照”且批处理的。**
-  - 在同一个事件循环（Event Handler）中，React 会把多次 `setState` 收集起来合并，直到事件处理函数执行完毕，才会触发一次重渲染（Batching）。
-  - 在当前的渲染闭包中，`count` 的值被锁定在了渲染那一刻的快照。
-  - **解法**：如果下一次状态依赖于上一次状态，请使用函数式更新：`setCount(prev => prev + 1)`；如果需要在状态更新后执行逻辑，请在 `useEffect` 里监听这个状态的变化。
+**因为 React 的状态更新是“快照”且批处理的。**
 
-### 6.2 令人抓狂的“闭包陷阱 (Stale Closures)”是怎么回事？
+- 在同一个事件循环（Event Handler）中，React 会把多次 `setState` 收集起来合并，直到事件处理函数执行完毕，才会触发一次重渲染（Batching）。
+- 在当前的渲染闭包中，`count` 的值被锁定在了渲染那一刻的快照。
+- **解法**：如果下一次状态依赖于上一次状态，请使用函数式更新：`setCount(prev => prev + 1)`；如果需要在状态更新后执行逻辑，请在 `useEffect` 里监听这个状态的变化。
 
-- **答**：这是使用 Hooks 时最常见的 Bug。
-  - **场景**：在 `useEffect` 开了一个 `setInterval` 打印 `count`，你会发现它永远打印的是初始值（比如 0）。
-  - **原因**：因为 `useEffect` 的依赖数组写错了（通常是写了 `[]`），导致 Effect 里的定时器回调函数永远“**困**”在了第一次渲染的闭包里，那个闭包里的 `count` 永远是 0。
-  - **解法**：1. 正确填写依赖数组 `[count]`，并在 return 中清除旧的定时器；2. 使用 `useRef` 保存最新的值，因为 ref 的 `current` 属性是可变的，不会受到闭包影响；3. 拥抱 `useEffectEvent`。
+```jsx
+function Counter() {
+  const [count, setCount] = useState(0)
+
+  const handleClick = () => {
+    // 函数式更新：基于队列里的最新值计算，快速连点也不会丢失更新
+    setCount(prev => prev + 1)
+
+    // 不要在这里读 count：它仍是本次渲染快照里的旧值
+    console.log(count)
+  }
+
+  useEffect(() => {
+    // 想在状态更新后执行逻辑，就监听这个状态
+    console.log('count 已更新为', count)
+  }, [count])
+
+  return <button onClick={handleClick}>{count}</button>
+}
+```
+
+### 6.2 令人抓狂的“**闭包陷阱 (Stale Closures)**”是怎么回事？
+
+这是使用 Hooks 时最常见的 Bug。
+
+- **场景**：在 `useEffect` 开了一个 `setInterval` 打印 `count`，你会发现它永远打印的是初始值（比如 0）。
+- **原因**：因为 `useEffect` 的依赖数组写错了（通常是写了 `[]`），导致 Effect 里的定时器回调函数永远“**困**”在了第一次渲染的闭包里，那个闭包里的 `count` 永远是 0。
+- **解法**：1. 正确填写依赖数组 `[count]`，并在 return 中清除旧的定时器；2. 使用 `useRef` 保存最新的值，因为 ref 的 `current` 属性是可变的，不会受到闭包影响；3. 拥抱 `useEffectEvent`。
+
+```jsx
+function Counter() {
+  const [count, setCount] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      // 依赖里有 count，每次 count 变化都会重建定时器，闭包能拿到最新值
+      console.log(count)
+    }, 1000)
+
+    // 清理旧定时器，避免多次挂载后叠加
+    return () => clearInterval(id)
+  }, [count]) // 关键：把 count 写进依赖数组
+
+  return <span>{count}</span>
+}
+```
 
 ### 6.3 为什么列表渲染的 `key` 千万别用 `index`（索引）？
 
-- **答**：**会导致极度诡异的组件状态混乱和性能灾难。**
-  - `key` 是 React 在 Diff 算法中识别节点的唯一标识。如果使用 `index`，当你在列表顶部插入一条新数据时，所有元素的 `index` 都会发生改变。
-  - React 会认为：0号元素被修改了，1号元素被修改了...从而导致原本应该复用的真实 DOM 被全量重新修改。
-  - 更可怕的是，如果列表项是包含了不受控输入框的子组件，旧组件的内部状态（比如输入框里的字）会错误地挂载到新数据对应的组件上，发生“张冠李戴”。**永远使用数据本身的唯一 ID 作为 key！**
+**会导致极度诡异的组件状态混乱和性能灾难。**
+
+- `key` 是 React 在 Diff 算法中识别节点的唯一标识。如果使用 `index`，当你在列表顶部插入一条新数据时，所有元素的 `index` 都会发生改变。
+- React 会认为：0号元素被修改了，1号元素被修改了，从而导致原本应该复用的真实DOM被全量重新修改。
+- 更可怕的是，如果列表项是包含了不受控输入框的子组件，旧组件的内部状态（比如输入框里的字）会错误地挂载到新数据对应的组件上，发生“**张冠李戴**”。**永远使用数据本身的唯一 ID 作为 key！**
 
 ### 6.4 `useEffect` 引起无限循环（死循环）的原因？
 
-- **答**：核心在于**引用类型的依赖更新**。
-  - 如果 `useEffect` 的依赖项是一个对象或数组，而在 Effect 内部又去触发状态更新导致组件重新渲染。因为每次渲染都会重新创建新的对象或数组（内存地址改变），React 比较依赖项时（`Object.is` 判断）发现它变了，于是再次执行 Effect，从而陷入死循环。
-  - **解法**：1. 尽量依赖基础类型（如对象的 `id`）；2. 把对象/函数的创建用 `useMemo` 或 `useCallback` 包裹起来；3. 将不需要响应式的变量抽离到组件外部。
+核心在于**引用类型的依赖更新**。
+
+- 如果 `useEffect` 的依赖项是一个对象或数组，而在 Effect 内部又去触发状态更新导致组件重新渲染。因为每次渲染都会重新创建新的对象或数组（内存地址改变），React 比较依赖项时（`Object.is` 判断）发现它变了，于是再次执行 Effect，从而陷入死循环。
+- **解法**：1. 尽量依赖基础类型（如对象的 `id`）；2. 把对象/函数的创建用 `useMemo` 或 `useCallback` 包裹起来；3. 将不需要响应式的变量抽离到组件外部。
+
+```jsx
+function Profile({ options }) {
+  const [user, setUser] = useState(null)
+
+  // 依赖拆到基础类型：只有 options.id 真正变化时才重新请求
+  useEffect(() => {
+    fetchUser(options.id).then(setUser)
+  }, [options.id])
+
+  return <span>{user?.name}</span>
+}
+
+// 不依赖组件内部状态的函数直接放在组件外，引用永远稳定
+function fetchUser(id) {
+  return fetch(`/api/user/${id}`).then(res => res.json())
+}
+```

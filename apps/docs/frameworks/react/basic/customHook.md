@@ -11,7 +11,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ### 1.1 自定义 Hook 的本质特征
 
-- **状态隔离**：你在组件 A 和组件 B 里都调用了 `useCounter()`，它们在内存中生成的是**两份完全独立的 State 和 Effect**。它们只复用“逻辑行为”，绝不共享“数据状态”。
+- **状态隔离**：你在组件 A 和组件 B 里都调用了 `useCounter()`，它们在内存中生成的是**两份完全独立的 State 和 Effect**。它们只复用“**逻辑行为**”，绝不共享“**数据状态**”。
 - **高度内聚**：把与某一个功能相关的所有数据、定时器、事件监听全部打包在一个闭包里，组件代码瞬间变得极度清爽。
 - **黑盒测试**：它就是一个带副作用的 JS 函数，你可以脱离 UI，极其方便地对它进行单元测试。
 
@@ -152,35 +152,61 @@ export function useModal(initialVisible = false) {
 
 ### 4.1 为什么官方强行规定命名必须以 `use` 开头？写成 `get` 或 `create` 不行吗？
 
-- **答**：**绝对不行。这是 React Linter 的底线。**
-  - 因为普通的工具函数（Utils）和 Hooks 在行为上有致命差异：**Hooks 是有状态的，且受限于 React 的底层链表调用顺序机制（Rules of Hooks）。**
-  - 如果你写成 `myCustomHook()`。React 的代码扫描工具（Eslint Plugin）看到它，会以为它是普通函数，就不会去检查你是不是把它写在了 `if/else` 里面，也不会检查你是不是在普通 JS 函数里调用了它。
-  - 一旦你起了 `useXxx` 的名字，Linter 就会立刻启动“最高警报级别”扫描，为你排除一切可能导致 React 底层链表错乱的违规调用。
+**绝对不行。这是 React Linter 的底线。**
+
+- 因为普通的工具函数（Utils）和 Hooks 在行为上有致命差异：**Hooks 是有状态的，且受限于 React 的底层链表调用顺序机制（Rules of Hooks）。**
+- 如果你写成 `myCustomHook()`。React 的代码扫描工具（Eslint Plugin）看到它，会以为它是普通函数，就不会去检查你是不是把它写在了 `if/else` 里面，也不会检查你是不是在普通 JS 函数里调用了它。
+- 一旦你起了 `useXxx` 的名字，Linter 就会立刻启动“**最高警报级别**”扫描，为你排除一切可能导致 React 底层链表错乱的违规调用。
 
 ### 4.2 我在一个页面里调用了两次 `useWindowSize()`，它会给 `window` 绑定两次 `resize` 事件吗？性能会不会很差？
 
-- **答**：**会绑定两次！**
-  - 我们在前面提过，Hook 是物理隔离的。你调两次，就相当于在组件里原模原样写了两次 `useEffect`。它们各自维护自己的 state，各自去绑了一次原生事件。
-  - **架构优化**：如果某个底层全局资源极其昂贵（比如建立一个复杂的 WebSocket 链接对象），**绝不要在普通 Hook 里直接初始化**。
-  - 你应该将这个昂贵资源用 **Context API** 提到应用最顶层作为单例 (Singleton) 管理，然后在自定义 Hook 内部使用 `useContext()` 去安全地共享它，而不是重复创建它。
+**会绑定两次！**
+
+- 我们在前面提过，Hook 是物理隔离的。你调两次，就相当于在组件里原模原样写了两次 `useEffect`。它们各自维护自己的 state，各自去绑了一次原生事件。
+- **架构优化**：如果某个底层全局资源极其昂贵（比如建立一个复杂的 WebSocket 链接对象），**绝不要在普通 Hook 里直接初始化**。
+- 你应该将这个昂贵资源用 **Context API** 提到应用最顶层作为单例 (Singleton) 管理，然后在自定义 Hook 内部使用 `useContext()` 去安全地共享它，而不是重复创建它。
+
+```jsx
+function useWindowSize() {
+  const [size, setSize] = useState({ width: 0, height: 0 })
+
+  useEffect(() => {
+    const onResize = () => setSize({ width: innerWidth, height: innerHeight })
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize) // 必须清理
+  }, [])
+
+  return size
+}
+
+function Page() {
+  // 调用两次 = 两套 state + 两个独立的 resize 监听器
+  const header = useWindowSize()
+  const sidebar = useWindowSize()
+
+  return <div>{header.width}</div>
+}
+```
 
 ### 4.3 我的 Hook 里使用了一个外部传进来的对象作为 `useEffect` 的依赖，结果疯狂死循环了！
 
-- **答**：这是使用自定义 Hook 最容易踩的陷阱，因为你无法控制别人传给你什么。
-  - **案发现场**：
-    ```jsx
-    // 你的组件：每次渲染都新建了一个 options 对象！
-    const options = { id: 1 }
-    useFetch('/api', options)
-    ```
-    此时在你的 Hook 内部，`useEffect(fn, [options])` 会发现新旧指针不一样，疯狂重发请求，陷入光速死循环。
-  - **防坑指南 (作为 Hook 开发者)**：你永远不要信任外部传入的引用类型（对象/数组）。
-    1. 可以在 Hook 内部使用 `JSON.stringify` 对其进行扁平化降维，拿字符串作为内部 Effect 的依赖。
-    2. 强制要求使用者传入基本数据类型的依赖，或者要求他自己在外层用 `useMemo` 包好再传给你。
-    3. 利用 `useRef` 保存旧值，手写深度比较（Deep Compare）逻辑（如知名开源库 `ahooks` 里的 `useDeepCompareEffect`）。
+这是使用自定义 Hook 最容易踩的陷阱，因为你无法控制别人传给你什么。
+
+- **案发现场**：
+  ```jsx
+  // 你的组件：每次渲染都新建了一个 options 对象！
+  const options = { id: 1 }
+  useFetch('/api', options)
+  ```
+  此时在你的 Hook 内部，`useEffect(fn, [options])` 会发现新旧指针不一样，疯狂重发请求，陷入光速死循环。
+- **防坑指南 (作为 Hook 开发者)**：你永远不要信任外部传入的引用类型（对象/数组）。
+  1. 可以在 Hook 内部使用 `JSON.stringify` 对其进行扁平化降维，拿字符串作为内部 Effect 的依赖。
+  2. 强制要求使用者传入基本数据类型的依赖，或者要求他自己在外层用 `useMemo` 包好再传给你。
+  3. 利用 `useRef` 保存旧值，手写深度比较（Deep Compare）逻辑（如知名开源库 `ahooks` 里的 `useDeepCompareEffect`）。
 
 ### 4.4 把逻辑封装成 Custom Hook 和写成 Pinia/Zustand 全局 Store 有什么本质区别？我该怎么选？
 
-- **答**：这个面试高级题直指核心架构能力。
-  - **Custom Hook (局部/多例模式)**：你每次在不同的组件里调用 `useMouse()`，它都会在内存里开辟一块**全新的、相互独立**的数据空间。组件 A 的坐标和组件 B 的坐标互不干扰。这适用于**纯逻辑复用**。
-  - **全局 Store (全局/单例模式)**：不管你在 100 个组件里调用了多少次 `useStore()`，底层都只会实例化一次，返回给你的永远是**指向内存中同一块地址的同一个对象**。这确保了只要一个人改了数据，100 个页面瞬间全部同步。这适用于**业务状态共享**（如购物车数据）。
+这个面试高级题直指核心架构能力。
+
+- **Custom Hook (局部/多例模式)**：你每次在不同的组件里调用 `useMouse()`，它都会在内存里开辟一块**全新的、相互独立**的数据空间。组件 A 的坐标和组件 B 的坐标互不干扰。这适用于**纯逻辑复用**。
+- **全局 Store (全局/单例模式)**：不管你在 100 个组件里调用了多少次 `useStore()`，底层都只会实例化一次，返回给你的永远是**指向内存中同一块地址的同一个对象**。这确保了只要一个人改了数据，100 个页面瞬间全部同步。这适用于**业务状态共享**（如购物车数据）。

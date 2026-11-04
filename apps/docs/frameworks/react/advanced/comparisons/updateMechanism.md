@@ -62,7 +62,7 @@ function updateState() {
 
 :::
 
-**顺序为何不能变**：链表里没有任何 key/名字，每次 `useState`/`useMemo`/`useEffect` 都按"**取当前节点 → 指针前进一格**"定位。某次渲染一旦跳过某个 Hook，后续所有 Hook 整体错位——`count` 可能读到 `useEffect` 的 `deps`，`setState` 的更新可能写进 `useRef`。这正是 `eslint-plugin-react-hooks` 必须静态检查调用顺序的原因。
+**顺序为何不能变**：链表里没有任何 key/名字，每次 `useState`/`useMemo`/`useEffect` 都按“**取当前节点 → 指针前进一格**”定位。某次渲染一旦跳过某个 Hook，后续所有 Hook 整体错位——`count` 可能读到 `useEffect` 的 `deps`，`setState` 的更新可能写进 `useRef`。这正是 `eslint-plugin-react-hooks` 必须静态检查调用顺序的原因。
 
 ### 1.2 [Vue 3：响应式对象代理](../../../vue/advanced/source-code/reactivity-core/reactive.md)
 
@@ -134,7 +134,7 @@ function trigger(target, key) {
 
 ## 2. 更新触发与依赖追踪
 
-### 2.1 [React：自上而下的"执行-跳过"模型](../core-design/updateBatching.md)
+### 2.1 [React：自上而下的“**执行-跳过**”模型](../core-design/updateBatching.md)
 
 React 的更新从触发更新的组件开始，**默认整棵子树重新执行函数**，然后通过 `memo`、`useMemo`、`useCallback` 或 React Compiler 来跳过不必要的执行。
 
@@ -162,9 +162,9 @@ function beginWork(current, workInProgress) {
 
 - 更新从触发点向上冒泡到根，再从根向下遍历所有子节点
 - 每个组件是否重新执行，取决于 `memo`/`shouldComponentUpdate` 的判断
-- 依赖追踪靠的是"**执行时读到了什么**"——但 React 不会自动记录，需要开发者用 `useMemo`/`useCallback` 显式声明依赖数组
+- 依赖追踪靠的是“**执行时读到了什么**”——但 React 不会自动记录，需要开发者用 `useMemo`/`useCallback` 显式声明依赖数组
 
-### 2.2 [Vue 3：自下而上的"依赖-触发"模型](../../../vue/advanced/source-code/reactivityUpdate.md)
+### 2.2 [Vue 3：自下而上的“**依赖-触发**”模型](../../../vue/advanced/source-code/reactivityUpdate.md)
 
 Vue 3 的更新基于 **依赖图（Dependency Graph）**：数据变化时，只有直接或间接依赖了该数据的 Effect 才会被触发。
 
@@ -243,6 +243,8 @@ function computed(getter) {
 
 ### 3.3 对比总结
 
+[width(13,41,46)]
+
 | 维度     | Vue `computed`                     | React `useMemo`          |
 | -------- | ---------------------------------- | ------------------------ |
 | 依赖声明 | 自动收集（读取时 track）           | 手动传入 deps 数组       |
@@ -305,6 +307,8 @@ const theme = inject('theme') // 读 theme.value 才触发依赖收集
 
 ### 4.3 对比总结
 
+[width(15,34,51)]
+
 | 维度       | React Context                | Vue provide/inject           |
 | ---------- | ---------------------------- | ---------------------------- |
 | 订阅关系   | `useContext` 即订阅          | 本身不订阅，只查找一次       |
@@ -313,6 +317,8 @@ const theme = inject('theme') // 读 theme.value 才触发依赖收集
 | 粒度       | 粗：按 Context 整体          | 细：按具体响应式属性         |
 
 ## 5. 设计哲学的根本差异
+
+[width(13,42,45)]
 
 | 维度         | React                                 | Vue 3                             |
 | ------------ | ------------------------------------- | --------------------------------- |

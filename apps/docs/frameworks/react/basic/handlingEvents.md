@@ -8,6 +8,8 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 React 元素的事件处理和处理 DOM 原生事件极其相似，但在语法层面和底层运行机制上，有着天壤之别。
 
+[width(13,32,55)]
+
 | 概念维度           | 原生 HTML DOM 事件                               | React 合成事件 (SyntheticEvent)                                                                                                                                                                                                         |
 | :----------------- | :----------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **命名规范**       | 全小写 (如 `onclick`)                            | **小驼峰命名 (camelCase)** (如 `onClick`)                                                                                                                                                                                               |
@@ -38,7 +40,6 @@ function ActionButton() {
       <button onClick={handleClick}>点击我</button>
 
       {/* 3. 传参绑定：如果函数需要参数，必须包裹一层箭头函数！ */}
-      {/* 错误写法：onClick={handleDelete(123)} -> 会导致组件一渲染就立刻执行，且由于返回值可能是 undefined，导致点击无效 */}
       <button onClick={() => handleDelete(123)}>删除数据</button>
     </div>
   )
@@ -118,27 +119,55 @@ function App() {
 
 ### 3.1 为什么我写了 `onClick={handleClick()}`，页面一刷新它就自己触发了，点击反而没反应？
 
-- **答**：这是 React 新手犯错率排名第一的雷区。
-  - **原因剖析**：当你在 JSX 里写 `{handleClick()}`（带了括号）时，你并不是在“**绑定事件**”，而是在告诉 JavaScript 引擎：“**请立刻、马上执行这个函数**，并把它的返回值绑给 `onClick`”。
-  - **后果**：因为函数在组件渲染的一瞬间就被强行执行了，所以页面一刷新就弹出了 alert。而通常你的 `handleClick` 是没有 `return` 值的，所以它默认返回了 `undefined`。最终，真实的绑定变成了 `onClick={undefined}`，当你真的去点击按钮时，自然毫无反应。
-  - **铁律**：传给事件的一定要是**函数的引用**（也就是函数的名字 `onClick={handleClick}`）或者是**一个箭头函数包裹体**（`onClick={() => handleClick(id)}`）。
+- **原因剖析**：当你在 JSX 里写 `{handleClick()}`（带了括号）时，你并不是在“**绑定事件**”，而是在告诉 JavaScript 引擎：“**请立刻、马上执行这个函数，并把它的返回值绑给 `onClick`**”。
+- **后果**：因为函数在组件渲染的一瞬间就被强行执行了，所以页面一刷新就弹出了 alert。而通常你的 `handleClick` 是没有 `return` 值的，所以它默认返回了 `undefined`。最终，真实的绑定变成了 `onClick={undefined}`，当你真的去点击按钮时，自然毫无反应。
+- **铁律**：传给事件的一定要是**函数的引用**（也就是函数的名字 `onClick={handleClick}`）或者是**一个箭头函数包裹体**（`onClick={() => handleClick(id)}`）。
+
+```jsx
+// 错误：渲染时就立即执行，onClick 拿到的是 handleClick() 的返回值
+const wrong = <button onClick={handleClick()}>点我</button>
+
+// 正确：只传函数引用，点击时才执行
+const right = <button onClick={handleClick}>点我</button>
+```
 
 ### 3.2 `onChange` 事件在 React 和原生 HTML 里有什么区别？
 
-- **答**：这是一个非常巨大的认知差异。
-  - **原生 HTML 的 `onchange`**：对于 `<input type="text">`，它只在用户输入完毕并**光标失去焦点 (blur)** 时，或者敲击回车时才触发。体验非常迟钝。
-  - **React 的 `onChange`**：React 极其激进地重写了这个行为。在 React 中，只要输入框的内容发生了**哪怕一个字符的改变（即按键按下的瞬间）**，`onChange` 就会立刻触发。
-  - **最佳实践**：正是由于 React 的这个设定，我们才能实现极其丝滑的 **“受控组件 (Controlled Components)”** 表单——用户每敲一个字，立刻更新 State，State 立刻更新 Input 的 value，实现完美的双向绑定错觉。
+- **原生 HTML 的 `onchange`**：对于 `<input type="text">`，它只在用户输入完毕并**光标失去焦点 (blur)** 时，或者敲击回车时才触发。体验非常迟钝。
+- **React 的 `onChange`**：React 极其激进地重写了这个行为。在 React 中，只要输入框的内容发生了**哪怕一个字符的改变（即按键按下的瞬间）**，`onChange` 就会立刻触发。
+- **最佳实践**：正是由于 React 的这个设定，我们才能实现极其丝滑的 “**受控组件 (Controlled Components)**” 表单——用户每敲一个字，立刻更新 State，State 立刻更新 Input 的 value，实现完美的双向绑定错觉。
 
-### 3.3 什么是“受控组件”？为什么我的输入框连字都打不进去了？
+### 3.3 什么是“**受控组件**”？为什么我的输入框连字都打不进去了？
 
-- **答**：这也是表单处理的绝对核心。
-  - **现象**：如果你写了 `<input type="text" value={text} />`。你会惊恐地发现，无论你怎么按键盘，输入框里什么字母都打不出来！它像死机了一样卡在初始值上。
-  - **原因**：在 React 中，如果一个表单元素被绑定了 `value` 属性（被 State 强行接管了），它就成了一个**受控组件**。在这个体系下，**React 的 State 是唯一的数据源 (Single Source of Truth)**。原生 DOM 自己的输入行为被无情剥夺了，它只能乖乖显示 State 里的值。
-  - **解法**：必须配合 `onChange` 事件。当用户输入时，触发 `onChange`，在回调里拿到 `e.target.value`，然后调用 `setText(e.target.value)` 更新 State。State 更新了，React 重新渲染，输入框里才会有新字出现。
+- **现象**：如果你写了 `<input type="text" value={text} />`。你会惊恐地发现，无论你怎么按键盘，输入框里什么字母都打不出来！它像死机了一样卡在初始值上。
+- **原因**：在 React 中，如果一个表单元素被绑定了 `value` 属性（被 State 强行接管了），它就成了一个**受控组件**。在这个体系下，**React 的 State 是唯一的数据源 (Single Source of Truth)**。原生 DOM 自己的输入行为被无情剥夺了，它只能乖乖显示 State 里的值。
+- **解法**：必须配合 `onChange` 事件。当用户输入时，触发 `onChange`，在回调里拿到 `e.target.value`，然后调用 `setText(e.target.value)` 更新 State。State 更新了，React 重新渲染，输入框里才会有新字出现。
+
+```jsx
+function NameInput() {
+  const [text, setText] = useState('')
+
+  return (
+    <input
+      value={text}
+      onChange={e => setText(e.target.value)} // 把新值写回 State
+    />
+  )
+}
+```
 
 ### 3.4 我在异步请求 (如 setTimeout 或 Promise) 里访问了 `e.target.value`，为什么报错说它是 null？ (React 16 独占神坑)
 
-- **答**：如果你还在维护老旧的 React 16 项目，这是个致命的坑（叫作 **事件池 Event Pooling**）。
-  - **原因 (React 16)**：为了节省内存，React 16 会复用合成事件对象 `e`。当你的同步函数执行完后，React 会瞬间把 `e` 里面的属性全部清空回收。所以等你的 `setTimeout` 异步回调执行时，去拿 `e.target` 早就变成了 `null`，引发程序崩溃。解决办法是调用 `e.persist()` 强制保留事件，或者在外面用 `const val = e.target.value` 先存起来。
-  - **解放 (React 17+)**：如果你用的是现代 React 17 及以上版本，**这个恶心的事件池机制已经被官方彻底废弃并移除了！** 你现在可以随意在任何异步代码里安全地访问 `e` 对象。
+- **原因 (React 16)**：为了节省内存，React 16 会复用合成事件对象 `e`。当你的同步函数执行完后，React 会瞬间把 `e` 里面的属性全部清空回收。所以等你的 `setTimeout` 异步回调执行时，去拿 `e.target` 早就变成了 `null`，引发程序崩溃。解决办法是调用 `e.persist()` 强制保留事件，或者在外面用 `const val = e.target.value` 先存起来。
+- **解放 (React 17+)**：如果你用的是现代 React 17 及以上版本，**这个恶心的事件池机制已经被官方彻底废弃并移除了！** 你现在可以随意在任何异步代码里安全地访问 `e` 对象。
+
+```jsx
+function handleChange(e) {
+  // 在同步阶段先把值取出来，再丢进异步回调
+  const value = e.target.value
+
+  setTimeout(() => {
+    console.log(value) // 拿到的是保存下来的字符串，而不是已被回收的 e
+  }, 1000)
+}
+```

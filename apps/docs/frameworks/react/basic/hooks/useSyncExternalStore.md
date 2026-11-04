@@ -4,7 +4,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 # **[`useSyncExternalStore`](https://zh-hans.react.dev/reference/react/useSyncExternalStore): 彻底终结并发渲染“撕裂”的外部状态订阅**
 
-在 React 18 引入并发渲染（Concurrent Rendering）之后，React 获得了暂停、恢复和放弃渲染的能力。然而，这也带来了一个致命的副作用：如果组件依赖于 React 外部的状态（如 Redux、Zustand Store、甚至浏览器的 `window` 对象），在 React 暂停渲染的间隙，外部状态发生了改变，就会导致同一个页面上渲染出新旧不一致的 UI，这种现象被称为**“UI 撕裂（Tearing）”**。
+在 React 18 引入并发渲染（Concurrent Rendering）之后，React 获得了暂停、恢复和放弃渲染的能力。然而，这也带来了一个致命的副作用：如果组件依赖于 React 外部的状态（如 Redux、Zustand Store、甚至浏览器的 `window` 对象），在 React 暂停渲染的间隙，外部状态发生了改变，就会导致同一个页面上渲染出新旧不一致的 UI，这种现象被称为“**UI 撕裂（Tearing）**”。
 
 `useSyncExternalStore` 正是 React 官方为了拯救各大状态管理库、安全订阅外部数据源而量身定制的终极解决方案。
 
@@ -50,7 +50,7 @@ function NetworkStatus() {
 }
 ```
 
-## 2. 核心进阶：解决并发渲染下的“UI 撕裂（Tearing）”难题
+## 2. 核心进阶：解决并发渲染下的“**UI 撕裂（Tearing）**”难题
 
 在 `useSyncExternalStore` 出现之前，开发者通常使用 `useEffect` 配合 `useState` 来订阅外部状态。在传统的同步渲染中这没有问题，但在并发模式下，这会引发灾难。
 
@@ -62,7 +62,7 @@ function NetworkStatus() {
 `useSyncExternalStore` 底层做了一件非常霸道的事情：如果在并发渲染期间，它检测到 `getSnapshot` 返回的值发生了变化，它会立刻**放弃当前的并发渲染，强制以同步（Synchronous）的方式从头重新渲染整个树**。这虽然损失了一点并发的性能，但绝对保证了 UI 的一致性和正确性。
 
 ```jsx
-// ❌ 错误/过时的示范 (极易导致 UI 撕裂)：
+// 错误/过时的示范 (极易导致 UI 撕裂)：
 function BadStoreReader() {
   const [state, setState] = useState(store.getState())
   useEffect(() => {
@@ -71,7 +71,7 @@ function BadStoreReader() {
   return <div>{state}</div>
 }
 
-// ✅ 正确示范 (防止撕裂)：
+// 正确示范 (防止撕裂)：
 function GoodStoreReader() {
   // 交由 React 内部机制接管，保证渲染期间状态绝对一致
   const state = useSyncExternalStore(store.subscribe, store.getState)
@@ -83,7 +83,7 @@ function GoodStoreReader() {
 
 ### 3.1 突破死穴：如何正确编写 `getSnapshot` 函数？
 
-**痛点场景**：很多开发者在使用 `useSyncExternalStore` 订阅复杂对象时，发现应用陷入了无限重渲染（Infinite Loop），甚至控制台报错 `Maximum update depth exceeded`。这是因为他们没有理解 React 对“快照（Snapshot）”的不可变性（Immutability）要求。
+**痛点场景**：很多开发者在使用 `useSyncExternalStore` 订阅复杂对象时，发现应用陷入了无限重渲染（Infinite Loop），甚至控制台报错 `Maximum update depth exceeded`。这是因为他们没有理解 React 对“**快照（Snapshot）**”的不可变性（Immutability）要求。
 
 **解决原则**：**`getSnapshot` 必须返回一个缓存的值。如果底层数据没有发生突变，`getSnapshot` 多次调用必须返回严格相等（`Object.is`）的同一个引用。绝对不能在 `getSnapshot` 中动态生成新对象或新数组！**
 
@@ -98,12 +98,12 @@ const store = {
     return () => listeners.delete(callback)
   },
 
-  // ❌ 致命错误：每次都返回一个新数组！React 会认为状态一直在变，导致无限渲染。
+  // 致命错误：每次都返回一个新数组！React 会认为状态一直在变，导致无限渲染。
   getBadSnapshot() {
     return [...globalData.todos]
   },
 
-  // ✅ 正确做法：直接返回原有引用。只有在执行更新操作时，才去改变引用。
+  // 正确做法：直接返回原有引用。只有在执行更新操作时，才去改变引用。
   getGoodSnapshot() {
     return globalData.todos
   },
@@ -120,29 +120,46 @@ const store = {
 
 ### 4.1 我可以把它完全当作 `useState` 的替代品来做全局状态管理吗？
 
-- **答**：**不建议本末倒置。**
-  - `useSyncExternalStore` 是为了连接“已经存在于 React 外部的状态”（比如浏览器 API、现有的 Redux 逻辑）而设计的。
-  - 如果你的状态本身就是为 React UI 服务的，首选方案永远是 React 原生的 `useState`、`useReducer` 和 `Context`，因为它们能够完美享受并发渲染带来的性能红利，而 `useSyncExternalStore` 在状态变化时会强制同步渲染（De-opt to synchronous），可能会引发卡顿。
+**不建议本末倒置。**
 
-### 4.2 在 Next.js / Remix 等 SSR (服务器端渲染) 框架中报错 "Hydration Mismatch" 怎么解决？
+- `useSyncExternalStore` 是为了连接“**已经存在于 React 外部的状态**”（比如浏览器 API、现有的 Redux 逻辑）而设计的。
+- 如果你的状态本身就是为 React UI 服务的，首选方案永远是 React 原生的 `useState`、`useReducer` 和 `Context`，因为它们能够完美享受并发渲染带来的性能红利，而 `useSyncExternalStore` 在状态变化时会强制同步渲染（De-opt to synchronous），可能会引发卡顿。
 
-- **答**：**你需要提供第三个参数 `getServerSnapshot`。**
-  - 在 SSR 环境中，服务器上没有 `window` 对象，也无法订阅浏览器的网络状态。如果服务器渲染出的 HTML 和客户端初次接管（Hydration）时的状态不一致，就会报错。
-  - **避坑方案**：传入第三个参数，为服务器和客户端初次渲染提供一个**绝对一致的静态初始值**。
-  ```jsx
-  // 在服务器端和客户端水合阶段，统一假定为 true
-  function getServerSnapshot() {
-    return true
-  }
-  const isOnline = useSyncExternalStore(
-    subscribe,
-    getSnapshot,
-    getServerSnapshot,
-  )
-  ```
+### 4.2 在 Next.js / Remix 等 SSR (服务器端渲染) 框架中报错 “**Hydration Mismatch**” 怎么解决？
+
+**你需要提供第三个参数 `getServerSnapshot`。**
+
+- 在 SSR 环境中，服务器上没有 `window` 对象，也无法订阅浏览器的网络状态。如果服务器渲染出的 HTML 和客户端初次接管（Hydration）时的状态不一致，就会报错。
+- **避坑方案**：传入第三个参数，为服务器和客户端初次渲染提供一个**绝对一致的静态初始值**。
+
+```jsx
+// 在服务器端和客户端水合阶段，统一假定为 true
+function getServerSnapshot() {
+  return true
+}
+const isOnline = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+```
 
 ### 4.3 为什么我必须把 `subscribe` 函数定义在组件外部或使用 `useCallback` 包裹？
 
-- **答**：**为了防止重新订阅引发的性能问题。**
-  - 如果每次组件渲染时你都传入一个全新的 `subscribe` 函数引用，React 会在每次渲染后先执行清理函数（unsubscribe），然后再重新订阅（subscribe）。这不仅消耗性能，还可能丢失期间发生的状态变更。
-  - **避坑方案**：始终将 `subscribe` 和 `getSnapshot` 函数提取到组件外部（模块级别作用域）；如果必须依赖组件内部的 props，请务必使用 `useCallback` 将其缓存起来。
+**为了防止重新订阅引发的性能问题。**
+
+- 如果每次组件渲染时你都传入一个全新的 `subscribe` 函数引用，React 会在每次渲染后先执行清理函数（unsubscribe），然后再重新订阅（subscribe）。这不仅消耗性能，还可能丢失期间发生的状态变更。
+- **避坑方案**：始终将 `subscribe` 和 `getSnapshot` 函数提取到组件外部（模块级别作用域）；如果必须依赖组件内部的 props，请务必使用 `useCallback` 将其缓存起来。
+
+```jsx
+function OnlineStatus() {
+  // 用 useCallback 锁住函数引用，避免每次渲染都重新订阅
+  const subscribe = useCallback(callback => {
+    window.addEventListener('online', callback)
+    window.addEventListener('offline', callback)
+    return () => {
+      window.removeEventListener('online', callback)
+      window.removeEventListener('offline', callback)
+    }
+  }, [])
+
+  const isOnline = useSyncExternalStore(subscribe, getSnapshot)
+  return <span>{isOnline ? '在线' : '离线'}</span>
+}
+```

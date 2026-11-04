@@ -4,7 +4,7 @@
 
 ### 1.1 什么是 Suspense？
 
-Suspense 是 React 提供的**声明式加载状态管理机制**。组件在渲染时可以"挂起"（suspend），告诉 React "我还没准备好"，React 则显示备用的 fallback UI，等数据就绪后再自动恢复。
+Suspense 是 React 提供的**声明式加载状态管理机制**。组件在渲染时可以“**挂起**”（suspend），告诉 React “**我还没准备好**”，React 则显示备用的 fallback UI，等数据就绪后再自动恢复。
 
 ```jsx
 import { Suspense } from 'react'
@@ -23,7 +23,7 @@ function ProfilePage() {
 
 ### 1.2 核心机制：Thenable 抛出
 
-Suspense 的核心机制基于一个"反直觉"的模式——**在 Render 中抛出 Promise**：
+Suspense 的核心机制基于一个“**反直觉**”的模式——**在 Render 中抛出 Promise**：
 
 ```javascript
 // Suspense 的内部工作流程（简化）
@@ -67,6 +67,8 @@ flowchart TD
 ### 1.3 Suspense 的数据源
 
 Suspense 本身不规定数据的来源。任何能在 Render 中抛出 Promise 的机制都可以与 Suspense 集成：
+
+[width(31,69)]
 
 | 数据源                       | 说明                                         |
 | ---------------------------- | -------------------------------------------- |
@@ -152,6 +154,8 @@ Offscreen 允许 React 保留一棵暂时**隐藏但不卸载**的组件树，�
 
 ### 2.2 与卸载的区别
 
+[width(16,25,59)]
+
 |                | 卸载（Unmount）      | Offscreen（隐藏）      |
 | -------------- | -------------------- | ---------------------- |
 | **组件实例**   | 销毁                 | 保留                   |
@@ -181,7 +185,7 @@ CSS `display: none` 只是视觉上隐藏，组件仍然挂载并占用渲染资
 
 ### 3.1 SSR 与水合的基本流程
 
-服务端渲染（SSR）产出的 HTML 是静态的，需要客户端 React "激活"以添加交互性——这个过程称为**水合（Hydration）**：
+服务端渲染（SSR）产出的 HTML 是静态的，需要客户端 React “**激活**”以添加交互性——这个过程称为**水合（Hydration）**：
 
 ```text
 1. 服务端：渲染 HTML → 发送到浏览器
@@ -232,7 +236,7 @@ function App() {
 当服务端 HTML 与客户端渲染输出不一致时，React 会报错或产生非预期行为：
 
 ```jsx
-// ❌ 常见的不匹配原因
+// 常见的不匹配原因
 function Component() {
   // 服务端和客户端可能产生不同的随机数
   const id = Math.random()
@@ -254,7 +258,7 @@ function Component() {
 **原则**：服务端渲染和客户端渲染在首次渲染时应**产生完全相同的输出**。如果必须使用浏览器 API，应在 `useEffect` 中进行（Effect 不在服务端执行）。
 
 ```jsx
-// ✅ 正确处理浏览器特有值
+// 正确处理浏览器特有值
 function Component() {
   const [width, setWidth] = useState(0)
 
@@ -303,7 +307,7 @@ flowchart TD
 - **Suspense 是声明式异步 UI 管理**：组件挂起 → 显示 fallback → 数据就绪后恢复。
 - **核心机制是 Render 中抛出 thenable**：React 捕获 Promise，找到最近 Suspense 边界，等待 resolve 后重试。
 - **嵌套 Suspense 边界各自独立**：可以精细控制页面的加载体验。
-- **配合 `startTransition` 避免"闪现 fallback"**：旧 UI 保持可见，新 UI 在后台准备。
+- **配合 `startTransition` 避免“闪现 fallback”**：旧 UI 保持可见，新 UI 在后台准备。
 - **Offscreen 保留而非销毁隐藏子树**：状态保持、快速恢复，适合 Tab 切换等场景。
 - **Hydration 是 SSR 到客户端交互的桥梁**：复用服务端 HTML，绑定事件和状态。
 - **选择性水合按用户交互优先级推进**：用户点击的区域优先水合，不阻塞交互。

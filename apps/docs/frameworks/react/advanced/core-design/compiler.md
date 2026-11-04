@@ -1,12 +1,14 @@
 # React 编译器：编译时优化与自动记忆化的深层原理
 
-## 1. 从“纯运行时”到“编译时增强”
+## 1. 从“**纯运行时**”到“**编译时增强**”
 
 React 的核心哲学一直是 **`UI = f(state)`**。在这个范式下，状态的任何细微变化，理论上都会导致函数 `f` 的重新执行以计算出全新的 UI。在 React 发展的早期，这种极其依赖运行时的设计虽然赋予了开发者极高的动态表达能力，但也带来了显著的性能瓶颈：**过度渲染（Over-rendering）**。
 
 ### 1.1 三大框架的编译策略分水岭
 
 同样是解决“**状态变化如何高效地映射到 UI**”，主流框架在“**编译时**”与“**运行时**”之间做出了截然不同的取舍：
+
+[width(13,18,33,36)]
 
 | 框架   | 优化策略                    | 编译期做什么                                          | 代价与约束                                     |
 | ------ | --------------------------- | ----------------------------------------------------- | ---------------------------------------------- |
@@ -39,7 +41,7 @@ const element = React.createElement(
 :::code-group
 
 ```js [React Compiler优化前]
-// ❌ 开发者被迫成为“依赖追踪机器”
+// 开发者被迫成为“依赖追踪机器”
 function TodoList({ todos, filter }) {
   const filteredTodos = useMemo(
     () => todos.filter(t => t.text.includes(filter)),
@@ -55,7 +57,7 @@ function TodoList({ todos, filter }) {
 ```
 
 ```js [React Compiler优化后]
-// ✅ 只需写干净的代码
+// 只需写干净的代码
 function TodoList({ todos, filter }) {
   const filteredTodos = todos.filter(t => t.text.includes(filter))
 
@@ -128,6 +130,8 @@ Automatic Runtime 带来的不仅仅是“**无需手动引入 React**”，更�
 
 Automatic Runtime 实际上暴露了三个入口函数，分别对应不同的编译场景：
 
+[width(39,15,46)]
+
 | API                                                        | 使用场景            | 说明                                                             |
 | ---------------------------------------------------------- | ------------------- | ---------------------------------------------------------------- |
 | `jsx(type, props, key)`                                    | 单个或动态 children | 无需规范化 `arguments`，直接构造 Element                         |
@@ -139,6 +143,8 @@ Automatic Runtime 实际上暴露了三个入口函数，分别对应不同的�
 ### 2.4 AST 阶段的静态优化策略
 
 现代 JSX 编译器（SWC / Babel）在转换阶段会执行多项隐式优化：
+
+[width(23,77)]
 
 | 优化                 | 说明                                                            |
 | -------------------- | --------------------------------------------------------------- |
@@ -157,7 +163,7 @@ Automatic Runtime 实际上暴露了三个入口函数，分别对应不同的�
 在没有 Compiler 的时代，为了防止重渲染，开发者必须手动构建依赖图：
 
 ```jsx
-// ❌ 开发者被迫成为“依赖追踪机器”
+// 开发者被迫成为“依赖追踪机器”
 function TodoList({ todos, filter }) {
   const filteredTodos = useMemo(
     () => todos.filter(t => t.text.includes(filter)),
@@ -181,7 +187,7 @@ React Compiler 在编译时分析组件的 JavaScript 语义，自动判断：
 - 哪些组件可以从 React.memo 中受益。
 
 ```jsx
-// ✅ 只需写干净的代码
+// 只需写干净的代码
 function TodoList({ todos, filter }) {
   const filteredTodos = todos.filter(t => t.text.includes(filter))
 
@@ -219,7 +225,7 @@ let x2 = x1 + 1 // x2 只依赖 x1
 let x3 = x2 * 2 // x3 只依赖 x2
 ```
 
-编译器据此可以回答关键问题：“**这个表达式的最终结果，到底依赖哪些输入？**” 一旦 `filteredTodos` 被证明只依赖 `todos` 和 `filter`，编译器就能自动生成“依赖未变则复用旧值”的缓存逻辑。
+编译器据此可以回答关键问题：“**这个表达式的最终结果，到底依赖哪些输入？**” 一旦 `filteredTodos` 被证明只依赖 `todos` 和 `filter`，编译器就能自动生成“**依赖未变则复用旧值**”的缓存逻辑。
 
 ```mermaid
 flowchart TD
@@ -306,7 +312,7 @@ function TodoList(t0) {
 // 开发者必须逐个决定“哪些值要缓存”，漏一个就前功尽弃
 const a = useMemo(() => heavy(todos), [todos])
 const b = useMemo(() => heavy2(filter), [filter])
-const c = a.map(x => <Row x={x} />) // ❌ 忘了缓存 c
+const c = a.map(x => <Row x={x} />) // 忘了缓存 c
 ```
 
 ```jsx [编译器记忆化：细粒度]
@@ -326,6 +332,8 @@ function List({ todos, filter }) {
 ### 3.6 规则：Rules of React
 
 React Compiler 能否成功优化，完全取决于代码是否遵守 **Rules of React**。这些规则并非 Compiler 的新增约束，而是 React 运行期一直以来的隐含假设，Compiler 只是把“**假设**”升级成了“**静态可验证的契约**”：
+
+[width(38,37,25)]
 
 | 规则                                       | 违反的后果                                   | Compiler 的处理                          |
 | ------------------------------------------ | -------------------------------------------- | ---------------------------------------- |
@@ -349,7 +357,7 @@ React Compiler 能否成功优化，完全取决于代码是否遵守 **Rules of
 其中最关键的概念是 **Mutable Range（可变区间）**：编译器会追踪一个值从定义到使用的整个生命周期中，是否存在“**可能被修改**”的窗口。只有当依赖值在整个缓存区间内**绝对不可变**时，记忆化才是安全的。
 
 ```jsx
-// ❌ 编译器无法证明安全，会 Bailout
+// 编译器无法证明安全，会 Bailout
 let globalCount = 0 // 模块级可变变量
 
 function Counter() {
@@ -359,7 +367,7 @@ function Counter() {
 ```
 
 ```jsx
-// ❌ useRef 的 current 是可变的，跨其读取的值不会被记忆化
+// useRef 的 current 是可变的，跨其读取的值不会被记忆化
 function Timer() {
   const elapsed = useRef(0)
   const label = elapsed.current * 1000 // 编译器标记为不可记忆化
@@ -372,6 +380,8 @@ function Timer() {
 ### 3.8 现状与接入方式
 
 React Compiler（前身 React Forget）自 2021 年 React Conf 首次亮相以来，历经多年研发，于 2024 年开源，目前 `babel-plugin-react-compiler` 已发布 **1.x 稳定版本**。
+
+[width(37,63)]
 
 | 组件                           | 作用                                               |
 | ------------------------------ | -------------------------------------------------- |
@@ -394,6 +404,8 @@ module.exports = {
 ## 4. 编译器与 Fiber 运行时的无缝协作
 
 React Compiler 的伟大之处在于**它不需要改变任何现有的 React 运行时心智**，两者构成了完美的上下游关系：
+
+[width(16,39,45)]
 
 | 阶段      | 编译器做什么                      | 运行时做什么                            |
 | --------- | --------------------------------- | --------------------------------------- |

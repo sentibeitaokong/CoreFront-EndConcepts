@@ -11,13 +11,15 @@ flowchart LR
     Render --> Commit[Commit 阶段<br/>不可中断的 DOM 变更]
 ```
 
-| 阶段            | 是否可中断  | 作用                                   | 可见性               |
-| --------------- | ----------- | -------------------------------------- | -------------------- |
-| **触发 + 调度** | —           | 标记 Update，确定优先级，安排执行      | —                    |
-| **Render**      | ✅ 可中断   | 构建 Fiber 树、diff 新旧树、标记副作用 | 不可见（内存中计算） |
-| **Commit**      | ❌ 不可中断 | 将变更应用到 DOM、执行副作用           | 用户可见             |
+[width(16,16,42,26)]
 
-关键认知："**渲染**"在 React 语境中指 Render 阶段（执行组件函数计算 VDOM 差异），而不是提交 DOM 更新。
+| 阶段            | 是否可中断 | 作用                                   | 可见性               |
+| --------------- | ---------- | -------------------------------------- | -------------------- |
+| **触发 + 调度** | —          | 标记 Update，确定优先级，安排执行      | —                    |
+| **Render**      | 可中断     | 构建 Fiber 树、diff 新旧树、标记副作用 | 不可见（内存中计算） |
+| **Commit**      | 不可中断   | 将变更应用到 DOM、执行副作用           | 用户可见             |
+
+关键认知：“**渲染**”在 React 语境中指 Render 阶段（执行组件函数计算 VDOM 差异），而不是提交 DOM 更新。
 
 ### 1.1 从 setState 到进入 Render
 
@@ -48,7 +50,7 @@ Render 阶段的目标是**构建 work-in-progress Fiber 树并标记副作用**
 
 ### 2.2 工作单元
 
-`performUnitOfWork` 是 Render 阶段的核心执行单元，它将每个 Fiber 节点的处理分为"**递**"（`beginWork`）和"**归**"（`completeWork`）两步：
+`performUnitOfWork` 是 Render 阶段的核心执行单元，它将每个 Fiber 节点的处理分为“**递**”（`beginWork`）和“**归**”（`completeWork`）两步：
 
 ```javascript
 // React 源码中 performUnitOfWork 的核心逻辑
@@ -146,7 +148,7 @@ function prepareFreshStack(root, lanes) {
 
 ### 2.4 beginWork
 
-`beginWork` 是 Render 阶段的"**递**"部分，负责**向下深度优先遍历**每个 Fiber 节点。它接收 `current`（旧 Fiber）、`workInProgress`（新 Fiber）和 `renderLanes`（本次渲染的优先级车道），返回第一个子节点或 `null`：
+`beginWork` 是 Render 阶段的“**递**”部分，负责**向下深度优先遍历**每个 Fiber 节点。它接收 `current`（旧 Fiber）、`workInProgress`（新 Fiber）和 `renderLanes`（本次渲染的优先级车道），返回第一个子节点或 `null`：
 
 ```javascript
 // beginWork 的核心逻辑（简化）
@@ -206,6 +208,8 @@ function updateFunctionComponent(current, workInProgress, renderLanes) {
 
 `reconcileChildren` 的核心决策逻辑：
 
+[width(28,46,26)]
+
 | 场景                        | 操作                                          | 子 Fiber 标记                      |
 | --------------------------- | --------------------------------------------- | ---------------------------------- |
 | 新节点（旧 Fiber 不存在）   | 创建新 Fiber（`createFiberFromElement`）      | `Placement`                        |
@@ -217,7 +221,7 @@ function updateFunctionComponent(current, workInProgress, renderLanes) {
 
 ### 2.5 completeWork
 
-`completeWork` 是 Render 阶段的"**归**"部分，在**从子节点返回时向上**执行。与 `beginWork` 由外向内推进相反，`completeWork` 由叶子节点向根节点收敛：
+`completeWork` 是 Render 阶段的“**归**”部分，在**从子节点返回时向上**执行。与 `beginWork` 由外向内推进相反，`completeWork` 由叶子节点向根节点收敛：
 
 ```javascript
 // completeWork 的核心逻辑（简化）
@@ -275,7 +279,7 @@ function bubbleProperties(completedWork) {
 }
 ```
 
-这个冒泡机制是**Commit 阶段性能的关键**。它使得 Commit 遍历时可以快速判断一个子树是否"**干净**",决定子节点及后代是否可以跳过更新。
+这个冒泡机制是**Commit 阶段性能的关键**。它使得 Commit 遍历时可以快速判断一个子树是否“**干净**”,决定子节点及后代是否可以跳过更新。
 
 ```markdown
           App (subtreeFlags = Update | Placement)
@@ -423,6 +427,8 @@ flowchart TD
 
 Commit 阶段用四个**副作用掩码**（按位标志集合）驱动四个子阶段的遍历，每个 flag 归属一个掩码、对应一个处理函数：
 
+[width(13,20,33,34)]
+
 | 子阶段          | 掩码                 | 处理函数                      | 主要 flags                                                        |
 | --------------- | -------------------- | ----------------------------- | ----------------------------------------------------------------- |
 | Before Mutation | `BeforeMutationMask` | `commitBeforeMutationEffects` | `Snapshot`                                                        |
@@ -431,6 +437,8 @@ Commit 阶段用四个**副作用掩码**（按位标志集合）驱动四个子
 | Passive         | `PassiveMask`        | `commitPassiveEffects`        | `Passive`                                                         |
 
 各 flag 落到 DOM 的具体动作：
+
+[width(21,13,35,31)]
 
 | flag            | 阶段              | 处理函数                              | 操作                                       |
 | --------------- | ----------------- | ------------------------------------- | ------------------------------------------ |
@@ -666,7 +674,7 @@ function captureCommitPhaseError(fiber, error, lanes) {
 }
 ```
 
-Commit 阶段只能触发 `componentDidCatch` 做日志上报等副作用，且此时 DOM **已部分变更**，容错是"**尽力而为**"的。因此降级逻辑应优先放在 `getDerivedStateFromError`（Render 阶段）中，而非依赖 Commit 阶段容错。
+Commit 阶段只能触发 `componentDidCatch` 做日志上报等副作用，且此时 DOM **已部分变更**，容错是“**尽力而为**”的。因此降级逻辑应优先放在 `getDerivedStateFromError`（Render 阶段）中，而非依赖 Commit 阶段容错。
 
 ## 4. 完整时序图
 

@@ -8,7 +8,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 > **痛点场景：为什么有了 `useState` 还要 `useReducer`？**
 > 假设你在做一个复杂的表单购物车页面。你的状态里有：`items` (商品列表), `total` (总价), `discount` (折扣), `isLoading` (加载状态), `error` (报错信息)。
-> 当用户点击“结账”按钮时，你需要同时：
+> 当用户点击“**结账**”按钮时，你需要同时：
 > `setItems([])`
 > `setTotal(0)`
 > `setLoading(true)`
@@ -16,7 +16,9 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 > 如果页面里有 10 个这样的交互按钮，你的组件里就会散落着无数坨这种**牵一发而动全身、互相耦合的 `setState` 代码块**。这不仅极其难看，而且极容易漏改某个状态导致 Bug。
 
 **`useReducer` 的破局之道：状态的集中管理与逻辑剥离。**
-它强迫你把“怎么改数据”的具体计算逻辑，**从组件的点击事件里抽离出来，集中放到组件外部的一个“纯函数 (Reducer)”里**。组件里只负责“下达指令 (Dispatch Action)”。
+它强迫你把“**怎么改数据**”的具体计算逻辑，**从组件的点击事件里抽离出来，集中放到组件外部的一个“纯函数 (Reducer)”里**。组件里只负责“**下达指令 (Dispatch Action)**”。
+
+[width(14,13,73)]
 
 | 核心术语     | 职责比喻     | 具体说明                                                                                            |
 | :----------- | :----------- | :-------------------------------------------------------------------------------------------------- |
@@ -74,7 +76,7 @@ function myReducer(state, action) {
 
 ### 2.2 在组件中挂载与下达指令
 
-组件的代码变得极其干净，它不再关心“数据具体是怎么加减乘除的”，它只负责喊口号：“给我加一！”
+组件的代码变得极其干净，它不再关心“**数据具体是怎么加减乘除的**”，它只负责喊口号：“**给我加一！**”
 
 ```jsx
 import { useReducer } from 'react'
@@ -176,33 +178,50 @@ export const useThemeDispatch = () => useContext(ThemeDispatchContext)
 
 ### 4.1 到底什么时候用 `useState`，什么时候上 `useReducer`？
 
-- **答**：这是关于架构“杀鸡焉用牛刀”的哲学。
-  - **用 `useState`**：绝大多数场景（90%以上）。只要状态是相互独立的基本类型，或者只是简单的表单双向绑定，不要折腾自己去写一堆繁琐的 switch case 样板代码。
-  - **必须用 `useReducer` 的三大信号**：
-    1.  **下一个 state 严重依赖前一个 state 的复杂计算**（不仅依赖自己，还依赖别的状态的逻辑纠缠）。
-    2.  **一个交互动作会同时触发多个关联状态的改变**（比如“拉取成功”要同时改 loading 为 false，存入 data，清空 error 三个状态）。
-    3.  你需要将复杂的业务更新逻辑提取到组件之外，方便进行高覆盖率的**单元测试 (Unit Test)**（因为 Reducer 是纯函数，丢个对象进去立马能测出结果，不需要渲染 DOM）。
+这是关于架构“**杀鸡焉用牛刀**”的哲学。
+
+- **用 `useState`**：绝大多数场景（90%以上）。只要状态是相互独立的基本类型，或者只是简单的表单双向绑定，不要折腾自己去写一堆繁琐的 switch case 样板代码。
+- **必须用 `useReducer` 的三大信号**：
+  1.  **下一个 state 严重依赖前一个 state 的复杂计算**（不仅依赖自己，还依赖别的状态的逻辑纠缠）。
+  2.  **一个交互动作会同时触发多个关联状态的改变**（比如“**拉取成功**”要同时改 loading 为 false，存入 data，清空 error 三个状态）。
+  3.  你需要将复杂的业务更新逻辑提取到组件之外，方便进行高覆盖率的**单元测试 (Unit Test)**（因为 Reducer 是纯函数，丢个对象进去立马能测出结果，不需要渲染 DOM）。
 
 ### 4.2 为什么在 Reducer 里面不能执行异步请求 (Ajax)？如果非要发请求怎么办？
 
-- **答**：**纯函数的尊严不容侵犯。**
-  - **原因**：Reducer 的使命是根据历史和命令计算未来。它必须是极其稳定的状态机。如果你在里面 `fetch`，网络抖动会导致状态计算无法瞬间同步完成，极易引发不可预知的时序 Bug。这也是为什么 Redux 必须搞一个恶心的 Thunk 中间件的原因。
-  - **原生 React 的正规解法**：在组件内部署异步防线。在发指令 (`dispatch`) 之前，先执行异步操作。
-  ```jsx
-  // 组件内
-  const handleLogin = async () => {
-    dispatch({ type: 'LOGIN_START' }) // 1. 先让页面转圈
-    try {
-      const user = await api.login(username, pwd) // 2. 组件去干脏活发请求
-      dispatch({ type: 'LOGIN_SUCCESS', payload: user }) // 3. 数据回来了再报告给老会计入账
-    } catch (err) {
-      dispatch({ type: 'LOGIN_FAILED', payload: err.message })
-    }
+**纯函数的尊严不容侵犯。**
+
+- **原因**：Reducer 的使命是根据历史和命令计算未来。它必须是极其稳定的状态机。如果你在里面 `fetch`，网络抖动会导致状态计算无法瞬间同步完成，极易引发不可预知的时序 Bug。这也是为什么 Redux 必须搞一个恶心的 Thunk 中间件的原因。
+- **原生 React 的正规解法**：在组件内部署异步防线。在发指令 (`dispatch`) 之前，先执行异步操作。
+
+```jsx
+// 组件内
+const handleLogin = async () => {
+  dispatch({ type: 'LOGIN_START' }) // 1. 先让页面转圈
+  try {
+    const user = await api.login(username, pwd) // 2. 组件去干脏活发请求
+    dispatch({ type: 'LOGIN_SUCCESS', payload: user }) // 3. 数据回来了再报告给老会计入账
+  } catch (err) {
+    dispatch({ type: 'LOGIN_FAILED', payload: err.message })
   }
-  ```
+}
+```
 
 ### 4.3 我把 `state.list.push()` 写在了 Reducer 里，为什么页面死活不更新？
 
-- **答**：这和 `useState` 的死穴一模一样：**你违背了不可变性 (Immutability)。**
-  - React 拿到 Reducer 吐出的新状态后，也是用 `Object.is` 浅比对的。如果老账本和新账本的物理指针没变，它就会当场拒收。
-  - **铁律**：在 Reducer 里修改对象或数组，必须 `return { ...state }` 或 `return [...state.list]`。或者果断在项目里引入 **`Immer.js`** 的 `useImmerReducer`，这样你就可以在 Reducer 里面极其狂野地直接 `draft.list.push()` 了。
+这和 `useState` 的死穴一模一样：**你违背了不可变性 (Immutability)。**
+
+- React 拿到 Reducer 吐出的新状态后，也是用 `Object.is` 浅比对的。如果老账本和新账本的物理指针没变，它就会当场拒收。
+- **铁律**：在 Reducer 里修改对象或数组，必须 `return { ...state }` 或 `return [...state.list]`。或者果断在项目里引入 **`Immer.js`** 的 `useImmerReducer`，这样你就可以在 Reducer 里面极其狂野地直接 `draft.list.push()` 了。
+
+```jsx
+function reducer(state, action) {
+  switch (action.type) {
+    case 'ADD':
+      // 返回一个全新的对象和数组，引用地址变了 React 才会更新
+      return { ...state, list: [...state.list, action.item] }
+
+    default:
+      return state
+  }
+}
+```

@@ -152,45 +152,64 @@ function UncontrolledForm() {
 
 ### 4.1 到底该选受控还是非受控组件？
 
-- **答**：行业内的绝对共识是：**95% 的场景请无脑使用受控组件**。
-  - **必须用受控组件的场景**：你需要表单实时校验（密码太短边打字边标红）、需要实时禁用提交按钮、需要对输入格式化（比如信用卡号自动加空格）、多个输入框之间有联动。
-  - **可以考虑非受控组件的场景**：极度追求性能的超大型表单、你想将 React 轻松集成到一些依赖直接操作原生 DOM 的老旧 jQuery 插件代码中。
+行业内的绝对共识是：**95% 的场景请无脑使用受控组件**。
+
+- **必须用受控组件的场景**：你需要表单实时校验（密码太短边打字边标红）、需要实时禁用提交按钮、需要对输入格式化（比如信用卡号自动加空格）、多个输入框之间有联动。
+- **可以考虑非受控组件的场景**：极度追求性能的超大型表单、你想将 React 轻松集成到一些依赖直接操作原生 DOM 的老旧 jQuery 插件代码中。
+
+```jsx
+function Form() {
+  // 受控：State 是唯一数据源，适合实时校验、联动
+  const [name, setName] = useState('')
+  // ⚡ 非受控：数据存在 DOM 上，提交或需要时再用 ref 读取
+  const inputRef = useRef(null)
+
+  return (
+    <>
+      <input value={name} onChange={e => setName(e.target.value)} />
+      <input ref={inputRef} defaultValue="小明" />
+    </>
+  )
+}
+```
 
 ### 4.2 为什么我的 `<select>` 标签写了 `selected` 属性却报错/不生效？
 
-- **答**：React 对 `<select>` 和 `<textarea>` 进行了极具人性化的底层魔改。
-  - **原生 HTML**：要在 `<select>` 里选中某一项，你得去那个具体的 `<option>` 标签上写 `selected` 属性。
-  - **React 受控组件**：抛弃这种反人类做法。你只需要**直接在最外层的 `<select>` 标签上绑定 `value={state}` 即可！** React 底层会自动帮你去匹配并高亮对应的 option。
+React 对 `<select>` 和 `<textarea>` 进行了极具人性化的底层魔改。
+
+- **原生 HTML**：要在 `<select>` 里选中某一项，你得去那个具体的 `<option>` 标签上写 `selected` 属性。
+- **React 受控组件**：抛弃这种反人类做法。你只需要**直接在最外层的 `<select>` 标签上绑定 `value={state}` 即可！** React 底层会自动帮你去匹配并高亮对应的 option。
+
+```jsx
+<select value={selectedFruit} onChange={e => setSelectedFruit(e.target.value)}>
+  <option value="apple">苹果</option>
+  <option value="banana">香蕉</option>
+</select>
+```
+
+- 同样，原生的 `<textarea>内容写在中间</textarea>`，在 React 里也被统一改造成了单标签闭合的形式：`<textarea value={state} onChange={...} />`。
+
+### 4.3 为什么控制台疯狂报警告：“**A component is changing an uncontrolled input to be controlled**”？
+
+这是新手踩坑榜 Top 3 的终极神坑，极其隐蔽！
+
+- **错误重现**：
   ```jsx
-  <select
-    value={selectedFruit}
-    onChange={e => setSelectedFruit(e.target.value)}
-  >
-    <option value="apple">苹果</option>
-    <option value="banana">香蕉</option>
-  </select>
+  // 初始值定义为 null 或 undefined
+  const [text, setText] = useState()
+  // 渲染时: <input value={text} onChange={...} />
   ```
-  - 同样，原生的 `<textarea>内容写在中间</textarea>`，在 React 里也被统一改造成了单标签闭合的形式：`<textarea value={state} onChange={...} />`。
-
-### 4.3 为什么控制台疯狂报警告："A component is changing an uncontrolled input to be controlled"？
-
-- **答**：这是新手踩坑榜 Top 3 的终极神坑，极其隐蔽！
-  - **错误重现**：
-    ```jsx
-    // 初始值定义为 null 或 undefined
-    const [text, setText] = useState()
-    // 渲染时: <input value={text} onChange={...} />
-    ```
-  - **原理解析**：React 在第一次渲染时，发现你的 `<input>` 绑定的 `value` 是 `undefined`。它以为：“哦，这家伙没有传明确的值，所以他想搞一个**非受控组件**”。
-  - 然后用户在输入框打了一个字母 'A'，触发 `setText('A')`。组件重新渲染，这次 `value` 变成了 `'A'`。
-  - React 瞬间崩溃大怒：“你小子第一帧告诉我是非受控的，第二帧突然塞个明确的字符串强行把它变成了受控的！你的状态失控了！”
-  - **终极避坑指南**：在定义表单相关的 State 时，**初始值绝对、千万、永远不能是 `undefined` 或 `null`，必须是一个明确的空字符串 `''`！** 即 `useState('')`。
+- **原理解析**：React 在第一次渲染时，发现你的 `<input>` 绑定的 `value` 是 `undefined`。它以为：“**哦，这家伙没有传明确的值，所以他想搞一个非受控组件**”。
+- 然后用户在输入框打了一个字母 'A'，触发 `setText('A')`。组件重新渲染，这次 `value` 变成了 `'A'`。
+- React 瞬间崩溃大怒：“**你小子第一帧告诉我是非受控的，第二帧突然塞个明确的字符串强行把它变成了受控的！你的状态失控了！**”
+- **终极避坑指南**：在定义表单相关的 State 时，**初始值绝对、千万、永远不能是 `undefined` 或 `null`，必须是一个明确的空字符串 `''`！** 即 `useState('')`。
 
 ### 4.4 写受控组件每次打字都要 re-render（重渲染），会不会导致页面极其卡顿？
 
-- **答**：通常完全不用担心。
-  - React 的虚拟 DOM 比对速度在处理普通的文本输入重绘时是极其惊人的，用户肉眼绝对察觉不到几十毫秒的重渲染。
-  - **真正的危机**：如果你的 `<input>` 只是一个巨大且极其昂贵的组件（比如一个渲染了 1000 行复杂 Table 的页面）的最外层的一部分。你在 input 里打字，导致整个页面连同那 1000 行 Table 一起重渲染，那一定会卡得痛不欲生。
-  - **性能优化解法**：
-    1. **组件下沉拆分**：把这个 `input` 和它专属的 `state` 拆分成一个极其微小的、独立的子组件。这样输入时的状态更新就被死死锁在这个子组件内部，根本不会波及外面的大 Table。
-    2. **使用非受控组件**：如果不想拆组件，直接上 `useRef`。
+通常完全不用担心。
+
+- React 的虚拟 DOM 比对速度在处理普通的文本输入重绘时是极其惊人的，用户肉眼绝对察觉不到几十毫秒的重渲染。
+- **真正的危机**：如果你的 `<input>` 只是一个巨大且极其昂贵的组件（比如一个渲染了 1000 行复杂 Table 的页面）的最外层的一部分。你在 input 里打字，导致整个页面连同那 1000 行 Table 一起重渲染，那一定会卡得痛不欲生。
+- **性能优化解法**：
+  1. **组件下沉拆分**：把这个 `input` 和它专属的 `state` 拆分成一个极其微小的、独立的子组件。这样输入时的状态更新就被死死锁在这个子组件内部，根本不会波及外面的大 Table。
+  2. **使用非受控组件**：如果不想拆组件，直接上 `useRef`。

@@ -162,55 +162,57 @@ function LoginForm() {
 
 ### 4.1 既然 Context 这么好用，我是不是该把所有数据都放进 Context，彻底抛弃 Props？
 
-- **答**：**这是极其危险的架构灾难！官方文档极力反对滥用 Context。**
-  - **性能核爆**：Context 有一个非常原始且致命的缺陷：**只要 Provider 的 `value` 发生变化，它内部所有消费了这个 Context (调用了 `useContext`) 的组件，无论藏得多深，都会被强制无差别重新渲染！** 甚至连 `React.memo` 都拦不住这股“穿透伤害”。如果你把频繁变化的表单输入或者秒表数据扔进全局 Context，整个应用会卡到爆炸。
-  - **组件复用性丧失**：你的子组件一旦内部写了 `useContext`，它就被死死地绑在了这个特定的 Provider 运行环境中。你把它抽离到别的没有任何 Provider 包裹的页面里，它立刻就报错瘫痪了，变成了一个高度耦合的“废组件”。
-  - **架构准则**：Context **仅限于**那些真正属于“全局的、低频变动”的数据（如：主题色、多语言偏好、User 登录 Session、路由信息）。普通的业务数据传递依然必须首选 Props，如果嫌嵌套深，首选**组件组合 (Component Composition / 插槽 children)** 技术来解决。
+**这是极其危险的架构灾难！官方文档极力反对滥用 Context。**
+
+- **性能核爆**：Context 有一个非常原始且致命的缺陷：**只要 Provider 的 `value` 发生变化，它内部所有消费了这个 Context (调用了 `useContext`) 的组件，无论藏得多深，都会被强制无差别重新渲染！** 甚至连 `React.memo` 都拦不住这股“**穿透伤害**”。如果你把频繁变化的表单输入或者秒表数据扔进全局 Context，整个应用会卡到爆炸。
+- **组件复用性丧失**：你的子组件一旦内部写了 `useContext`，它就被死死地绑在了这个特定的 Provider 运行环境中。你把它抽离到别的没有任何 Provider 包裹的页面里，它立刻就报错瘫痪了，变成了一个高度耦合的“**废组件**”。
+- **架构准则**：Context **仅限于**那些真正属于“**全局的、低频变动**”的数据（如：主题色、多语言偏好、User 登录 Session、路由信息）。普通的业务数据传递依然必须首选 Props，如果嫌嵌套深，首选**组件组合 (Component Composition / 插槽 children)** 技术来解决。
 
 ### 4.2 我把一个包含方法和状态的对象传给 Provider，为什么导致整个应用卡爆了？
 
-- **答**：这是使用 Context 的绝对雷区：**对象引用类型导致的内存地址刷新陷阱。**
-  - **案发现场**：
+这是使用 Context 的绝对雷区：**对象引用类型导致的内存地址刷新陷阱。**
 
-    ```jsx
-    function App() {
-      const [theme, setTheme] = useState('dark')
-      // 假设应用里有个不相干的计数器
-      const [count, setCount] = useState(0)
+- **案发现场**：
 
-      // ❌ 灾难写法：每次 count 改变导致 App 重新渲染时，
-      // { theme, setTheme } 都会在内存中新建一个一模一样的全新对象！
-      return (
-        <ThemeContext.Provider value={{ theme, setTheme }}>
-          <button onClick={() => setCount(c => c + 1)}>
-            点我加数: {count}
-          </button>
-          <DeepComponents />
-        </ThemeContext.Provider>
-      )
-    }
-    ```
+  ```jsx
+  function App() {
+    const [theme, setTheme] = useState('dark')
+    // 假设应用里有个不相干的计数器
+    const [count, setCount] = useState(0)
 
-  - **真相**：Provider 的更新比对逻辑是 `Object.is` (浅比较)。由于每次渲染抛进来的 `{ theme, setTheme }` 对象指针地址不一样，Provider 会惊恐地向全宇宙广播：“不好了！Theme 的值发生变异了！所有消费这个 Context 的人，立刻给我重新渲染！” 导致了无数无辜组件的陪葬。
-  - **终极解法**：如果你传给 `value` 的是一个对象或数组，**必须使用 `useMemo` 把它在内存里死死“冻住”！**
+    // 灾难写法：每次 count 改变导致 App 重新渲染时，
+    // { theme, setTheme } 都会在内存中新建一个一模一样的全新对象！
+    return (
+      <ThemeContext.Provider value={{ theme, setTheme }}>
+        <button onClick={() => setCount(c => c + 1)}>点我加数: {count}</button>
+        <DeepComponents />
+      </ThemeContext.Provider>
+    )
+  }
+  ```
+
+- **真相**：Provider 的更新比对逻辑是 `Object.is` (浅比较)。由于每次渲染抛进来的 `{ theme, setTheme }` 对象指针地址不一样，Provider 会惊恐地向全宇宙广播：“**不好了！Theme 的值发生变异了！所有消费这个 Context 的人，立刻给我重新渲染！**” 导致了无数无辜组件的陪葬。
+- **终极解法**：如果你传给 `value` 的是一个对象或数组，**必须使用 `useMemo` 把它在内存里死死“冻住”！**
 
 ### 4.3 既然 Context 的渲染连坐这么可怕，我是不是该把读 (State) 和 写 (Dispatch) 分开？
 
-- **答**：**极其正确！这是高级 React 架构非常推崇的“读写分离”最佳实践。**
-  - 如果你把 `{ state, setState }` 塞在同一个 Context 里。哪怕底层的 `Button` 组件只需要拿 `setState` 去触发个动作（根本不需要展示 state），当 `state` 变了的时候，这个 `Button` 也被迫跟着重新渲染一遍！
-  - **拆分法**：创建两个完全独立的 Context。
-    ```jsx
-    <ThemeStateContext.Provider value={themeState}>
-      <ThemeDispatchContext.Provider value={setTheme}>
-        {children}
-      </ThemeDispatchContext.Provider>
-    </ThemeStateContext.Provider>
-    ```
-  - 此时底层的 `Button` 只去 `useContext(ThemeDispatchContext)`。因为 `setTheme` 函数的内存地址永远不变，所以即使外面的主题翻天覆地地变，这个按钮稳如泰山，绝对不触发重新渲染！
+**极其正确！这是高级 React 架构非常推崇的“读写分离”最佳实践。**
+
+- 如果你把 `{ state, setState }` 塞在同一个 Context 里。哪怕底层的 `Button` 组件只需要拿 `setState` 去触发个动作（根本不需要展示 state），当 `state` 变了的时候，这个 `Button` 也被迫跟着重新渲染一遍！
+- **拆分法**：创建两个完全独立的 Context。
+  ```jsx
+  <ThemeStateContext.Provider value={themeState}>
+    <ThemeDispatchContext.Provider value={setTheme}>
+      {children}
+    </ThemeDispatchContext.Provider>
+  </ThemeStateContext.Provider>
+  ```
+- 此时底层的 `Button` 只去 `useContext(ThemeDispatchContext)`。因为 `setTheme` 函数的内存地址永远不变，所以即使外面的主题翻天覆地地变，这个按钮稳如泰山，绝对不触发重新渲染！
 
 ### 4.4 Context 能完全替代 Redux/Zustand 吗？
 
-- **答**：**绝不能。它们解决的根本不是同一个维度的问题。**
-  - **Context 的真面目**：React 官方明确定义，Context 仅仅是一种**“依赖注入系统”**，它是一个“数据传输管道”，它本身**并不是状态管理工具**！
-  - **Redux / Zustand 的降维打击**：像 Redux 或 Zustand 这样的现代状态库，底层通常利用了类似于 `useSyncExternalStore` 的机制。当状态改变时，它们能精确知道屏幕上到底是哪一个组件绑定了这个细碎的数据，然后**点对点精确重绘那个具体的组件**，绝不波及他人。
-  - **选型结论**：极低频修改的全局配置用 Context；高频修改的复杂业务状态网络，果断上 Zustand/Redux。
+**绝不能。它们解决的根本不是同一个维度的问题。**
+
+- **Context 的真面目**：React 官方明确定义，Context 仅仅是一种“**依赖注入系统**”，它是一个“**数据传输管道**”，它本身**并不是状态管理工具**！
+- **Redux / Zustand 的降维打击**：像 Redux 或 Zustand 这样的现代状态库，底层通常利用了类似于 `useSyncExternalStore` 的机制。当状态改变时，它们能精确知道屏幕上到底是哪一个组件绑定了这个细碎的数据，然后**点对点精确重绘那个具体的组件**，绝不波及他人。
+- **选型结论**：极低频修改的全局配置用 Context；高频修改的复杂业务状态网络，果断上 Zustand/Redux。

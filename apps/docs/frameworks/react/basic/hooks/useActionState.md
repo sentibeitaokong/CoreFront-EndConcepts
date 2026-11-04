@@ -21,11 +21,15 @@ _(⚠️ 注意：`useActionState` 是 React 19 引入的全新核心 Hook。在
 const [state, formAction, isPending] = useActionState(fn, initialState, permalink?);
 ```
 
+[width(18,82)]
+
 | 返回值           | 核心职责                                                                                                         |
 | :--------------- | :--------------------------------------------------------------------------------------------------------------- |
 | **`state`**      | 那个执行函数 (`fn`) 上一次**`return` 回来的最新结果**。如果函数还没执行过，它的值就是你传进去的 `initialState`。 |
 | **`formAction`** | **用来绑定在 `<form action={}>` 上的新动作函数**。当你触发表单提交时，就是通过调用它来启动整个异步流程。         |
 | **`isPending`**  | 一个布尔值。当内部的异步函数正在执行 (Promise 尚未 resovle) 时，它为 `true`。极其适合用来做 Loading 动画。       |
+
+[width(22,78)]
 
 | 参数                  | 核心职责                                                                                                                                       |
 | :-------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -91,7 +95,7 @@ export default function LoginForm() {
 ## 3. 高阶进阶：超越 `<form>` 的局限
 
 虽然 `useActionState` 的名字里带个 Action，而且最常和 `<form>` 连用，但**它绝对不仅限于表单提交！**
-你可以把它当成一个“自带防抖和 Loading 状态的无敌异步函数包装器”，应用在任何点击按钮发请求的场景。
+你可以把它当成一个“**自带防抖和 Loading 状态的无敌异步函数包装器**”，应用在任何点击按钮发请求的场景。
 
 ### 3.1 绑定在普通的 `<button>` 或非表单交互上
 
@@ -138,25 +142,41 @@ function ArticleCard({ article }) {
 
 ### 4.1 既然它能处理异步状态，那它和 `useEffect` 发请求有什么区别？
 
-- **答**：这是最核心的架构理念差异。
-  - **触发机制**：`useEffect` 是**“被动防御”**。它是生命周期钩子，只要组件挂载了或者某个依赖变量（如 `userId`）变了，它就自动触发去发请求拉数据（通常用于页面初次加载获取展示数据）。
-  - **触发机制**：`useActionState` 是**“主动出击”**。它包裹的是一个因为**用户进行了某种特定交互动作（如点击提交、点击点赞）**而触发的副作用。
-  - **总结**：页面加载要看的数据用 `useEffect`（或 React Query），用户点击按钮要发的数据/命令用 `useActionState`。
+这是最核心的架构理念差异。
+
+- **触发机制**：`useEffect` 是“**被动防御**”。它是生命周期钩子，只要组件挂载了或者某个依赖变量（如 `userId`）变了，它就自动触发去发请求拉数据（通常用于页面初次加载获取展示数据）。
+- **触发机制**：`useActionState` 是“**主动出击**”。它包裹的是一个因为**用户进行了某种特定交互动作（如点击提交、点击点赞）**而触发的副作用。
+- **总结**：页面加载要看的数据用 `useEffect`（或 React Query），用户点击按钮要发的数据/命令用 `useActionState`。
 
 ### 4.2 为什么我连续狂点提交按钮 10 次，并没有看到发出去 10 个网络请求？是不是出 Bug 了？
 
-- **答**：这正是 `useActionState` 最强大的杀手级底层优化：**内置防抖与竞态取消。**
-  - 在以前手写 `useState` 的时代，如果你没写 `disabled={loading}`，狂点 10 次按钮就会老老实实地打出 10 个乱序的 API 请求。
-  - React 19 在底层处理 Action 时，一旦发现当前这个 `loginAction` 正在执行（`isPending` 为 `true`），如果你再次触发它，React 会**非常聪明地将后续的重复提交排队或者拦截**。这就彻底从框架底层消灭了前端最头疼的按钮连点导致的“多重订单”、“脏数据”等并发安全隐患！
+这正是 `useActionState` 最强大的杀手级底层优化：**内置防抖与竞态取消。**
+
+- 在以前手写 `useState` 的时代，如果你没写 `disabled={loading}`，狂点 10 次按钮就会老老实实地打出 10 个乱序的 API 请求。
+- React 19 在底层处理 Action 时，一旦发现当前这个 `loginAction` 正在执行（`isPending` 为 `true`），如果你再次触发它，React 会**非常聪明地将后续的重复提交排队或者拦截**。这就彻底从框架底层消灭了前端最头疼的按钮连点导致的“**多重订单**”、“**脏数据**”等并发安全隐患！
 
 ### 4.3 我必须要用原生的 `formData.get('email')` 来拿表单数据吗？我用受控组件（`useState` 绑在 `value` 上）不行吗？
 
-- **答**：**完全可以混用，但官方在强推原生 `FormData`。**
-  - 如果你依然在每一个 `<input>` 上挂着 `value={email} onChange={...}`，你在 `useActionState` 的执行函数里，完全可以无视传过来的 `formData`，直接去读你组件里的 `email` state。
-  - **趋势背景**：React 19 在大力推行**非受控组件表单 (Uncontrolled Forms)** 的复兴。因为在 Server Actions（服务端执行 Action）的宏大愿景下，表单的提交应该越原生越好。利用原生 HTML 的 `name` 属性和原生的 `FormData` 对象，你可以省去写十几个 `useState` 的痛苦，极大减轻运行时的内存和重渲染负担。除非你需要极其复杂的实时校验，否则建议拥抱原生表单取值法。
+**完全可以混用，但官方在强推原生 `FormData`。**
+
+- 如果你依然在每一个 `<input>` 上挂着 `value={email} onChange={...}`，你在 `useActionState` 的执行函数里，完全可以无视传过来的 `formData`，直接去读你组件里的 `email` state。
+- **趋势背景**：React 19 在大力推行**非受控组件表单 (Uncontrolled Forms)** 的复兴。因为在 Server Actions（服务端执行 Action）的宏大愿景下，表单的提交应该越原生越好。利用原生 HTML 的 `name` 属性和原生的 `FormData` 对象，你可以省去写十几个 `useState` 的痛苦，极大减轻运行时的内存和重渲染负担。除非你需要极其复杂的实时校验，否则建议拥抱原生表单取值法。
+
+```jsx
+function LoginForm() {
+  const [state, formAction, isPending] = useActionState(loginAction, null)
+
+  return (
+    <form action={formAction}>
+      {/* 原生表单：写好 name，提交时会自动进入 FormData */}
+      <input name="email" type="email" />
+      <button disabled={isPending}>登录</button>
+    </form>
+  )
+}
+```
 
 ### 4.4 它能在 React 18 里用吗？为什么我 import 不到？
 
-- **答**：
-  - `useActionState` 是 **React 19 的正式核心特性**。
-  - 如果你在用 React 18 的最新版本（比如 18.3），你可能会在 `react-dom` 包里找到一个叫 **`useFormState`** 的 Hook，那正是它的早期实验版（前身）。但在 React 19 正式发布时，官方把它重命名并移入了核心的 `react` 包中，使其能力不再仅限于 Form 表单。如果要使用最新形态，必须升级项目到 React 19。
+- `useActionState` 是 **React 19 的正式核心特性**。
+- 如果你在用 React 18 的最新版本（比如 18.3），你可能会在 `react-dom` 包里找到一个叫 **`useFormState`** 的 Hook，那正是它的早期实验版（前身）。但在 React 19 正式发布时，官方把它重命名并移入了核心的 `react` 包中，使其能力不再仅限于 Form 表单。如果要使用最新形态，必须升级项目到 React 19。

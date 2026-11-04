@@ -6,9 +6,11 @@
 
 ### 1.1 Class 组件的痛点
 
+[width(20,80)]
+
 | 痛点                | 说明                                                                                |
 | ------------------- | ----------------------------------------------------------------------------------- |
-| **逻辑复用困难**    | HOC 和 Render Props 导致"**嵌套地狱**"（wrapper hell），且类型推导困难              |
+| **逻辑复用困难**    | HOC 和 Render Props 导致“**嵌套地狱**”（wrapper hell），且类型推导困难              |
 | **生命周期臃肿**    | 同一逻辑分散在 `componentDidMount`、`componentDidUpdate`、`componentWillUnmount` 中 |
 | **心智负担重**      | `this` 绑定、JavaScript Class 语义、构造函数、继承                                  |
 | **TypeScript 复杂** | 高阶组件的类型写起来极为复杂                                                        |
@@ -27,7 +29,7 @@ Hooks 的设计目标是**让函数组件拥有状态和副作用能力**，同�
 
 函数组件只是一个纯函数——**每次渲染它都会被重新调用，函数执行完，局部变量就销毁了**。那状态是如何跨越渲染周期存活下来的？
 
-答案藏在 React 的架构里：函数组件本身不保存任何状态，**真正的状态被"外包"到了组件对应的 Fiber 节点上**。Hooks 只是这套"**闭包状态引擎**"的 API 入口，它把"**看起来是局部变量**"的状态，实际持久化到了 `fiber.memoizedState` 链表上：
+答案藏在 React 的架构里：函数组件本身不保存任何状态，**真正的状态被“外包”到了组件对应的 Fiber 节点上**。Hooks 只是这套“**闭包状态引擎**”的 API 入口，它把“**看起来是局部变量**”的状态，实际持久化到了 `fiber.memoizedState` 链表上：
 
 ```mermaid
 flowchart LR
@@ -37,7 +39,7 @@ flowchart LR
     Fiber -->|持久化跨渲染| FC
 ```
 
-Hooks 内部原理的核心：**Hooks 的"魔法"不是语言特性，而是把状态挂在外部 Fiber 节点上的一个约定**。
+Hooks 内部原理的核心：**Hooks 的“魔法”不是语言特性，而是把状态挂在外部 Fiber 节点上的一个约定**。
 
 ## 2. 全景图：Hooks 运行全流程
 
@@ -147,6 +149,8 @@ fiber.memoizedState = {
 
 除了状态本身，`useEffect`/`useLayoutEffect`/`useInsertionEffect` 还需要被 Commit 阶段识别和执行。React 用**位标记**在两层记录：
 
+[width(16,21,63)]
+
 | 层              | 标记            | 含义                               |
 | --------------- | --------------- | ---------------------------------- |
 | **HookFlags**   | `HasEffect`     | 本 Effect 需要执行（依赖变了）     |
@@ -162,9 +166,9 @@ Commit 阶段正是通过 `fiber.flags` 和 Effect 对象上的 `tag`，把 Effe
 
 ### 4.1 为什么需要 Dispatcher
 
-一个关键问题是：**同一个 `useState` 调用，在首次渲染（Mount）和后续渲染（Update）走的是完全不同的代码路径**。React 如何做到"**同样的 API、不同的实现**"？
+一个关键问题是：**同一个 `useState` 调用，在首次渲染（Mount）和后续渲染（Update）走的是完全不同的代码路径**。React 如何做到“**同样的 API、不同的实现**”？
 
-答案是 **Dispatcher（分派器）**。`react` 包里的 `useState` 只是一个"**空壳**"，真正的实现通过全局的 `ReactCurrentDispatcher.current` 动态注入：
+答案是 **Dispatcher（分派器）**。`react` 包里的 `useState` 只是一个“**空壳**”，真正的实现通过全局的 `ReactCurrentDispatcher.current` 动态注入：
 
 :::code-group
 
@@ -234,7 +238,7 @@ const HooksDispatcherOnUpdate = {
 
 :::
 
-命名规律一目了然：**每个 Hook 都有 `mount*` 和 `update*` 两个版本**。`mount*` 负责"新建 Hook 并写入链表"，`update*` 负责"按顺序取出已有 Hook 并读取/更新状态"。
+命名规律一目了然：**每个 Hook 都有 `mount*` 和 `update*` 两个版本**。`mount*` 负责“**新建 Hook 并写入链表**”，`update*` 负责“**按顺序取出已有 Hook 并读取/更新状态**”。
 
 ### 4.3 renderWithHooks：切换 dispatcher 的入口
 
@@ -326,7 +330,7 @@ function mountWorkInProgressHook() {
 
 :::
 
-这里用模块级变量 `workInProgressHook` 记住"**当前链表尾**"，每次 `useState`/`useEffect` 调用都往尾部追加一个节点——**这就是 Hooks 顺序敏感性的根源**。
+这里用模块级变量 `workInProgressHook` 记住“**当前链表尾**”，每次 `useState`/`useEffect` 调用都往尾部追加一个节点——**这就是 Hooks 顺序敏感性的根源**。
 
 ### 5.2 updateWorkInProgressHook：更新时按序复用
 
@@ -393,16 +397,16 @@ function updateWorkInProgressHook() {
 
 ```jsx
 function MyComponent() {
-  const [count, setCount] = useState(0) // ✅ 顶层
+  const [count, setCount] = useState(0) // 顶层
   const [name, setName] = useState('')
 
   if (count > 0) {
-    useEffect(() => {}, [count]) // ❌ 条件调用，破坏了顺序
+    useEffect(() => {}, [count]) // 条件调用，破坏了顺序
   }
 }
 ```
 
-**Hook 的"身份"只由它在链表中的位置决定**。每次渲染，`updateWorkInProgressHook` 靠"**同步前进的游标**"把新旧 Hook 一一对应。如果某次渲染跳过了某个 Hook，后续所有 Hook 都会错位——旧的 `memoizedState` 会被对到错误的 Hook 上，导致状态错乱甚至崩溃。
+**Hook 的“身份”只由它在链表中的位置决定**。每次渲染，`updateWorkInProgressHook` 靠“**同步前进的游标**”把新旧 Hook 一一对应。如果某次渲染跳过了某个 Hook，后续所有 Hook 都会错位——旧的 `memoizedState` 会被对到错误的 Hook 上，导致状态错乱甚至崩溃。
 
 ### 6.2 每次渲染都有自己的 Props 和 State
 
@@ -423,17 +427,17 @@ function Counter() {
 // 每个 setTimeout 都"记住"了属于自己那一次渲染的 count
 ```
 
-这是 React Hooks 最重要的心智模型：**每一次渲染都有它自己的 Props 和 State，以及属于自己的 Effect 和其他 Hooks**。它们不是响应式的（不像 Vue 的 `ref`），而是"**快照式**"的。
+这是 React Hooks 最重要的心智模型：**每一次渲染都有它自己的 Props 和 State，以及属于自己的 Effect 和其他 Hooks**。它们不是响应式的（不像 Vue 的 `ref`），而是“**快照式**”的。
 
 ### 6.3 Effect 是同步声明而非生命周期
 
 ```jsx
-// ❌ Class 思维：在某个生命周期做某些事
+// Class 思维：在某个生命周期做某些事
 componentDidMount() { /* 挂载时做 A */ }
 componentDidUpdate() { /* 更新时做 B */ }
 componentWillUnmount() { /* 卸载时做 C */ }
 
-// ✅ Hooks 思维：声明需要同步什么
+// Hooks 思维：声明需要同步什么
 useEffect(() => {
   const connection = connectToChat(chatRoom)
   return () => connection.disconnect()
@@ -441,14 +445,14 @@ useEffect(() => {
 // chatRoom 变化 → 自动清理旧连接、创建新连接
 ```
 
-**核心区别**：生命周期关注"**何时**"（挂载、更新、卸载），而 Effects 关注"**同步什么**"（让外部系统与当前 props/state 保持同步）。依赖数组是"**本次 Effect 使用了哪些状态**"的声明，而非"**何时触发**"的触发器。
+**核心区别**：生命周期关注“**何时**”（挂载、更新、卸载），而 Effects 关注“**同步什么**”（让外部系统与当前 props/state 保持同步）。依赖数组是“**本次 Effect 使用了哪些状态**”的声明，而非“**何时触发**”的触发器。
 
 ## 7. Hooks 与并发模式
 
 Hooks 的设计天然与并发模式兼容：
 
 - **每个渲染独立**：没有跨渲染的共享状态，React 可以在内存中同时维护多套渲染版本（多棵 workInProgress 树）。
-- **Hook 复用支持中断重入**：`updateWorkInProgressHook` 的"**复用分支**"正是为"**渲染被打断后重入**"准备的——链表上已有节点就复用，而不是重复创建。
+- **Hook 复用支持中断重入**：`updateWorkInProgressHook` 的“**复用分支**”正是为“**渲染被打断后重入**”准备的——链表上已有节点就复用，而不是重复创建。
 - **Effect 可推迟**：`useEffect` 的清理和重新执行可以在合适的时机进行（Passive 阶段异步调度），不影响 UI 一致性。
 - **State 不可变**：状态更新通过替换而非修改（`basicStateReducer` 直接替换），避免并发修改的竞态问题。
 - **优先级可插队**：`updateReducer` 按 Lane 消费更新，低优先级更新被打断后沉淀到 `baseState`/`baseQueue`，等待重放。详见 [更新批处理](./updateBatching.md) 与 [调度与优先级](./schedulingAndLanes.md)。

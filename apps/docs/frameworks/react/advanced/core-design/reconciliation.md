@@ -79,6 +79,8 @@ export function reconcileChildren(
 
 接着按**新 child 的运行时类型**分派到不同分支：
 
+[width(36,32,32)]
+
 | 新 child 的形态                  | 分派到的函数              | 说明                       |
 | -------------------------------- | ------------------------- | -------------------------- |
 | `$$typeof === REACT_ELEMENT`     | `reconcileSingleElement`  | 单个元素节点               |
@@ -106,11 +108,11 @@ function reconcileSingleElement(
   while (child !== null) {
     if (child.key === key) {
       if (child.elementType === element.type) {
-        // ✅ key 同 + type 同：复用，删除其余兄弟
+        // key 同 + type 同：复用，删除其余兄弟
         deleteRemainingChildren(returnFiber, child.sibling)
         return useFiber(child, element.props)
       }
-      // ❌ key 同 + type 不同：整条旧链表删除重建
+      // key 同 + type 不同：整条旧链表删除重建
       deleteRemainingChildren(returnFiber, child)
       break
     } else {
@@ -122,6 +124,8 @@ function reconcileSingleElement(
   return createFiberFromElement(element, returnFiber.mode, lanes) // 无匹配 → 新建
 }
 ```
+
+[width(18,82)]
 
 | 场景         | 行为                                |
 | ------------ | ----------------------------------- |
@@ -189,11 +193,13 @@ function reconcileSingleTextNode(
 ```
 
 > [!NOTE]
-> `0` 是例外：`typeof 0 === 'number'`，会被渲染成文本 `"0"`。这是“`为什么 0 会显示出来`”的来源。
+> `0` 是例外：`typeof 0 === 'number'`，会被渲染成文本 `"0"`。这是“**`为什么 0 会显示出来`**”的来源。
 
 ## 6. 多节点（数组）的协调：reconcileChildrenArray
 
 列表协调是最复杂的部分。React 根据每个节点「**key + type + 位置**」的组合，把子节点协调最终归为五种条件，每种对应不同的 Fiber 操作与标记：
+
+[width(13,24,20,22,21)]
 
 | 协调条件         | 判断依据                         | 触发函数                                  | 标记                          | 结果                      |
 | ---------------- | -------------------------------- | ----------------------------------------- | ----------------------------- | ------------------------- |
@@ -325,7 +331,7 @@ flowchart TD
 ```javascript
 function updateElement(returnFiber, current, element, lanes) {
   if (current !== null && current.elementType === element.type) {
-    return useFiber(current, element.props) // ✅ 复用旧 Fiber，仅更新 props
+    return useFiber(current, element.props) // 复用旧 Fiber，仅更新 props
   }
   return createFiberFromElement(element, returnFiber.mode, lanes) // type 不同 → 新建
 }
@@ -335,7 +341,7 @@ function updateElement(returnFiber, current, element, lanes) {
 
 ```markdown
 // 旧：A B C → 新：A B C
-// 三个节点全部 key 同 + type 同 → 全部复用，无任何副作用标记 ✅
+// 三个节点全部 key 同 + type 同 → 全部复用，无任何副作用标记
 ```
 
 ### 6.3 新增
@@ -352,13 +358,13 @@ function updateElement(returnFiber, current, element, lanes) {
 ```markdown
 // 场景 A：末尾追加（第一轮即可完全处理）
 // 旧：A B C → 新：A B C D
-// 第一轮：A B C 复用；旧列表耗尽 → D 新建（Placement）✅
+// 第一轮：A B C 复用；旧列表耗尽 → D 新建（Placement）
 
 // 场景 B：头部插入（第一轮 key 失配后进入第二轮）
 // 旧：A B C → 新：D A B C
 // 第一轮：D 的 key 与 A 不同 → 立即跳出
 // 第二轮：Map {a:A, b:B, c:C}，D 未命中 → 新建 D（Placement）
-// A/B/C 依次命中复用，仅 1 次插入 ✅
+// A/B/C 依次命中复用，仅 1 次插入
 ```
 
 新增节点的 DOM 由 `completeWork` 的 `createInstance` 创建，并在 Commit 阶段 `commitPlacement` 插入父容器。
@@ -375,12 +381,12 @@ function updateElement(returnFiber, current, element, lanes) {
 ```markdown
 // 场景 A：末尾删除
 // 旧：A B C → 新：A B
-// 第一轮：A B 复用；新列表耗尽 → 删除 C（ChildDeletion）✅
+// 第一轮：A B 复用；新列表耗尽 → 删除 C（ChildDeletion）
 
 // 场景 B：头部删除
 // 旧：A B C → 新：B C
 // 第一轮：A 的 key 与 B 不同 → 跳出
-// 第二轮：Map {a:A, b:B, c:C}，B C 命中复用；遍历完 Map 残留 A → 删除 A ✅
+// 第二轮：Map {a:A, b:B, c:C}，B C 命中复用；遍历完 Map 残留 A → 删除 A
 ```
 
 关键认知：**删除是“延迟”的**。协调过程不立即删除 Fiber，而是把待删节点压入父 Fiber 的 `deletions` 数组并打 `ChildDeletion`，真正的 `removeChild` 与副作用清理（`componentWillUnmount`、effect 销毁）在 Commit 阶段统一执行：
@@ -479,6 +485,8 @@ function mapRemainingChildren(returnFiber, currentFirstChild) {
 
 `key` 是 React 在多节点协调中识别“**同一个节点**”的唯一依据。它只在 `reconcileChildrenArray` 中发挥作用，通过在新旧列表之间建立 `key` 对应关系（无 key 时退化为 `index`），判断出四种结果：
 
+[width(15,24,61)]
+
 | 结果            | 判定               | 对应的协调条件          |
 | --------------- | ------------------ | ----------------------- |
 | **保持 / 复用** | 新旧列表都有该 key | 复用，或移动            |
@@ -491,7 +499,7 @@ function mapRemainingChildren(returnFiber, currentFirstChild) {
 ### 7.2 为什么不能用 index 作为 key？
 
 ```jsx
-// ❌ 用 index 作为 key
+// 用 index 作为 key
 items.map((item, index) => <TodoItem key={index} item={item} />)
 
 // 头部插入新项时：
@@ -502,10 +510,10 @@ items.map((item, index) => <TodoItem key={index} item={item} />)
 ```
 
 ```jsx
-// ✅ 用稳定的唯一 ID 作为 key
+// 用稳定的唯一 ID 作为 key
 items.map(item => <TodoItem key={item.id} item={item} />)
 
-// 头部插入 D：只创建 D，A/B/C 全部复用 ✅
+// 头部插入 D：只创建 D，A/B/C 全部复用
 ```
 
 ### 7.3 什么情况下可以使用 index 作为 key？
@@ -572,10 +580,10 @@ function Parent() {
 `React.memo` 的浅比较本质是 `Object.is`（引用相等）。渲染中内联创建的对象/函数每次都是新引用，会**破坏**浅比较，让 memo 失效：
 
 ```jsx
-// ❌ 每次渲染都创建新引用，memo 永远无法命中
+// 每次渲染都创建新引用，memo 永远无法命中
 <Child style={{ color: 'red' }} onClick={() => {}} />
 
-// ✅ 稳定的引用
+// 稳定的引用
 const style = useMemo(() => ({ color: 'red' }), [])
 const onClick = useCallback(() => {}, [])
 <Child style={style} onClick={onClick} />

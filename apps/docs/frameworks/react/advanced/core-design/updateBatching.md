@@ -46,7 +46,7 @@ flowchart TB
 
 ### 2.1 Hook 的 Update 对象
 
-`useState` 返回的 `setState` 创建的 Update，用 `action` 字段承载"**新值或更新函数**"：
+`useState` 返回的 `setState` 创建的 Update，用 `action` 字段承载“**新值或更新函数**”：
 
 :::code-group
 
@@ -92,7 +92,7 @@ export const CaptureUpdate = 3 // 错误边界捕获阶段使用
 :::
 
 > [!NOTE]
-> 两套 Update 的核心差异：Hook 用 `action` 承载"**值或函数**"，靠 `typeof action === 'function'` 判断是哪种；Class 用 `tag` 显式区分四种更新类型，`payload` 是部分 state，`callback` 是更新后回调。这也是为什么 Class `setState` 有第二个回调参数，而 Hook 没有。
+> 两套 Update 的核心差异：Hook 用 `action` 承载“**值或函数**”，靠 `typeof action === 'function'` 判断是哪种；Class 用 `tag` 显式区分四种更新类型，`payload` 是部分 state，`callback` 是更新后回调。这也是为什么 Class `setState` 有第二个回调参数，而 Hook 没有。
 
 ### 2.3 两种更新方式（直接传值 vs 函数式）
 
@@ -116,14 +116,14 @@ function handleClick() {
   setCount(c => c + 1) // prev = 1 → 结果为 2
   setCount(c => c + 1) // prev = 2 → 结果为 3
 }
-// 三次函数式更新：最终 count = 3 ✅
+// 三次函数式更新：最终 count = 3
 
 function handleClick() {
   setCount(count + 1) // 0 + 1 = 1
   setCount(count + 1) // 0 + 1 = 1（基于闭包中捕获的值）
   setCount(count + 1) // 0 + 1 = 1
 }
-// 三次直接传值：最终 count = 1 ❌
+// 三次直接传值：最终 count = 1
 ```
 
 ## 3. 更新队列：两套结构
@@ -173,7 +173,7 @@ type SharedQueue<State> = {
 :::
 
 > [!NOTE]
-> 两类队列的**共性**：都有 `pending` 环形链表承载新更新，都支持把低优先级更新"**沉淀**"下来等待重放。**差异**：Hook 的沉淀区在 **Hook 对象**的 `baseState`/`baseQueue` 上，Class 的沉淀区在**队列自身**的 `baseState`/`firstBaseUpdate`/`lastBaseUpdate` 上。
+> 两类队列的**共性**：都有 `pending` 环形链表承载新更新，都支持把低优先级更新“**沉淀**”下来等待重放。**差异**：Hook 的沉淀区在 **Hook 对象**的 `baseState`/`baseQueue` 上，Class 的沉淀区在**队列自身**的 `baseState`/`firstBaseUpdate`/`lastBaseUpdate` 上。
 
 ### 3.3 环形链表设计
 
@@ -311,7 +311,7 @@ function enqueueUpdate(fiber, update, lane) {
 :::
 
 > [!NOTE]
-> 两条入队路径**几乎对称**：Hook 的 `enqueueConcurrentHookUpdate` 与 Class 的 `enqueueUpdate` 都是"**环形链表尾插 + 标记 lane**"，最后都返回 root 交给 `scheduleUpdateOnFiber`。唯一区别是 Update 对象的字段不同（`action` vs `tag + payload + callback`）。
+> 两条入队路径**几乎对称**：Hook 的 `enqueueConcurrentHookUpdate` 与 Class 的 `enqueueUpdate` 都是“**环形链表尾插 + 标记 lane**”，最后都返回 root 交给 `scheduleUpdateOnFiber`。唯一区别是 Update 对象的字段不同（`action` vs `tag + payload + callback`）。
 
 ## 5. 调度：统一的 lane 标记与任务合并
 
@@ -639,6 +639,8 @@ function handleClick() {
 }
 ```
 
+[width(13,24,63)]
+
 |              | 正常批量更新       | `flushSync`                |
 | ------------ | ------------------ | -------------------------- |
 | **执行方式** | 异步调度，合并更新 | 同步执行，立即渲染         |
@@ -695,16 +697,20 @@ function ensureRootIsScheduled(root) {
 
 ## 8. 不同更新来源的批量行为
 
-| 更新来源                     | React 17  | React 18（createRoot） |
-| ---------------------------- | --------- | ---------------------- |
-| React 事件处理（onClick）    | ✅ 批量   | ✅ 批量                |
-| `setTimeout` / `setInterval` | ❌ 不批量 | ✅ 批量                |
-| Promise `.then()`            | ❌ 不批量 | ✅ 批量                |
-| 原生事件监听                 | ❌ 不批量 | ✅ 批量                |
-| `async/await`                | ❌ 不批量 | ✅ 批量                |
-| `flushSync`                  | —         | ❌ 显式退出批量        |
+[width(33,14,53)]
+
+| 更新来源                     | React 17 | React 18（createRoot） |
+| ---------------------------- | -------- | ---------------------- |
+| React 事件处理（onClick）    | 批量     | 批量                   |
+| `setTimeout` / `setInterval` | 不批量   | 批量                   |
+| Promise `.then()`            | 不批量   | 批量                   |
+| 原生事件监听                 | 不批量   | 批量                   |
+| `async/await`                | 不批量   | 批量                   |
+| `flushSync`                  | —        | 显式退出批量           |
 
 ## 9. Class 与 Hooks 的对比
+
+[width(17,39,44)]
 
 |                 | Class `setState`                  | Hooks `useState`                  |
 | --------------- | --------------------------------- | --------------------------------- |
@@ -712,8 +718,8 @@ function ensureRootIsScheduled(root) {
 | **队列位置**    | `fiber.updateQueue`               | `hook.queue`                      |
 | **合并策略**    | 自动浅合并对象（`Object.assign`） | 替换整个值（`basicStateReducer`） |
 | **回调**        | `setState(partial, callback)`     | 无回调（用 `useEffect`）          |
-| **函数式更新**  | ✅ `setState(prev => ...)`        | ✅ `setState(prev => ...)`        |
-| **批量更新**    | ✅ React 事件中自动               | ✅ React 18 所有上下文自动        |
+| **函数式更新**  | `setState(prev => ...)`           | `setState(prev => ...)`           |
+| **批量更新**    | React 事件中自动                  | React 18 所有上下文自动           |
 
 ```jsx
 // Class setState：自动浅合并
@@ -723,7 +729,7 @@ this.setState({ name: 'Alice' }) // 合并到现有 state 对象
 // Hooks useState：替换整个值
 const [state, setState] = useState({ name: '', age: 0 })
 setState({ name: 'Alice' }) // { name: 'Alice' } —— age 丢失了！
-setState(prev => ({ ...prev, name: 'Alice' })) // ✅ 正确
+setState(prev => ({ ...prev, name: 'Alice' })) // 正确
 ```
 
 ## 10. 总结

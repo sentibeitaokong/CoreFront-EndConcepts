@@ -6,6 +6,8 @@ React Server Components（RSC）是 React 19 引入的**新渲染范式**，它�
 
 传统 CSR 与 SSR 的痛点：
 
+[width(14,86)]
+
 | 方案         | 问题                                              |
 | ------------ | ------------------------------------------------- |
 | **CSR**      | 首屏需等待 JS 加载执行，SEO 差，数据请求需往返    |
@@ -22,14 +24,16 @@ RSC 的核心价值：
 
 RSC 将组件明确划分为两类：
 
-| 维度               | Server Component                | Client Component           |
-| ------------------ | ------------------------------- | -------------------------- |
-| **运行位置**       | 服务端（或构建时）              | 浏览器                     |
-| **JS 下发**        | 不发送 JS                       | 发送 JS                    |
-| **能力**           | 可访问数据库/文件系统、`async`  | 有 state、effect、事件处理 |
-| **标记**           | 默认即为服务端组件              | 文件顶部加 `'use client'`  |
-| **能否使用 Hooks** | ❌（无 `useState`/`useEffect`） | ✅ 全部 Hooks              |
-| **能否绑定事件**   | ❌ 无事件处理                   | ✅ `onClick` 等            |
+[width(20,36,44)]
+
+| 维度               | Server Component               | Client Component           |
+| ------------------ | ------------------------------ | -------------------------- |
+| **运行位置**       | 服务端（或构建时）             | 浏览器                     |
+| **JS 下发**        | 不发送 JS                      | 发送 JS                    |
+| **能力**           | 可访问数据库/文件系统、`async` | 有 state、effect、事件处理 |
+| **标记**           | 默认即为服务端组件             | 文件顶部加 `'use client'`  |
+| **能否使用 Hooks** | （无 `useState`/`useEffect`）  | 全部 Hooks                 |
+| **能否绑定事件**   | 无事件处理                     | `onClick` 等               |
 
 ```jsx
 // app/page.jsx —— 默认是服务端组件，可以 async
@@ -59,6 +63,8 @@ export default function Counter() {
 
 ## 3. `'use client'` 与 `'use server'` 指令
 
+[width(20,40,40)]
+
 | 指令           | 作用                               | 位置               |
 | -------------- | ---------------------------------- | ------------------ |
 | `'use client'` | 声明该文件及其依赖为客户端组件边界 | 文件顶部第一行     |
@@ -68,7 +74,7 @@ export default function Counter() {
 - 服务端组件可以**导入客户端组件**（作为叶子交互节点），但客户端组件**不能导入服务端组件**（只能通过 `children` 或 props 传递）。
 
 ```jsx
-// ✅ 服务端组件导入客户端组件
+// 服务端组件导入客户端组件
 import ClientCounter from './ClientCounter'
 
 export default function Page() {
@@ -77,7 +83,7 @@ export default function Page() {
 ```
 
 ```jsx
-// ❌ 客户端组件不能导入服务端组件
+// 客户端组件不能导入服务端组件
 'use client'
 import ServerComponent from './ServerComponent' // 会导致其降级为客户端组件
 ```
@@ -181,14 +187,16 @@ export default function Form() {
 
 ## 6. 服务端组件的限制
 
-- ❌ 不能使用 `useState`、`useEffect`、`useContext` 等客户端 Hooks。
-- ❌ 不能绑定事件处理器（`onClick` 等）。
-- ❌ 不能使用浏览器专属 API（`window`、`document`、`localStorage`）。
-- ✅ 可以是 `async` 函数，直接 `await` 数据。
+- 不能使用 `useState`、`useEffect`、`useContext` 等客户端 Hooks。
+- 不能绑定事件处理器（`onClick` 等）。
+- 不能使用浏览器专属 API（`window`、`document`、`localStorage`）。
+- 可以是 `async` 函数，直接 `await` 数据。
 
 > **注意：** 违反这些限制会导致组件被强制转为客户端组件，或在构建/运行时报错。判断依据：**「这段逻辑是否只在浏览器里才成立」**，是则必须放客户端组件。
 
 ## 7. 与现有概念的关系
+
+[width(18,82)]
 
 | 概念             | 关系                                                 |
 | ---------------- | ---------------------------------------------------- |

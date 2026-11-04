@@ -6,7 +6,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ## 1. 核心概念与痛点演进
 
-在原生的 HTML 开发中，引入 CSS 非常简单：写个 `<link>` 引入全局样式表即可。但在 React 这种极度强调**“组件化隔离”**的框架中，样式的编写面临着极其严峻的挑战。
+在原生的 HTML 开发中，引入 CSS 非常简单：写个 `<link>` 引入全局样式表即可。但在 React 这种极度强调“**组件化隔离**”的框架中，样式的编写面临着极其严峻的挑战。
 
 > **核心痛点 (全局污染)**：
 > 假设你有 `A.jsx` 和 `B.jsx` 两个独立的组件。你在 A 的同级目录下写了 `A.css`（里面有个 `.title { color: red }`），并在 `A.jsx` 里 `import './A.css'`。
@@ -100,9 +100,9 @@ export default function Card() {
 
 ### 2.4 CSS-in-JS (以 Styled-Components 为代表)
 
-这是 React 社区独创的激进架构。它的理念是：“既然组件是 JS 写的，为什么不把 CSS 也当成纯 JS 变量来管理呢？”
+这是 React 社区独创的激进架构。它的理念是：“**既然组件是 JS 写的，为什么不把 CSS 也当成纯 JS 变量来管理呢？**”
 
-- **核心原理**：使用 ES6 的“标签模板字符串”语法。它会在运行时动态生成一串极长的、绝不重复的类名，并自动将样式注入到 `<head>` 的 `<style>` 标签中。
+- **核心原理**：使用 ES6 的“**标签模板字符串**”语法。它会在运行时动态生成一串极长的、绝不重复的类名，并自动将样式注入到 `<head>` 的 `<style>` 标签中。
 - **优势**：样式和组件彻底物理绑定；支持极其强大的 JS 逻辑穿透（直接传 props 给 CSS）；天生防冲突。
 - **适用场景**：构建高度定制化、需要极多动态主题切换的复杂 UI 组件库。
 
@@ -180,23 +180,36 @@ function SubmitButton({ isSubmit, hasError, size }) {
 
 ## 4. 常见问题 (FAQ) 与避坑指南
 
-### 4.1 Tailwind CSS 这种“原子化 CSS”在 React 里好用吗？
+### 4.1 Tailwind CSS 这种“**原子化 CSS**”在 React 里好用吗？
 
-- **答**：**极其好用，可以说是绝配，目前在海外 React 圈已成绝对统治地位。**
-  - 在 Vue 中，因为有单文件组件（SFC）的 `<style scoped>` 保驾护航，大家对 Tailwind 的渴望没那么强烈。
-  - 但在 React 中，为了解决样式隔离，你要么写繁琐的 `styles.xxx` (CSS Modules)，要么引入庞大且有运行时性能损耗的 `styled-components`。
-  - **Tailwind CSS 的降维打击**：你不需要建任何单独的 CSS 文件，也不需要为元素起想破头皮的名字。直接在 `className` 里写 `flex items-center text-red-500`。配合 React 的极简组件拆分理念，开发效率直接起飞。这是目前架构师新起 React 项目时的首选方案。
+**极其好用，可以说是绝配，目前在海外 React 圈已成绝对统治地位。**
+
+- 在 Vue 中，因为有单文件组件（SFC）的 `<style scoped>` 保驾护航，大家对 Tailwind 的渴望没那么强烈。
+- 但在 React 中，为了解决样式隔离，你要么写繁琐的 `styles.xxx` (CSS Modules)，要么引入庞大且有运行时性能损耗的 `styled-components`。
+- **Tailwind CSS 的降维打击**：你不需要建任何单独的 CSS 文件，也不需要为元素起想破头皮的名字。直接在 `className` 里写 `flex items-center text-red-500`。配合 React 的极简组件拆分理念，开发效率直接起飞。这是目前架构师新起 React 项目时的首选方案。
 
 ### 4.2 使用 CSS Modules 时，如果你在 CSS 里写了带中划线的类名（如 `.btn-primary`），在 JS 里怎么引？
 
-- **答**：这是新手极其容易卡住的一个语法细节坑。
-  - **现象**：在 `xxx.module.css` 里写了 `.btn-primary { ... }`。你在 JS 里如果写 `<div className={styles.btn-primary}>`，JS 引擎会直接报语法错误！因为它把 `-` 当成了减号运算符，试图用 `styles.btn` 去减去 `primary`！
-  - **解法 1**：使用 JS 的方括号属性读取语法：`<div className={styles['btn-primary']}>`。
-  - **解法 2（强烈推荐）**：由于你在写 React，请从思维上把所有 CSS 模块的类名当作 JS 变量来对待，**强制在编写 CSS Modules 时也使用驼峰命名法**：`.btnPrimary { ... }`。然后就可以愉快地使用 `styles.btnPrimary` 了。
+这是新手极其容易卡住的一个语法细节坑。
+
+- **现象**：在 `xxx.module.css` 里写了 `.btn-primary { ... }`。你在 JS 里如果写 `<div className={styles.btn-primary}>`，JS 引擎会直接报语法错误！因为它把 `-` 当成了减号运算符，试图用 `styles.btn` 去减去 `primary`！
+- **解法 1**：使用 JS 的方括号属性读取语法：`<div className={styles['btn-primary']}>`。
+- **解法 2（强烈推荐）**：由于你在写 React，请从思维上把所有 CSS 模块的类名当作 JS 变量来对待，**强制在编写 CSS Modules 时也使用驼峰命名法**：`.btnPrimary { ... }`。然后就可以愉快地使用 `styles.btnPrimary` 了。
+
+```jsx
+import styles from './button.module.css'
+
+function Button() {
+  // styles.btn-primary 会被当成 styles.btn 减去 primary，直接语法错误
+  // 带中划线的类名用方括号读取
+  return <div className={styles['btn-primary']} />
+}
+```
 
 ### 4.3 `styled-components` 有什么隐藏的性能灾难吗？
 
-- **答**：有，而且在大中型项目中极其致命，导致它现在正在被逐渐淘汰。
-  - **运行时开销 (Runtime Overhead)**：它是在浏览器里，用 JS 动态计算、生成 CSS 字符串，然后再插入到 `<style>` 标签的。这导致组件的渲染时间变长，尤其是列表渲染时。
-  - **无法利用浏览器缓存**：由于 CSS 没有被单独打包成物理的 `.css` 文件，浏览器无法并行下载，也无法将 CSS 缓存在磁盘里。如果用户刷新页面，几百 KB 的 JS 必须重新下载、重新执行生成一遍 CSS。
-  - **架构演进**：如果你确实喜欢把 CSS 写在 JS 里的那种畅快感，现代架构更推荐使用 **Linaria** 或 **vanilla-extract** 这种 **"Zero-runtime CSS-in-JS"** 库。它们在编写体验上和 styled-components 几乎一模一样，但在 Webpack/Vite **打包阶段**就会在底层将其编译成静态的 `.css` 物理文件，彻底抹平了性能鸿沟。
+有，而且在大中型项目中极其致命，导致它现在正在被逐渐淘汰。
+
+- **运行时开销 (Runtime Overhead)**：它是在浏览器里，用 JS 动态计算、生成 CSS 字符串，然后再插入到 `<style>` 标签的。这导致组件的渲染时间变长，尤其是列表渲染时。
+- **无法利用浏览器缓存**：由于 CSS 没有被单独打包成物理的 `.css` 文件，浏览器无法并行下载，也无法将 CSS 缓存在磁盘里。如果用户刷新页面，几百 KB 的 JS 必须重新下载、重新执行生成一遍 CSS。
+- **架构演进**：如果你确实喜欢把 CSS 写在 JS 里的那种畅快感，现代架构更推荐使用 **Linaria** 或 **vanilla-extract** 这种 “**Zero-runtime CSS-in-JS**” 库。它们在编写体验上和 styled-components 几乎一模一样，但在 Webpack/Vite **打包阶段**就会在底层将其编译成静态的 `.css` 物理文件，彻底抹平了性能鸿沟。

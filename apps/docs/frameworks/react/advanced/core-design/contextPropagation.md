@@ -2,9 +2,9 @@
 
 ## 1. Context 的依赖注入模型
 
-React 要求数据通过 props 自上而下逐层传递，但当某个"**全局性**"数据（主题、语言、登录态）要被很深的后代组件使用时，中间每一层都不得不透传一份与己无关的 props，这就是 **props 逐层透传（Props Drilling）**。
+React 要求数据通过 props 自上而下逐层传递，但当某个“**全局性**”数据（主题、语言、登录态）要被很深的后代组件使用时，中间每一层都不得不透传一份与己无关的 props，这就是 **props 逐层透传（Props Drilling）**。
 
-Context 是 React 提供的**依赖注入机制**：在组件树上开一条"旁路通道"，让祖先组件发布数据、任意深度的后代组件直接订阅，中间的组件无需感知。一个完整的使用只有三件事——**创建、提供、消费**：
+Context 是 React 提供的**依赖注入机制**：在组件树上开一条“**旁路通道**”，让祖先组件发布数据、任意深度的后代组件直接订阅，中间的组件无需感知。一个完整的使用只有三件事——**创建、提供、消费**：
 
 ```jsx
 // ① 创建
@@ -82,9 +82,9 @@ flowchart TB
     N -.-> E
 ```
 
-- **挂载靠"值栈"限定作用域**——进入 Provider `pushProvider` 入栈覆盖值、离开 `popProvider` 出栈恢复值，LIFO 严格对称，嵌套 Provider 天然正确。
+- **挂载靠“值栈”限定作用域**——进入 Provider `pushProvider` 入栈覆盖值、离开 `popProvider` 出栈恢复值，LIFO 严格对称，嵌套 Provider 天然正确。
 - **读取即订阅**——`useContext` / `Consumer` / `contextType` 三种写法最终都调 `readContext`，返回值的同时把当前 Fiber 登记进 `fiber.dependencies` 依赖链表。
-- **更新靠"遍历依赖 + 合并 Lane"精确唤醒**——Provider 值变后 `propagateContextChange` 沿子树深度优先找依赖者，只给订阅者打 lane，其余子树凭 `childLanes` 判定直接 bailout。
+- **更新靠“遍历依赖 + 合并 Lane”精确唤醒**——Provider 值变后 `propagateContextChange` 沿子树深度优先找依赖者，只给订阅者打 lane，其余子树凭 `childLanes` 判定直接 bailout。
 - **Context 不凭空调度渲染**——它一定是跟随某次已发生的渲染（如上层 `setTheme`）一起，把这次重渲染**精确放大**到所有订阅者。
 
 ## 3. Context 的数据载体：Context 对象与依赖链表
@@ -129,7 +129,7 @@ export const REACT_PROVIDER_TYPE = Symbol.for('react.provider')
 :::
 
 > [!NOTE]
-> 这里藏着"**识别**"的第一把钥匙：`createContext` 之后，`context`、`context.Provider`、`context.Consumer` 三个对象各自带不同的 `$$typeof`。React 在 `beginWork` 里就是靠 `fiber.type.$$typeof` 认出"这是 Context / Provider / Consumer"，从而分派到不同的处理函数。
+> 这里藏着“**识别**”的第一把钥匙：`createContext` 之后，`context`、`context.Provider`、`context.Consumer` 三个对象各自带不同的 `$$typeof`。React 在 `beginWork` 里就是靠 `fiber.type.$$typeof` 认出“**这是 Context / Provider / Consumer**”，从而分派到不同的处理函数。
 
 ### 3.2 依赖链表：`fiber.dependencies`
 
@@ -203,7 +203,7 @@ const HooksDispatcherOnUpdate = {
 
 ### 4.2 `Consumer` 与 `contextType` 的识别
 
-另外两种写法殊途同归，也都汇入 `readContext`，区别只在"**怎么被识别出来**"：
+另外两种写法殊途同归，也都汇入 `readContext`，区别只在“**怎么被识别出来**”：
 
 - **`<Context.Consumer>`**：因为 `context.Consumer === context`，所以 Consumer 元素的 `$$typeof` 就是 `REACT_CONTEXT_TYPE`。`beginWork` 据此分派到 `updateContextConsumer`，读值后调用其**函数子组件（render prop）**：
 
@@ -288,7 +288,7 @@ function is(x, y) {
 :::
 
 > [!NOTE]
-> 这里的 `is(oldValue, newValue)` 就是"**`value` 是否变化**"的判定标准——`Object.is`，**不是深比较**。所以每次渲染都给 `value` 传一个新对象字面量，即使内容相同也会被判为"**变了**"并触发全量传播，这是 Context 性能问题的最常见来源。
+> 这里的 `is(oldValue, newValue)` 就是“**`value` 是否变化**”的判定标准——`Object.is`，**不是深比较**。所以每次渲染都给 `value` 传一个新对象字面量，即使内容相同也会被判为“**变了**”并触发全量传播，这是 Context 性能问题的最常见来源。
 
 ### 5.2 `pushProvider` / `popProvider`：值栈的入栈与出栈
 
@@ -405,20 +405,20 @@ function propagateContextChange_eager(workInProgress, context, renderLanes) {
 
 - 只有**显式读取了该 Context** 的组件才会被标记；不消费该 Context 的中间组件不会被打 lane，可在后续 `beginWork` 中**安全 bailout**。
 - 遍历遇到**同类型的嵌套 Provider** 就停止深入，不会越界到别人的值作用域。
-- `propagateContextChange` 本身**不执行任何组件、不产生 DOM**，只是"**点亮一条依赖路径**"；真正的重渲染发生在下一轮 `beginWork`，被点亮的组件重新 `readContext` 读到新值。
+- `propagateContextChange` 本身**不执行任何组件、不产生 DOM**，只是“**点亮一条依赖路径**”；真正的重渲染发生在下一轮 `beginWork`，被点亮的组件重新 `readContext` 读到新值。
 
 > [!NOTE]
 > Provider 值变化**不会凭空触发一次渲染**——它一定跟随某次已发生的渲染一起进行。Context 传播负责的是把这次重渲染**精确放大**到所有订阅者，而非另起炉灶再调度一次。
 
 ## 7. 性能考量
 
-上述机制可归结为一句话：**任何性能问题都等价于"变化的 lane 是否只落在最小必要的订阅者集合上"**。据此得出两条实践：
+上述机制可归结为一句话：**任何性能问题都等价于“变化的 lane 是否只落在最小必要的订阅者集合上”**。据此得出两条实践：
 
 ```jsx
-// ❌ 每次渲染都新建对象字面量 → 引用变 → 所有消费者被唤醒
+// 每次渲染都新建对象字面量 → 引用变 → 所有消费者被唤醒
 <ThemeContext.Provider value={{ theme, toggle }}>
 
-// ✅ 用 useMemo 稳定引用，或把高频/低频数据拆进不同 Context
+// 用 useMemo 稳定引用，或把高频/低频数据拆进不同 Context
 const value = useMemo(() => ({ theme, toggle }), [theme, toggle])
 <ThemeContext.Provider value={value}>
 ```
@@ -429,7 +429,7 @@ const value = useMemo(() => ({ theme, toggle }), [theme, toggle])
 
 ## 8. 总结
 
-- **Context 是依赖注入机制，不是状态管理器**：在 Fiber 树上建立独立于 props 的"**依赖通道**"，解决逐层透传。
+- **Context 是依赖注入机制，不是状态管理器**：在 Fiber 树上建立独立于 props 的“**依赖通道**”，解决逐层透传。
 - **创建靠 `createContext`**：返回带 `$$typeof` 的 Context 对象，`Provider` / `Consumer` 都挂在其上，`defaultValue` 仅作无 Provider 时的兜底。
 - **三种消费写法底层同源**：`useContext`（Hook 分发）、`Consumer`（`$$typeof` 分派）、`contextType`（静态属性检测）最终都调 `readContext`。
 - **读取即订阅**：`readContext` 返回值的同时，把当前 Fiber 登记进 `fiber.dependencies` 依赖链表。
