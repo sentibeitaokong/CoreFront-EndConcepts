@@ -14,7 +14,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ### 1.1 HOC 解决的痛点
 
-在没有 Hooks 的时代，如果你有 10 个组件都需要做“**监听鼠标坐标**”或者“**判断用户是否登录并跳转**”，你只能把这些逻辑在这 10 个组件里复制 10 遍。HOC 通过“**工厂加工**”的模式，完美实现了**横切关注点（Cross-Cutting Concerns）**的逻辑复用。
+在没有 Hooks 的时代，如果你有 10 个组件都需要做“**监听鼠标坐标**”或者“**判断用户是否登录并跳转**”，你只能把这些逻辑在这 10 个组件里复制 10 遍。HOC 通过“**工厂加工**”的模式，完美实现了 **横切关注点（Cross-Cutting Concerns）** 的逻辑复用。
 
 ## 2. HOC 核心实战：从编写到应用
 
@@ -24,8 +24,9 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 **规矩：HOC 函数的名字必须以 `with` 开头。**
 
-```jsx
-// src/hoc/withAuth.jsx
+:::code-group
+
+```jsx [src/hoc/withAuth.jsx]
 import { useEffect } from 'react'
 // 假设这是你项目的权限钩子或全局 store
 import { useAuth } from '../hooks/useAuth'
@@ -54,19 +55,22 @@ export function withAuth(WrappedComponent) {
     }
 
     // 3. 核心放行：如果校验通过，把原组件原封不动地渲染出来！
-    // 🚨 极其重要：必须用 {...props} 把属性全部透传还给原组件！
+    // 极其重要：必须用 {...props} 把属性全部透传还给原组件！
     // 并且你可以在这里给它塞点"私货" (比如注入 currentUser={...})
-    return <WrappedComponent {...props} injectedSecret="HOC赐予你的力量" />
+    return <WrappedComponent {...props} injectedSecret="HOC附加信息" />
   }
 }
 ```
+
+:::
 
 ### 2.2 使用 HOC 强化组件
 
 使用 HOC 的过程，就像给英雄穿上机甲。
 
-```jsx
-// src/pages/Dashboard.jsx
+:::code-group
+
+```jsx [src/pages/Dashboard.jsx]
 import { withAuth } from '../hoc/withAuth'
 
 // 1. 写一个毫无防备的、纯粹的业务组件
@@ -87,21 +91,24 @@ const Dashboard = withAuth(DashboardBase)
 export default Dashboard
 ```
 
+:::
+
 ## 3. HOC 的四大王牌应用场景
 
 ### 3.1 渲染劫持 (Render Highjacking)
 
 **这是 HOC 最具统治力的场景，Hooks 绝对做不到。** 比如：权限守卫、页面错误降级（ErrorBoundary 的早期雏形）、全局 Loading 骨架屏拦截。
 
-- **业务需求**：你有 20 个敏感页面组件，必须登录且是 VIP 才能看。如果不满足，组件不仅不能运行，还要强制显示“**请充值**”的广告页。
+**业务需求**：你有 20 个敏感页面组件，必须登录且是 VIP 才能看。如果不满足，组件不仅不能运行，还要强制显示“**请充值**”的广告页。
 
-```jsx
-// src/hoc/withVIPGuard.jsx
+:::code-group
+
+```jsx [src/hoc/withVIPGuard.jsx]
 export function withVIPGuard(WrappedComponent) {
   return function GuardedComponent(props) {
     const { isLogin, isVIP } = useUserStore() // 假设从状态库拿数据
 
-    // 🚨 核心能力：强行中断渲染，返回完全不同的 UI 结构！
+    // 核心能力：强行中断渲染，返回完全不同的 UI 结构！
     if (!isLogin) {
       return <div className="login-prompt">您好，请先登录</div>
     }
@@ -124,14 +131,17 @@ export function withVIPGuard(WrappedComponent) {
 // export default withVIPGuard(SuperSecretPage);
 ```
 
+:::
+
 ### 3.2 操作/注入 Props (Props Manipulation)
 
 在组件真正接收到父组件传来的 props 之前，HOC 可以像个黑客一样在中间拦截它：**增加新 props、删除某些 props、甚至强行修改传入的 props 值。**
 
-- **业务需求**：将原生的路由参数（老旧项目没有 `useParams` hook时）、或者国际化翻译函数 `t()`，像自来水一样强行注入给深层的“**傻瓜组件**”（Dumb Component）。
+**业务需求**：将原生的路由参数（老旧项目没有 `useParams` hook时）、或者国际化翻译函数 `t()`，像自来水一样强行注入给深层的“**傻瓜组件**”（Dumb Component）。
 
-```jsx
-// src/hoc/withI18n.jsx
+:::code-group
+
+```jsx [src/hoc/withI18n.jsx]
 // 给任何组件强行注入一个翻译函数 trans() 和当前的语言 lang
 export function withI18n(WrappedComponent) {
   return function I18nComponent(props) {
@@ -147,14 +157,17 @@ export function withI18n(WrappedComponent) {
 }
 ```
 
+:::
+
 ### 3.3 统一状态管理 (State Abstraction)
 
 把一些繁琐但极其通用的表单状态（如输入框的值、校验错误信息、onChange 处理器）抽象出来，让包裹在里面的真实 UI 组件彻底变成“**无状态（Stateless）**”的纯木偶。
 
-- **业务需求**：你有 10 个长得完全不一样的表单输入框组件，但你不想在每个组件里都写一遍 `value` 和 `onChange` 的绑定逻辑。
+**业务需求**：你有 10 个长得完全不一样的表单输入框组件，但你不想在每个组件里都写一遍 `value` 和 `onChange` 的绑定逻辑。
 
-```jsx
-// src/hoc/makeControlled.jsx
+:::code-group
+
+```jsx [src/hoc/makeControlled.jsx]
 import { useState } from 'react'
 
 export function makeControlled(WrappedInput) {
@@ -188,12 +201,15 @@ function BeautifulInput({ value, onChange }) {
 export const SmartBeautifulInput = makeControlled(BeautifulInput)
 ```
 
+:::
+
 ### 3.4 为 DOM 包裹统一的 UI 壳子 (UI Wrapping)
 
 如果你需要所有的弹窗组件外层都有统一的遮罩层、或者所有的区块组件外层都有统一的阴影和卡片头部。
 
-```jsx
-// src/hoc/withCardWrapper.jsx
+:::code-group
+
+```jsx [src/hoc/withCardWrapper.jsx]
 export function withCardWrapper(WrappedComponent, title) {
   return function WrappedWithCard(props) {
     return (
@@ -211,21 +227,23 @@ export function withCardWrapper(WrappedComponent, title) {
 }
 ```
 
+:::
+
 ## 4. 常见问题 (FAQ) 与避坑指南
 
 ### 4.1 致命灾难：为什么我把 HOC 的调用写在组件的 `render` 内部，页面卡死了，而且输入框每次打字都失去焦点？
 
 这是使用 HOC 时**绝对禁止的死罪：不要在 `render` (或函数组件内部) 调用 HOC！**
 
-- **错误写法**：
-  ```jsx
-  function App() {
-    // 灾难：每次 App 渲染，都会去调用 withAuth，这会导致生成一个【内存地址全新】的组件类！
-    const EnhancedChild = withAuth(MyChild)
-    return <EnhancedChild />
-  }
-  ```
-- **底层原理解析**：React 的 Diff 算法有一条铁律：**如果发现前后两次渲染的组件 `type`（即组件函数的内存指针）不一样，它会极其残暴地将整个旧组件树连根拔起（卸载销毁 Unmount），然后重新挂载（Mount）新组件**。
+```jsx
+function App() {
+  // 灾难：每次 App 渲染，都会去调用 withAuth，这会导致生成一个【内存地址全新】的组件类！
+  const EnhancedChild = withAuth(MyChild)
+  return <EnhancedChild />
+}
+```
+
+- **底层原理解析**：React 的 Diff 算法有一条铁律：**如果发现前后两次渲染的组件 `type`（即组件函数的内存指针）不一样，它会极其残暴地将整个旧组件卸载销毁，然后重新挂载（Mount）新组件**。
 - 因为你把工厂函数写在了里面，每次渲染都会产出一个“**全新**”的 `EnhancedChild`。React 不断地卸载重建这个组件，导致它的内部 State（输入框内容）瞬间清空丢失，同时引发毁灭性的性能核爆。
 - **正解**：**永远、必须在模块的最外层（全局作用域）** 去调用 HOC 函数生成增强组件，确保组件的内存地址在应用生命周期内唯一不变。
 
@@ -256,9 +274,6 @@ function withRef(WrappedComponent) {
 const FinalComponent = withAuth(withTheme(withRouter(withTracker(MyComponent))))
 ```
 
-并且，当你打开 React DevTools (开发者工具) 时，你会看到这一个元素外面包了七八层没有实际 UI 意义的空壳组件层级，调试起来极其折磨。
-**这正是 Custom Hooks (自定义 Hook) 能够完美取代 HOC 的最大原因。** Hook 可以在不增加任何额外组件层级的情况下，极其扁平、优雅地将这 4 种逻辑在组件内部合并。
-
 ### 4.4 既然 Hooks 这么完美，现在的新项目里我还能写 HOC 吗？
 
 可以，但**适用边界已经被极度压缩**。
@@ -280,19 +295,15 @@ const FinalComponent = withAuth(withTheme(withRouter(withTracker(MyComponent))))
 import hoistNonReactStatic from 'hoist-non-react-statics'
 
 function withEnhancement(WrappedComponent) {
-  function EnhancedComponent(props) {
-    /*...*/
-  }
+  function EnhancedComponent(props) {}
 
-  // 🚨 极其关键的一步：自动拷贝所有自定义的静态方法！
+  // 极其关键的一步：自动拷贝所有自定义的静态方法！
   hoistNonReactStatic(EnhancedComponent, WrappedComponent)
   return EnhancedComponent
 }
 ```
 
 ### 4.6 我应该在什么时候给 HOC 的名字加上 `displayName`？
-
-**强烈建议永远加上！这关乎你的开发寿命。**
 
 - 如果你嵌套了 3 层 HOC：`withRouter(withAuth(withTheme(MyPage)))`。
 - 当页面报错时，你打开 React DevTools 调试面板，你会看到组件树长这样：`<Anonymous><Anonymous><Anonymous><MyPage>`。你对着满屏的“**匿名组件**”绝对会绝望崩溃。
@@ -317,8 +328,6 @@ export function withAuth(WrappedComponent) {
 - 配置后，你的开发者工具里就会清晰地显示：`<WithAuth(MyPage)>`，找 Bug 犹如神助。
 
 ### 4.7 HOC 中的 `props` 冲突怎么办？
-
-这是 HOC 的“**原罪**”之一。
 
 - 假设你的原组件有一个 prop 叫 `data`。你用了个第三方 HOC，它在里面拦截了渲染，并且偷偷给你的组件塞了一个也叫 `data` 的 prop。
 - **结果**：外层传进来的 `data` 被 HOC 内部的 `data` 无情覆盖！而且由于是黑盒运行，你完全查不出数据是在哪里被篡改的。

@@ -6,7 +6,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ## 1. 核心概念与本质
 
-在 React 的世界里，**组件（Components）**是拼装出宏大 UI 界面的独立砖块。组件允许你将 UI 拆分为独立可复用的代码片段，并对每个片段进行隔离构思。
+在 React 的世界里，**组件（Components）** 是拼装出宏大 UI 界面的独立砖块。组件允许你将 UI 拆分为独立可复用的代码片段，并对每个片段进行隔离构思。
 
 而 **Props (Properties 的简写)**，则是这些砖块之间互相传递“**基因信息**”和“**指挥指令**”的唯一血液。
 
@@ -20,14 +20,13 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ## 2. 组件的定义与渲染
 
-现代 React 开发已经全面抛弃了老旧的类组件 (Class Components)，这里我们完全聚焦于**函数组件 (Function Components)**。
+现代 React 开发已经全面抛弃了老旧的类组件 (Class Components)，这里我们完全聚焦于**函数组件**。
 
 ### 2.1 定义组件
 
 定义一个组件非常简单：写一个普通 JavaScript 函数，**函数名首字母必须大写**，并 `return` 一段 JSX。
 
 ```jsx
-// src/components/Welcome.jsx
 // 这个函数接收了一个叫做 props 的对象作为唯一参数
 function Welcome(props) {
   return <h1>Hello, {props.name}!</h1>
@@ -41,7 +40,6 @@ export default Welcome
 当 React 元素为用户自定义组件时，它会将 JSX 所接收的属性 (attributes) 以及子组件 (children) 全部打包转换为一个独立的对象传递给该组件。这个对象就是 `props`。
 
 ```jsx
-// src/App.jsx
 import Welcome from './components/Welcome'
 
 function App() {
@@ -86,8 +84,6 @@ function UserProfile({ user, size = 50, showBorder = false }) {
 ```
 
 ### 3.2 神奇的黑洞坑位：`children` Prop
-
-如果你的组件是一个“**容器**”（比如一个带阴影的卡片、一个左右分栏的布局），你事先根本不知道别人会在这个容器里塞什么东西。这时候，`children` 是唯一的救星。
 
 当你把内容嵌套在组件的开闭标签之间时，这些内容会自动被收集到一个名为 `children` 的特殊 prop 中。
 
@@ -165,7 +161,7 @@ function PrimaryButton({ customType, ...rest }) {
 
 **绝对、立刻、马上打消这个念头！这是 React 中最不可饶恕的重罪。**
 
-- **纯函数铁律**：React 规定所有组件都必须像纯函数一样，绝不能修改传入的参数 (`props`)。如果你写了 `props.age = 20`，在严格模式下程序会直接崩溃（因为 props 对象底层被 `Object.freeze` 物理冻结了）。
+- **纯函数铁律**：React 规定所有组件都必须像纯函数一样，绝不能修改传入的参数 (`props`)。如果你写了 `props.age = 20`，在严格模式下程序会直接崩溃(因为 props 对象底层被 `Object.freeze` 物理冻结了)。
 - **架构原因**：如果子组件能偷偷改父组件的数据，整个应用的数据流向就会变成一团乱麻，一旦出现 Bug，你根本不知道是谁改了数据。
 - **正解**：遵循**单向数据流**。只能“**父传子数据，子传父函数**”。父组件通过 props 传一个修改数据的函数给子组件（如 `onAgeChange`）。子组件如果想改数据，必须调用这个函数，求着父组件自己去修改自己的 State！
 
@@ -188,8 +184,6 @@ function Child({ age, onAgeChange }) {
 - **现在**：在现代企业级开发中，**TypeScript 已经彻底取代了 PropTypes 的历史地位**。如果你使用 TS 编写 React，在编译写代码的阶段就会因为类型不匹配被红线拦截，根本不需要等到运行时再去报警告了。如果你正在新启动一个项目，请直接拥抱 TypeScript，无情抛弃 PropTypes。
 
 ### 4.4 父组件的一个 State 变了，为什么那些根本没用到这个 State 的子组件也跟着被重新渲染了？这难道不是性能灾难吗？
-
-这是新手最震惊的 React 默认渲染机制，也是高级面试的重灾区！
 
 - **默认机制**：在 React 中，**只要父组件重新渲染（函数重新执行），其内部包裹的所有子组件，无论 props 变没变，都会被无差别、连带性地重新执行渲染！**
 - **为什么这么设计**：React 认为比对“**props 到底变没变**”本身也是需要耗费 CPU 的。在绝大多数日常场景下，直接重新执行一遍这些轻量级的纯函数的开销，比“**深层比对所有对象属性**”的开销要小得多。

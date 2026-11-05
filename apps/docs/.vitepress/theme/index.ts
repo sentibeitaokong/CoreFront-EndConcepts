@@ -1,7 +1,7 @@
 // https://vitepress.dev/guide/custom-theme
-import { h, nextTick, onMounted, watch, defineComponent } from 'vue'
+import { h, onMounted, onUnmounted, defineComponent } from 'vue'
 import type { Theme } from 'vitepress'
-import { useRoute } from 'vitepress'
+import { onContentUpdated } from 'vitepress'
 import DefaultTheme from 'vitepress/theme'
 // 引入 Fancybox 核心逻辑和样式
 // import { Fancybox } from '@fancyapps/ui'
@@ -104,50 +104,87 @@ export default {
                 )
             },*/
   setup() {
-    const route = useRoute()
+    // 同一时刻只保留一个实例；只有容器本身被替换（例如首页 ↔ 文档页）时才重建
     let viewer: Viewer | null = null
+    let boundContainer: HTMLElement | null = null
     let ViewerConstructor: typeof Viewer | null = null
+    // 每次同步自增：动态 import 返回时如果已经被更新的同步取代，就丢弃这次结果，
+    // 避免两次初始化并发时把旧实例/旧容器绑上去
+    let syncId = 0
 
-    const initViewer = async () => {
-      // 销毁旧实例，防止内存泄漏
-      if (viewer) {
-        viewer.destroy()
-        viewer = null
+    const viewerOptions = {
+      inline: false, // 模态框模式
+      button: true, // 显示右上角关闭按钮
+      navbar: false, // 隐藏底部的图库缩略图导航 (如果你只需单图放大)
+      title: false, // 隐藏图片标题
+      toolbar: true, // 显示底部工具栏 (包含放大/缩小/旋转等)
+      tooltip: true, // 缩放时显示百分比提示
+      movable: true, // 允许拖拽平移
+      zoomable: true, // 允许滚轮缩放
+      // VitePress 在系统开启「减弱动态效果」时会把所有 transition-duration 归零，
+      // Viewer.js 收不到 transitionend 就会永远停在 hiding 状态：遮罩留在页面上
+      // 吞掉点击，直到刷新页面。关闭过渡让它走同步隐藏。
+      transition: !window.matchMedia('(prefers-reduced-motion: reduce)')
+        .matches,
+    }
+
+    // Viewer.js 只在构造时记录一次容器里的 <img>，之后不会自动更新。
+    // 路由切换、HMR、异步组件渲染都会换掉这些节点；不刷新 images 的话，
+    // 点击新节点时 images.indexOf(target) === -1，Viewer 会静默地什么都不做。
+    const syncViewer = async () => {
+      const id = ++syncId
+      const docContainer = document.querySelector<HTMLElement>('.vp-doc')
+      if (!docContainer) return
+
+      ViewerConstructor ??= (await import('viewerjs')).default
+      if (id !== syncId) return
+
+      // 同一个容器只需要刷新图片列表，重建会白白丢掉已绑定的监听
+      if (viewer && boundContainer === docContainer) {
+        viewer.update()
+        return
       }
 
-      // 获取当前页面的文章内容容器
-      const docContainer = document.querySelector('.vp-doc')
-      if (docContainer) {
-        ViewerConstructor ??= (await import('viewerjs')).default
-        // Viewer.js 会自动寻找容器内的所有 img 标签并绑定事件
-        viewer = new ViewerConstructor(docContainer as HTMLElement, {
-          inline: false, // 模态框模式
-          button: true, // 显示右上角关闭按钮
-          navbar: false, // 隐藏底部的图库缩略图导航 (如果你只需单图放大)
-          title: false, // 隐藏图片标题
-          toolbar: true, // 显示底部工具栏 (包含放大/缩小/旋转等)
-          tooltip: true, // 缩放时显示百分比提示
-          movable: true, // 允许拖拽平移
-          zoomable: true, // 允许滚轮缩放
-        })
+      viewer?.destroy()
+      // Viewer.js 会自动寻找容器内的所有 img 标签并绑定事件
+      viewer = new ViewerConstructor(docContainer, viewerOptions)
+      boundContainer = docContainer
+    }
+
+    // 内容更新晚于 onContentUpdated 时（例如组件异步渲染出来的 img）兜底：
+    // capture 阶段先刷新一次列表，保证早于 Viewer 绑在容器上的 click 处理
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target
+      if (!boundContainer || !(target instanceof HTMLImageElement)) return
+      if (!boundContainer.contains(target)) return
+      // Viewer 的 d.ts 没有暴露 images，运行时确实存在
+      const boundImages = (
+        viewer as (Viewer & { images: HTMLImageElement[] }) | null
+      )?.images
+      if (!boundImages?.includes(target)) {
+        void syncViewer()
       }
     }
 
     onMounted(() => {
-      const lazyInitViewer = () => {
-        void initViewer()
-      }
+      document.addEventListener('click', handleClick, true)
+      const lazySyncViewer = () => void syncViewer()
 
       if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(lazyInitViewer, { timeout: 2000 })
+        window.requestIdleCallback(lazySyncViewer, { timeout: 2000 })
       } else {
-        window.setTimeout(lazyInitViewer, 1000)
+        setTimeout(lazySyncViewer, 1000)
       }
     })
 
-    watch(
-      () => route.path,
-      () => nextTick(() => void initViewer()),
-    )
+    onUnmounted(() => {
+      document.removeEventListener('click', handleClick, true)
+      viewer?.destroy()
+      viewer = null
+      boundContainer = null
+    })
+
+    // 路由切换 / HMR 后页面内容更新完成（vnode 挂载或更新）时重新同步
+    onContentUpdated(() => void syncViewer())
   },
 } satisfies Theme

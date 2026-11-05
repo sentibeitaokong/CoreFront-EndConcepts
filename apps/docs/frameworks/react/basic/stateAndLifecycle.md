@@ -127,11 +127,9 @@ React 通过**组件在渲染树中的位置**来关联和管理 state，而非 
 - **状态关联**：只要组件在**相同位置**渲染**相同组件**，React 就会**保留其 state**。
 - **状态销毁**：当组件被移除，或**不同组件**被渲染在相同位置，React 会**销毁其 state**。
 
-> 💡 **关键理解**：React 关注的是 UI 树结构，而不是你的条件判断逻辑。
+#### 2.3.1 相同位置 + 相同组件 = 状态保留
 
-#### 1. 相同位置 + 相同组件 = 状态保留
-
-即使组件通过复杂的条件渲染，只要最终渲染树的结构不变（相同父组件下的相同子组件位置），状态就会被保留。
+即使组件通过复杂的条件渲染,只要最终渲染树的结构不变(相同父组件下的相同子组件位置)，状态就会被保留。
 
 ```jsx
 // 示例：两种条件下都渲染 <Counter /> 在第一个子组件位置，状态保留
@@ -140,7 +138,7 @@ React 通过**组件在渲染树中的位置**来关联和管理 state，而非 
 }
 ```
 
-#### 2. 相同位置 + 不同组件 = 状态重置
+#### 2.3.2 相同位置 + 不同组件 = 状态重置
 
 当相同位置渲染的组件类型发生变化（如从 `<Counter>` 变为 `<p>`），React 会移除原组件及其整个子树，状态被销毁。
 
@@ -151,7 +149,7 @@ React 通过**组件在渲染树中的位置**来关联和管理 state，而非 
 }
 ```
 
-#### 3. 重要陷阱：组件嵌套定义导致意外重置
+#### 2.3.3 重要陷阱：组件嵌套定义导致意外重置
 
 **切勿将组件定义嵌套在另一个组件内部！** 每次父组件渲染都会创建**新的函数**，导致子组件类型“**不同**”，从而引发状态重置。
 
@@ -177,7 +175,7 @@ function MyComponent() {
 
 有时我们希望相同位置的组件拥有独立状态（如切换不同用户），React 提供了两种方法。
 
-#### 1. 渲染在不同位置
+#### 2.4.1 渲染在不同位置
 
 通过条件判断，让组件出现在不同的分支位置，从而自然销毁和重建。
 
@@ -193,7 +191,7 @@ function MyComponent() {
 
 **适用场景**：只有少数几个组件需要独立渲染，结构简单。
 
-#### 2. 方法二：使用 `key` 属性（推荐）
+#### 2.4.2 使用 `key` 属性（推荐）
 
 `key` 不仅用于列表，它能让 React 区分**相同位置的相同组件**。不同的 `key` 值让 React 视为不同组件，从而重置状态。
 
@@ -208,9 +206,7 @@ function MyComponent() {
 }
 ```
 
-> 🔑 **原理**：`key` 成为了组件在父组件内“**位置**”的一部分，React 通过 `key` + 位置来唯一标识组件。
-
-#### 3. 典型应用：重置表单
+#### 2.4.3 重置表单
 
 在切换不同实体（如不同联系人）时，通常需要重置表单输入。使用 `key` 是最简洁的方案。
 
@@ -225,28 +221,28 @@ Class 组件的生命周期就像人的生老病死，有着极其严格的物�
 
 ![Logo](/img/reactLifecycle.png)
 
-### 3.1 挂载阶段 (Mounting) - 出生
+### 3.1 挂载阶段 (Mounting)
 
 当组件实例被创建并插入 DOM 时，其生命周期调用顺序如下：
 
-1.  **`constructor(props)`**：第一步。唯一可以直接 `this.state = {}` 赋值的地方。用于初始化内部状态或绑定 `this`。
-2.  `static getDerivedStateFromProps(props, state)`：(极少使用) 在调用 render 方法之前调用。用于让 state 依赖于 props 发生变化。
-3.  **`render()`**：**绝对核心。必须实现。** 它只做一件事：检查 `this.props` 和 `this.state` 并返回纯粹的 JSX。**绝不能在这里使用 `setState` 或发请求，否则光速死循环！**
-4.  **`componentDidMount()`**：**挂载完毕。** 此时真实的 DOM 已经存在。**发起网络请求、绑定全局事件 (`window.addEventListener`)、操作 D3.js/ECharts 原生 DOM 的唯一合法位置。**
+- **`constructor(props)`**：第一步，唯一可以直接 `this.state = {}` 赋值的地方。用于初始化内部状态或绑定 `this`。
+- `static getDerivedStateFromProps(props, state)`：(极少使用) 在调用 render 方法之前调用。用于让 state 依赖于 props 发生变化。
+- **`render()`**：**绝对核心。必须实现。** 它只做一件事：检查 `this.props` 和 `this.state` 并返回纯粹的 JSX。**绝不能在这里使用 `setState` 或发请求，否则光速死循环！**
+- **`componentDidMount()`**：**挂载完毕。** 此时真实的 DOM 已经存在。**发起网络请求、绑定全局事件 (`window.addEventListener`)、操作 D3.js/ECharts 原生 DOM 的唯一合法位置。**
 
-### 3.2 更新阶段 (Updating) - 成长
+### 3.2 更新阶段 (Updating)
 
 当组件的 props 或 state 发生改变时，会触发更新：
 
-1.  `static getDerivedStateFromProps`：同上。
-2.  **`shouldComponentUpdate(nextProps, nextState)`**：**性能优化的核武器。** 返回 `true` 或 `false`。如果返回 false，React 会直接中止本次渲染流程，后面的生命周期全部取消。常用于极度耗性能的巨型组件比对。
-3.  **`render()`**：再次执行，生成新的虚拟 DOM。
-4.  `getSnapshotBeforeUpdate(prevProps, prevState)`：在真实 DOM 更新前一刹那被调用。常用于截取旧的 DOM 状态（比如用户滚动到了哪里）。
-5.  **`componentDidUpdate(prevProps, prevState, snapshot)`**：**更新完毕。** 此时 DOM 已经是最新的。**常用于根据新的 props 或 state 继续发起请求（注意：必须包裹在 if 语句中检查新旧值，否则死循环！）**。
+- `static getDerivedStateFromProps`：同上。
+- **`shouldComponentUpdate(nextProps, nextState)`**：**性能优化的核武器。** 返回`true`或`false`。如果返回 false，React 会直接中止本次渲染流程，后面的生命周期全部取消。常用于极度耗性能的巨型组件比对。
+- **`render()`**：再次执行，生成新的虚拟 DOM。
+- `getSnapshotBeforeUpdate(prevProps, prevState)`：在真实 DOM 更新前一刹那被调用。常用于截取旧的 DOM 状态（比如用户滚动到了哪里）。
+- **`componentDidUpdate(prevProps, prevState, snapshot)`**：**更新完毕。** 此时 DOM 已经是最新的。**常用于根据新的 props 或 state 继续发起请求（注意：必须包裹在 if 语句中检查新旧值，否则死循环！）**。
 
-### 3.3 卸载阶段 (Unmounting) - 死亡
+### 3.3 卸载阶段 (Unmounting)
 
-1.  **`componentWillUnmount()`**：在组件从 DOM 中被移除之前调用。**极其重要：取消网络请求、清除定时器、解绑通过 `addEventListener` 绑定的全局事件。如果忘了写，会导致严重的内存泄漏！**
+- **`componentWillUnmount()`**：在组件从 DOM 中被移除之前调用。**极其重要：取消网络请求、清除定时器、解绑通过 `addEventListener` 绑定的全局事件。如果忘了写，会导致严重的内存泄漏！**
 
 ### **3.4 全生命周期代码示例**
 
@@ -386,7 +382,7 @@ function UserList() {
   useEffect(() => {
     // 这里的代码只会在组件第一次出现在屏幕上时，执行唯一的一次！
     fetchData()
-  }, []) // 👈 灵魂空数组
+  }, []) // 灵魂空数组
 
   return <div>...</div>
 }
@@ -402,7 +398,7 @@ const [userId, setUserId] = useState(1)
 useEffect(() => {
   // 当且仅当 userId 的值发生变化时，才会执行这里的重新请求逻辑
   fetchUserData(userId)
-}, [userId]) // 👈 精准打击的依赖项
+}, [userId]) // 精准打击的依赖项
 ```
 
 ### 4.3 模拟 `componentWillUnmount` (擦屁股/清理工作)
@@ -414,7 +410,7 @@ useEffect(() => {
   // 挂载时开启定时器
   const timer = setInterval(() => console.log('Tick'), 1000)
 
-  // 👈 return 的这个函数，会在组件被销毁前，由 React 自动调用！
+  // return 的这个函数，会在组件被销毁前，由 React 自动调用！
   return () => {
     clearInterval(timer)
     console.log('定时器已被安全销毁')
@@ -426,14 +422,10 @@ useEffect(() => {
 
 ### 5.1 为什么我的 `setState` 在 `for` 循环或者异步的 `setTimeout` 里表现得不一样？(React 17 vs 18 的惊天差异)
 
-这是关于**批处理 (Batching)** 的高阶问题。
-
 - **React 17 及以前**：批处理只有在 React 掌管的合成事件（如 `onClick`）中才有效。如果你把 `setState` 写在了 `setTimeout`、`Promise.then` 或者原生的 `addEventListener` 里，React 管不到它们。此时你连续写 3 个 `setState`，会引发**3次极其卡顿的重复渲染**！
 - **React 18 伟大革新**：引入了 **Automatic Batching (自动批处理)** 机制。现在，无论你把 `setState` 写在宇宙的哪个角落（定时器、Fetch 回调里），React 都能极其智能地把它们打包拦截，合并成**1次渲染**。性能得到了史诗级提升。
 
 ### 5.2 为什么组件每次挂载时，`useEffect` 里的 `console.log` 会打印两次？
-
-这绝对是 React 18 新手踩坑率第一的问题，并非 Bug。
 
 - **原因**：你在入口文件使用了 `<React.StrictMode>` (严格模式) 标签。
 - **机制**：在**开发环境 (Development)** 中，严格模式会故意强制执行一遍：`挂载 -> 立即卸载(执行 return 函数) -> 再次挂载`。
@@ -444,9 +436,9 @@ useEffect(() => {
 
 这是由于违背了单向数据流与依赖更新机制。
 
-- **致命罪魁祸首 1**：忘了写依赖数组 `[]`。导致每次渲染都会触发 Effect，Effect 里又 `setState` 导致新渲染，光速死循环。
-- **致命罪魁祸首 2**：在 Effect 里更新了 A，但又把 A 写进了依赖数组。
-- **致命罪魁祸首 3**：依赖了每次渲染都会被重新创建的对象或函数。
+- 忘了写依赖数组 `[]`。导致每次渲染都会触发 Effect，Effect 里又 `setState` 导致新渲染，光速死循环。
+- 在 Effect 里更新了 A，但又把 A 写进了依赖数组。
+- 依赖了每次渲染都会被重新创建的对象或函数。
   ```jsx
   // 错误示范：每次组件重新渲染，options 都会被重新分配一个全新的内存地址！
   // React 浅比对发现 options 地址变了，又去执行 useEffect，死循环！
@@ -479,9 +471,8 @@ function Profile() {
 
 **有，绝对的神器 `Immer.js`。**
 
-- 在处理嵌套了五六层的深层对象时，原生的展开运算符 `...` 会让你写出令人窒息的垃圾代码（著名的“**展开地狱**”）。
+- 在处理嵌套了五六层的深层对象时，原生的展开运算符 `...` 会让你写出令人窒息的垃圾代码。
 - `Immer` 暴露出一个 `produce` 代理函数。它允许你**用最习惯的直接修改（Mutate）语法**去操作数据（比如直接 `obj.a.b.c = 1`，直接 `arr.push()`），它会在底层通过 `Proxy` 拦截你的操作，并自动为你生成一个符合 React “**不可变性**”要求的心全新数据副本。
-- 强烈建议在极度复杂的局部状态管理中配合 `useImmer` hook 使用！
 
 ```js
 import { produce } from 'immer'

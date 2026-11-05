@@ -134,12 +134,6 @@ function App() {
 }
 ```
 
-**`react-error-boundary` 的优势：**
-
-- 提供 `resetErrorBoundary` 支持「重试」。
-- `onReset` 钩子可在重试前重置相关状态。
-- 支持 `resetKeys` 数组，当其变化时自动重置错误状态。
-
 ## 5. 异步错误如何「交给」边界
 
 异步错误（事件、`setTimeout`、`Promise`、数据请求）默认**不会被错误边界捕获**，需要手动把它「抛回」渲染流程。有两种方式：
@@ -185,7 +179,7 @@ function Profile() {
 </ErrorBoundary>
 ```
 
-React 官方推荐的模式：**Error Boundary 捕获同步渲染错误，Suspense 捕获异步加载错误**，两者常成对出现。
+**Error Boundary 捕获同步渲染错误，Suspense 捕获异步加载错误**，两者常成对出现。
 
 ## 6. 错误边界的放置策略
 
@@ -264,7 +258,7 @@ createRoot(document.getElementById('root'), {
 - **成对使用 Suspense**：异步加载错误交给 Suspense + 边界协同处理。
 - **务必上报**：`componentDidCatch` 是连接监控平台的关键钩子。
 
-## 9. 使用示例：分层边界 + 重试 + 上报
+## 9. 分层边界 + 重试 + 上报
 
 ```javascript
 import { ErrorBoundary } from 'react-error-boundary'
@@ -305,4 +299,4 @@ export default function App() {
 }
 ```
 
-> 结构：顶层兜底 + 局部隔离，配合 `resetErrorBoundary` 提供「重试」，`onError` 统一上报。
+> 顶层兜底 + 局部隔离，配合 `resetErrorBoundary` 提供「重试」，`onError` 统一上报。

@@ -10,7 +10,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 为了解决原生 DOM 状态和 React 组件状态的割裂，React 提出了处理表单的两种截然不同的架构模式：**受控组件（Controlled Components）** 和 **非受控组件（Uncontrolled Components）**。
 
-## 2. 受控组件 (Controlled Components) - 绝对的王者
+## 2. 受控组件- 绝对的王者
 
 **受控组件是 React 官方极其强烈推荐的标准表单处理方式。**
 它的核心思想是：**剥夺原生 DOM 表单自己管理状态的权利，强行用 React 的 State 接管它的 `value`，并用 `onChange` 监听它的每一次击键。**
@@ -53,7 +53,7 @@ function ControlledForm() {
 
 ### 2.2 处理多个输入框 (状态对象的终极收敛)
 
-如果一个表单有 10 个输入框，写 10 个 `useState` 和 10 个 `onChange` 处理函数会让人抓狂。我们可以利用**`name` 属性和计算属性名（ES6）**来实现一个万能的 `handleChange`。
+如果一个表单有 10 个输入框，写 10 个 `useState` 和 10 个 `onChange` 处理函数会让人抓狂。我们可以利用 **`name` 属性和计算属性名（ES6）** 来实现一个万能的 `handleChange`。
 
 ```jsx
 import { useState } from 'react'
@@ -108,7 +108,7 @@ function ComplexForm() {
 }
 ```
 
-## 3. 非受控组件 (Uncontrolled Components) - 实用主义的妥协
+## 3. 非受控组件- 实用主义的妥协
 
 虽然受控组件很完美，但它要求你为每一次击键都触发一次完整的组件重渲染（`setState`）。如果是一个包含了 500 个复杂节点的巨型表单，每次打字都会导致极其严重的卡顿。
 
@@ -187,18 +187,14 @@ React 对 `<select>` 和 `<textarea>` 进行了极具人性化的底层魔改。
 </select>
 ```
 
-- 同样，原生的 `<textarea>内容写在中间</textarea>`，在 React 里也被统一改造成了单标签闭合的形式：`<textarea value={state} onChange={...} />`。
-
 ### 4.3 为什么控制台疯狂报警告：“**A component is changing an uncontrolled input to be controlled**”？
 
-这是新手踩坑榜 Top 3 的终极神坑，极其隐蔽！
+```jsx
+// 初始值定义为 null 或 undefined
+const [text, setText] = useState()
+// 渲染时: <input value={text} onChange={...} />
+```
 
-- **错误重现**：
-  ```jsx
-  // 初始值定义为 null 或 undefined
-  const [text, setText] = useState()
-  // 渲染时: <input value={text} onChange={...} />
-  ```
 - **原理解析**：React 在第一次渲染时，发现你的 `<input>` 绑定的 `value` 是 `undefined`。它以为：“**哦，这家伙没有传明确的值，所以他想搞一个非受控组件**”。
 - 然后用户在输入框打了一个字母 'A'，触发 `setText('A')`。组件重新渲染，这次 `value` 变成了 `'A'`。
 - React 瞬间崩溃大怒：“**你小子第一帧告诉我是非受控的，第二帧突然塞个明确的字符串强行把它变成了受控的！你的状态失控了！**”
@@ -206,10 +202,8 @@ React 对 `<select>` 和 `<textarea>` 进行了极具人性化的底层魔改。
 
 ### 4.4 写受控组件每次打字都要 re-render（重渲染），会不会导致页面极其卡顿？
 
-通常完全不用担心。
-
 - React 的虚拟 DOM 比对速度在处理普通的文本输入重绘时是极其惊人的，用户肉眼绝对察觉不到几十毫秒的重渲染。
 - **真正的危机**：如果你的 `<input>` 只是一个巨大且极其昂贵的组件（比如一个渲染了 1000 行复杂 Table 的页面）的最外层的一部分。你在 input 里打字，导致整个页面连同那 1000 行 Table 一起重渲染，那一定会卡得痛不欲生。
 - **性能优化解法**：
-  1. **组件下沉拆分**：把这个 `input` 和它专属的 `state` 拆分成一个极其微小的、独立的子组件。这样输入时的状态更新就被死死锁在这个子组件内部，根本不会波及外面的大 Table。
-  2. **使用非受控组件**：如果不想拆组件，直接上 `useRef`。
+  - **组件下沉拆分**：把这个 `input` 和它专属的 `state` 拆分成一个极其微小的、独立的子组件。这样输入时的状态更新就被死死锁在这个子组件内部，根本不会波及外面的大 Table。
+  - **使用非受控组件**：如果不想拆组件，直接上 `useRef`。
