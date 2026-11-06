@@ -21,8 +21,9 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 这是一个最经典的新手案例，用于封装对原生 DOM 事件的监听，并处理组件卸载时的清理。
 
-```jsx
-// src/hooks/useWindowSize.js
+:::code-group
+
+```jsx [src/hooks/useWindowSize.js]
 import { useState, useEffect } from 'react'
 
 // 1. 命名必须以 use 开头
@@ -43,7 +44,7 @@ export function useWindowSize() {
 
     window.addEventListener('resize', handleResize)
 
-    // 3. 🚨 必须负责任地清理副作用！
+    // 3.必须负责任地清理副作用！
     return () => window.removeEventListener('resize', handleResize)
   }, [])
 
@@ -52,9 +53,7 @@ export function useWindowSize() {
 }
 ```
 
-在组件中的使用极其优雅：
-
-```jsx
+```jsx [App.jsx]
 import { useWindowSize } from './hooks/useWindowSize'
 
 export default function App() {
@@ -67,12 +66,15 @@ export default function App() {
 }
 ```
 
+:::
+
 ### 2.2 进阶实战：支持响应式依赖的数据拉取 (useFetch)
 
 业务中最常写的就是封装 `fetch` 请求。一个优秀的 Hook，必须能够响应外部参数的变化而自动重新请求。
 
-```jsx
-// src/hooks/useFetch.js
+:::code-group
+
+```jsx [src/hooks/useFetch.js]
 import { useState, useEffect } from 'react'
 
 // 接收外部传来的依赖项 (如 userId)
@@ -102,15 +104,13 @@ export function useFetch(url, dependency) {
     return () => {
       isMounted = false // 组件卸载或依赖改变前，切断旧请求的 set 权限
     }
-  }, [url, dependency]) // 🚨 依赖项极其关键：当 userId 改变时，自动重新执行请求！
+  }, [url, dependency]) // 依赖项极其关键：当 userId 改变时，自动重新执行请求！
 
   return { data, loading, error }
 }
 ```
 
-使用示例：
-
-```jsx
+```jsx [UserProfile.jsx]
 function UserProfile({ userId }) {
   // 当 props 里的 userId 改变时，Hook 内部会自动重新发请求！
   const { data, loading } = useFetch(`/api/user/${userId}`, userId)
@@ -120,11 +120,11 @@ function UserProfile({ userId }) {
 }
 ```
 
+:::
+
 ## 3. 架构级实战：如何优雅地暴露 API
 
-当你封装一个复杂的 Hook（比如 `useForm` 或 `useModal`）时，通常需要向外部暴露一堆操作方法。**如何防止这些方法导致使用者的页面疯狂重渲染？**
-
-**黄金法则：在 Hook 内部 `return` 出去的所有函数，必须用 `useCallback` 严密包裹！**
+在 Hook 内部 `return` 出去的所有函数，必须用 `useCallback` 严密包裹！\*\*
 
 ```jsx
 import { useState, useCallback } from 'react'
@@ -132,7 +132,7 @@ import { useState, useCallback } from 'react'
 export function useModal(initialVisible = false) {
   const [isVisible, setIsVisible] = useState(initialVisible)
 
-  // 🚨 必须使用 useCallback 锁死函数内存地址！
+  // 必须使用 useCallback 锁死函数内存地址！
   // 否则这个 hook 每当 isVisible 改变重新执行时，这俩函数都会生成新指针，
   // 传给外部组件后，极易引发大面积的 React.memo 性能护盾崩溃。
   const open = useCallback(() => setIsVisible(true), [])
@@ -190,23 +190,15 @@ function Page() {
 
 ### 4.3 我的 Hook 里使用了一个外部传进来的对象作为 `useEffect` 的依赖，结果疯狂死循环了！
 
-这是使用自定义 Hook 最容易踩的陷阱，因为你无法控制别人传给你什么。
+```jsx
+// 你的组件：每次渲染都新建了一个 options 对象！
+const options = { id: 1 }
+useFetch('/api', options)
+```
 
-- **案发现场**：
-  ```jsx
-  // 你的组件：每次渲染都新建了一个 options 对象！
-  const options = { id: 1 }
-  useFetch('/api', options)
-  ```
-  此时在你的 Hook 内部，`useEffect(fn, [options])` 会发现新旧指针不一样，疯狂重发请求，陷入光速死循环。
-- **防坑指南 (作为 Hook 开发者)**：你永远不要信任外部传入的引用类型（对象/数组）。
-  1. 可以在 Hook 内部使用 `JSON.stringify` 对其进行扁平化降维，拿字符串作为内部 Effect 的依赖。
-  2. 强制要求使用者传入基本数据类型的依赖，或者要求他自己在外层用 `useMemo` 包好再传给你。
-  3. 利用 `useRef` 保存旧值，手写深度比较（Deep Compare）逻辑（如知名开源库 `ahooks` 里的 `useDeepCompareEffect`）。
+Hook 内部，`useEffect(fn, [options])` 会发现新旧指针不一样，疯狂重发请求，陷入光速死循环。
 
 ### 4.4 把逻辑封装成 Custom Hook 和写成 Pinia/Zustand 全局 Store 有什么本质区别？我该怎么选？
-
-这个面试高级题直指核心架构能力。
 
 - **Custom Hook (局部/多例模式)**：你每次在不同的组件里调用 `useMouse()`，它都会在内存里开辟一块**全新的、相互独立**的数据空间。组件 A 的坐标和组件 B 的坐标互不干扰。这适用于**纯逻辑复用**。
 - **全局 Store (全局/单例模式)**：不管你在 100 个组件里调用了多少次 `useStore()`，底层都只会实例化一次，返回给你的永远是**指向内存中同一块地址的同一个对象**。这确保了只要一个人改了数据，100 个页面瞬间全部同步。这适用于**业务状态共享**（如购物车数据）。

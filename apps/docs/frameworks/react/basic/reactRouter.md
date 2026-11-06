@@ -25,12 +25,12 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <RootLayout />, // 页面骨架
-    errorElement: <ErrorPage />, // 🚨 极其优雅的全局错误边界处理
+    errorElement: <ErrorPage />, //极其优雅的全局错误边界处理
     children: [
       {
         path: 'dashboard',
         element: <Dashboard />,
-        // 🚀 Data API 的灵魂：在渲染组件前，先去拉取数据！
+        // Data API 的灵魂：在渲染组件前，先去拉取数据！
         loader: async () => {
           return fetch('https://api.example.com/dashboard-data')
         },
@@ -115,8 +115,9 @@ function ProtectedRoute({ user, children }) {
 
 类似于 Vue Router 的 `<router-view>`。在嵌套路由的父组件中，挖一个坑让子组件渲染。
 
-```jsx
-// layouts/RootLayout.jsx
+:::code-group
+
+```jsx [layouts/RootLayout.jsx]
 import { Outlet } from 'react-router-dom'
 
 export default function RootLayout() {
@@ -132,6 +133,8 @@ export default function RootLayout() {
   )
 }
 ```
+
+:::
 
 ## 3. 核心 Hooks API (编程式导航与数据提取)
 
@@ -201,8 +204,6 @@ function Dashboard() {
 
 ## 4. 路由懒加载核心 API 实战：`React.lazy` 与 `Suspense`
 
-> **性能灾难**：如果你的系统有 50 个页面，用户仅仅是为了看一眼“**首页**”，浏览器也必须被迫下载包含剩下 49 个页面代码的、高达数兆（MB）的 JS 文件。这会导致极其严重的**首屏白屏**。
-
 **路由懒加载 (Route Lazy Loading)** 就是拯救首屏性能的最强武器。
 它的核心理念是：“**按需切割，按需下载**”。也就是俗称的代码分割 (Code Splitting)。只有当用户真正点击跳转到“**设置页**”时，浏览器才会发起网络请求，去下载“**设置页**”对应的那个 JS 小代码块 (Chunk)。
 
@@ -215,7 +216,7 @@ function Dashboard() {
 import React, { Suspense } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
-// 1. 🚨 抛弃静态导入！不要写 import Dashboard from './pages/Dashboard'
+// 1. 抛弃静态导入！不要写 import Dashboard from './pages/Dashboard'
 // 2. 采用懒加载导入！Webpack/Vite 会自动将这些文件单独打成小的 chunk 包
 const Home = React.lazy(() => import('./pages/Home'))
 const Dashboard = React.lazy(() => import('./pages/Dashboard'))
@@ -274,8 +275,9 @@ React Router 的设计哲学是“**组件化一切 (Declarative)**”，它刻�
 
 - 在 React 中，你不需要在路由配置的外层拦截。你要写一个**权限包裹组件 (AuthWrapper)**。
 
-```jsx
-// src/components/RequireAuth.jsx
+:::code-group
+
+```jsx [src/components/RequireAuth.jsx]
 import { Navigate, useLocation } from 'react-router-dom'
 
 export function RequireAuth({ children }) {
@@ -290,6 +292,8 @@ export function RequireAuth({ children }) {
   return children // 绿灯放行
 }
 ```
+
+:::
 
 - 在路由表中极度优雅地使用：
 
@@ -315,7 +319,7 @@ export function RequireAuth({ children }) {
 location / {
   root /var/www/html;
   index index.html;
-  try_files $uri $uri/ /index.html;  # 🚨 救命稻草
+  try_files $uri $uri/ /index.html;  #救命稻草
 }
 ```
 
@@ -325,7 +329,7 @@ location / {
 
 - **原因**：从 `/user/1` 到 `/user/2`，React 发现渲染的都是 `<UserPage>` 这个组件，它**坚决不会把组件销毁再重建**。因此，没有任何 `mount` 生命周期的钩子会被触发，你的 `useEffect(fn, [])` 当然装死。
 - **解法 A**：老老实实监听 `id`。在 `UserPage` 里写 `useEffect(() => { fetch() }, [id])`。
-- **解法 B (暴力拆毁 🌟)**：在 `RootLayout` 的 `<Outlet />` 坑位上，强行绑上当前路由全路径作为唯一身份 ID (`key`)。只要路径变一丁点，React 就会认为这是两个完全不同的组件，残忍销毁并重新走全套生命周期！
+- **解法 B**：在 `RootLayout` 的 `<Outlet />` 坑位上，强行绑上当前路由全路径作为唯一身份 ID (`key`)。只要路径变一丁点，React 就会认为这是两个完全不同的组件，残忍销毁并重新走全套生命周期！
 
 ```jsx
 import { Outlet, useLocation } from 'react-router-dom'
@@ -377,7 +381,7 @@ const MyComponent = React.lazy(() =>
 **过度优化是万恶之源 (Over-splitting)。**
 
 - **拆分代价**：浏览器每发起一次 HTTP 请求去下载一个 chunk 文件，都会产生建立 TCP 连接、HTTP 头部解析等物理开销。
-- 如果你把一个页面切成了 50 个极其细碎的几十 KB 的懒加载包。页面渲染时会瞬间发起 50 个请求，导致浏览器网络通道严重堵塞（哪怕是 HTTP/2 也有极限），用户看到的就是满屏幕的 `<Suspense>` 菊花图在闪烁。
+- 如果你把一个页面切成了 50 个极其细碎的几十 KB 的懒加载包。页面渲染时会瞬间发起 50 个请求，导致浏览器网络通道严重堵塞（哪怕是HTTP/2也有极限），用户看到的就是满屏幕的`<Suspense>`菊花图在闪烁。
 - **黄金准则**：`React.lazy` **仅且只应被用于“页面/路由级别 (Route-based)”的拆分**，或者那些极其庞大且初始不显示的组件（如巨型 ECharts 图表、富文本编辑器弹窗）。常规的 UI 小组件，绝对要打在主包里！
 
 ### 5.8 弱网环境下，用户点击跳转但代码下载失败（断网了），页面直接白屏死机怎么办？
@@ -385,7 +389,7 @@ const MyComponent = React.lazy(() =>
 这是使用异步加载必须考虑的生产级健壮性问题。网络一旦断开，`import()` 返回的 Promise 会 `reject`，`<Suspense>` 救不了你，整个 React 组件树会当场崩盘。
 
 - **终极解法：必须套一层 ErrorBoundary (错误边界)。**
-- 在 `<Suspense>` 的外面，再套一个 ErrorBoundary。当下载失败时，捕获异常，并展示给用户一个友好的“**网络不佳，点击重试**”的按钮（重试本质上就是强制刷新页面 `window.location.reload()` 重新请求 JS 文件）。
+- 在 `<Suspense>` 的外面，再套一个 ErrorBoundary。当下载失败时，捕获异常，并展示给用户一个友好的“**网络不佳,点击重试**”的按钮(重试本质上就是强制刷新页面`window.location.reload()`重新请求JS文件)。
 
 ```jsx
 <ErrorBoundary fallback={<h2>网络开小差了，请刷新重试~</h2>}>

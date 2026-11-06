@@ -42,8 +42,6 @@
 
 ## 6. 组件需要保持纯粹
 
-**好处**：将组件按纯函数严格编写，以避免一些随着代码库的增长而出现的、令人困扰的 bug 以及不可预测的行为。
-
 一个组件必须是纯粹的，就意味着：
 
 - **只负责自己的任务。** 它不会更改在该函数调用前就已存在的对象或变量。
@@ -63,7 +61,7 @@
 
 ## 8. 组件可以通过设置 State 具有记忆性
 
-- State 是组件私有的。如果你在两个地方渲染它，则每个副本都有独属于自己的 state。
+State 是组件私有的。如果你在两个地方渲染它，则每个副本都有独属于自己的 state。
 
 ## 9. 更新 State
 
@@ -83,7 +81,7 @@
 
 ## 11. 更新数组类型的 State
 
-你可以把数组放入 state 中，但不应该直接修改它。而是创建它的一份**新的拷贝**，然后使用新的数组来更新状态。
+你可以把数组放入state中,但不应该直接修改它。而是创建它的一份**新的拷贝**，然后使用新的数组来更新状态。
 
 [width(13,39,48)]
 
@@ -94,24 +92,20 @@
 | **替换元素** | `map` ([参考](https://zh-hans.react.dev/learn/updating-arrays-in-state#replacing-items-in-an-array))                       | `splice`, `arr[i] = ...` 赋值 |
 | **排序**     | 先将数组复制一份再操作 ([参考](https://zh-hans.react.dev/learn/updating-arrays-in-state#making-other-changes-to-an-array)) | `reverse`, `sort`             |
 
-- 使用 `[...arr, newItem]` 数组展开语法来向数组中添加元素。
-- 使用 `filter()` 和 `map()` 来创建一个经过过滤或者变换的数组。
-- 可以使用 Immer 来保持代码简洁。
-
 ## 12. 设置 State
 
 **步骤一：删除任何不必要的 state 变量**
 
-1. 这个 state 是否会导致矛盾？
-2. 相同的信息是否已经在另一个 state 变量中存在？
-3. 你是否可以通过另一个 state 变量的相反值得到相同的信息？
+- 这个 state 是否会导致矛盾？
+- 相同的信息是否已经在另一个 state 变量中存在？
+- 你是否可以通过另一个 state 变量的相反值得到相同的信息？
 
 **步骤二：连接事件处理函数去设置 state**
 
 ## 13. State 的结构
 
-- **合并关联的 state**。如果你总是同时更新两个或更多的 state 变量，请考虑将它们合并为一个单独的 state 变量。
-- **避免互相矛盾的 state**。当 state 结构中存在多个相互矛盾或“**不一致**”的 state 时，你就可能为此会留下隐患。
+- **合并关联的 state**。如果你总是同时更新两个或更多的state变量,请考虑将它们合并为一个单独的state变量。
+- **避免互相矛盾的 state**。当state结构中存在多个相互矛盾或“**不一致**”的state时，你就可能为此会留下隐患。
 - **避免冗余的 state**。如果你能在渲染期间从组件的 props 或其现有的 state 变量中计算出一些信息，则不应将这些信息放入该组件的 state 中。
 - **避免重复的 state**。当同一数据在多个 state 变量之间或在多个嵌套对象中重复时，很难保持同步。应尽可能减少重复。
 - **避免深度嵌套的 state**。深度分层的 state 更新起来不是很方便。最好以扁平化方式构建 state。
@@ -121,23 +115,22 @@
 - 当你想要整合两个组件时，将它们的 state 移动到共同的父组件中。
 - 然后在父组件中通过 `props` 把信息传递下去。
 - 最后，向下传递事件处理程序，以便子组件可以改变父组件的 state。
-- 考虑将组件视为“**受控**”（由 prop 驱动）或是“**不受控**”（由 state 驱动）是十分有益的。
 
 ## 15. 保留 State 和重置 State 状态
 
 - **保留 state 状态**：[相同位置的相同组件会使得 state 被保留下来](https://zh-hans.react.dev/learn/preserving-and-resetting-state#same-component-at-the-same-position-preserves-state)。只要在相同位置渲染的是相同组件，React 就会保留状态。
 - **重置 state 状态**：
-  1. 将组件渲染在不同位置。
-  2. 使用 `key` 来重置 state。可以通过为一个子树指定一个不同的 key 来重置它的 state。
+  - 将组件渲染在不同位置。
+  - 使用 `key` 来重置 state。可以通过为一个子树指定一个不同的 key 来重置它的 state。
 - state 不会被保存在 JSX 标签里。它与你在树中放置该 JSX 的位置相关联。
 - **不要嵌套组件的定义**，否则你会意外地导致 state 被频繁重置。
 
 ## 16. 使用 Reducer 整合状态逻辑
 
 - 把 `useState` 转化为 `useReducer`：
-  1. 通过事件处理函数 dispatch actions；
-  2. 编写一个 reducer 函数，它接受传入的 state 和一个 action，并返回一个新的 state；
-  3. 使用 `useReducer` 替换 `useState`。
+  - 通过事件处理函数 dispatch actions；
+  - 编写一个 reducer 函数，它接受传入的 state 和一个 action，并返回一个新的 state；
+  - 使用 `useReducer` 替换 `useState`。
 - Reducer 可能需要你写更多的代码，但是这有利于代码的调试和测试。
 - **Reducer 必须是纯净的**。
 - 每个 action 都描述了一个单一的用户交互。
@@ -147,9 +140,9 @@
 
 - Context 使组件向其下方的整个树提供信息。
 - **传递 Context 的方法**:
-  1. 通过 `export const MyContext = createContext(defaultValue)` 创建并导出 context。
-  2. 在无论层级多深的任何子组件中，把 context 传递给 `useContext(MyContext)` Hook 来读取它。
-  3. 在父组件中把 children 包在 `<MyContext.Provider value={...}>` 中来提供 context。
+  - 通过 `export const MyContext = createContext(defaultValue)` 创建并导出 context。
+  - 在无论层级多深的任何子组件中，把 context 传递给 `useContext(MyContext)` Hook 来读取它。
+  - 在父组件中把 children 包在 `<MyContext.Provider value={...}>` 中来提供 context。
 - Context 会穿过中间的任何组件。
 - Context 可以让你写出“**较为通用**”的组件。
 - 在使用 context 之前，先试试传递 props 或者将 JSX 作为 `children` 传递。
@@ -158,9 +151,9 @@
 
 - 你可以将 reducer 与 context 相结合，让任何组件读取和更新它的状态。
 - **为子组件提供 state 和 dispatch 函数**：
-  1. 创建两个 context (一个用于 state，一个用于 dispatch 函数)。
-  2. 让组件的 context 使用 reducer。
-  3. 使用组件中需要读取的 context。
+  - 创建两个 context (一个用于 state，一个用于 dispatch 函数)。
+  - 让组件的 context 使用 reducer。
+  - 使用组件中需要读取的 context。
 - 你可以通过将所有传递信息的代码移动到单个文件中来进一步整理组件。
   - 你可以导出一个像 `TasksProvider` 这样可以提供 context 的组件。
   - 你也可以导出像 `useTasks` 和 `useTasksDispatch` 这样的自定义 Hook。
@@ -183,7 +176,7 @@
 - 存储和操作 [DOM 元素](https://developer.mozilla.org/docs/Web/API/Element)。
 - 存储不需要被用来计算 JSX 的其他对象。
 - **将 ref 视为脱围机制**。当你使用外部系统或浏览器 API 时，ref 很有用。如果你很大一部分应用程序逻辑和数据流都依赖于 ref，你可能需要重新考虑你的方法。
-- **不要在渲染过程中读取或写入 `ref.current`。** 如果渲染过程中需要某些信息，请使用 state 代替。由于 React 不知道 `ref.current` 何时发生变化，即使在渲染时读取它也会使组件的行为难以预测。（唯一的例外是像 `if (!ref.current) ref.current = new Thing()` 这样的代码，它只在第一次渲染期间设置一次 ref。）
+- **不要在渲染过程中读取或写入`ref.current`。** 如果渲染过程中需要某些信息，请使用state代替。由于 React 不知道`ref.current`何时发生变化，即使在渲染时读取它也会使组件的行为难以预测。(唯一的例外是像 `if (!ref.current) ref.current = new Thing()`这样的代码，它只在第一次渲染期间设置一次ref。)
 - 与 state 一样，ref 允许你在组件的重新渲染之间保留信息；与 state 不同，设置 ref 的 `current` 值不会触发重新渲染。
 - 通常，你会将 refs 用于非破坏性操作，例如聚焦、滚动或测量 DOM 元素。
 - 默认情况下，组件不暴露其 DOM 节点。你可以通过使用 `ref` 属性来暴露 DOM 节点。避免更改由 React 管理的 DOM 节点。

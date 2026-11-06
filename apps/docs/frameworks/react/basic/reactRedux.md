@@ -112,8 +112,9 @@ export const fetchUserById = createAsyncThunk(
 
 RTK 创造了 `Slice` 的概念，它把你对某一个业务域（如 `user`）的状态、操作方法全部打包在一个文件里。
 
-```javascript
-// src/store/slices/counterSlice.js
+:::code-group
+
+```javascript [src/store/slices/counterSlice.js]
 import { createSlice } from '@reduxjs/toolkit'
 
 export const counterSlice = createSlice({
@@ -140,12 +141,15 @@ export const { increment, incrementByAmount } = counterSlice.actions
 export default counterSlice.reducer
 ```
 
+:::
+
 ### 3.2 组装 Store (ConfigureStore)
 
 把分散在各个文件里的 Slice 拼装成一个全局的 Store 金库。
 
-```javascript
-// src/store/index.js
+:::code-group
+
+```javascript [src/store/index.js]
 import { configureStore } from '@reduxjs/toolkit'
 import counterReducer from './slices/counterSlice'
 
@@ -158,12 +162,15 @@ export const store = configureStore({
 })
 ```
 
+:::
+
 ### 3.3 提供与消费 (Provider & Hooks)
 
 通过 `react-redux` 库将 Store 注入 React 宇宙，并在组件中消费。
 
-```jsx
-// src/main.jsx (入口文件)
+:::code-group
+
+```jsx [src/main.jsx]
 import { Provider } from 'react-redux'
 import { store } from './store'
 import App from './App'
@@ -175,8 +182,7 @@ root.render(
 )
 ```
 
-```jsx
-// src/components/Counter.jsx
+```jsx [src/components/Counter.jsx]
 import { useSelector, useDispatch } from 'react-redux'
 import { increment, incrementByAmount } from '../store/slices/counterSlice'
 
@@ -198,24 +204,20 @@ export default function Counter() {
 }
 ```
 
+:::
+
 ## 4. RTK中间件架构 (Middleware) 与异步处理
 
-**核心痛点**：Reducer 必须是一个**纯函数**。它里面绝对不能包含任何 `setTimeout`、`fetch/axios` 异步请求或者修改 DOM 等副作用。
-那么，如果我点击按钮，需要先发一个 Ajax 请求拿到数据后，再去修改 State，这该怎么写？
-
-**这就是 Redux 中间件 (Middleware) 的存在意义。** 它在 Action 被 `dispatch` 出去，到达 `Reducer` 之前的这段半空中，把 Action 拦截下来做手脚。
-
-### 41 异步王者：Redux Thunk (RTK 默认内置)
+### 4.1 异步王者：Redux Thunk (RTK 默认内置)
 
 `redux-thunk` 中间件的逻辑极其简单粗暴：它允许你 dispatch 的不再是一个普通的 `{ type: '...' }` 对象，而是**允许你 dispatch 一个函数！**
 只要它发现你 dispatch 了一个函数，它就在半空中把它拦截下来并执行这个函数。
 
-```javascript
-// src/store/slices/userSlice.js
+```javascript [src/store/slices/userSlice.js]
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import axios from 'axios'
 
-// 🚀 核心：定义异步 Thunk
+// 核心：定义异步 Thunk
 // 参数1：Action 的 type 前缀
 // 参数2：一个包含异步请求的回调函数
 export const fetchUserById = createAsyncThunk(
@@ -232,7 +234,7 @@ export const userSlice = createSlice({
   initialState: { data: null, status: 'idle', error: null },
   reducers: {}, // 普通的同步 reducer 写这里
 
-  // 🚨 异步的 reducer 必须写在 extraReducers 里！
+  // 异步的 reducer 必须写在 extraReducers 里！
   // 因为异步过程被明确划分为了三个阶段：等待中、成功、失败
   extraReducers: builder => {
     builder
@@ -283,7 +285,7 @@ root.render(
 
 **用于从 Redux Store 状态树中提取你需要的数据。这是你最应该精通的 API。**
 
-- **特性**：它不仅负责取数据，还负责**订阅 (Subscribe)**。只要从这里提取的数据发生了变化，包含它的组件就会被强制重新渲染。
+**特性**：它不仅负责取数据，还负责**订阅 (Subscribe)**。只要从这里提取的数据发生了变化，包含它的组件就会被强制重新渲染。
 
 ```jsx
 import { useSelector, shallowEqual } from 'react-redux'
@@ -350,8 +352,6 @@ const store = createStore(
   applyMiddleware(thunk),
 )
 ```
-
-**`Store` 实例的四大方法**
 
 `createStore` 返回的 `store` 对象暴露出四个极其底层的方法，**它们甚至可以完全脱离 React 运行在任何 JS 环境中**。
 
@@ -457,7 +457,7 @@ RTK 是 Redux 官方为了拯救被全网吐槽“**配置反人类、样板代�
 
 - RTK 在 `createSlice` 内部深度集成了极其强大的 **Immer.js** 库。
 - 当你执行 `state.value += 1` 时，你操作的其实不是真正的原状态，而是 Immer 提供的一个 **Proxy 草稿 (Draft)**。等你的函数执行完，Immer 会自动帮你把草稿转化为一个符合不可变性原则的、全新的、包含新指针地址的 State 对象返回给 Redux。
-- **🚨 避坑死穴**：这种“**直接突变**”的魔法**仅且仅在 `createSlice` 的 reducer 内部有效**！如果你在 React 的 `useState` 或者自己手写的普通 Reducer 里这么干，页面还是会瞬间暴毙。
+- **避坑死穴**：这种“**直接突变**”的魔法**仅且仅在 `createSlice` 的 reducer 内部有效**！如果你在 React 的 `useState` 或者自己手写的普通 Reducer 里这么干，页面还是会瞬间暴毙。
 
 ```js
 const counterSlice = createSlice({
@@ -477,23 +477,24 @@ const counterSlice = createSlice({
 这是使用 Redux 时最最最经典的性能灾难。
 
 - **原因**：`useSelector` 在底层使用了严格的全等比较 (`===`) 来决定是否通知组件重渲染。
-- **灾难写法**：
-  ```jsx
-  // 每次 Redux 里的任何一点风吹草动引发全局 state 更新时，
-  // 这里的 map/filter 都会立刻执行并返回一个【全新内存地址】的数组！
-  // useSelector 发现新旧地址 !==，大喊一声“数据变了”，强行逼迫组件重渲染！
-  const activeUsers = useSelector(state => state.users.filter(u => u.active))
-  ```
+
+```jsx
+// 每次 Redux 里的任何一点风吹草动引发全局 state 更新时，
+// 这里的 map/filter 都会立刻执行并返回一个【全新内存地址】的数组！
+// useSelector 发现新旧地址 !==，大喊一声“数据变了”，强行逼迫组件重渲染！
+const activeUsers = useSelector(state => state.users.filter(u => u.active))
+```
+
 - **最佳实践 (Reselect)**：如果你需要从 state 中提取衍生数据（类似 Vue 的 computed），绝对不能在组件里现算。你必须使用 RTK 提供的 **`createSelector`** 编写一个带缓存 (Memoized) 的选择器。
 
-  ```javascript
-  import { createSelector } from '@reduxjs/toolkit'
+```javascript
+import { createSelector } from '@reduxjs/toolkit'
 
-  // 它会缓存上一次的结果，只要 users 数组不变，它永远返回同一个内存地址！
-  const selectActiveUsers = createSelector([state => state.users], users =>
-    users.filter(u => u.active),
-  )
-  ```
+// 它会缓存上一次的结果，只要 users 数组不变，它永远返回同一个内存地址！
+const selectActiveUsers = createSelector([state => state.users], users =>
+  users.filter(u => u.active),
+)
+```
 
 ### 7.4 Zustand 这么火，Redux 是不是要被淘汰了？
 

@@ -35,10 +35,9 @@ React 提供了一个极其简单的顶层 API 来实现传送门：**`createPor
 
 ### 2.1 基础实战：实现一个工业级的 Modal 组件
 
-**步骤 1：在 `index.html` 中预留坑位（目的地）**
-通常我们在 `id="root"` 旁边留一个专门的坑位，方便管理所有传送过来的漂浮物。
+:::code-group
 
-```html
+```html [index.html]
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
@@ -48,9 +47,7 @@ React 提供了一个极其简单的顶层 API 来实现传送门：**`createPor
 </body>
 ```
 
-**步骤 2：编写 Modal 传送门组件**
-
-```jsx
+```jsx [Modal.jsx]
 import { useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import './Modal.css' // 里面写 fixed 全屏样式
@@ -78,9 +75,7 @@ function Modal({ children, isOpen, onClose }) {
 export default Modal
 ```
 
-**步骤 3：在深层业务组件中随意召唤它**
-
-```jsx
+```jsx [DeepWidget.jsx]
 import { useState } from 'react'
 import Modal from './Modal'
 
@@ -105,11 +100,9 @@ export default function DeepWidget() {
 }
 ```
 
+:::
+
 ## 3. 高阶魔法：事件冒泡的神奇穿透
-
-这是 Portals 最伟大（也最令人迷惑）的设计。
-
-当组件的物理 DOM 被传送到几万光年外的 `body` 里时，如果你在这个弹窗里点击了一个按钮，**它的点击事件会冒泡到哪里？**
 
 按浏览器原生的物理法则，它会冒泡给 `body`。
 但 React 合成事件系统在此刻展现了神迹：**事件的冒泡，会严格遵循 React 组件树的“逻辑层级”，而不是 DOM 树的“物理层级”！**
@@ -160,8 +153,6 @@ export default function App() {
 
 ### 4.3 为什么页面报错 `Target container is not a DOM element`？
 
-这是使用 Portal 新手最常踩的时序坑。
-
 - **原因**：你传给 `createPortal` 的第二个参数（目标 DOM 节点）是 `null` 或 `undefined`。
 - **场景 1 (拼写错误)**：你用 `document.getElementById('modal-root')`，但是你的 `index.html` 里根本没写这个标签，或者拼写错了。
 - **场景 2 (SSR 服务端渲染)**：如果你使用的是 Next.js。在服务端渲染阶段，**Node.js 环境里根本没有 `document` 对象！** 如果组件在首次渲染时直接调用 `createPortal`，会当场崩溃。
@@ -177,7 +168,7 @@ function SafeModal({ children }) {
   useEffect(() => {
     // 这个 effect 只会在客户端浏览器环境中执行
     setMounted(true)
-    // 🚨 记得组件卸载时将 overflow 恢复，防止页面滚动条永久消失
+    // 记得组件卸载时将 overflow 恢复，防止页面滚动条永久消失
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = 'auto'
@@ -195,8 +186,6 @@ function SafeModal({ children }) {
 ```
 
 ### 4.4 为什么我不直接往 body 里写 `position: fixed`，还要费劲巴拉用 Portal？`fixed` 不也是脱离文档流吗？
-
-这是一个极其深刻的 CSS 面试题。
 
 - 很多人以为写了 `position: fixed`，元素就绝对相对浏览器视口定位了，就能无敌覆盖全屏。**错！**
 - **CSS 层叠上下文陷阱 (Stacking Context)**：一旦这个 `fixed` 元素的任何一个祖先节点设置了 `transform` (哪怕是 `transform: translate(0,0)`), `perspective`, `filter`，或者开启了硬件加速 (`will-change: transform`)，**这个原本该相对于视口的 `fixed` 元素，它的定位基准就会瞬间降级，强行变成了相对于那个加了特殊属性的祖先元素定位！**

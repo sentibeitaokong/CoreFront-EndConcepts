@@ -35,7 +35,7 @@ export default function FadeModal() {
 
       <CSSTransition
         in={show} // 控制生死的开关 (true 表示进入，false 表示离开)
-        timeout={500} // 🚨 绝对关键：告诉库这个动画将持续多久，到点必须强制拔除 DOM！
+        timeout={500} // 绝对关键：告诉库这个动画将持续多久，到点必须强制拔除 DOM！
         classNames="fade" // 决定了挂载的 CSS 类名前缀
         unmountOnExit // 离开动画播放完毕后，是否真的从物理 DOM 树中销毁该节点
         appear //渐入
@@ -54,11 +54,11 @@ export default function FadeModal() {
 }
 ```
 
-**配合极其严谨的 CSS 文件 (`fade.css`)：**
-
 `CSSTransition` 会在你指定的 `classNames` 前缀后，自动拼接以下生命周期后缀：
 
-```css
+:::code-group
+
+```css [fade.css]
 /* --- 1. 登场动画阶段 (Enter) --- */
 /* 起点：刚被插入 DOM 的第一帧 */
 .fade-enter {
@@ -94,6 +94,8 @@ export default function FadeModal() {
 /* 终点：由于我们配置了 unmountOnExit，所以 exit-done 通常可以不写，节点直接就没了 */
 ```
 
+:::
+
 ### 2.2 掌控两元素交替：`SwitchTransition`
 
 **痛点**：如果你有两个互斥的组件(比如“**登录**”和“**注册**”面板,或者一个不断被点击换数字的按钮),你想让旧的元素**先播完消失动画完全消失，新的元素再开始播入场动画**，防止两个元素同时出现在屏幕上导致页面排版撑爆。
@@ -111,7 +113,7 @@ export default function ModeToggle() {
     // mode="out-in": 旧的先出，新的再进。这是最符合人类直觉的模式！
     <SwitchTransition mode="out-in">
       <CSSTransition
-        // 🚨 核心魔法：SwitchTransition 监控的就是这个 key！
+        // 核心魔法：SwitchTransition 监控的就是这个 key！
         // 只要 key 变了，它就拦截旧节点的销毁，强行播一遍 leave 动画！
         key={isLoginMode ? 'login' : 'register'}
         timeout={300}
@@ -128,7 +130,7 @@ export default function ModeToggle() {
 
 ### 2.3 掌控海量列表：`TransitionGroup`
 
-当面临由 `.map()` 渲染出来的、随时会被插入和删除的**长列表（如 Todo List）**时,`in` 属性就废了(因为你不可能给列表里的一万条数据每人都配一个 `show` 状态变量)。
+当面临由 `.map()` 渲染出来的、随时会被插入和删除的 **长列表（如 Todo List）** 时,`in` 属性就废了(因为你不可能给列表里的一万条数据每人都配一个 `show` 状态变量)。
 
 `TransitionGroup` 会自动管理其内部所有子 `CSSTransition` 的 `in` 状态。只要检测到子元素被移除，它就会自动拦下，触发离场动画。
 
@@ -150,7 +152,7 @@ export default function TodoList() {
     // 渲染为一个原生的 <ul> 标签
     <TransitionGroup component="ul" className="todo-list">
       {items.map(({ id, text }) => (
-        // 🚨 铁律：在 Group 中，CSSTransition 必须绑定唯一的 key！
+        // 铁律：在 Group 中，CSSTransition 必须绑定唯一的 key！
         // 绝对不能自己写 in 属性了，Group 会接管生死大权。
         <CSSTransition key={id} timeout={500} classNames="fade">
           <li className="todo-item">
@@ -185,10 +187,8 @@ return (
 
 ### 3.2 为什么我的离开 (Exit) 动画死活不执行，元素瞬间就消失了？
 
-这是新手犯错率最高的坑，通常有两大元凶：
-
-1.  **没有配置 `unmountOnExit` 但又乱用了 `v-if` 的思维**：如果你在 `CSSTransition` 外面或者里面自己手写了 `{show && <div/>}`。当 `show` 变假时，React 直接连根拔起了整个 DOM 树，`CSSTransition` 根本来不及反应。**正确的做法是永远只改变 `in` 属性，并配上 `unmountOnExit`，让库自己去销毁 DOM。**
-2.  **CSS 权重被覆盖了**：你写的 `.fade-exit-active` 里面写了 `opacity: 0`，但你原来这个 `<div className="my-box">` 里写了死死的 `opacity: 1 !important` 或者拥有更高优先级的选择器。导致动画类名虽然挂上去了，但样式被覆盖了。
+- **没有配置 `unmountOnExit` 但又乱用了 `v-if` 的思维**：如果你在 `CSSTransition` 外面或者里面自己手写了 `{show && <div/>}`。当 `show` 变假时，React 直接连根拔起了整个 DOM 树，`CSSTransition` 根本来不及反应。**正确的做法是永远只改变 `in` 属性，并配上 `unmountOnExit`，让库自己去销毁 DOM。**
+- **CSS 权重被覆盖了**：你写的 `.fade-exit-active` 里面写了 `opacity: 0`，但你原来这个 `<div className="my-box">` 里写了死死的 `opacity: 1 !important` 或者拥有更高优先级的选择器。导致动画类名虽然挂上去了，但样式被覆盖了。
 
 ```jsx
 // 只改变 in，并交给 unmountOnExit 决定什么时候销毁 DOM

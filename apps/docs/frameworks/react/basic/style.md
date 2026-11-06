@@ -2,7 +2,7 @@
 outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# CSS 样式工程化(Styling in React)
+# CSS 样式工程化
 
 ## 1. 核心概念与痛点演进
 
@@ -11,8 +11,6 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 > **核心痛点 (全局污染)**：
 > 假设你有 `A.jsx` 和 `B.jsx` 两个独立的组件。你在 A 的同级目录下写了 `A.css`（里面有个 `.title { color: red }`），并在 `A.jsx` 里 `import './A.css'`。
 > **灾难发生了**：当应用运行时，Webpack/Vite 会把所有的 CSS 打包提取后扔到同一个页面的 `<head>` 里。此时 B 组件里如果恰好也有一个 `<h1 className="title">`，它会瞬间被染成红色！组件的样式被彻底污染了！
-
-为了解决这个问题，React 社区在长达十年的演进中，探索出了**四大主流流派**。掌握这四大流派，是现代前端工程化选型的重要指标。
 
 ## 2. 四大主流 CSS 架构流派实战
 
@@ -23,8 +21,9 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 - **适用场景**：重置浏览器默认样式（`reset.css`）、全局通用工具类、极小型的个人项目。
 - **致命缺陷**：没有物理隔离，极易打字拼写错误，维护极其痛苦。
 
-```jsx
-// src/components/Button.jsx
+:::code-group
+
+```jsx [src/components/Button.jsx]
 import './Button.css' // 这行代码本质上是把样式抛到了全局！
 
 export default function Button() {
@@ -32,6 +31,8 @@ export default function Button() {
   return <button className="my-app-btn my-app-btn--primary">Click</button>
 }
 ```
+
+:::
 
 ### 2.2 内联样式 (Inline Styles)
 
@@ -63,15 +64,16 @@ export default function DynamicBox() {
 }
 ```
 
-### 2.3 CSS Modules (局部作用域模块) 🌟
+### 2.3 CSS Modules (局部作用域模块)
 
 **目前企业级开发最主流、最稳妥的基础方案。** Vite 和 Webpack (通过 css-loader) 都原生内置了支持。
 
 - **核心原理**：你像平常一样写 CSS。但是在编译阶段，打包工具会自动把你的类名加上一串**随机的哈希值后缀**（比如 `.title` 变成 `.title_2a9d8`）。这样就算张三和李四在两个不同的文件里都写了 `.title`，编译后也不会冲突！
 - **使用规矩**：CSS 文件的命名必须是 **`[name].module.css`**。
 
-```css
-/* src/components/Card.module.css */
+:::code-group
+
+```css [src/components/Card.module.css]
 /* 安心写最简单的类名即可，完全不用担心冲突 */
 .container {
   padding: 20px;
@@ -83,9 +85,8 @@ export default function DynamicBox() {
 }
 ```
 
-```jsx
-// src/components/Card.jsx
-// 🚨 必须把它当成一个普通的 JS 对象导入 (这里命名为 styles)
+```jsx [src/components/Card.jsx]
+// 必须把它当成一个普通的 JS 对象导入 (这里命名为 styles)
 import styles from './Card.module.css'
 
 export default function Card() {
@@ -98,9 +99,9 @@ export default function Card() {
 }
 ```
 
-### 2.4 CSS-in-JS (以 Styled-Components 为代表)
+:::
 
-这是 React 社区独创的激进架构。它的理念是：“**既然组件是 JS 写的，为什么不把 CSS 也当成纯 JS 变量来管理呢？**”
+### 2.4 CSS-in-JS (以 Styled-Components 为代表)
 
 - **核心原理**：使用 ES6 的“**标签模板字符串**”语法。它会在运行时动态生成一串极长的、绝不重复的类名，并自动将样式注入到 `<head>` 的 `<style>` 标签中。
 - **优势**：样式和组件彻底物理绑定；支持极其强大的 JS 逻辑穿透（直接传 props 给 CSS）；天生防冲突。
@@ -145,7 +146,7 @@ export default function App() {
 如果不借助工具，你得手写极其恶心的字符串拼接或者模板字面量：
 
 ```jsx
-// 🤢 极其难看且容易漏掉空格
+// 极其难看且容易漏掉空格
 <div className={`btn ${isActive ? 'btn-active' : ''} ${isError ? 'btn-error' : ''}`}>
 ```
 
@@ -168,7 +169,7 @@ function SubmitButton({ isSubmit, hasError, size }) {
     'btn-error': hasError, // hasError 为 true 时加入
     [`btn-${size}`]: size, // 支持动态变量拼接
 
-    // 🔥 完美结合 CSS Modules：
+    // 完美结合 CSS Modules：
     [styles.container]: true,
     [styles.active]: isSubmit,
   })
@@ -184,13 +185,11 @@ function SubmitButton({ isSubmit, hasError, size }) {
 
 **极其好用，可以说是绝配，目前在海外 React 圈已成绝对统治地位。**
 
-- 在 Vue 中，因为有单文件组件（SFC）的 `<style scoped>` 保驾护航，大家对 Tailwind 的渴望没那么强烈。
+- 在 Vue 中，因为有单文件组件的`<style scoped>`保驾护航，大家对 Tailwind 的渴望没那么强烈。
 - 但在 React 中，为了解决样式隔离，你要么写繁琐的 `styles.xxx` (CSS Modules)，要么引入庞大且有运行时性能损耗的 `styled-components`。
-- **Tailwind CSS 的降维打击**：你不需要建任何单独的 CSS 文件，也不需要为元素起想破头皮的名字。直接在 `className` 里写 `flex items-center text-red-500`。配合 React 的极简组件拆分理念，开发效率直接起飞。这是目前架构师新起 React 项目时的首选方案。
+- **Tailwind CSS 的降维打击**：你不需要建任何单独的 CSS 文件，也不需要为元素起想破头皮的名字。直接在 `className` 里写 `flex items-center text-red-500`。配合 React 的极简组件拆分理念，开发效率直接起飞。
 
 ### 4.2 使用 CSS Modules 时，如果你在 CSS 里写了带中划线的类名（如 `.btn-primary`），在 JS 里怎么引？
-
-这是新手极其容易卡住的一个语法细节坑。
 
 - **现象**：在 `xxx.module.css` 里写了 `.btn-primary { ... }`。你在 JS 里如果写 `<div className={styles.btn-primary}>`，JS 引擎会直接报语法错误！因为它把 `-` 当成了减号运算符，试图用 `styles.btn` 去减去 `primary`！
 - **解法 1**：使用 JS 的方括号属性读取语法：`<div className={styles['btn-primary']}>`。
