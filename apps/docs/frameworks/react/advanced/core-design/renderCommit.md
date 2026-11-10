@@ -66,8 +66,8 @@ function performUnitOfWork(unitOfWork) {
   }
 
   // 没有子节点 → 开始"归"（completeWork）—— 向上回溯
-  completeUnitOfWork(unitOfWork)
-  return null // 由 completeUnitOfWork 内部决定下一个工作单元
+  // completeUnitOfWork 会返回下一个待处理节点（兄弟或 null）
+  return completeUnitOfWork(unitOfWork)
 }
 
 function completeUnitOfWork(unitOfWork) {
@@ -100,7 +100,7 @@ function workLoopSync() {
 
 // 并发渲染入口
 function workLoopConcurrent() {
-  while (workInProgress !== null && !shouldYieldToRenderer()) {
+  while (workInProgress !== null && !shouldYield()) {
     workInProgress = performUnitOfWork(workInProgress)
   }
 }
@@ -258,13 +258,20 @@ function completeWork(current, workInProgress, renderLanes) {
 **`bubbleProperties` 是 completeWork 的核心收尾工作**——它通过按位或（`|`）运算将整棵子树的副作用逐层向上聚合：
 
 ```javascript
-// bubbleProperties 的完整逻辑
+// bubbleProperties 的核心逻辑
 function bubbleProperties(completedWork) {
   let subtreeFlags = NoFlags
+  let newChildLanes = NoLanes
   let child = completedWork.child
 
   // 遍历当前节点的所有直接子节点
   while (child !== null) {
+    // 合并子节点及其子树的 lane，供后续 bailout / 调度判断
+    newChildLanes = mergeLanes(
+      newChildLanes,
+      mergeLanes(child.lanes, child.childLanes),
+    )
+
     // 合并子节点自身的副作用
     subtreeFlags |= child.flags
 
@@ -274,12 +281,13 @@ function bubbleProperties(completedWork) {
     child = child.sibling
   }
 
-  // 将聚合结果写入当前节点的 subtreeFlags
+  // 将聚合结果写入当前节点
   completedWork.subtreeFlags = subtreeFlags
+  completedWork.childLanes = newChildLanes
 }
 ```
 
-这个冒泡机制是**Commit 阶段性能的关键**。它使得 Commit 遍历时可以快速判断一个子树是否“**干净**”,决定子节点及后代是否可以跳过更新。
+这个冒泡机制是**Commit 阶段性能的关键**。它使得 Commit 遍历时可以快速判断一个子树是否“**干净**”，决定子节点及后代是否可以跳过更新；同时聚合出的 `childLanes` 也是后续 `beginWork` 判断子树是否还有工作的依据。
 
 ```markdown
           App (subtreeFlags = Update | Placement)
@@ -399,8 +407,8 @@ function commitRoot(
   // 5. 调度 Passive 阶段（异步 useEffect）
   //    通过 Scheduler 安排在下一次事件循环中执行
   if (
-    (finishedWork.subtreeFlags & Passive) !== NoFlags ||
-    (finishedWork.flags & Passive) !== NoFlags
+    (finishedWork.subtreeFlags & PassiveMask) !== NoFlags ||
+    (finishedWork.flags & PassiveMask) !== NoFlags
   ) {
     scheduleCallback(NormalPriority, () => {
       flushPassiveEffects()
@@ -597,27 +605,36 @@ function commitDeletion(root, fiberToDelete, parentFiber) {
 
 ### 3.5 Layout 阶段
 
-Layout 阶段发生在 Mutation 完成后、浏览器绘制前。与之前不同的是，它需要**正向遍历**（先父后子），因为 `useLayoutEffect` 的 setup 需要看到完整的 DOM 状态：
+Layout 阶段发生在 Mutation 完成后、浏览器绘制前。它的遍历顺序是**先递归子节点，再执行当前节点自身**，因此 `useLayoutEffect` 的 setup 和 `componentDidMount`/`componentDidUpdate` 都是**子先父后**——父组件的 effect 能读到子组件完成布局调整后的结果：
 
 ```javascript
 function commitLayoutEffects(finishedWork, root, committedLanes) {
   // 此时 root.current 已在上一步切换为 finishedWork
+  const current = finishedWork.alternate
+  commitLayoutEffectOnFiber(root, current, finishedWork, committedLanes)
+}
 
-  // 正向递归：先处理当前节点，再深入子节点
-  commitLayoutEffectOnFiber(root, finishedWork, committedLanes)
+function commitLayoutEffectOnFiber(
+  root,
+  current,
+  finishedWork,
+  committedLanes,
+) {
+  // 先递归子节点：useLayoutEffect / componentDidMount 都是子先父后
+  recursivelyTraverseLayoutEffects(root, finishedWork, committedLanes)
+
+  // 再执行当前节点自身的布局副作用
+  if (finishedWork.flags & LayoutMask) {
+    // useLayoutEffect 的 setup、componentDidMount/Update、ref 绑定
+  }
 }
 
 function recursivelyTraverseLayoutEffects(root, parentFiber, committedLanes) {
-  // 先处理当前节点自身
-  if (parentFiber.flags & LayoutMask) {
-    commitLayoutEffectOnFiber(root, parentFiber, committedLanes)
-  }
-
-  // 再深入子节点
   if (parentFiber.subtreeFlags & LayoutMask) {
     let child = parentFiber.child
     while (child !== null) {
-      recursivelyTraverseLayoutEffects(root, child, committedLanes)
+      const current = child.alternate
+      commitLayoutEffectOnFiber(root, current, child, committedLanes)
       child = child.sibling
     }
   }

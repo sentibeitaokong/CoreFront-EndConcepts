@@ -40,11 +40,11 @@ flowchart TD
 
 ### 2.2 Fiber 的解决思路
 
-Fiber 的核心理念是：**在用户态重新实现一套调用栈**——用可挂起、可恢复的链表循环，取代不可中断的原生递归。
+Fiber的核心理念是：**在用户态重新实现一套调用栈**用可挂起、可恢复的链表循环，取代不可中断的原生递归。
 
 - 将庞大的渲染工作分解为**工作单元（Unit of Work）**，每个 Fiber 节点就是一个工作单元。
 - 使用 `while` 循环处理工作单元，每个单元完成后**检查剩余时间**。
-- 时间不足时**暂停并保存进度**（保留 `workInProgress` 游标指针），利用宏任务让出主线程，让浏览器有机会渲染。
+- 时间不足时**暂停并保存进度**(保留`workInProgress`指针)，利用宏任务让出主线程，让浏览器有机会渲染。
 - 有更高优先级任务插队时，**安全地丢弃当前进度**，重新基于稳定的 `current` 树处理。
 
 ```mermaid
@@ -63,13 +63,13 @@ flowchart TD
 
 [width(15,33,52)]
 
-| 维度           | Stack Reconciler（React 15）                 | Fiber Reconciler（React 16+）                |
-| -------------- | -------------------------------------------- | -------------------------------------------- |
-| **遍历方式**   | 递归调用（引擎原生调用栈）                   | `while` 循环 + 链表指针模拟栈                |
-| **可中断性**   | 不可中断                                     | 可随时在任意工作单元边界中断和恢复           |
-| **上下文存储** | 封闭在原生栈帧中（不可序列化、无法强行丢弃） | Fiber 堆对象（可随时读取、序列化、丢弃重来） |
-| **优先级感知** | 无（众生平等，先到先得）                     | 引入 31 位 Lane 位运算模型，支持多优先级抢占 |
-| **并发模式**   | 不支持                                       | 支持（Concurrent React 的基础）              |
+| 维度           | Stack Reconciler（React 15）                 | Fiber Reconciler（React 16+）                      |
+| -------------- | -------------------------------------------- | -------------------------------------------------- |
+| **遍历方式**   | 递归调用（引擎原生调用栈）                   | `while` 循环 + 链表指针模拟栈                      |
+| **可中断性**   | 不可中断                                     | 可随时在任意工作单元边界中断和恢复                 |
+| **上下文存储** | 封闭在原生栈帧中（不可序列化、无法强行丢弃） | Fiber 堆对象（可随时读取、丢弃重来，但不可序列化） |
+| **优先级感知** | 无（众生平等，先到先得）                     | 引入 31 位 Lane 位运算模型，支持多优先级抢占       |
+| **并发模式**   | 不支持                                       | 支持（Concurrent React 的基础）                    |
 
 ## 3. Fiber 在 React 架构中的位置
 
@@ -158,22 +158,23 @@ Fiber.childLanes → 子树中的更新优先级（用于快速判定子树是�
 
 每个 Fiber 节点通过 `tag` 字段标识自己的“**身份**”，Reconciler 在 `beginWork` / `completeWork` 中根据 `tag` 进入**完全不同的处理分支**：
 
-[width(11,31,20,38)]
+[width(11,25,22,42)]
 
-| tag 值 | 常量                                  | 含义                          | 处理方式                                     |
-| ------ | ------------------------------------- | ----------------------------- | -------------------------------------------- |
-| 0      | `FunctionComponent`                   | 函数组件                      | 调用函数，返回子 Element                     |
-| 1      | `ClassComponent`                      | Class 组件                    | 实例化 / 更新实例，调用 `render()`           |
-| 2      | `IndeterminateComponent`              | 尚未确定是 FC 还是 Class      | 首次渲染时判定身份后“**转正**”               |
-| 3      | `HostRoot`                            | 应用根节点                    | 协调的起点，`stateNode` 指向 `FiberRootNode` |
-| 4      | `HostPortal`                          | Portal 入口                   | 渲染到指定容器（如 `document.body`）         |
-| 5      | `HostComponent`                       | 原生 DOM 元素                 | 创建 / 更新真实 DOM 节点                     |
-| 6      | `HostText`                            | 文本节点                      | 创建 / 更新文本                              |
-| 7      | `Fragment`                            | 片段                          | 透传 children，不产生宿主实体                |
-| 9 / 10 | `ContextConsumer` / `ContextProvider` | Context 消费 / 提供           | 处理 context 值的传递                        |
-| 11     | `ForwardRef`                          | `React.forwardRef` 包裹的组件 | 透传 `ref`                                   |
-| 13     | `SuspenseComponent`                   | Suspense 边界                 | 处理 `throw Promise` 的挂起与 fallback       |
-| 14     | `MemoComponent`                       | `React.memo` 包裹的组件       | 在协调前先做 props 浅比较                    |
+| tag 值 | 常量                                  | 含义                            | 处理方式                                                       |
+| ------ | ------------------------------------- | ------------------------------- | -------------------------------------------------------------- |
+| 0      | `FunctionComponent`                   | 函数组件                        | 调用函数，返回子 Element                                       |
+| 1      | `ClassComponent`                      | Class 组件                      | 实例化 / 更新实例，调用 `render()`                             |
+| 2      | `IndeterminateComponent`              | 尚未确定是 FC 还是 Class        | 首次渲染时判定身份后“**转正**”                                 |
+| 3      | `HostRoot`                            | 应用根节点                      | 协调的起点，`stateNode` 指向 `FiberRootNode`                   |
+| 4      | `HostPortal`                          | Portal 入口                     | 渲染到指定容器（如 `document.body`）                           |
+| 5      | `HostComponent`                       | 原生 DOM 元素                   | 创建 / 更新真实 DOM 节点                                       |
+| 6      | `HostText`                            | 文本节点                        | 创建 / 更新文本                                                |
+| 7      | `Fragment`                            | 片段                            | 透传 children，不产生宿主实体                                  |
+| 9 / 10 | `ContextConsumer` / `ContextProvider` | Context 消费 / 提供             | 处理 context 值的传递                                          |
+| 11     | `ForwardRef`                          | `React.forwardRef` 包裹的组件   | 透传 `ref`                                                     |
+| 13     | `SuspenseComponent`                   | Suspense 边界                   | 处理 `throw Promise` 的挂起与 fallback                         |
+| 14     | `MemoComponent`                       | `React.memo` 包裹的非纯函数组件 | 处理 `memo(forwardRef)` / `memo(class)`，协调前做 props 浅比较 |
+| 15     | `SimpleMemoComponent`                 | `React.memo` 包裹的纯函数组件   | 挂载时从 `MemoComponent` 转正，省掉一层 Fiber，直接浅比较      |
 
 关键认知：**`tag` 是 Fiber 的“多态分发键”**。Reconciler 通过 `switch (fiber.tag)` 把同一个 `beginWork` 函数分发到数十个互不相同的更新逻辑中——函数组件执行函数、Class 组件更新实例、原生元素操作 DOM。
 
@@ -204,13 +205,13 @@ flowchart LR
 
 ### 6.2 极致的内存复用策略
 
-React 极力避免在每次更新时创建成千上万个新的 Fiber 对象（这会导致严重的 GC 抖动）。当状态更新触发时：
+React 极力避免在每次更新时创建成千上万个新的Fiber对象(这会导致严重的 GC 抖动)。当状态更新触发时：
 
 - 状态更新触发，React 基于 `current` 树创建 `workInProgress` 树。
 - 它会检查 `current.alternate` 是否存在。
 - **如果不存在**（首次更新）：创建一个全新的 Fiber 节点，并将两者的 `alternate` 互相指向对方。
 - **如果存在**（后续更新）：**直接复用**这个 alternate 对象，仅重置其身上的 `flags`、`pendingProps` 等属性，作为本次的 WIP 节点，在 workInProgress 树上执行协调（`diffing`），计算变更。
-- Commit 阶段完成后，全局对象 `FiberRootNode` 的 `current` 指针切换到 `workInProgress` 树，`workInProgress` 树瞬间成为新的 `current` 树，旧树则沦为下一次更新的复用池。
+- Commit 阶段的 Mutation 完成后（Layout 之前），全局对象 `FiberRootNode` 的 `current` 指针切换到 `workInProgress` 树，`workInProgress` 树瞬间成为新的 `current` 树，旧树则沦为下一次更新的复用池。
 
 ### 6.3 FiberRootNode 与 HostRootFiber
 
@@ -238,7 +239,7 @@ FiberRootNode（全局唯一）
 │ ├── stateNode → FiberRootNode（指回）
 │ └── alternate → workInProgress 树的根 Fiber
 │
-└── 调度信息（pendingLanes、expirationTimes 等）
+└── 调度信息（pendingLanes、suspendedLanes、pingedLanes、expiredLanes、entangledLanes 等）
 ```
 
 :::
@@ -249,7 +250,7 @@ FiberRootNode（全局唯一）
 
 ### 7.1 遍历过程与方向
 
-Fiber 的遍历采用的是深度优先搜索（DFS），分为“**递**”（`beginWork`）和“**归**”（`completeWork`）两个严格的阶段：
+Fiber 的遍历采用的是深度优先搜索，分为“**递**”（`beginWork`）和“**归**”（`completeWork`）两个严格的阶段：
 
 ```mermaid
 flowchart TD
@@ -283,14 +284,14 @@ React 的并发循环核心由一个简单的 `while` 循环控制：
 // React 源码中的并发工作循环
 function workLoopConcurrent() {
   // 当还有任务，且调度器没有要求让出主线程时
-  while (workInProgress !== null && !shouldYieldToRenderer()) {
+  while (workInProgress !== null && !shouldYield()) {
     workInProgress = performUnitOfWork(workInProgress)
   }
 }
 ```
 
 - **`workInProgress` 指针**：一个全局变量，永远指向当前正在处理的 Fiber。
-- **`shouldYieldToRenderer`**：基于时间切片。调度器通常给每个宏任务分配 **5ms** 的时间（基于 `performance.now()` 计算）。时间耗尽则返回 `true`，打破循环。
+- **`shouldYield`**：基于时间切片。调度器通常给每个宏任务分配 **5ms** 的时间（基于 `performance.now()` 计算）。时间耗尽则返回 `true`，打破循环。
 - **中断恢复**：循环被打破后，`workInProgress` 依然保留着当前的节点引用。当下一个宏任务（通过 `MessageChannel` 发起）被浏览器调度时，直接从这个指针继续 `performUnitOfWork`，实现了无缝恢复。
 
 ## 8. 副作用标记与子树跳过
@@ -345,9 +346,10 @@ Bailout（提前退出）是 Fiber 架构在性能上的“**杀手锏**”：�
 React 在 `beginWork` 阶段对每个 Fiber 做一次“**是否需要工作**”的快速判断，以下条件**同时满足**即可 bailout：
 
 - `oldProps === newProps`（props 引用未变）
-- `oldState === newState`（state 引用未变）
-- `hasContextChanged() === false`（相关 context 未变）
-- 当前 Fiber 及其子树没有挂起的 `lanes`（`childLanes` 与本次 `renderLanes` 无交集）
+- `hasLegacyContextChanged() === false`（相关 context 未变）
+- 当前 Fiber 自身没有挂起的 `lanes`（`fiber.lanes` 与本次 `renderLanes` 无交集）
+
+这里看的是 `fiber.lanes` 而不是 `childLanes`：`childLanes` 只用于 `bailoutOnAlreadyFinishedWork` 判断“子树里还有没有工作”。函数组件也没有 `oldState === newState` 这一条——state 更新同样记录在 `lanes` 和更新队列里。
 
 ### 9.2 架构如何让 Bailout 廉价化
 
@@ -355,9 +357,9 @@ Fiber 的字段设计，让 bailout 的判断成本趋近于 O(1)：
 
 - `memoizedProps` / `memoizedState` 直接持有上一次渲染的引用，`===` 比较零成本。
 - `childLanes` 记录了“**子树是否有更新**”，无需深入即可知道子树是否干净。
-- 一旦命中 bailout，`bailoutOnAlreadyFinishedWork` 会把整棵子树**原样复用**（引用都指向旧 Fiber），跳过所有子节点的组件函数执行与 Diff。
+- 一旦命中 bailout，`bailoutOnAlreadyFinishedWork` 会先检查 `childLanes`：子树也没有工作时直接返回 `null`，整棵子树被跳过、不克隆任何子 Fiber；只有子树还有工作时才 `cloneChildFibers` 新建子 Fiber 继续协调。
 
-关键认知：**bailout 是 `React.memo`、`useMemo`、`useCallback`、以及 React Compiler 自动记忆化最终共同通向的同一个出口**——所有这些优化的本质，都是让 props / state 的引用保持稳定，从而命中 bailout。这正是 [React 编译器](./compiler.md) 自动插入的缓存逻辑最终能在运行期“**零成本生效**”的原因。
+关键认知：**`React.memo` 和 React Compiler 的自动记忆化最终通向同一个 bailout 出口**——它们比较 props 引用，引用不变就跳过子树。`useMemo` / `useCallback` 本身不会触发 bailout，它们只是让值或函数的引用保持稳定，从而让下游的 `React.memo` 组件命中 bailout。这正是 [React 编译器](./compiler.md) 自动插入的缓存逻辑能在运行期“**零成本生效**”的原因。
 
 ## 10. 调度与优先级集成
 
@@ -383,11 +385,11 @@ Fiber 是一切并发特性的基石。没有 Fiber 构建的可中断底层引�
 
 ## 12. 总结
 
-- **Fiber 是一次运行时引擎的重构**：它将不可控的 JS 引擎栈，降维成了用户态可完全掌控的 `while` 循环状态机。
+- **Fiber是一次运行时引擎的重构**:它将不可控的JS引擎栈，降维成了用户态可完全掌控的`while`循环状态机。
 - **三指针链表是破局关键**：`child` / `sibling` / `return` 让遍历路径本身成为了断点恢复的信息，无需额外存储调用栈。
 - **双缓冲 (`current` / `workInProgress` + `alternate`)** 保证了 UI 的一致性、实现了极低开销的内存复用，并且是并发模式下打断、废弃、重试的安全保障。
 - **副作用隔离与冒泡 (`flags` + `subtreeFlags`)** 将计算和突变严格分离，使得 Commit 阶段的真实 DOM 手术快如闪电。
 - **`tag` 是 Fiber 的多态分发键**：通过 WorkTag 把同一个协调流程分发到函数组件、Class 组件、原生元素等数十种迥异的更新逻辑中。
-- **Bailout 是所有性能优化的共同归宿**：`React.memo`、`useMemo`、`useCallback` 乃至 React Compiler 的自动记忆化，最终都通过“**引用稳定 → 命中 bailout**”来跳过无用渲染。
+- **Bailout 是组件级跳过渲染的共同归宿**：`React.memo` 与 React Compiler 的自动记忆化都通过“**props 引用稳定 → 命中 bailout**”跳过子树；`useMemo` / `useCallback` 负责让上游值保持稳定，本身不触发 bailout。
 - **Scheduler + MessageChannel + Min-Heap** 构筑了微秒级的时间切片防线，彻底告别了 16.6ms 掉帧的黑暗时代。
 - **Fiber 是并发 React 的基石**：Suspense、Transitions、Offscreen、选择性水合等高级特性均为 Fiber 架构能力的延伸。

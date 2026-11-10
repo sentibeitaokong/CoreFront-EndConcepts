@@ -375,21 +375,21 @@ function Timer() {
 }
 ```
 
-配合官方的 **`eslint-plugin-react-compiler`**，开发者可以在编码阶段就发现这些违规，而不是等到运行时才暴露问题。
+配合官方的 **`eslint-plugin-react-hooks`**（v6+ 已内置编译器规则），开发者可以在编码阶段就发现这些违规，而不是等到运行时才暴露问题。
 
 ### 3.8 现状与接入方式
 
 React Compiler（前身 React Forget）自 2021 年 React Conf 首次亮相以来，历经多年研发，于 2024 年开源，目前 `babel-plugin-react-compiler` 已发布 **1.x 稳定版本**。
 
-[width(37,63)]
+[width(41,59)]
 
-| 组件                           | 作用                                               |
-| ------------------------------ | -------------------------------------------------- |
-| `babel-plugin-react-compiler`  | 编译期核心：在 Babel 管线中执行 SSA 分析与代码重写 |
-| `eslint-plugin-react-compiler` | 静态校验 Rules of React，提前暴露违规代码          |
-| `react/compiler-runtime`       | 提供 `_c`（`useMemoCache`）等运行时缓存原语        |
+| 组件                               | 作用                                                           |
+| ---------------------------------- | -------------------------------------------------------------- |
+| `babel-plugin-react-compiler`      | 编译期核心：在 Babel 管线中执行 SSA 分析与代码重写             |
+| `eslint-plugin-react-hooks`（v6+） | 静态校验 Rules of React；编译器规则已并入 `recommended-latest` |
+| `react/compiler-runtime`           | 提供 `_c`（`useMemoCache`）等运行时缓存原语                    |
 
-- **依赖**：需要 React 19+，因为编译产物依赖新的运行时与 Hook 语义。
+- **依赖**：推荐 React 19+；React 17/18 也可使用，但需要额外安装 `react-compiler-runtime`，并通过 `target: '17' | '18'` 指定产物目标。
 - **接入方式**：通过 Babel 插件，或在框架层一键开启（Next.js、Vite 的 `@vitejs/plugin-react` 等）。
 
 ```javascript

@@ -89,8 +89,6 @@ export function reconcileChildren(
 | `string` / `number`              | `reconcileSingleTextNode` | 单个文本节点               |
 | `null` / `undefined` / `boolean` | `deleteRemainingChildren` | 空内容，删除所有旧子节点   |
 
-关键认知：“**单个还是多个**”是分岔的第一层——单节点（匹配即停）与多节点（两轮遍历 + key 映射）是完全不同的两套逻辑。
-
 ## 4. 单节点的协调（reconcileSingleElement）
 
 新 child 是单个 Element 时，从头扫描旧子节点链表，按 `key` 和 `type` 决定复用还是重建：
@@ -326,12 +324,12 @@ flowchart TD
 - **第一轮 `updateSlot`**：新旧位置也相同（公共前缀），无需 key 查找。
 - **第二轮 `updateFromMap`**：位置不同，通过 key 从 `Map` 中定位旧节点。
 
-两者最终都落到 `updateElement`，核心是 `useFiber`——复用旧 Fiber 对象，仅更新 `pendingProps`，`alternate` 指向旧节点：
+两者最终都落到 `updateElement`，核心是 `useFiber`（内部调用 `createWorkInProgress`）——复用 `current.alternate`，仅更新 `pendingProps`，新 Fiber 的 `alternate` 指回 `current`：
 
 ```javascript
 function updateElement(returnFiber, current, element, lanes) {
   if (current !== null && current.elementType === element.type) {
-    return useFiber(current, element.props) // 复用旧 Fiber，仅更新 props
+    return useFiber(current, element.props) // 复用 current.alternate，仅更新 props
   }
   return createFiberFromElement(element, returnFiber.mode, lanes) // type 不同 → 新建
 }
@@ -455,7 +453,7 @@ function placeChild(newFiber, lastPlacedIndex, newIndex) {
 // key="b" 保持不变：span 复用
 ```
 
-关键认知：**替换等价于删除 + 新增，代价最高**。因为 type 变了，React 必须销毁旧 DOM 及其整棵子树，重新创建——这会导致组件实例被卸载、内部 state 丢失。这也是 [假设 1](#21-类型不同的元素会产生不同的树) 在列表场景的直接体现。
+关键认知：**替换等价于删除 + 新增，代价最高**。因为 type 变了，React 必须销毁旧 DOM 及其整棵子树，重新创建——这会导致组件实例被卸载、内部 state 丢失。
 
 ### 6.7 无 key 节点的身份陷阱
 
@@ -477,7 +475,7 @@ function mapRemainingChildren(returnFiber, currentFirstChild) {
 }
 ```
 
-关键认知：**无 key 的节点在 Map 中以 `index` 为键**——身份完全由位置决定。一旦增删导致 index 错位，内容就会错配到错误的 Fiber 上，这正是“**不能用 index 当 key**”的底层原因（详见 [7.2](#72-为什么不能用-index-作为-key)）。
+关键认知：**无 key 的节点在 Map 中以 `index` 为键**——这是第二轮遍历做“**按位置匹配**”的内部实现，和用户显式写 `key={index}` 不是一回事：后者走的是 key 匹配（`key` 会被字符串化），而不是这个 Map 分支。用户不能用 index 当 key，是因为 index 会随增删变化，让同一个 key 对到不同位置的元素，导致身份错配、state 串位。
 
 ## 7. key 的重要性
 
@@ -543,7 +541,7 @@ React 只在 `reconcileChildrenArray` 的 `Map` 里匹配同一父节点下的�
 
 ### 7.5 key 决定组件身份
 
-key 是 React 判断组件“**身份**”的依据——**即使 `type` 相同，key 不同也会导致组件卸载重建，内部 state 丢失**：
+key 是React判断组件“**身份**”的依据——**即使`type`相同，key不同也会导致组件卸载重建，内部 state 丢失**：
 
 ```jsx
 // 用 key 强制重置组件 state 的经典技巧
@@ -598,10 +596,10 @@ key 的稳定性直接决定列表协调的质量：稳定 key 让增删只影�
 React 18+ 用 Lane 表示更新优先级，高优先级可打断低优先级的协调（避免低优更新阻塞交互）：
 
 ```markdown
-SyncLane: 0b0000000000000000000000000000001 // 同步更新
-InputLane: 0b0000000000000000000000000001000 // 用户输入
-DefaultLane: 0b0000000000000000000000000100000 // 默认优先级
-IdleLane: 0b0100000000000000000000000000000 // 空闲时执行
+SyncLane: 0b0000000000000000000000000000001 // 1：同步更新
+InputContinuousLane: 0b0000000000000000000000000000100 // 4：连续事件
+DefaultLane: 0b0000000000000000000000000010000 // 16：默认优先级
+IdleLane: 0b0100000000000000000000000000000 // 2^29：空闲时执行
 ```
 
 ## 9. 协调的完整流程

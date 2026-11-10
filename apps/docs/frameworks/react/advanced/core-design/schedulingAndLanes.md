@@ -11,7 +11,7 @@ React 的并发渲染**不是多线程**，而是将 Render 阶段拆分为可�
 | **Lane 模型**        | 在协调器内部表示更新的优先级，可组合、可跳过、可重放 | `react-reconciler` |
 | **Scheduler 优先级** | 调度 JavaScript 回调的紧急程度，控制何时执行         | `scheduler` 包     |
 
-它们相关但不是同一个枚举。React 先通过 Lane 选择要处理的更新批次，再把对应工作映射为 Scheduler 任务。
+它们相关但不是同一个枚举。React先通过Lane选择要处理的更新批次，再把对应工作映射为Scheduler任务。
 
 ## 2. Lane 模型详解
 
@@ -27,46 +27,49 @@ React 18 引入的 **Lane 模型**使用二进制位掩码，从根本上解决�
 
 ### 2.2 核心概念
 
-```javascript
-// Lane 使用 31 位二进制表示
+```typescript
+// Lane 使用 31 位二进制表示（bit 0..30）
 // 不同的位代表不同类型的更新
 const TotalLanes = 31
 
-const NoLanes: Lane =    0b0000000000000000000000000000000
-const SyncLane: Lane =   0b0000000000000000000000000000001   // 1
-const InputLane: Lane =  0b0000000000000000000000000001000   // 8
-const DefaultLane: Lane = 0b0000000000000000000000000100000  // 32
-const IdleLane: Lane =   0b0100000000000000000000000000000   // 2^30
+const NoLanes: Lane = 0b0000000000000000000000000000000
+const SyncLane: Lane = 0b0000000000000000000000000000001 // 1
+const InputContinuousLane: Lane = 0b0000000000000000000000000000100 // 4
+const DefaultLane: Lane = 0b0000000000000000000000000010000 // 16
+const IdleLane: Lane = 0b0100000000000000000000000000000 // 2^29
+const OffscreenLane: Lane = 0b1000000000000000000000000000000 // 2^30
 ```
 
 ### 2.3 主要 Lane 类型
 
-[width(28,18,35,19)]
+[width(28,16,43,13)]
 
-| Lane                  | 数值范围   | 触发场景                                   | 优先级         |
-| --------------------- | ---------- | ------------------------------------------ | -------------- |
-| `SyncLane`            | 1          | 同步更新（`flushSync`、`ReactDOM.render`） | 最高           |
-| `InputContinuousLane` | ~8-64      | 用户连续输入（拖拽、滚动）                 | 高             |
-| `DefaultLane`         | ~32-256    | 普通 setState（非 Transition）             | 中             |
-| `TransitionLanes`     | ~512-2^20  | `startTransition` 标记的更新               | 低（可被打断） |
-| `RetryLanes`          | ~2^22-2^25 | Suspense 重试                              | 低             |
-| `IdleLane`            | 2^30       | 空闲时执行的更新                           | 最低           |
-| `OffscreenLane`       | 2^31       | 离屏渲染                                   | 特殊           |
+| Lane                  | 数值范围  | 触发场景                             | 优先级         |
+| --------------------- | --------- | ------------------------------------ | -------------- |
+| `SyncLane`            | 1         | 同步更新（`flushSync`、legacy root） | 最高           |
+| `InputContinuousLane` | 4         | 连续交互（拖拽、滚动、`mousemove`）  | 高             |
+| `DefaultLane`         | 16        | 普通 setState（非 Transition）       | 中             |
+| `TransitionLanes`     | 64~2^21   | `startTransition` 标记的更新         | 低（可被打断） |
+| `RetryLanes`          | 2^22~2^26 | Suspense 重试                        | 低             |
+| `IdleLane`            | 2^29      | 空闲时执行的更新                     | 最低           |
+| `OffscreenLane`       | 2^30      | 离屏渲染                             | 特殊           |
 
 ### 2.4 Lane 的位运算操作
 
 ```javascript
 // 在 Fiber 上合并多个 Lane
-fiber.lanes |= updateLane          // 添加一个更新
-childLanes |= subtreeLane          // 合并子树的 Lane
+fiber.lanes |= updateLane // 添加一个更新
+childLanes |= subtreeLane // 合并子树的 Lane
 
 // 判断和提取
-if (lanes & SyncLane)              // 是否包含同步更新
-const nextLane = getHighestPriorityLane(lanes)  // 取最高优先级的 Lane
+const includesSync = (lanes & SyncLane) !== NoLanes // 是否包含同步更新
+const nextLane = getHighestPriorityLane(lanes) // 取最高优先级的 Lane
 
-// 删除和跳过
-lanes &= ~completedLane            // 移除已完成的 Lane
-const remaining = lanes & ~entangledLanes       // 跳过纠缠的 Lane
+// 删除
+lanes &= ~completedLane // 移除已完成的 Lane
+
+// 纠缠：把纠缠的 Lane 一并纳入本次处理
+nextLanes |= entanglements[index] // 不是跳过，而是合并
 
 // 检查子节点是否有待处理工作
 const includesSomeLane = (childLanes & renderLanes) !== NoLanes
@@ -81,13 +84,27 @@ const includesSomeLane = (childLanes & renderLanes) !== NoLanes
 Scheduler 将 Lane 映射为自己的 5 级优先级：
 
 ```javascript
-// Lane → Scheduler 优先级的映射
-function lanesToSchedulerPriority(lanes) {
-  const lane = getHighestPriorityLane(lanes)
-  if (lane & SyncLane) return ImmediatePriority
-  if (lane & InputContinuousLane) return UserBlockingPriority
-  if (lane & DefaultLane) return NormalPriority
-  // ... 依此类推
+// Lane 与「事件优先级」共用同一组位：
+const DiscreteEventPriority = SyncLane
+const ContinuousEventPriority = InputContinuousLane
+const DefaultEventPriority = DefaultLane
+const IdleEventPriority = IdleLane
+
+// ensureRootIsScheduled 再把事件优先级映射为 Scheduler 优先级。
+// 注意：SyncLane 的同步更新走 scheduleSyncCallback（微任务），不经过 Scheduler。
+switch (lanesToEventPriority(nextLanes)) {
+  case DiscreteEventPriority:
+    schedulerPriorityLevel = ImmediateSchedulerPriority
+    break
+  case ContinuousEventPriority:
+    schedulerPriorityLevel = UserBlockingSchedulerPriority
+    break
+  case DefaultEventPriority:
+    schedulerPriorityLevel = NormalSchedulerPriority
+    break
+  case IdleEventPriority:
+    schedulerPriorityLevel = IdleSchedulerPriority
+    break
 }
 ```
 
@@ -149,12 +166,13 @@ function workLoop(hasTimeRemaining, initialTime) {
 
 ### 4.1 离散事件 vs 连续事件
 
-```javascript
-// 点击事件 → 高优先级（SyncLane 或 InputDiscreteLane）
-<button onClick={() => setCount(c => c + 1)}>
+```markdown
+// 点击 / 文本输入（onChange 底层是原生 input 事件）→ 离散事件 → SyncLane
+// <button onClick={() => setCount(c => c + 1)} />
+// <input onChange={e => setText(e.target.value)} />
 
-// 输入事件 → 连续输入优先级（InputContinuousLane）
-<input onChange={e => setText(e.target.value)}>
+// 连续事件（拖拽、滚动、mousemove）→ InputContinuousLane
+// <div onMouseMove={handleMove} onScroll={handleScroll} />
 ```
 
 离散事件（点击、按键）比连续事件（拖拽、滚动）拥有更高的默认优先级。
@@ -207,20 +225,20 @@ function SearchPage({ query }) {
 }
 ```
 
-`useDeferredValue` 本质上将值的更新标记为 Transition Lane，让 React 可以在后台准备新值的同时保持 UI 可交互。
+`useDeferredValue` 通过 `requestDeferredLane()` 为延迟值请求一条低优先级 lane（存在 Transition 时可复用 Transition Lane，否则使用更低优先级的 deferred lane），让 React 在后台准备新值的同时保持 UI 可交互。它与 `startTransition` 的区别是：后者包裹一次更新，前者只延迟这个值本身。
 
 ## 5. Lane 的纠缠（Entanglement）与合并（Batching）
 
 ### 5.1 Lane 纠缠
 
-当不同类型的更新相互依赖时，它们的 Lane 会被“**纠缠**”在一起：
+当多个更新必须一起处理时，它们的 Lane 会被“**纠缠**”在一起：
 
 ```javascript
-// 例如：Suspense 重试与 Transition 之间的纠缠
-// 如果一个组件同时触发了 Transition 和 Suspense 重试，
-// 这两个 Lane 会被纠缠，确保它们在同一批次中处理
+// 同一批 Transition 更新共享同一组 Lane
+// entangleTransitions 把本次 transition lane 并入 root 已纠缠的 Lane 集合，
+// 确保它们在同一批次中一起处理（不是和 Suspense 重试固定配对）
 function entangleTransitions(root, fiber, lane) {
-  // 将相关 Lane 合并到一起处理
+  // 将本次 transition lane 并入 root.entangledLanes
 }
 ```
 

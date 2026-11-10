@@ -1,4 +1,4 @@
-# Suspense、Offscreen 与 Hydration：并发特性
+# Suspense、Activity 与 Hydration：并发特性
 
 ## 1. Suspense：声明式异步 UI
 
@@ -23,7 +23,7 @@ function ProfilePage() {
 
 ### 1.2 核心机制：Thenable 抛出
 
-Suspense 的核心机制基于一个“**反直觉**”的模式——**在 Render 中抛出 Promise**：
+Suspense 的核心机制基于一个“**反直觉**”的模式——**在 Render 中抛出 thenable（通常是 Promise）**：
 
 ```javascript
 // Suspense 的内部工作流程（简化）
@@ -31,13 +31,17 @@ function renderWithSuspense(Component) {
   try {
     return Component() // 执行组件，可能抛出 thenable
   } catch (thrownValue) {
-    if (thrownValue instanceof Promise) {
+    if (
+      thrownValue !== null &&
+      typeof thrownValue === 'object' &&
+      typeof thrownValue.then === 'function'
+    ) {
       // 1. 标记当前工作为"挂起"
       // 2. 沿 Fiber 树向上查找最近的 Suspense 边界
       const boundary = findNearestSuspenseBoundary()
       // 3. 显示 fallback
       showFallback(boundary)
-      // 4. Promise resolve 后，以合适的 Lane 重试 Render
+      // 4. thenable resolve 后，以合适的 Lane 重试 Render
       thrownValue.then(() => {
         retryRender(boundary)
       })
@@ -53,12 +57,12 @@ function renderWithSuspense(Component) {
 flowchart TD
     Render[组件 Render] --> Try{执行中抛出值?}
     Try -->|正常返回| Done[渲染完成]
-    Try -->|抛出 Promise| Suspend[标记挂起]
+    Try -->|抛出 thenable| Suspend[标记挂起]
     Suspend --> Find[查找最近<br/>Suspense 边界]
     Find --> Fallback[显示 fallback UI]
-    Suspend --> Wait[Promise pending...]
+    Suspend --> Wait[thenable pending...]
     Fallback --> Wait
-    Wait --> Resolve[Promise resolve]
+    Wait --> Resolve[thenable resolve]
     Resolve --> Retry[以 Retry Lane<br/>重新 Render]
     Retry --> Render
     Try -->|抛出 Error| ErrorB[Error Boundary<br/>处理错误]
@@ -66,7 +70,7 @@ flowchart TD
 
 ### 1.3 Suspense 的数据源
 
-Suspense 本身不规定数据的来源。任何能在 Render 中抛出 Promise 的机制都可以与 Suspense 集成：
+Suspense 本身不规定数据的来源。任何能在 Render 中抛出 thenable 的机制都可以与 Suspense 集成：
 
 [width(31,69)]
 
@@ -136,50 +140,52 @@ function App() {
 
 不使用 Transition 时，切换 tab 会导致 Suspense 立即显示 fallback，覆盖掉当前内容，造成布局跳动。
 
-## 2. Offscreen：保留隐藏的子树
+## 2. Activity（原 Offscreen）：保留隐藏的子树
 
 ### 2.1 概念
 
-Offscreen 允许 React 保留一棵暂时**隐藏但不卸载**的组件树，其状态和部分资源在隐藏期间继续保持：
+React 19.2 起，这个能力以 `<Activity>` 的稳定 API 提供（在此之前是实验性的 Offscreen）。它允许 React 保留一棵暂时**隐藏但不卸载**的组件树，其状态在隐藏期间继续保留：
 
-```jsx
-// 概念性 API（React 18+ 实验性，未来将稳定）
-<Offscreen mode="visible">
+```text
+<Activity mode="visible">
   <TabPanel>Tab 1 Content</TabPanel>
-</Offscreen>
-<Offscreen mode="hidden">
+</Activity>
+<Activity mode="hidden">
   <TabPanel>Tab 2 Content</TabPanel>
-</Offscreen>
+</Activity>
 ```
 
 ### 2.2 与卸载的区别
 
 [width(16,25,59)]
 
-|                | 卸载（Unmount）      | Offscreen（隐藏）      |
-| -------------- | -------------------- | ---------------------- |
-| **组件实例**   | 销毁                 | 保留                   |
-| **Hooks 状态** | 丢失                 | 保留                   |
-| **DOM 节点**   | 移除                 | 保留（隐藏）           |
-| **Effect**     | 执行 cleanup         | 可选保留或清理         |
-| **恢复速度**   | 慢（需重建全部状态） | 快（状态完整）         |
-| **内存占用**   | 低                   | 高（保留状态占用内存） |
+|                | 卸载（Unmount）      | Activity hidden                        |
+| -------------- | -------------------- | -------------------------------------- |
+| **组件实例**   | 销毁                 | 保留                                   |
+| **Hooks 状态** | 丢失                 | 保留                                   |
+| **DOM 节点**   | 移除                 | 保留（`display: none`）                |
+| **Effect**     | 执行 cleanup         | 销毁（执行 cleanup），恢复时重新 setup |
+| **恢复速度**   | 慢（需重建全部状态） | 快（状态完整）                         |
+| **内存占用**   | 低                   | 高（保留状态占用内存）                 |
 
 ### 2.3 后台渲染
 
-Offscreen 允许隐藏的 UI 在后台以**低优先级**准备：
+Activity 允许隐藏的 UI 在后台以**低优先级**准备：
 
 ```text
 可见区域的 Tab 1  → 高优先级渲染
-隐藏区域的 Tab 2  → Offscreen Lane（低优先级），后台准备
+隐藏区域的 Tab 2  → OffscreenLane（低优先级），后台准备
                    当用户切换到 Tab 2 时，内容可能已经就绪
 ```
 
-这与 `keep-alive`（Vue 中的缓存机制）理念类似，但 React 的 Offscreen 更侧重于**调度优先级**而非纯粹的内存缓存。
+这与 `keep-alive`（Vue 中的缓存机制）理念类似，但 React 的 Activity 更侧重于**调度优先级**与 effect 的生命周期管理，而非纯粹的内存缓存。
 
-### 2.4 与 `display: none` 的区别
+### 2.4 与手写 `display: none` 的区别
 
-CSS `display: none` 只是视觉上隐藏，组件仍然挂载并占用渲染资源。Offscreen 在底层将隐藏的子树标记为低优先级，让 React 可以更积极地跳过它们的渲染。
+`<Activity mode="hidden">` 底层也会给宿主节点设置 `display: none`，所以“DOM 是否保留”不是它与手写 CSS 的核心区别。关键差异在于：
+
+- Activity 隐藏时会销毁 effect（执行 cleanup），恢复可见时重新执行 setup；手写 `display: none` 的组件 effect 仍在运行。
+- React 知道这棵子树处于 hidden 状态，可以把它排除在正常渲染之外，并以低优先级在后台预渲染。
 
 ## 3. Hydration：服务端渲染的水合
 
@@ -289,26 +295,26 @@ flowchart TD
     subgraph Client[客户端]
         Hydration[水合<br/>HTML → React Fiber]
         Suspense[Suspense<br/>异步加载控制]
-        Offscreen[Offscreen<br/>隐藏子树保留]
+        Activity[Activity（原 Offscreen）<br/>隐藏子树保留]
     end
 
     HTML --> Hydration
     Hydration --> Suspense
-    Hydration --> Offscreen
-    Suspense --> Offscreen
+    Hydration --> Activity
+    Suspense --> Activity
 ```
 
 - **Suspense** 在客户端控制异步内容的加载和边界。
-- **Offscreen** 在客户端管理隐藏 UI 的保留和后台准备。
+- **Activity（原 Offscreen）** 在客户端管理隐藏 UI 的保留和后台准备。
 - **Hydration** 是服务端到客户端的桥梁，Suspense 边界也是选择性水合的边界。
 
 ## 5. 总结
 
 - **Suspense 是声明式异步 UI 管理**：组件挂起 → 显示 fallback → 数据就绪后恢复。
-- **核心机制是 Render 中抛出 thenable**：React 捕获 Promise，找到最近 Suspense 边界，等待 resolve 后重试。
+- **核心机制是 Render 中抛出 thenable**：React 捕获 thenable，找到最近 Suspense 边界，等待 resolve 后重试。
 - **嵌套 Suspense 边界各自独立**：可以精细控制页面的加载体验。
 - **配合 `startTransition` 避免“闪现 fallback”**：旧 UI 保持可见，新 UI 在后台准备。
-- **Offscreen 保留而非销毁隐藏子树**：状态保持、快速恢复，适合 Tab 切换等场景。
+- **Activity（原 Offscreen）保留而非销毁隐藏子树**：状态保持、快速恢复，适合 Tab 切换等场景；隐藏时 effect 会被销毁，恢复时重新 setup。
 - **Hydration 是 SSR 到客户端交互的桥梁**：复用服务端 HTML，绑定事件和状态。
 - **选择性水合按用户交互优先级推进**：用户点击的区域优先水合，不阻塞交互。
 - **水合不匹配需要优先修复**：确保客户端和服务器首次渲染输出一致。

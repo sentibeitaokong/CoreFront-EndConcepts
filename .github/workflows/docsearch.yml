@@ -1,37 +1,36 @@
 name: Algolia DocSearch Crawler
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '.changeset/**'
-      - 'packages/xbElement/package.json'
-      - 'packages/xbElement/CHANGELOG.md'
-      - 'package.json'
-      - 'pnpm-lock.yaml'
+  # 等部署真的完成再爬：原来和 deploy 同时由 push 触发，靠 sleep 150s 赌部署已结束，
+  # 构建稍慢就会爬到上一版页面（上一版若渲染失败就是空壳，nbHits 直接为 0）。
+  workflow_run:
+    workflows: ['Deploy VitePress site to Pages']
+    types: [completed]
+    branches: [main]
   workflow_dispatch: # 允许你在 GitHub 网页上手动点击运行按钮
 
-# 同一分支的新推送自动取消上一次仍在运行的任务
+# 同一分支的新部署自动取消上一次仍在运行的爬取任务
 concurrency:
   group: docsearch-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   scrape:
+    # deploy 失败时不浪费额度去爬旧内容（手动触发不受此限制）
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run Algolia Scraper
         env:
           APPLICATION_ID: ${{ secrets.ALGOLIA_APP_ID }}
           API_KEY: ${{ secrets.ALGOLIA_ADMIN_API_KEY }}
         run: |
-          # 等待一下，确保部署的最新页面已经可以访问（可选）
-          sleep 150
-          
+          # Pages 的 CDN 缓存需要一点时间收敛到新版本
+          sleep 30
+
           # 运行官方开源的爬虫 Docker 镜像
           docker run \
             --env APPLICATION_ID=${APPLICATION_ID} \

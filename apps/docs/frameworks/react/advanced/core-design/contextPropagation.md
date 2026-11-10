@@ -93,43 +93,47 @@ flowchart TB
 
 `createContext(defaultValue)` 返回的其实是一个被 `$$typeof` 标记的普通对象，`Provider` 与 `Consumer` 都挂在它身上。`defaultValue` 只作为 `_currentValue` 的初始值，**只有上方没有匹配 Provider 时才会被读到**：
 
-:::code-group
-
-```typescript [react/src/ReactContext.js]
-// createContext：构造 Context 对象，并把 Provider / Consumer 挂上去
-export function createContext<T>(defaultValue: T): ReactContext<T> {
-  const context: ReactContext<T> = {
-    $$typeof: REACT_CONTEXT_TYPE,   // 标识：这是一个 Context 对象
-    _currentValue: defaultValue,    // 当前值（primary renderer 读这里）
-    _currentValue2: defaultValue,   // 当前值（secondary renderer 读这里）
-    _threadCount: 0,                // 并发渲染器计数
-    Provider: (null: any),          // 由下方赋值
-    Consumer: (null: any),
-    _defaultValue: (null: any),
-    _globalName: (null: any),
-  };
-
-  context.Provider = {
-    $$typeof: REACT_PROVIDER_TYPE,  // 标识：这是一个 Provider 元素
-    _context: context,              // 反指回所属的 Context
-  };
-
-  context.Consumer = context;       // Consumer 就是 Context 本身
-
-  return context;
-}
-```
-
 ```javascript [react/src/ReactContext.js]
+// createContext：构造 Context 对象，并把 Provider / Consumer 挂上去
+export function createContext(defaultValue) {
+  const context = {
+    $$typeof: REACT_CONTEXT_TYPE, // 标识：这是一个 Context 对象
+    _currentValue: defaultValue, // 当前值（primary renderer 读这里）
+    _currentValue2: defaultValue, // 当前值（secondary renderer 读这里）
+    _threadCount: 0, // 并发渲染器计数
+    Provider: null, // 由下方赋值
+    Consumer: null,
+    _defaultValue: null,
+    _globalName: null,
+  }
+
+  if (enableRenderableContext) {
+    // React 19：Provider 直接复用 context，Consumer 单独包一层
+    context.Provider = context
+    context.Consumer = {
+      $$typeof: REACT_CONSUMER_TYPE,
+      _context: context,
+    }
+  } else {
+    // React 18：Provider 单独包一层，Consumer 就是 context 本身
+    context.Provider = {
+      $$typeof: REACT_PROVIDER_TYPE, // 标识：这是一个 Provider 元素
+      _context: context, // 反指回所属的 Context
+    }
+    context.Consumer = context
+  }
+
+  return context
+}
+
 // React 内部用 $$typeof 区分元素类型（节选）
 export const REACT_CONTEXT_TYPE = Symbol.for('react.context')
 export const REACT_PROVIDER_TYPE = Symbol.for('react.provider')
+export const REACT_CONSUMER_TYPE = Symbol.for('react.consumer')
 ```
 
-:::
-
 > [!NOTE]
-> 这里藏着“**识别**”的第一把钥匙：`createContext` 之后，`context`、`context.Provider`、`context.Consumer` 三个对象各自带不同的 `$$typeof`。React 在 `beginWork` 里就是靠 `fiber.type.$$typeof` 认出“**这是 Context / Provider / Consumer**”，从而分派到不同的处理函数。
+> 这里藏着“**识别**”的第一把钥匙：React 18 中 `context` 与 `context.Provider` 带不同的 `$$typeof`（`REACT_CONTEXT_TYPE` / `REACT_PROVIDER_TYPE`），`context.Consumer` 就是 `context` 本身；React 19 的 `enableRenderableContext` 则让 `Provider` 直接指向 `context`（支持 `<Context value>`），`Consumer` 另用 `REACT_CONSUMER_TYPE` 标记。React 在 `beginWork` 里靠 `fiber.type.$$typeof` 分派到对应的处理函数。
 
 ### 3.2 依赖链表：`fiber.dependencies`
 
@@ -205,11 +209,13 @@ const HooksDispatcherOnUpdate = {
 
 另外两种写法殊途同归，也都汇入 `readContext`，区别只在“**怎么被识别出来**”：
 
-- **`<Context.Consumer>`**：因为 `context.Consumer === context`，所以 Consumer 元素的 `$$typeof` 就是 `REACT_CONTEXT_TYPE`。`beginWork` 据此分派到 `updateContextConsumer`，读值后调用其**函数子组件（render prop）**：
+- **`<Context.Consumer>`**：React 18 中 `context.Consumer === context`，Consumer 元素的 `$$typeof` 是 `REACT_CONTEXT_TYPE`；React 19 的 `enableRenderableContext` 下 Consumer 是带 `REACT_CONSUMER_TYPE` 的独立对象。`beginWork` 据此分派到 `updateContextConsumer`，读值后调用其**函数子组件（render prop）**：
 
 ```javascript [react-reconciler/src/ReactFiberBeginWork.js]
 function updateContextConsumer(current, workInProgress, renderLanes) {
-  const context = workInProgress.type // Consumer 就是 Context 本身
+  const context = enableRenderableContext
+    ? workInProgress.type._context // React 19：Consumer 是独立对象
+    : workInProgress.type // React 18：Consumer 就是 Context 本身
   const render = workInProgress.pendingProps.children // render prop 函数
 
   prepareToReadContext(workInProgress, renderLanes)
@@ -238,13 +244,15 @@ if (typeof contextType === 'object' && contextType !== null) {
 
 ### 5.1 `beginWork` 识别 Provider：`updateContextProvider`
 
-Provider 元素靠 `$$typeof === REACT_PROVIDER_TYPE` 被识别，分派到 `updateContextProvider`。这里同时完成了**入栈**、**值变判定**、**触发传播**三件事：
+Provider 元素靠 `$$typeof` 被识别（React 18 是 `REACT_PROVIDER_TYPE`，React 19 的 `enableRenderableContext` 下直接是 `REACT_CONTEXT_TYPE`），分派到 `updateContextProvider`。这里同时完成了**入栈**、**值变判定**、**触发传播**三件事：
 
 :::code-group
 
 ```javascript [react-reconciler/src/ReactFiberBeginWork.js]
 function updateContextProvider(current, workInProgress, renderLanes) {
-  const context = workInProgress.type._context // 从 Provider 元素反解出 Context
+  const context = enableRenderableContext
+    ? workInProgress.type // React 19：type 本身就是 context
+    : workInProgress.type._context // React 18：从 Provider 元素反解出 Context
   const newProps = workInProgress.pendingProps
   const oldProps = workInProgress.memoizedProps
   const newValue = newProps.value
@@ -254,7 +262,7 @@ function updateContextProvider(current, workInProgress, renderLanes) {
   if (oldProps !== null) {
     const oldValue = oldProps.value
     if (is(oldValue, newValue)) {
-      // ⑤ 值没变 → 直接 bailout，跳过整个子树（一次组件函数都不执行）
+      // ⑤ 值没变且 children 引用也未变 → 直接 bailout，跳过整个子树
       if (
         oldProps.children === newProps.children &&
         !hasLegacyContextChanged()

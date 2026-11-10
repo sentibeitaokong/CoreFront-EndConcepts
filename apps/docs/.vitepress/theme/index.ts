@@ -22,7 +22,10 @@ export default {
   extends: DefaultTheme,
   enhanceApp({ app }) {
     app.use(XElement)
-    if (typeof window !== 'undefined') {
+    // 不能在 SSR 里用 `typeof window` 区分环境：AnyBlock 会临时把 global.window
+    // 挂上再置空，构建期的真假取决于求值时机。import.meta.env.SSR 由 Vite 按
+    // 目标 bundle 静态替换，才是确定的服务端/浏览器判断。
+    if (!import.meta.env.SSR) {
       // 这样 Vite 会把它单独打包成一个异步 chunk，绝不阻塞首屏渲染 (FCP)
       import('xb-element/dist/x-element.css')
       if (import.meta.env.PROD) {
@@ -112,7 +115,11 @@ export default {
     // 避免两次初始化并发时把旧实例/旧容器绑上去
     let syncId = 0
 
-    const viewerOptions = {
+    // 选项只能在浏览器里求值：VitePress 构建时会在 SSR 里执行 setup()，
+    // 而 markdown-it-any-block 每处理完一个 ```anyblock 代码块就把 global.window 置空，
+    // 在 setup 顶层读 window 会让每个页面在构建时抛错并静默渲染成空壳
+    // （vitepress build 仍以 0 退出，站点对爬虫来说就是一篇空白）。
+    const getViewerOptions = () => ({
       inline: false, // 模态框模式
       button: true, // 显示右上角关闭按钮
       navbar: false, // 隐藏底部的图库缩略图导航 (如果你只需单图放大)
@@ -126,7 +133,7 @@ export default {
       // 吞掉点击，直到刷新页面。关闭过渡让它走同步隐藏。
       transition: !window.matchMedia('(prefers-reduced-motion: reduce)')
         .matches,
-    }
+    })
 
     // Viewer.js 只在构造时记录一次容器里的 <img>，之后不会自动更新。
     // 路由切换、HMR、异步组件渲染都会换掉这些节点；不刷新 images 的话，
@@ -147,7 +154,7 @@ export default {
 
       viewer?.destroy()
       // Viewer.js 会自动寻找容器内的所有 img 标签并绑定事件
-      viewer = new ViewerConstructor(docContainer, viewerOptions)
+      viewer = new ViewerConstructor(docContainer, getViewerOptions())
       boundContainer = docContainer
     }
 

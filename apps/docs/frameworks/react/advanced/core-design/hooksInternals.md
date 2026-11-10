@@ -88,8 +88,6 @@ flowchart TB
 
 每个 Hooks 调用（`useState`、`useEffect`、`useRef`……）在首次渲染时都会实例化一个 **Hook 对象**，并追加到当前 Fiber 的 `memoizedState` 单向链表上。Hook 对象是这一套机制的基本数据单元：
 
-:::code-group
-
 ```typescript [react-reconciler/src/ReactFiberHooks.js]
 // Hook 对象（最新源码，极简；React 用 Flow，此处以 TypeScript 呈现）
 type Hook = {
@@ -99,9 +97,7 @@ type Hook = {
   queue: any // 更新队列（useState 的 UpdateQueue / useEffect 的 null）
   next: Hook | null // 指向下一个 Hook，构成单向链表
 }
-```
 
-```typescript [react-reconciler/src/ReactFiberHooks.js]
 // Hook 的 Update 对象：baseQueue 的元素，useState/useReducer 共用
 type Update<S, A> = {
   lane: Lane // 本次更新的优先级 Lane（见 ReactFiberLane.js）
@@ -111,8 +107,6 @@ type Update<S, A> = {
   next: Update<S, A> | null // 环形链表下一节点
 }
 ```
-
-:::
 
 > [!NOTE]
 > `memoizedState` 的语义**因 Hook 类型而异**：`useState` 存的是当前 state 值，`useEffect` 存的是 Effect 对象（`{ tag, create, destroy, deps, next }`），`useMemo`/`useCallback` 存的是 `[value, deps]` 二元组，`useRef` 存的是 `{ current }` 对象。这是理解 Hooks 实现的关键——链表节点是统一的，但节点内部承载的内容各不相同。
@@ -244,8 +238,6 @@ const HooksDispatcherOnUpdate = {
 
 真正切换 dispatcher 的是 `renderWithHooks`——它是函数组件渲染的统一入口：
 
-:::code-group
-
 ```javascript [react-reconciler/src/ReactFiberHooks.js]
 // 模块级"游标"：Hooks 链表的全局指针（renderWithHooks 执行期间有效）
 let currentlyRenderingFiber = null // 当前正在渲染的函数组件 Fiber
@@ -275,9 +267,7 @@ export function renderWithHooks(current, workInProgress, Component, props) {
 
   return children
 }
-```
 
-```javascript [react-reconciler/src/ReactFiberHooks.js]
 // 兜底 dispatcher：组件外调用 Hooks 时命中，所有方法一律抛错
 const ContextOnlyDispatcher = {
   useState: throwInvalidHookError,
@@ -292,8 +282,6 @@ function throwInvalidHookError() {
   )
 }
 ```
-
-:::
 
 判断依据是 `current === null || current.memoizedState === null`：`current` 为 null 说明这是首次挂载（没有旧树），或旧树上还没有 Hooks 链表，两者都走 `mount*` 路径。
 
@@ -451,7 +439,7 @@ useEffect(() => {
 
 Hooks 的设计天然与并发模式兼容：
 
-- **每个渲染独立**：没有跨渲染的共享状态，React 可以在内存中同时维护多套渲染版本（多棵 workInProgress 树）。
+- **每个渲染独立**:没有跨渲染的共享状态，React可以在内存中同时维护多套渲染版本(多棵workInProgress树)。
 - **Hook 复用支持中断重入**：`updateWorkInProgressHook` 的“**复用分支**”正是为“**渲染被打断后重入**”准备的——链表上已有节点就复用，而不是重复创建。
 - **Effect 可推迟**：`useEffect` 的清理和重新执行可以在合适的时机进行（Passive 阶段异步调度），不影响 UI 一致性。
 - **State 不可变**：状态更新通过替换而非修改（`basicStateReducer` 直接替换），避免并发修改的竞态问题。

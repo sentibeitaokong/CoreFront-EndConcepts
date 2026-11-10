@@ -40,10 +40,21 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
     const enableSentryUpload =
         (env.SENTRY_UPLOAD === 'true' || process.env.SENTRY_UPLOAD === 'true') && Boolean(sentryToken)
 
+    // 站点部署在 GitHub Pages 的子路径下。VitePress 生成 sitemap 时是把页面
+    // 路径交给 `new URL(url, hostname)` 拼接，而路径以 "/" 开头会直接替换掉
+    // hostname 里的子路径，所以要在 transformItems 里显式补回 base；
+    // 否则 sitemap 里的链接全部指向仓库根路径（404），DocSearch 只能爬到 0 条。
+    const base = '/CoreFront-EndConcepts/'
+
     return withMermaid({
         lang: 'zh-CN',
         sitemap: {
-            hostname: 'https://sentibeitaokong.github.io'
+            hostname: 'https://sentibeitaokong.github.io',
+            transformItems: (items) =>
+                items.map((item) => ({
+                    ...item,
+                    url: `${base}${item.url.replace(/^\/+/, '')}`,
+                })),
         },
         vite: {
             plugins: [
@@ -172,7 +183,7 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
         mermaidPlugin: {
             class: 'mermaid',
         },
-        base: '/CoreFront-EndConcepts/',
+        base,
         title: "寻北",
         description: "vitePress",
         head: [
@@ -1113,7 +1124,7 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
                                                 {text: 'Effects 机制', link: '/frameworks/react/advanced/core-design/effects'},
                                                 {text: 'Context 机制', link: '/frameworks/react/advanced/core-design/contextPropagation'},
                                                 {text: '渲染器架构', link: '/frameworks/react/advanced/core-design/rendererArchitecture'},
-                                                {text: '并发特性 (Suspense & Hydration)', link: '/frameworks/react/advanced/core-design/suspenseOffscreenHydration'},
+                                                {text: '并发特性', link: '/frameworks/react/advanced/core-design/suspenseOffscreenHydration'},
                                                 {text: 'React Server Components', link: '/frameworks/react/advanced/core-design/serverComponents'},
                                                 {text: 'React 编译器', link: '/frameworks/react/advanced/core-design/compiler'},
                                             ]

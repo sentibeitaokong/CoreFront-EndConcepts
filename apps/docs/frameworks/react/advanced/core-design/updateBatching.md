@@ -14,32 +14,31 @@ flowchart TB
     end
 
     subgraph enq["② 创建 Update 并入队"]
-        DSP --> H2[enqueueConcurrentHookUpdate<br/>→ hook.queue.pending]
-        ES --> C2[enqueueUpdate<br/>→ updateQueue.shared.pending]
+        DSP --> H2[enqueueConcurrentHookUpdate<br/>→ queue.interleaved]
+        ES --> C2[enqueueUpdate<br/>→ shared.interleaved]
     end
 
     subgraph sch["③ 调度"]
-        H2 --> S1[scheduleUpdateOnFiber]
-        C2 --> S1
-        S1 --> S2[markUpdateLaneFromFiberToRoot<br/>沿 return 向上标记 lane]
-        S2 --> S3[ensureRootIsScheduled<br/>同一 tick 合并任务]
+        H2 --> S2[markUpdateLaneFromFiberToRoot<br/>给源 Fiber 打 lane + 向上冒泡 childLanes]
+        C2 --> S2
+        S2 --> S1[scheduleUpdateOnFiber<br/>markRootUpdated]
+        S1 --> S3[ensureRootIsScheduled<br/>同一 tick 合并任务]
     end
 
     subgraph rdr["④ Render 消费"]
-        H2 --> H4[updateReducer<br/>basicStateReducer 直接替换]
-        C2 --> C4[processUpdateQueue<br/>Object.assign 浅合并]
+        FQ[finishQueueingConcurrentUpdates<br/>interleaved → pending] -.-> H4[updateReducer<br/>basicStateReducer 直接替换]
+        FQ -.-> C4[processUpdateQueue<br/>Object.assign 浅合并]
     end
 
-    S3 -.->|Scheduler 触发| H4
-    S3 -.->|Scheduler 触发| C4
+    S3 -.->|Scheduler 触发| FQ
 
     H4 --> OUT[新 state]
     C4 --> OUT
     OUT --> CM[Commit 新 UI]
 ```
 
-- **两套 Update、两套队列**：Hook 用 `action` 承载更新、挂 `hook.queue.pending`；Class 用 `tag + payload + callback`、挂 `queue.shared.pending`。
-- **入队与调度统一**：无论哪种组件，最终都汇入 `scheduleUpdateOnFiber → markUpdateLaneFromFiberToRoot → ensureRootIsScheduled`，这是 React 18 自动批量 + 优先级的基础。
+- **两套 Update、两套队列**：Hook 用 `action` 承载更新、挂 `hook.queue.interleaved`；Class 用 `tag + payload + callback`、挂 `queue.shared.interleaved`（Render 开始时再并入 `pending`）。
+- **入队与调度统一**：无论哪种组件，`enqueue*` 都会先给源 Fiber 及其祖先打 lane，再汇入 `scheduleUpdateOnFiber → ensureRootIsScheduled`，这是 React 18 自动批量 + 优先级的基础。
 - **消费策略不同**：Hook 用 `basicStateReducer` **直接替换**，Class 用 `Object.assign` **浅合并**——这是两者 API 差异的根源。
 
 ## 2. Update 对象
@@ -67,8 +66,6 @@ type Update<S, A> = {
 
 `this.setState` 创建的 Update 用 `tag` 区分更新类型，`payload` 是部分 state，还支持更新后回调：
 
-:::code-group
-
 ```typescript [react-reconciler/src/ReactUpdateQueue.js]
 // Class 组件的 Update 对象（this.setState / forceUpdate 共用）
 type Update<State> = {
@@ -79,17 +76,13 @@ type Update<State> = {
   callback: (() => mixed) | null // setState 的第二个参数（更新后回调）
   next: Update<State> | null // 环形链表下一节点
 }
-```
 
-```typescript [react-reconciler/src/ReactUpdateQueue.js]
 // Class Update 的 tag 取值（ReactUpdateQueue.js 中定义）
 export const UpdateState = 0 // 默认：浅合并 payload
 export const ReplaceState = 1 // 用 payload 整体替换（很少用）
 export const ForceUpdate = 2 // forceUpdate：不比较、强制重渲染
 export const CaptureUpdate = 3 // 错误边界捕获阶段使用
 ```
-
-:::
 
 > [!NOTE]
 > 两套 Update 的核心差异：Hook 用 `action` 承载“**值或函数**”，靠 `typeof action === 'function'` 判断是哪种；Class 用 `tag` 显式区分四种更新类型，`payload` 是部分 state，`callback` 是更新后回调。这也是为什么 Class `setState` 有第二个回调参数，而 Hook 没有。
@@ -130,16 +123,17 @@ function handleClick() {
 
 ### 3.1 Hook 的 UpdateQueue
 
-Hook 的更新队列挂在 `hook.queue` 上，`pending` 是待处理更新的环形链表：
+Hook 的更新队列挂在 `hook.queue` 上，并发入队先写入 `interleaved`，Render 开始时再并入 `pending`：
 
 :::code-group
 
 ```typescript [react-reconciler/src/ReactFiberHooks.js]
 // Hook 的更新队列（挂载在 hook.queue 上）
 type UpdateQueue<S, A> = {
-  pending: Update<S, A> | null // 待处理更新的环形链表（尾节点）
+  pending: Update<S, A> | null // Render 阶段合并后的待处理环形链表（尾节点）
+  interleaved: Update<S, A> | null // 并发入队的环形链表（尾节点）
   lanes: Lanes // 待处理更新的 Lane 合集
-  dispatch: (A => mixed) | null // 触发更新的函数（setState 本体）
+  dispatch: ((A) => mixed) | null // 触发更新的函数（setState 本体）
   lastRenderedReducer: ((S, A) => S) | null // 上次渲染使用的 reducer
   lastRenderedState: S // 上次渲染的 state
 }
@@ -149,7 +143,7 @@ type UpdateQueue<S, A> = {
 
 ### 3.2 Class 的 UpdateQueue
 
-Class 的更新队列挂在 `fiber.updateQueue` 上，结构更复杂：用 `base*` 指针沉淀被跳过的低优先级更新，用 `shared.pending` 接收新更新，`effects` 存放回调：
+Class 的更新队列挂在 `fiber.updateQueue` 上，结构更复杂：用 `base*` 指针沉淀被跳过的低优先级更新，用 `shared.interleaved` 接收并发入队的新更新（Render 开始时并入 `shared.pending`），`effects` 存放回调：
 
 :::code-group
 
@@ -164,7 +158,8 @@ type UpdateQueue<State> = {
 }
 
 type SharedQueue<State> = {
-  pending: Update<State> | null // 待处理更新的环形链表（尾节点）
+  pending: Update<State> | null // Render 阶段合并后的待处理环形链表（尾节点）
+  interleaved: Update<State> | null // 并发入队的环形链表（尾节点）
   lanes: Lanes // 待处理更新的 Lane 合集
   hiddenCallbacks: Array<() => mixed> | null // 离屏子树延迟的回调
 }
@@ -173,28 +168,28 @@ type SharedQueue<State> = {
 :::
 
 > [!NOTE]
-> 两类队列的**共性**：都有 `pending` 环形链表承载新更新，都支持把低优先级更新“**沉淀**”下来等待重放。**差异**：Hook 的沉淀区在 **Hook 对象**的 `baseState`/`baseQueue` 上，Class 的沉淀区在**队列自身**的 `baseState`/`firstBaseUpdate`/`lastBaseUpdate` 上。
+> 两类队列的**共性**：都有 `pending`/`interleaved` 双队列——`interleaved` 承载并发入队，Render 开始时并入 `pending`；也都支持把低优先级更新“**沉淀**”下来等待重放。**差异**：Hook 的沉淀区在 **Hook 对象**的 `baseState`/`baseQueue` 上，Class 的沉淀区在**队列自身**的 `baseState`/`firstBaseUpdate`/`lastBaseUpdate` 上。
 
 ### 3.3 环形链表设计
 
-两类 Update 都用**环形单向链表**存储，`pending` 指向最后加入的节点：
+两类 Update 都用**环形单向链表**存储，`interleaved` 和 `pending` 各自指向最后加入的节点：
 
 ```mermaid
 flowchart TB
     subgraph s1["① 空队列"]
-        E["pending = null"]
+        E["interleaved / pending = null"]
     end
 
     subgraph s2["② 加入 Update A（自环）"]
         A["Update A"]
         A --> A
-        P2["pending"] -.-> A
+        P2["interleaved / pending"] -.-> A
     end
 
-    subgraph s3["③ 加入 B、C（pending 指向尾节点）"]
+    subgraph s3["③ 加入 B、C（指针指向尾节点）"]
         A2["Update A"] --> B["Update B"] --> C["Update C"]
         C -->|"next 回到头部"| A2
-        P3["pending"] -.->|"尾节点"| C
+        P3["interleaved / pending"] -.->|"尾节点"| C
     end
 
     s1 --> s2 --> s3
@@ -205,8 +200,6 @@ flowchart TB
 ### 4.1 Hook 入队
 
 `useState` 返回的 `setState` 本质是 `dispatchSetState`，它创建 Update、入队、触发调度：
-
-:::code-group
 
 ```javascript [react-reconciler/src/ReactFiberHooks.js]
 // useState 返回的 setState 本体（极简）
@@ -230,24 +223,21 @@ function dispatchSetState(fiber, queue, action) {
     }
   }
 }
-```
 
-```javascript [react-reconciler/src/ReactFiberHooks.js]
 // 环形链表 O(1) 尾插法（极简）
 function enqueueConcurrentHookUpdate(fiber, queue, update, lane) {
-  const pending = queue.pending
-  if (pending === null) {
+  const interleaved = queue.interleaved
+  if (interleaved === null) {
     update.next = update // 空队列：自环
+    pushConcurrentUpdateQueue(queue) // 记录到全局并发队列
   } else {
-    update.next = pending.next // 新节点插入到 pending 之后（即链表头部）
-    pending.next = update
+    update.next = interleaved.next // 新节点插入到 interleaved 之后（即链表头部）
+    interleaved.next = update
   }
-  queue.pending = update // pending 始终指向最后加入的节点（尾）
-  return getRootForUpdatedFiber(fiber)
+  queue.interleaved = update // interleaved 始终指向最后加入的节点（尾）
+  return markUpdateLaneFromFiberToRoot(fiber, lane)
 }
 ```
-
-:::
 
 ### 4.2 Class 入队
 
@@ -276,6 +266,22 @@ const classComponentUpdater = {
   },
   // enqueueReplaceState / enqueueForceUpdate 结构类似，仅 tag 不同
 }
+
+// Class 环形链表 O(1) 尾插法（极简，与 Hook 版对称）
+// 简化：只展示并发入队分支，render 阶段更新写入 pending
+function enqueueUpdate(fiber, update, lane) {
+  const sharedQueue = fiber.updateQueue.shared
+  const interleaved = sharedQueue.interleaved
+  if (interleaved === null) {
+    update.next = update // 空队列：自环
+    pushConcurrentUpdateQueue(sharedQueue)
+  } else {
+    update.next = interleaved.next // 新节点插入到 interleaved 之后
+    interleaved.next = update
+  }
+  sharedQueue.interleaved = update // interleaved 指向尾节点
+  return markUpdateLaneFromFiberToRoot(fiber, lane)
+}
 ```
 
 ```javascript [react-reconciler/src/ReactUpdateQueue.js]
@@ -292,67 +298,60 @@ function createUpdate(lane) {
 }
 ```
 
-```javascript [react-reconciler/src/ReactFiberClassComponent.js]
-// Class 环形链表 O(1) 尾插法（极简，与 Hook 版对称）
-function enqueueUpdate(fiber, update, lane) {
-  const sharedQueue = fiber.updateQueue.shared
-  const pending = sharedQueue.pending
-  if (pending === null) {
-    update.next = update // 空队列：自环
-  } else {
-    update.next = pending.next // 新节点插入到 pending 之后
-    pending.next = update
-  }
-  sharedQueue.pending = update // pending 指向尾节点
-  return markUpdateLaneFromFiberToRoot(fiber, lane)
-}
-```
-
 :::
 
 > [!NOTE]
-> 两条入队路径**几乎对称**：Hook 的 `enqueueConcurrentHookUpdate` 与 Class 的 `enqueueUpdate` 都是“**环形链表尾插 + 标记 lane**”，最后都返回 root 交给 `scheduleUpdateOnFiber`。唯一区别是 Update 对象的字段不同（`action` vs `tag + payload + callback`）。
+> 两条入队路径**几乎对称**：Hook 的 `enqueueConcurrentHookUpdate` 与 Class 的 `enqueueUpdate` 都是“**写 `interleaved` 环形链表 + 标记 lane**”，Render 开始时再由 `finishQueueingConcurrentUpdates` 并入 `pending`。唯一区别是 Update 对象的字段不同（`action` vs `tag + payload + callback`）。
 
 ## 5. 调度：统一的 lane 标记与任务合并
 
 入队完成后，无论 Hook 还是 Class 都汇入同一条调度路径：
 
-:::code-group
-
 ```javascript [react-reconciler/src/ReactFiberWorkLoop.js]
 // 统一的调度入口（极简）
 function scheduleUpdateOnFiber(root, fiber, lane) {
-  // 1. 把本次更新的 lane 合并到 fiber 及其祖先的 lanes / childLanes 上
-  markUpdateLaneFromFiberToRoot(fiber, lane)
+  // 1. 把本次更新合并到 root 的待处理 lane 上
+  //    （fiber → 祖先的 lanes/childLanes 冒泡已在 enqueue* 里完成）
+  markRootUpdated(root, lane, requestEventTime())
 
   // 2. 交给调度器：若同一 root 已有排定的任务，只合并 lane，不新建任务
   ensureRootIsScheduled(root)
 }
-```
 
-```javascript [react-reconciler/src/ReactFiberWorkLoop.js]
-// 沿 return 链向上标记 lane（极简）
+// 给源 Fiber 打 lane，并沿 return 链向上冒泡 childLanes（极简）
 function markUpdateLaneFromFiberToRoot(sourceFiber, lane) {
+  // 1. 源 Fiber 与它的 alternate 都要标记，否则本节点不会被重渲染
+  sourceFiber.lanes = mergeLanes(sourceFiber.lanes, lane)
+  const alternate = sourceFiber.alternate
+  if (alternate !== null) {
+    alternate.lanes = mergeLanes(alternate.lanes, lane)
+  }
+
+  // 2. 沿 return 链向上冒泡 childLanes
   let node = sourceFiber
   let parent = sourceFiber.return
   while (parent !== null) {
     parent.childLanes = mergeLanes(parent.childLanes, lane)
+    const parentAlternate = parent.alternate
+    if (parentAlternate !== null) {
+      parentAlternate.childLanes = mergeLanes(parentAlternate.childLanes, lane)
+    }
     node = parent
     parent = parent.return
   }
+
+  // 3. 回到根节点，返回 FiberRoot
   if (node.tag === HostRoot) {
-    return node.stateNode // 返回根节点
+    return node.stateNode
   }
   return null
 }
-```
 
-```javascript [react-reconciler/src/ReactFiberWorkLoop.js]
 // 同一 tick 内合并任务（极简）
 function ensureRootIsScheduled(root) {
   const existingCallbackNode = root.callbackNode
   if (existingCallbackNode !== null) {
-    // 已有排定任务：新 lane 已在 markUpdateLaneFromFiberToRoot 中并入 root.pendingLanes
+    // 已有排定任务：新 lane 已在 markRootUpdated 中并入 root.pendingLanes
     // 复用该任务即可（若新更新优先级更高，React 会取消旧任务改排更高优先级，此处略）
     return
   }
@@ -365,17 +364,13 @@ function ensureRootIsScheduled(root) {
 }
 ```
 
-:::
-
-同一个事件循环（tick）内的多次 `setState` 只会排定**一个** Scheduler 任务，任务真正执行时一次性消费队列里所有已收集的 Update——这就是 React 18 在 `setTimeout`、Promise 中也能自动批量、且不丢失优先级的根本原因。优先级调度细节见 [调度与优先级](./schedulingAndLanes.md)。
+同一个事件循环（tick）内的多次 `setState` 只会排定**一个** Scheduler 任务，任务真正执行时一次性消费队列里所有已收集的 Update——这就是 React 18 在 `setTimeout`、Promise 中也能自动批量、且不丢失优先级的根本原因。这些更新先进入各自的 `interleaved` 队列，Render 开始时由 `finishQueueingConcurrentUpdates()` 一次性并入 `pending`，因此同一个 tick 内的更新能一起被消费。优先级调度细节见 [调度与优先级](./schedulingAndLanes.md)。
 
 ## 6. 消费：updateReducer 与 processUpdateQueue
 
 ### 6.1 Hook 消费：直接替换
 
 Render 阶段，`updateReducer` 按 Lane 消费 `queue.pending`，把低优先级 Update 沉淀到 `baseState`/`baseQueue`：
-
-:::code-group
 
 ```javascript [react-reconciler/src/ReactFiberHooks.js]
 // updateReducer 的核心（useState / useReducer 共用，简化）
@@ -433,22 +428,16 @@ function updateReducer(hook, current, reducer, renderLanes) {
 
   return hook.memoizedState
 }
-```
 
-```javascript [react-reconciler/src/ReactFiberHooks.js]
 // useState 的 reducer：直接替换，不做浅合并
 function basicStateReducer(state, action) {
   return typeof action === 'function' ? action(state) : action
 }
 ```
 
-:::
-
 ### 6.2 Class 消费：浅合并
 
 Class 组件走 `processUpdateQueue`，结构对称但**消费策略不同**——通过 `getStateFromUpdate` 用 `Object.assign` 浅合并：
-
-:::code-group
 
 ```javascript [react-reconciler/src/ReactUpdateQueue.js]
 // Class 队列消费（极简，保留主干）
@@ -525,9 +514,7 @@ function processUpdateQueue(workInProgress, props, instance, renderLanes) {
 
   return workInProgress.memoizedState
 }
-```
 
-```javascript [react-reconciler/src/ReactUpdateQueue.js]
 // Class 的 state 计算：按 tag 分派，UpdateState 走浅合并
 function getStateFromUpdate(
   workInProgress,
@@ -563,8 +550,6 @@ function getStateFromUpdate(
   return prevState
 }
 ```
-
-:::
 
 关键点（两类消费共通）：
 
@@ -650,10 +635,10 @@ function handleClick() {
 
 ### 7.4 批量更新的实现原理
 
-**React 17：显式批量上下文。** 靠一个全局 `isBatchingUpdates` 标志，事件处理器执行前打开、执行后关闭，期间所有 `setState` 只入队不调度：
+**React 15/16（legacy 模型）：显式批量上下文。** 早期渲染器用一个全局 `isBatchingUpdates` 标志，事件处理器执行前打开、执行后关闭，期间所有 `setState` 只入队不调度：
 
 ```javascript
-// React 17 的批量更新（简化）
+// React 15/16 的批量更新（简化）
 let isBatchingUpdates = false
 let batchUpdates = []
 
@@ -674,12 +659,14 @@ function scheduleUpdate(fiber) {
 }
 ```
 
-**React 18：调度器统一收集，无需显式上下文。** 移除 `isBatchingUpdates`，改由 `ensureRootIsScheduled` 判断是否已有排定的任务：
+React 17 的 legacy 路径把这个全局标志换成了 reconciler 的 `executionContext`（`BatchedContext`）+ `batchedUpdates`，本质仍是“事件处理器内只入队、结束后统一 flush”。
+
+**React 18：lane + 调度器统一收集，不再依赖显式批量上下文。** 全局 `isBatchingUpdates` 已不存在，改由 `ensureRootIsScheduled` 判断是否已有排定的任务：
 
 ```javascript
 // React 18 的批量更新（极简）：无需全局批量标志
 function scheduleUpdateOnFiber(root, fiber, lane) {
-  markUpdateLaneFromFiberToRoot(fiber, lane) // 合并 lane
+  markRootUpdated(root, lane, requestEventTime()) // 合并到 root 的 pendingLanes
   ensureRootIsScheduled(root) // 关键：已有任务则复用
 }
 
@@ -712,14 +699,14 @@ function ensureRootIsScheduled(root) {
 
 [width(17,39,44)]
 
-|                 | Class `setState`                  | Hooks `useState`                  |
-| --------------- | --------------------------------- | --------------------------------- |
-| **Update 结构** | `tag + payload + callback`        | `action`                          |
-| **队列位置**    | `fiber.updateQueue`               | `hook.queue`                      |
-| **合并策略**    | 自动浅合并对象（`Object.assign`） | 替换整个值（`basicStateReducer`） |
-| **回调**        | `setState(partial, callback)`     | 无回调（用 `useEffect`）          |
-| **函数式更新**  | `setState(prev => ...)`           | `setState(prev => ...)`           |
-| **批量更新**    | React 事件中自动                  | React 18 所有上下文自动           |
+|                 | Class `setState`                                      | Hooks `useState`                  |
+| --------------- | ----------------------------------------------------- | --------------------------------- |
+| **Update 结构** | `tag + payload + callback`                            | `action`                          |
+| **队列位置**    | `fiber.updateQueue`                                   | `hook.queue`                      |
+| **合并策略**    | 自动浅合并对象（`Object.assign`）                     | 替换整个值（`basicStateReducer`） |
+| **回调**        | `setState(partial, callback)`                         | 无回调（用 `useEffect`）          |
+| **函数式更新**  | `setState(prev => ...)`                               | `setState(prev => ...)`           |
+| **批量更新**    | React 18 所有上下文自动（createRoot 下与 Hooks 一致） | React 18 所有上下文自动           |
 
 ```jsx
 // Class setState：自动浅合并

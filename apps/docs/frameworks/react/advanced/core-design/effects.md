@@ -32,12 +32,13 @@ flowchart TB
     end
 
     subgraph commit["③ Commit：按 tag 执行"]
-        FLAG --> LAY[Layout 阶段<br/>useInsertionEffect / useLayoutEffect]
+        FLAG --> MUT[Mutation 阶段<br/>useInsertionEffect]
+        MUT --> LAY[Layout 阶段<br/>useLayoutEffect]
         LAY --> PAINT[浏览器绘制]
         PAINT --> PAS[Passive 阶段<br/>useEffect]
     end
 
-    LIST -.->|commitHookEffectListMount / Unmount 遍历| LAY
+    LIST -.->|commitHookEffectListMount / Unmount 遍历| MUT
 ```
 
 - **Effect 是数据，不是调用**——Render 阶段只把副作用“**声明**”成 Effect 对象挂到链表上，真正的执行在 Commit。
@@ -148,19 +149,17 @@ function mountEffectImpl(fiberFlags, hookFlags, create, deps) {
 }
 ```
 
-```javascript [react-reconciler/src/ReactFiberFlags.js]
+```text [react-reconciler/src/ReactFiberFlags.js]
 // fiber.flags 位标记（节选）：声明"本 Fiber 有哪类副作用"，位值是实现细节
 export const UpdateEffect = /* ... */ // useLayoutEffect：同步副作用（Layout 阶段）
 export const PassiveEffect = /* ... */ // useEffect：异步副作用（Passive 阶段）
-export const InsertionEffect = /* ... */ // useInsertionEffect：DOM 变更后、useLayoutEffect 前
+export const InsertionEffect = /* ... */ // useInsertionEffect：Mutation 阶段（useLayoutEffect 前）
 export const PassiveStaticEffect = /* ... */ // 静态被动副作用（依赖在编译期确定，永不变化）
 ```
 
 :::
 
 `pushEffect` 负责构造 Effect 对象，并把它插入 `fiber.updateQueue` 的环形链表尾部：
-
-:::code-group
 
 ```javascript [react-reconciler/src/ReactFiberHooks.js]
 // pushEffect：把 Effect 挂到 fiber.updateQueue 的环形链表尾部（极简）
@@ -182,9 +181,7 @@ function pushEffect(tag, create, destroy, deps) {
   }
   return effect
 }
-```
 
-```javascript [react-reconciler/src/ReactFiberHooks.js]
 // 初始化函数组件的更新队列（Effect 的环形链表载体）
 function createFunctionComponentUpdateQueue() {
   return {
@@ -192,8 +189,6 @@ function createFunctionComponentUpdateQueue() {
   }
 }
 ```
-
-:::
 
 ### 4.2 更新：updateEffectImpl 与依赖比较
 
@@ -266,20 +261,18 @@ Render 阶段只负责“**声明**”，真正的执行在 **Commit 阶段**（
 
 ### 5.1 子阶段与 Effect 的归属
 
-[width(13,30,57)]
+[width(12,30,58)]
 
-| 子阶段          | 入口函数                                       | Effect 相关动作                                                                 |
-| --------------- | ---------------------------------------------- | ------------------------------------------------------------------------------- |
-| Before Mutation | `commitBeforeMutationEffects`                  | 无（DOM 变更前的快照，如 `getSnapshotBeforeUpdate`）                            |
-| Mutation        | `commitMutationEffects`                        | DOM 变更；**删除节点时同步执行其 layout 类 cleanup**                            |
-| Layout          | `commitLayoutEffects`                          | 执行 `useInsertionEffect`、`useLayoutEffect` 的 setup（及依赖变化时的 cleanup） |
-| Passive（异步） | `flushPassiveEffects` → `commitPassiveEffects` | 执行 `useEffect` 的 cleanup 与 setup，不阻塞绘制                                |
+| 子阶段          | 入口函数                                       | Effect 相关动作                                                                                  |
+| --------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Before Mutation | `commitBeforeMutationEffects`                  | 无（DOM 变更前的快照，如 `getSnapshotBeforeUpdate`）                                             |
+| Mutation        | `commitMutationEffects`                        | DOM 变更；执行 `useInsertionEffect` 的 cleanup/setup；**删除节点时同步执行其 layout 类 cleanup** |
+| Layout          | `commitLayoutEffects`                          | 执行 `useLayoutEffect` 的 setup（及依赖变化时的 cleanup）                                        |
+| Passive（异步） | `flushPassiveEffects` → `commitPassiveEffects` | 执行 `useEffect` 的 cleanup 与 setup，不阻塞绘制                                                 |
 
 ### 5.2 遍历执行：commitHookEffectListMount / Unmount
 
 无论哪种 Effect，最终都由两个函数遍历环形链表执行——它们通过 `effect.tag & flags` 判断该 Effect 是否属于当前要执行的那一类：
-
-:::code-group
 
 ```javascript [react-reconciler/src/ReactFiberCommitWork.js]
 // 执行 setup（极简）
@@ -298,9 +291,7 @@ function commitHookEffectListMount(flags, finishedWork) {
     } while (effect !== firstEffect) // 环形：遍历一圈即止
   }
 }
-```
 
-```javascript [react-reconciler/src/ReactFiberCommitWork.js]
 // 执行 cleanup（极简）
 function commitHookEffectListUnmount(
   flags,
@@ -324,8 +315,6 @@ function commitHookEffectListUnmount(
 }
 ```
 
-:::
-
 调用时传入的 `flags` 揭示了执行的语义：
 
 [width(13,56,31)]
@@ -346,8 +335,8 @@ function commitHookEffectListUnmount(
 
 ```jsx
 useInsertionEffect(() => {
-  // 在 Layout 阶段最先执行（早于 useLayoutEffect）
-  // DOM 已变更、浏览器尚未绘制
+  // 在 Mutation 阶段执行（早于 useLayoutEffect）
+  // 此时浏览器尚未绘制
   const style = document.createElement('style')
   style.textContent = cssRules
   document.head.appendChild(style)
@@ -358,7 +347,7 @@ useInsertionEffect(() => {
 }, [])
 ```
 
-**执行时机**：Layout 阶段内、`useLayoutEffect` 之前，同步执行。
+**执行时机**：Mutation 阶段、`useLayoutEffect` 之前，浏览器绘制前同步执行。
 
 **适用场景**：极少使用，主要为 styled-components、Emotion 等 CSS-in-JS 库设计，让它们在 `useLayoutEffect` 读取布局前注入样式规则，避免布局计算时样式未就绪。
 
@@ -396,7 +385,7 @@ useEffect(() => {
 
 **执行时机**：Passive 阶段，浏览器绘制之后，**异步不阻塞**。
 
-**适用场景**：数据请求、订阅/取消订阅、日志上报、分析统计、操作非 React 管理的 DOM（第三方图表库初始化）等。
+**适用场景**：数据请求、订阅/取消订阅、日志上报、分析统计、非React管理的DOM(第三方图表库初始化)等。
 
 ### 6.4 完整时序对比
 
@@ -409,20 +398,20 @@ sequenceDiagram
     participant P as 浏览器绘制
     participant E as useEffect
 
-    R->>M: 完成 DOM 操作
-    M->>IE: Layout 阶段先执行（CSS-in-JS 注入样式）
-    IE->>LE: 同步执行（布局测量）
+    R->>M: 进入 Mutation 阶段（执行 DOM 变更）
+    M->>IE: 执行 useInsertionEffect（CSS-in-JS 注入样式）
+    IE->>LE: 进入 Layout 阶段，同步执行布局测量
     LE->>P: 浏览器计算布局并绘制
     P->>E: Passive 阶段异步执行（数据请求等）
 ```
 
 [width(23,31,13,33)]
 
-| Hook                 | 执行时机                              | 阻塞绘制 | 主要场景                   |
-| -------------------- | ------------------------------------- | -------- | -------------------------- |
-| `useInsertionEffect` | Layout 阶段最先（useLayoutEffect 前） | 是       | CSS-in-JS 库注入样式       |
-| `useLayoutEffect`    | Layout 阶段、浏览器绘制前             | 是       | DOM 测量、同步布局调整     |
-| `useEffect`          | Passive 阶段、浏览器绘制后            | 否       | 数据请求、订阅、日志、分析 |
+| Hook                 | 执行时机                            | 阻塞绘制 | 主要场景                   |
+| -------------------- | ----------------------------------- | -------- | -------------------------- |
+| `useInsertionEffect` | Mutation 阶段（useLayoutEffect 前） | 是       | CSS-in-JS 库注入样式       |
+| `useLayoutEffect`    | Layout 阶段、浏览器绘制前           | 是       | DOM 测量、同步布局调整     |
+| `useEffect`          | Passive 阶段、浏览器绘制后          | 否       | 数据请求、订阅、日志、分析 |
 
 ## 7. Effect 的清理机制
 
@@ -464,7 +453,7 @@ useEffect(() => {
 | `useEffect(fn, [])` — 空数组     | 仅在首次渲染后执行一次（mount） |
 | `useEffect(fn, [a, b])` — 有依赖 | a 或 b 变化时执行               |
 
-常见误区：将 Effect 当作“**watch**”使用（“**当 a 变化时执行 B**”），而实际上应该理解为“**声明了 a 和 b 的同步逻辑**”。
+常见误区：将 Effect 当作“**watch**”使用(“**当 a 变化时执行 B**”)，而实际上应该理解为“**声明了a和b的同步逻辑**”。
 
 ## 9. Strict Mode 与 Effect
 
@@ -480,14 +469,19 @@ React 的 Strict Mode 在**开发环境**会对 Effect 进行“**双重调用**
 这用于**发现不对称的副作用**。如果你的 Effect 在开发环境下表现异常，说明 cleanup 函数没有正确还原 Effect 产生的副作用。
 
 ```jsx
-// cleanup 没有正确还原
+// 缺少 cleanup：Mount 的 setup → cleanup → setup 会连接两次、断开零次
 useEffect(() => {
-  server.connect()
-  return () => server.disconnect()
+  const connection = server.connect()
+  // 没有 return cleanup
 }, [])
-// Mount: connect → disconnect → connect（双重连接后只有一个 disconnect → 可能泄漏）
 
-// cleanup 正确还原
+// cleanup 正确还原：连接 → 断开 → 再连接，最终只剩一个连接
+useEffect(() => {
+  const connection = server.connect()
+  return () => connection.disconnect()
+}, [])
+
+// 另一个常见模式：用 cancelled 标志避免请求竞态（与 StrictMode 无关）
 useEffect(() => {
   let cancelled = false
   fetch(url).then(data => {
