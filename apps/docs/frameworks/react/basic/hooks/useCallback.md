@@ -8,7 +8,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 在 React 函数组件中，每一次状态 (State) 改变导致重新渲染时，**组件函数内部声明的所有普通函数，都会被重新分配一个全新的内存地址（即被重新创建一次）。**
 
-**`useCallback` 就是为了拯救这个痛点而生的。** 它的唯一作用是：**在多次渲染之间，缓存同一个函数的内存引用（指针）。**
+`useCallback`就是为了拯救这个痛点而生的。它的唯一作用是:**在多次渲染之间，缓存同一个函数的内存引用。**
 
 ## 2. 核心 API 实战
 
@@ -36,7 +36,7 @@ export default function Parent() {
   const [text, setText] = useState('')
   const [count, setCount] = useState(0)
 
-  // 2. 🚨 核心魔法：使用 useCallback 锁死函数的内存地址
+  // 2. 核心魔法：使用 useCallback 锁死函数的内存地址
   const handleAction = useCallback(() => {
     console.log(`执行了操作，当前的 count 是: ${count}`)
   }, [count]) // 只有当 count 发生改变时，这个函数才会获得一个新的内存地址
@@ -101,7 +101,7 @@ const handleClick = useCallback(() => {
 }, [])
 ```
 
-### 3.2 破局方案 A：函数式更新 (Updater Function)
+### 3.2 方案 A：函数式更新 (Updater Function)
 
 如果你的函数仅仅是为了更新 State，不需要读取旧 State 来做别的逻辑判断，**完美解法是使用 `setCount(prev => ...)`，同时保持依赖数组为空**。
 
@@ -112,7 +112,7 @@ const handleClick = useCallback(() => {
 }, [])
 ```
 
-### 3.3 破局方案 B：`useRef` 逃生舱 (The Latest Ref Pattern)
+### 3.3 方案 B：`useRef` 逃生舱 (The Latest Ref Pattern)
 
 如果你的函数里不仅要 `set`，还要读各种复杂的 State 发给后端，加一堆依赖又会导致 `useCallback` 频繁换地址（失去优化的意义）。此时可以祭出终极大招。
 
@@ -137,21 +137,19 @@ const handleSubmit = useCallback(() => {
 
 ### 4.1 为什么官方文档严厉警告：“**不要把所有的函数都包上 `useCallback`**”？
 
-这是新手最容易犯的“**负优化**”错误。
-
 - **性能账本**：`useCallback` 的执行本身是需要消耗内存和 CPU 的（它要在内存里开辟空间存你的函数，每次渲染还要去遍历比对那个依赖数组）。
 - **亏本买卖**：如果你把函数传给了一个原生的 `<button onClick={handleClick}>` 标签，或者传给了一个**没有被 `React.memo` 包裹的普通自定义组件**。这些组件根本就不具备拦截渲染的能力！你包了 `useCallback`，不仅没有阻止重新渲染，反而还白白浪费了比对依赖数组的时间。
 - **黄金铁律**：`useCallback` **仅且只在**以下两种情况使用：
-  1. 作为一个 Prop 传递给一个由 `React.memo` 严密保护的昂贵子组件。
-  2. 作为另一个 `useEffect` / `useMemo` / `useCallback` 的内部依赖项。
+  - 作为一个 Prop 传递给一个由 `React.memo` 严密保护的昂贵子组件。
+  - 作为另一个 `useEffect` / `useMemo` / `useCallback` 的内部依赖项。
 
 ### 4.2 我把函数写在组件外部（全局作用域），能替代 `useCallback` 吗？
 
 **能，而且是最高级的优化！**
 
-- 如果你的函数**完全不依赖**组件内部的任何 State 或 Props（比如一个纯粹的日期格式化函数 `formatDate`）。
+- 如果你的函数**完全不依赖**组件内部的任何 State 或 Props。
 - **坚决不要**把它写在组件里面用 `useCallback` 包裹。你应该直接把它丢到组件函数定义的外面。
-- 这样它在整个 JS 文件被加载时只创建一次，内存地址永生不死，连 `useCallback` 计算依赖的性能都省了。
+- 这样它在整个JS文件被加载时只创建一次，内存地址永生不死，连`useCallback`计算依赖的性能都省了。
 
 ```jsx
 // 不依赖组件内部的任何 State / Props，直接放在组件外
@@ -167,11 +165,8 @@ function UserCard({ createdAt }) {
 
 ### 4.3 `useMemo` 和 `useCallback` 到底有什么区别？
 
-底层原理一模一样，纯粹是语法糖的区别。
-
 - `useMemo` 缓存的是**回调函数执行后返回的结果**。
 - `useCallback` 缓存的是**回调函数本身**。
-- 下面两行代码在底层是 100% 完全等价的：
 
 ```jsx
 const myFunc = useCallback(() => {

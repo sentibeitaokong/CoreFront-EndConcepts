@@ -37,8 +37,6 @@ const onSomething = useEffectEvent(callback)
 | **反应性**   | **非反应性**。它永远不会出现在 `useEffect` 的依赖数组中。 |
 | **状态获取** | 内部永远能获取到调用那一刻的 **最新** Props 和 State。    |
 
-**基础代码对比**
-
 ```jsx
 // 传统写法：逻辑耦合
 useEffect(() => {
@@ -56,8 +54,6 @@ useEffect(() => {
 ```
 
 ## 3. 实战案例：非阻塞式的日志记录
-
-让我们通过一个完整的例子来看它如何优雅地解决复杂的依赖问题。
 
 ```jsx
 import { useEffect } from 'react'
@@ -110,7 +106,7 @@ function ChatRoom({ roomId, theme }) {
 这是该 Hook 的安全限制。
 
 - `useEffectEvent` 的设计初衷是处理“**副作用中的非反应逻辑**”。它在 React 内部的执行时机是与渲染周期绑定的。
-- 如果你把它传给子组件并在 `onClick` 中调用，由于它没有闭包快照保护，可能会引发难以调试的竞态条件。
+- 如果你把它传给子组件并在`onClick`中调用，由于它没有闭包快照保护，可能会引发难以调试的竞态条件。
 - **准则**：它只能被 `useEffect` 消费。
 
 ### 5.2 我可以用 `useRef` 来模拟 `useEffectEvent` 吗？
@@ -144,7 +140,7 @@ function Page({ url }) {
 
 React 团队专门为 `useEffectEvent` 修改了 `eslint-plugin-react-hooks` 规则。
 
-- Linter 能够识别 `useEffectEvent` 的特殊身份，并**禁止**你将其加入 `useEffect` 的依赖数组。这与 `useRef` 产生的 `ref` 对象行为一致。
+Linter 能够识别 `useEffectEvent` 的特殊身份，并**禁止**你将其加入 `useEffect` 的依赖数组。这与 `useRef` 产生的 `ref` 对象行为一致。
 
 ### 5.4 什么时候该用它，什么时候该直接写在 Effect 里？
 
@@ -172,9 +168,3 @@ function ChatRoom({ roomId }) {
   return <div />
 }
 ```
-
-### 5.5 它可以像普通函数一样传参吗？
-
-**是的。**
-
-- 它非常适合接收参数。最佳实践是在 `useEffect` 内部计算好一些即时变量，作为参数传给 `useEffectEvent`，而将那些长期存在的配置（如 `theme`, `url`）放在内部直接读取。

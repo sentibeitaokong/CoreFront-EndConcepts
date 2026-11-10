@@ -141,14 +141,16 @@ return <input value={text} onChange={handleChange} />
 - **React 18**：`startTransition` 的回调必须是**同步**的。你必须先把 `await fetch` 拿到的数据存下来，然后只把 `setState(data)` 这一步包在 `startTransition` 里。
 - **React 19 (最新)**：官方全面引入了异步转换（Async Transitions）。你可以直接把完整的 `async` 操作放进去，`isPending` 会极其智能地等待你的网络请求完成，并且等待后续的组件渲染也完成，在此期间一直保持 `true` 状态，极大简化了全链路的 Loading 状态管理。
 
-```jsx
+:::code-group
+
+```jsx [React 18：fetch 放外面]
 function ListPage() {
   const [list, setList] = useState([])
   const [isPending, startTransition] = useTransition()
 
   const load = async () => {
     const data = await fetch('/api/list').then(res => res.json())
-    // React 18：fetch 放在外面，只把 setState 包进 transition
+    // fetch 放在外面，只把 setState 包进 transition
     startTransition(() => {
       setList(data)
     })
@@ -157,6 +159,25 @@ function ListPage() {
   return <button onClick={load}>{isPending ? '加载中...' : '加载'}</button>
 }
 ```
+
+```jsx [React 19：直接传 async 回调]
+function ListPage() {
+  const [list, setList] = useState([])
+  const [isPending, startTransition] = useTransition()
+
+  const load = () => {
+    // async 回调整段交给 transition，isPending 会等到请求和渲染都结束
+    startTransition(async () => {
+      const data = await fetch('/api/list').then(res => res.json())
+      setList(data)
+    })
+  }
+
+  return <button onClick={load}>{isPending ? '加载中...' : '加载'}</button>
+}
+```
+
+:::
 
 ### 4.4 我想把路由跳转做成过渡效果，可以用它吗？
 

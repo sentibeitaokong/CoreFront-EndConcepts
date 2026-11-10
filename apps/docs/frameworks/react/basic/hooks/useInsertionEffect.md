@@ -45,7 +45,7 @@ function DynamicButton() {
 }
 ```
 
-## 2. 核心进阶：解决动态样式的“**布局抖动**”（Layout Thrashing）难题
+## 2. 核心进阶：解决动态样式的“**布局抖动**”难题
 
 在 React 18 之前，很多底层库使用 `useLayoutEffect` 来注入样式。但在现代浏览器的渲染机制下，这成为了一个致命的性能瓶颈。
 
@@ -55,8 +55,9 @@ function DynamicButton() {
 
 **解决原则**：**将样式的注入时机提前到 React 修改任何原生 DOM 节点之前！使用 `useInsertionEffect` 完美避开二次计算。**
 
-```jsx
-// 错误示范 (性能噩梦)：在 DOM 已经变更后才注入样式
+:::code-group
+
+```jsx [错误示范：DOM 变更后注入]
 function BadCSSInjection({ rule }) {
   useLayoutEffect(() => {
     // 此时 React 已经把组件更新写进 DOM，浏览器正准备计算布局
@@ -65,8 +66,9 @@ function BadCSSInjection({ rule }) {
   }, [rule])
   return <div className="dynamic-box">内容</div>
 }
+```
 
-// 正确示范 (高性能)：在 DOM 变更前注入
+```jsx [正确示范：DOM 变更前注入]
 function GoodCSSInjection({ rule }) {
   useInsertionEffect(() => {
     // 在 React 碰触原生 DOM 之前，样式就已经就绪了
@@ -76,6 +78,8 @@ function GoodCSSInjection({ rule }) {
   return <div className="dynamic-box">内容</div>
 }
 ```
+
+:::
 
 ## 3. 高阶进阶：严格的限制条件与边界死穴
 
@@ -119,9 +123,7 @@ function InvalidUsage() {
 | **`useLayoutEffect`**    | React 更新 DOM **之后**，但在浏览器绘制之前同步执行              | 读取布局（如测量元素尺寸）、同步触发重绘       |
 | **`useEffect`**          | 浏览器绘制之后异步执行                                           | 数据获取、订阅、手动修改 DOM（不阻塞视觉更新） |
 
-**示例：**
-
-```
+```markdown
 1. React 触发渲染
 2. React 计算 DOM 更新
 3. useInsertionEffect 执行（可插入样式）
@@ -159,7 +161,7 @@ function InvalidUsage() {
 **这是深刻理解 React 渲染管线机制的核心重点。**
 
 - 针对同一个组件，它们的执行顺序严格如下：
-  1.  **`useInsertionEffect`**：执行。此时 React 还没把最新的 Virtual DOM 渲染到真实 DOM 上（此时你注入样式）。
+  1.  **`useInsertionEffect`**：执行。此时 React 还没把最新的 Virtual DOM 渲染到真实 DOM 上。
   2.  **DOM 突变（DOM Mutations）**：React 将差异（Diff）更新到真实的 DOM 节点上。
   3.  **`useLayoutEffect`**：执行。此时原生 DOM 已经更新完毕，但浏览器**还没有**把画面绘制（Paint）到屏幕上（此时你可以读取真实 DOM 的尺寸并同步调整）。
   4.  **浏览器绘制（Browser Paint）**：用户在屏幕上看到了最新的画面更新。

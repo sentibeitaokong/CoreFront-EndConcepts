@@ -8,7 +8,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 在 React 的函数组件中，每一次状态 (State) 改变导致重新渲染时，**组件函数内部的所有代码都会从头到尾被重新执行一遍。**
 
-**`useMemo`的核心作用是：**在多次渲染之间，缓存（Memoize）一个昂贵计算的结果，或者锁死一个引用类型（对象/数组）的内存地址。
+**`useMemo`的核心作用是：** 在多次渲染之间，缓存（Memoize）一个昂贵计算的结果，或者锁死一个引用类型（对象/数组）的内存地址。
 
 ## 2. 核心 API 实战：计算缓存与引用锁定
 
@@ -22,8 +22,6 @@ const cachedValue = useMemo(calculateValue, dependencies)
 ```
 
 ### 2.1 跳过昂贵的重新计算 (Expensive Calculations)
-
-这是最符合 `useMemo` 字面意思的用法。
 
 ```jsx
 import { useState, useMemo } from 'react'
@@ -41,7 +39,7 @@ export default function DataDashboard({ rawData }) {
   const [keyword, setKeyword] = useState('')
   const [theme, setTheme] = useState('light')
 
-  // 🚨 核心魔法：使用 useMemo 缓存计算结果！
+  // 核心魔法：使用 useMemo 缓存计算结果！
   const processedData = useMemo(() => {
     return filterAndSortData(rawData, keyword)
   }, [rawData, keyword]) // 只有当 rawData 或 keyword 变了，才重新计算！
@@ -66,7 +64,7 @@ export default function DataDashboard({ rawData }) {
 }
 ```
 
-### 2.2 跳过组件重渲染 (锁死对象指针) 🌟 最常用！
+### 2.2 跳过组件重渲染 (锁死对象指针) 最常用！
 
 这往往是初级向高级进阶的必修课。配合 `React.memo` 阻断子组件的渲染击穿。
 
@@ -130,23 +128,34 @@ function UserProfile({ userId }) {
 
 - **性能账本**：`useMemo` 本身是要花钱（消耗性能）的。它需要在每次渲染时开辟闭包空间，并且要循环遍历你的依赖数组，去用 `Object.is()` 做比对。
 - **亏本买卖**：如果你只是计算 `const total = a + b` 或者定义一个极小的普通数组 `const arr = [1, 2, 3]`。你为了省下这 `0.01ms` 的执行时间，却让 React 花了 `0.05ms` 去执行 `useMemo` 的底层调度，你的应用反而变得更卡了！
-- **黄金准则**：只有满足以下两个条件**之一**时才用：
-  1. 内部的计算函数确实极度耗时（比如循环一万次、极复杂的正则匹配等）。
-  2. 它返回的对象/数组，被作为一个 Prop 传给了被 `React.memo` 保护的子组件，或者被当作了 `useEffect` 的依赖。
+- **黄金准则**：
+  - 内部的计算函数确实极度耗时（比如循环一万次、极复杂的正则匹配等）。
+  - 它返回的对象/数组，被作为一个 Prop 传给了被 `React.memo` 保护的子组件，或者被当作了 `useEffect` 的依赖。
 
 ### 3.2 为什么我用了 `useMemo`，但数据好像没有被缓存，每次还是重新执行了？
 
-通常是因为你的依赖数组里，混入了**“每次渲染都会换地址”的引用类型**。
+通常是因为你的依赖数组里，混入了 “**每次渲染都会换地址**”的引用类型。
 
-- **案发现场**：
+:::code-group
 
-  ```jsx
-  // options 每次都会换新地址
-  const options = { filter: 'active' }
+```jsx [错误示范：对象每次都是新地址]
+// options 每次都会换新地址
+const options = { filter: 'active' }
 
-  // useMemo 一查依赖，发现 options 变了，于是大喊“缓存失效”，重新执行了耗时函数！
-  const data = useMemo(() => compute(options), [options])
-  ```
+// useMemo 一查依赖，发现 options 变了，于是大喊“缓存失效”，重新执行了耗时函数！
+const data = useMemo(() => compute(options), [options])
+```
+
+```jsx [正确示范：锁住 options 引用]
+const options = useMemo(() => ({ filter: 'active' }), [])
+const data = useMemo(() => compute(options), [options])
+```
+
+```jsx [正确示范：只依赖基本类型]
+const data = useMemo(() => compute(options), [options.filter])
+```
+
+:::
 
 - **解法**：你要么把 `options` 也用一个外层的 `useMemo` 包起来，要么直接把它解构，把基本数据类型放进依赖里：`[options.filter]`。
 

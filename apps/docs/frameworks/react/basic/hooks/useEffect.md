@@ -13,7 +13,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 **这些游离于 React 纯粹渲染计算之外的“脏活累活”，统统被称为“副作用 (Side Effects)”。**
 **`useEffect` 就是 React 专门为你开辟的处理这些副作用的合法隔离区。**
 
-> **底层执行时机 🚀**：
+> **底层执行时机**：
 > `useEffect` 包裹的代码，**永远是在浏览器完成真实 DOM 的绘制（Paint）之后，被异步、延迟调用的。** 这保证了你的复杂的副作用逻辑绝对不会阻塞用户看到页面的第一眼。
 
 ### 1.1 标准语法与执行时机
@@ -36,7 +36,7 @@ useEffect(
 )
 ```
 
-- **执行时机**：绝大多数情况下，`useEffect` 会在浏览器完成布局与绘制**之后**延迟执行（异步），以避免阻塞视觉更新。（如果需要阻塞绘制的高级场景，应使用 `useLayoutEffect`）。
+**执行时机**：绝大多数情况下，`useEffect` 会在浏览器完成布局与绘制**之后**延迟执行（异步），以避免阻塞视觉更新。（如果需要阻塞绘制的高级场景，应使用 `useLayoutEffect`）。
 
 ## 2. 核心语法与依赖数组的三种形态
 
@@ -78,9 +78,9 @@ useEffect(() => {
 
 ### 2.3 有具体的依赖项 `[a, b]` (精确制导)
 
-**行为**：只有当数组里的 `a` 或 `b`，在本次渲染时的值与上一次渲染时的值**发生了物理变化（`Object.is` 浅比对）**时，这个 Effect 才会被触发。
+**行为**：只有当数组里的 `a` 或 `b`，在本次渲染时的值与上一次渲染时的值 **发生了物理变化（`Object.is` 浅比对）** 时，这个 Effect 才会被触发。
 
-**场景**：响应特定数据的变化（如：用户在左侧列表切换了文章 ID，右侧详情区监听到 ID 变化去发起新的内容请求）。
+**场景**：响应特定数据的变化(如:用户在左侧列表切换了文章ID，右侧详情区监听到ID变化去发起新的内容请求)。
 
 ```jsx
 const [userId, setUserId] = useState(1)
@@ -129,7 +129,7 @@ function Counter() {
       setCount(c => c + 1)
     }, 1000)
     return () => clearInterval(id)
-  }, []) // 🟢 完美的空依赖数组
+  }, []) //  完美的空依赖数组
 
   return <h1>{count}</h1>
 }
@@ -158,7 +158,7 @@ function ChatRoom({ roomId }) {
     connection.connect()
 
     return () => connection.disconnect()
-  }, [roomId]) // 🟢 options 不再是依赖项
+  }, [roomId]) //options 不再是依赖项
 }
 ```
 
@@ -192,13 +192,13 @@ function ChatRoom({ roomId }) {
     const connection = createConnection(createOptions())
     connection.connect()
     return () => connection.disconnect()
-  }, [roomId]) // 🟢 只需要依赖实际的数据 roomId
+  }, [roomId]) //  只需要依赖实际的数据 roomId
 }
 ```
 
 ### 3.4 响应隔离：从 Effect 读取最新的 props 和 state
 
-**痛点场景**：有时候你想在 Effect 中读取一个最新的 state（比如当前的 `theme` 颜色，用于打印日志），但你**绝对不想**因为这个 state 的改变而导致 Effect 重新运行（比如你不想因为切了个暗黑模式，就导致聊天室断开重连）。
+**痛点场景**：有时候你想在 Effect 中读取一个最新的 state（比如当前的 `theme` 颜色，用于打印日志），但你**绝对不想**因为这个 state 的改变而导致Effect重新运行(比如你不想因为切了个暗黑模式，就导致聊天室断开重连)。
 
 **解决原则**：在传统的 React 中，我们经常会遇到“**想读最新值，又不想被它触发**”的尴尬境地。React 官方正在引入（目前为实验性 API）**`useEffectEvent`** 来将非响应式逻辑从响应式的 Effect 中抽离出来。
 
@@ -227,13 +227,13 @@ function ChatRoom({ roomId, theme }) {
     connection.connect()
 
     return () => connection.disconnect()
-  }, [roomId]) // 🟢 完美：只有 roomId 改变才会重连，theme 改变不会触发。
+  }, [roomId]) // 完美：只有 roomId 改变才会重连，theme 改变不会触发。
 }
 ```
 
 ## 4. 清理函数 (Cleanup) 的绝对重要性
 
-`useEffect` 的返回值是一个函数，它负责“**擦屁股**”。如果忘记清理，会导致极其严重的**内存泄漏**或**竞态条件 (Race Conditions)**。
+`useEffect` 的返回值是一个函数，它负责“**擦屁股**”。如果忘记清理，会导致极其严重的**内存泄漏**或**竞态条件**。
 
 ### 4.1 避免内存泄漏
 
@@ -251,7 +251,7 @@ function Timer() {
       setSeconds(s => s + 1)
     }, 1000)
 
-    // 🚨 铁律：凡是开启持续性监听/轮询，必须在 return 里关闭它！
+    // 铁律：凡是开启持续性监听/轮询，必须在 return 里关闭它！
     return () => {
       clearInterval(intervalId)
     }
@@ -307,8 +307,8 @@ function UserProfile({ userId }) {
 
 这绝对是由于你**不仅违反了依赖数组规则，还触发了状态突变。**
 
-- **死状一（忘写依赖）**：你在 Effect 里 `setCount(c=>c+1)`，但忘了写 `[]`。每次 set 导致组件重渲染，重渲染又无脑触发 Effect，接着又 set，光速死机。
-- **死状二（自己卷自己）**：你把 `obj` 放入了依赖数组 `[obj]`，然后在 Effect 里面又去 `setObj({...obj, a: 1})`。因为每次 set 生成的都是**全新内存地址**的对象，Effect 一比对发现 `obj` 地址变了！大喊“**依赖更新了！**”，又去执行一遍，死循环爆发。
+- **忘写依赖**：你在 Effect 里 `setCount(c=>c+1)`，但忘了写 `[]`。每次 set 导致组件重渲染，重渲染又无脑触发 Effect，接着又 set，光速死机。
+- **自己卷自己**：你把 `obj` 放入了依赖数组 `[obj]`，然后在 Effect 里面又去 `setObj({...obj, a: 1})`。因为每次 set 生成的都是**全新内存地址**的对象，Effect 一比对发现 `obj` 地址变了！大喊“**依赖更新了！**”，又去执行一遍，死循环爆发。
 - **破局**：尽量不要把会发生改变的对象/数组作为依赖。如果非要作为依赖，**请把对象拆解成具体的字符串/数字属性塞进依赖数组（如 `[obj.id]`）**。
 
 ```jsx
@@ -338,15 +338,15 @@ function Detail({ obj }) {
 
 ### 5.3 我把一个函数（比如 `fetchData`）写在了组件里，并在 `useEffect` 里调用它。React Linter 插件疯狂报错要求我把函数加进依赖数组，我加进去后却引发了死循环？
 
-这是使用 Hooks 时最让人抓狂的困境。
-
 - **原因剖析**：每次组件重渲染，内部定义的普通函数 `const fetchData = () => {}` 都会被**重新分配一个新的内存地址**。如果你听了插件的话把它加进依赖数组 `[fetchData]`，那么每次渲染都会导致依赖数组发生改变，Effect 被无脑触发，死循环！
 - **完美解法 A (推荐)**：如果这个函数**不需要读取任何组件内的 State/Props**，把它**直接提到组件函数的外面去定义**！这样它在整个 JS 模块里只有一份，永远不变，甚至不需要写进依赖数组。
 - **完美解法 B**：把这个函数的声明**直接挪进 `useEffect` 的内部**！这样既不用加依赖，逻辑又极度内聚。
 - **终极解法 C**：如果这个函数确实要在很多个 Effect 或者 onClick 里复用，你必须使用 **`useCallback`** 把它包裹起来，死死锁住它的内存地址，然后再把它塞进依赖数组里。
 
-```jsx
-// 解法 A：函数不依赖组件内部状态时，直接放到组件外面
+:::code-group
+
+```jsx [解法 A]
+// 函数不依赖组件内部状态时，直接放到组件外面
 function fetchData() {
   return fetch('/api/list').then(res => res.json())
 }
@@ -363,10 +363,46 @@ function List() {
 }
 ```
 
+```jsx [解法 B]
+// 只有这个 Effect 用，直接把函数挪进 Effect 内部
+function List({ userId }) {
+  const [list, setList] = useState([])
+
+  useEffect(() => {
+    // 每次渲染 Effect 重新执行时才创建，天然属于本 Effect，不进依赖数组
+    function fetchData() {
+      return fetch(`/api/list?userId=${userId}`).then(res => res.json())
+    }
+
+    fetchData().then(setList)
+  }, [userId]) // 只留函数真正读到的外部变量
+
+  return <ul>{/* ... */}</ul>
+}
+```
+
+```jsx [解法 C]
+// 函数要跨多个 Effect / onClick 复用，用 useCallback 锁住引用
+function List({ userId }) {
+  const [list, setList] = useState([])
+
+  const fetchData = useCallback(() => {
+    return fetch(`/api/list?userId=${userId}`).then(res => res.json())
+  }, [userId]) // 只有 userId 变化时才产生新引用
+
+  useEffect(() => {
+    // 此时 fetchData 的引用是稳定的，放进依赖数组也不会死循环
+    fetchData().then(setList)
+  }, [fetchData])
+
+  return <ul>{/* ... */}</ul>
+}
+```
+
+:::
+
 ### 5.4 为什么官方现在越来越不推荐在 `useEffect` 里手动发请求了？
 
-这是现代前端架构理念的觉醒。
-
-- 虽然上文教了你怎么在 `useEffect` 里发请求和防竞态，但在真实的巨型业务中，你还要处理 loading 状态骨架屏、接口抛错的 Error Boundary、相同接口的缓存去重（SWR）、服务端渲染（SSR）的水合等无数个深坑。
+- 虽然上文教了你怎么在 `useEffect` 里发请求和防竞态，但在真实的巨型业务中，你还要处理 loading 状态骨架屏、接口抛错的 Error Boundary、相同接口的缓存去重（SWR）、服务端渲染（SSR）的水合等深坑。
 - 如果纯靠手写 `useEffect`，你会写出极其庞大且恶心的“**面条代码**”。
-- **官方钦定方向**：对于单纯的数据拉取，现代 React 极其推崇将这些脏活全部下放给专业的**数据请求框架（如 React Query, SWR）**，或者交由**全栈框架的数据层（如 React Router v6.4+ 的 Loader, Next.js 的 Server Components）**来处理。让你的组件彻底回归纯粹的 UI 渲染本质。
+- **官方钦定方向**：对于单纯的数据拉取，现代 React 极其推崇将这些脏活全部下放给专业的**数据请求框架（如 React Query, SWR）**，或者交由 **全栈框架的数据层（如 React Router v6.4+ 的 Loader, Next.js 的 Server Components）** 来处理。让你的组件彻底回归纯粹的 UI 渲染本质。

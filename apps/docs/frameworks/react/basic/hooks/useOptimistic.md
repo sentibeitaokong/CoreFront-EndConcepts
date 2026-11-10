@@ -59,16 +59,17 @@ function MessageList({ messages, sendMessage }) {
 
 ## 2. 核心进阶：解决异步网络延迟带来的“**交互卡顿**”难题
 
-在 `useOptimistic` 出现之前，开发者为了实现乐观更新，通常需要手动维护多套状态（如 `isPending`、`tempData` 等），并在 `try...catch` 中手动编写繁琐的回滚逻辑。这不仅容易写出 Bug，还难以应对并发请求。
+在 `useOptimistic` 出现之前，开发者为了实现乐观更新，通常需要手动维护多套状态(如`isPending`、`tempData`等)，并在`try...catch`中手动编写繁琐的回滚逻辑。这不仅容易写出 Bug，还难以应对并发请求。
 
 ### 2.1 痛点场景：手动维护乐观状态导致的代码面条化
 
-**痛点场景**：传统的乐观更新通常需要你先 `setMessages(乐观数据)`，然后发请求。如果请求失败，你必须在 `catch` 块里再 `setMessages(把之前的数据塞回去)`。如果有多个请求并发发生，手动回滚极易导致数据彻底错乱。
+**痛点场景**：传统的乐观更新通常需要你先`setMessages(乐观数据)`，然后发请求。如果请求失败，你必须在`catch`块里再`setMessages(之前的数据)`。如果有多个请求并发发生，手动回滚极易导致数据彻底错乱。
 
 **解决原则**：**将状态的管理权交还给 React 的并发渲染机制（Concurrent Features）。`useOptimistic` 创建的状态只存活在“异步 Action 执行期间”。只要 Action 结束，乐观状态就会自动消亡，UI 会自然地回退到由 Props 或外部 State 传入的“真实真理（Single Source of Truth）”。**
 
-```jsx
-// 错误/过时的示范 (手动维护回滚)：极易在并发时出错
+:::code-group
+
+```jsx [错误示范：手动维护回滚]
 async function handleLikeOld() {
   setLikes(likes + 1) // 乐观更新
   try {
@@ -77,8 +78,9 @@ async function handleLikeOld() {
     setLikes(likes - 1) // 手动回滚（如果连续点多次，这里会出大 bug）
   }
 }
+```
 
-// 正确示范 (使用 useOptimistic)：无需手动回滚
+```jsx [正确示范：useOptimistic 自动回滚]
 async function handleLikeNew() {
   // 1. 触发乐观状态
   addOptimisticLike(1)
@@ -87,6 +89,8 @@ async function handleLikeNew() {
   // 请求结束后，React 会自动根据真实的外部状态重新渲染，无需任何回滚代码！
 }
 ```
+
+:::
 
 ## 3. 高阶进阶：与 Actions 和表单的深度结合
 
@@ -116,7 +120,7 @@ function LikeButton({ initialLikes, updateServer }) {
     })
   }
 
-  return <button onClick={onClick}>👍 {optimisticLikes}</button>
+  return <button onClick={onClick}>{optimisticLikes}</button>
 }
 ```
 

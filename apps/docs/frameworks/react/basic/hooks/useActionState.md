@@ -4,7 +4,7 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 # **[`useActionState`](https://zh-hans.react.dev/reference/react/useActionState)：现代表单状态处理的终极解法**
 
-_(⚠️ 注意：`useActionState` 是 React 19 引入的全新核心 Hook。在 React 18 的早期实验版本中，它曾被称为 `useFormState`。本文基于 React 19 最新标准编写。)_
+_(注意：`useActionState` 是 React 19 引入的全新核心 Hook。在 React 18 的早期实验版本中，它曾被称为 `useFormState`。本文基于 React 19 最新标准编写。)_
 
 ## 1. 核心概念与时代背景
 
@@ -15,19 +15,17 @@ _(⚠️ 注意：`useActionState` 是 React 19 引入的全新核心 Hook。在
 
 `useActionState` 接收三个参数，返回一个包含三个元素的数组。
 
-**函数签名：**
-
 ```javascript
 const [state, formAction, isPending] = useActionState(fn, initialState, permalink?);
 ```
 
 [width(18,82)]
 
-| 返回值           | 核心职责                                                                                                         |
-| :--------------- | :--------------------------------------------------------------------------------------------------------------- |
-| **`state`**      | 那个执行函数 (`fn`) 上一次**`return` 回来的最新结果**。如果函数还没执行过，它的值就是你传进去的 `initialState`。 |
-| **`formAction`** | **用来绑定在 `<form action={}>` 上的新动作函数**。当你触发表单提交时，就是通过调用它来启动整个异步流程。         |
-| **`isPending`**  | 一个布尔值。当内部的异步函数正在执行 (Promise 尚未 resovle) 时，它为 `true`。极其适合用来做 Loading 动画。       |
+| 返回值           | 核心职责                                                                                                          |
+| :--------------- | :---------------------------------------------------------------------------------------------------------------- |
+| **`state`**      | 那个执行函数 (`fn`) 上一次 **`return` 回来的最新结果**。如果函数还没执行过，它的值就是你传进去的 `initialState`。 |
+| **`formAction`** | **用来绑定在 `<form action={}>` 上的新动作函数**。当你触发表单提交时，就是通过调用它来启动整个异步流程。          |
+| **`isPending`**  | 一个布尔值。当内部的异步函数正在执行 (Promise 尚未 resovle) 时，它为 `true`。极其适合用来做 Loading 动画。        |
 
 [width(22,78)]
 
@@ -39,7 +37,7 @@ const [state, formAction, isPending] = useActionState(fn, initialState, permalin
 
 ### 2.1 工业级实战：重构一个极简登录表单
 
-在没有 `useActionState` 之前，你要写三个 `useState` 和复杂的 `try/catch/finally`。现在，代码变得极其纯粹。
+在没有 `useActionState` 之前，你要写三个 `useState` 和复杂的 `try/catch/finally`。
 
 ```jsx
 import { useActionState } from 'react'
@@ -142,10 +140,8 @@ function ArticleCard({ article }) {
 
 ### 4.1 既然它能处理异步状态，那它和 `useEffect` 发请求有什么区别？
 
-这是最核心的架构理念差异。
-
 - **触发机制**：`useEffect` 是“**被动防御**”。它是生命周期钩子，只要组件挂载了或者某个依赖变量（如 `userId`）变了，它就自动触发去发请求拉数据（通常用于页面初次加载获取展示数据）。
-- **触发机制**：`useActionState` 是“**主动出击**”。它包裹的是一个因为**用户进行了某种特定交互动作（如点击提交、点击点赞）**而触发的副作用。
+- **触发机制**：`useActionState` 是“**主动出击**”。它包裹的是一个因为 **用户进行了某种特定交互动作（如点击提交、点击点赞）** 而触发的副作用。
 - **总结**：页面加载要看的数据用 `useEffect`（或 React Query），用户点击按钮要发的数据/命令用 `useActionState`。
 
 ### 4.2 为什么我连续狂点提交按钮 10 次，并没有看到发出去 10 个网络请求？是不是出 Bug 了？

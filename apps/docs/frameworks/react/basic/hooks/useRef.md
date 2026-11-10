@@ -34,8 +34,6 @@ function useRef(initialValue) {
 | **1. 获取真实 DOM**     | 直接操作原生 DOM 节点（如使输入框获取焦点、获取滚动条位置、操作 Video 播放、接入 ECharts 等第三方库）。 | 像是一根**机械抓手**，直接探入页面抓取物理节点。                                             |
 | **2. 跨渲染保存死数据** | 保存一个在组件整个生命周期内都不会丢失的变量，**且修改这个变量绝对不会触发组件重新渲染。**              | 像是一个**秘密保险箱**，每次渲染时你都能打开箱子拿到里面的东西，但往里存东西不会惊动任何人。 |
 
-_(注：`useRef` 返回的是一个极其简单的普通对象 `{ current: initialValue }`，这个对象的内存地址在组件的整个生命周期中永远不变。)_
-
 ### 1.2 ref和state的区别
 
 [width(13,34,53)]
@@ -51,8 +49,6 @@ _(注：`useRef` 返回的是一个极其简单的普通对象 `{ current: initi
 ## 2. 核心操作实战
 
 ### 2.1 物理抓手：获取和操作 DOM
-
-这是前端开发者最熟悉的场景。
 
 ```jsx
 import { useRef, useEffect } from 'react'
@@ -81,8 +77,6 @@ function FormInput() {
 
 假设你要实现一个秒表。你需要保存定时器的 ID (`intervalId`) 以便后续清除它。
 如果你把 `intervalId` 存成普通的 `let` 变量，每次组件重渲染，它都会被重置。如果你把它存进 `useState`，每次修改 `intervalId` 都会导致无意义的页面重渲染，这太荒谬了。
-
-**`useRef` 是保存这种幕后数据的完美容器。**
 
 ```jsx
 import { useState, useRef } from 'react'
@@ -188,7 +182,7 @@ function ItemList({ items }) {
         {items.map(item => (
           <li
             key={item.id}
-            // 2. 🚨 Callback Ref 的魔法！
+            // 2. Callback Ref 的魔法！
             // 当 DOM 挂载时，React 会调用这个函数，把真实的 DOM 节点 node 传进来
             // 当 DOM 卸载时，React 会传一个 null 进来
             ref={node => {
@@ -213,8 +207,6 @@ function ItemList({ items }) {
 
 ### 4.1 为什么我在 `console.log(myRef.current)` 时，打印出来的总是 `null`？
 
-这是新手踩坑榜 Top 1，绝对的时序错误。
-
 - **原理**：`useRef(null)` 在组件函数刚刚执行时，真实 DOM 还是一片虚无（尚未进行挂载 Commit）。
 - 如果你把 `console.log` 写在组件函数的顶层，或者写在 `useMemo` 里，此时 React 还没把物理 DOM 交给你，你拿到的当然是初始值 `null`。
 - **避坑指南**：**永远、必须在 `useEffect` 或者事件处理函数 (如 `onClick`) 内部，去访问 `ref.current`**。因为这些代码执行时，页面绝对已经画好了。
@@ -229,8 +221,6 @@ function ItemList({ items }) {
 
 ### 4.3 我把一个普通的变量用 `let` 写在组件函数外边，不也能存数据且不引起渲染吗？干嘛非得用 `useRef`？
 
-这涉及到了变量作用域和组件复用性的骨灰级考点。
-
 ```jsx
 let myTimer = null // 写在外面
 
@@ -243,8 +233,6 @@ function TimerComponent() {
 - **useRef 的伟大之处**：`useRef` 是挂载在当前这个具体的组件实例（Fiber 节点）上的。无论你在页面上复用渲染多少次该组件，它们内部都有自己私有的、互不干扰的“**保险箱**”。
 
 ### 4.4 `useRef` 保存的值改变时，既然不触发渲染，那我的页面怎么才能同步它的变化？
-
-这是一个逻辑悖论。
 
 - 如果你希望页面上能显示出这个值的变化（比如你把定时器的秒数存在了 Ref 里），那你就**选错工具了**！
 - **必须渲染在屏幕上的数据，必须用 `useState`。**

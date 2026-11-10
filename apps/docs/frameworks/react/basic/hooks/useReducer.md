@@ -54,7 +54,7 @@ function myReducer(state, action) {
   // 按照业内不成文的规定，永远使用 switch 语句来匹配 action.type
   switch (action.type) {
     case 'INCREMENT':
-      // 🚨 铁律：不要写 state.count++，必须展开旧对象返回新对象！
+      // 铁律：不要写 state.count++，必须展开旧对象返回新对象！
       return { ...state, count: state.count + 1 }
 
     case 'DECREMENT':
@@ -137,8 +137,9 @@ function Counter({ initialCount = 0 }) {
 
 我们将 `state`（只读）和 `dispatch`（写操作）物理拆分为两个独立的 Context 广播出去，实现绝对的性能读写分离。
 
-```jsx
-// src/context/ThemeContext.jsx
+:::code-group
+
+```jsx [src/context/ThemeContext.jsx]
 import { createContext, useReducer, useContext } from 'react'
 
 // 1. 拆分双 Context，阻断连带重渲染
@@ -174,17 +175,17 @@ export const useThemeState = () => useContext(ThemeStateContext)
 export const useThemeDispatch = () => useContext(ThemeDispatchContext)
 ```
 
+:::
+
 ## 4. 常见问题 (FAQ) 与避坑指南
 
 ### 4.1 到底什么时候用 `useState`，什么时候上 `useReducer`？
 
-这是关于架构“**杀鸡焉用牛刀**”的哲学。
-
 - **用 `useState`**：绝大多数场景（90%以上）。只要状态是相互独立的基本类型，或者只是简单的表单双向绑定，不要折腾自己去写一堆繁琐的 switch case 样板代码。
 - **必须用 `useReducer` 的三大信号**：
-  1.  **下一个 state 严重依赖前一个 state 的复杂计算**（不仅依赖自己，还依赖别的状态的逻辑纠缠）。
-  2.  **一个交互动作会同时触发多个关联状态的改变**（比如“**拉取成功**”要同时改 loading 为 false，存入 data，清空 error 三个状态）。
-  3.  你需要将复杂的业务更新逻辑提取到组件之外，方便进行高覆盖率的**单元测试 (Unit Test)**（因为 Reducer 是纯函数，丢个对象进去立马能测出结果，不需要渲染 DOM）。
+  - **下一个 state 严重依赖前一个 state 的复杂计算**（不仅依赖自己，还依赖别的状态的逻辑纠缠）。
+  - **一个交互动作会同时触发多个关联状态的改变**（比如“**拉取成功**”要同时改 loading 为 false，存入 data，清空 error 三个状态）。
+  - 你需要将复杂的业务更新逻辑提取到组件之外，方便进行高覆盖率的**单元测试 (Unit Test)**（因为 Reducer 是纯函数，丢个对象进去立马能测出结果，不需要渲染 DOM）。
 
 ### 4.2 为什么在 Reducer 里面不能执行异步请求 (Ajax)？如果非要发请求怎么办？
 

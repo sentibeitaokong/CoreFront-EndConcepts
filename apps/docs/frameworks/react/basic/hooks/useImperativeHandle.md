@@ -36,9 +36,9 @@ useImperativeHandle(ref, createHandle, dependencies?)
 
 ### 2.3 完整实战代码
 
-**子组件 (FancyInput.jsx)：**
+:::code-group
 
-```jsx
+```jsx [FancyInput.jsx]
 import { useRef, useImperativeHandle, forwardRef, useState } from 'react'
 
 // 1. 使用 forwardRef 包裹组件，此时函数接收第二个参数 `ref`
@@ -64,7 +64,7 @@ const FancyInput = forwardRef((props, ref) => {
       // 甚至可以暴露组件内部的 State 供父亲读取
       getSecretMsg: () => '这是子组件的秘密信息：' + value,
     }
-  }, [value]) // 🚨 依赖数组：如果暴露的内容依赖了内部的 state，必须写在这里！
+  }, [value]) // 依赖数组：如果暴露的内容依赖了内部的 state，必须写在这里！
 
   return (
     <div className="fancy-input-container">
@@ -82,9 +82,7 @@ const FancyInput = forwardRef((props, ref) => {
 export default FancyInput
 ```
 
-**父组件 (App.jsx) 行使权力：**
-
-```jsx
+```jsx [App.jsx]
 import { useRef } from 'react'
 import FancyInput from './FancyInput'
 
@@ -119,16 +117,15 @@ export default function App() {
 }
 ```
 
+:::
+
 ## 3. 高阶场景：在 Modal 弹窗组件中的经典应用
 
-在企业级后台管理系统中，我们经常会把复杂的表单弹窗封装成独立的组件。父组件如何优雅地召唤出这个弹窗？
+在企业级后台管理系统中，我们经常会把复杂的表单弹窗封装成独立的组件。父组件如何召唤出这个弹窗？
 
-**错误的做法（过度声明式）**：父组件维护一个 `isModalVisible` 的 state，通过 props 传给子组件。这会导致父组件充满了一堆与自身业务无关的弹窗控制变量。
+:::code-group
 
-**优雅的做法（命令式召唤）**：
-
-```jsx
-// Modal.jsx
+```jsx [Modal.jsx]
 const CustomModal = forwardRef((props, ref) => {
   const [visible, setVisible] = useState(false)
   const [data, setData] = useState(null)
@@ -145,8 +142,9 @@ const CustomModal = forwardRef((props, ref) => {
   if (!visible) return null
   return <div className="modal">编辑数据: {data?.name}</div>
 })
+```
 
-// App.jsx
+```jsx [App.jsx]
 function App() {
   const modalRef = useRef()
 
@@ -161,6 +159,8 @@ function App() {
   )
 }
 ```
+
+:::
 
 ## 4. 常见问题 (FAQ) 与避坑指南
 
@@ -194,27 +194,42 @@ function Parent() {
 
 ### 4.3 `useImperativeHandle` 的第三个参数（依赖数组）什么时候必须写？
 
-这是无数高级工程师栽跟头的地方。
-
 - **默认行为（不传依赖数组）**：和 `useEffect` 一样，如果不传依赖数组，子组件每次重新渲染，都会**重新生成一个包含方法的对象并赋值给 ref**。这通常没问题。
 - **致命 Bug 场景（传了空数组 `[]`，但方法里用到了 State）**：
-  ```jsx
-  const [count, setCount] = useState(0)
-  // 错误：闭包陷阱！
-  useImperativeHandle(
-    ref,
-    () => ({
-      getCount: () => count,
-    }),
-    [],
-  ) // 空数组锁死了闭包
-  ```
-  因为你加了 `[]`，这个暴露出去的 `getCount` 函数的内存地址在组件挂载后就永远不死。它内部引用的 `count` 变量将被死死冻结在第一次渲染时的 `0`。以后父组件无论怎么调 `childRef.current.getCount()`，拿到的永远是 `0`！
+
+:::code-group
+
+```jsx [错误示范：空依赖]
+const [count, setCount] = useState(0)
+
+// 错误：闭包陷阱，getCount 永远返回 0
+useImperativeHandle(
+  ref,
+  () => ({
+    getCount: () => count,
+  }),
+  [],
+)
+```
+
+```jsx [正确示范：依赖 count]
+const [count, setCount] = useState(0)
+
+useImperativeHandle(
+  ref,
+  () => ({
+    getCount: () => count,
+  }),
+  [count],
+)
+```
+
+:::
+
+- 因为你加了 `[]`，这个暴露出去的 `getCount` 函数的内存地址在组件挂载后就永远不死。它内部引用的 `count` 变量将被死死冻结在第一次渲染时的 `0`。以后父组件无论怎么调 `childRef.current.getCount()`，拿到的永远是 `0`！
 - **正确规范**：如果你暴露出去的方法内部使用了子组件的 State 或 Props，**必须且一定要把它们写进依赖数组里** `[count]`，迫使内部函数刷新闭包！
 
 ### 4.4 如果我有好几层组件嵌套（爷爷 -> 父亲 -> 孙子），爷爷想直接调用孙子的方法怎么办？
-
-这就是臭名昭著的 **Ref Forwarding 地狱**。
 
 - 如果按照标准规范，你需要把孙子包一层 `forwardRef` 暴露给父亲；然后父亲再包一层 `forwardRef` 和 `useImperativeHandle`，把父亲接到的方法**再转手**暴露给爷爷。极其繁琐！
 - **终极架构解法**：如果层级深到了这个地步，说明你的组件拆分存在严重的不合理，或者你陷入了原生 DOM 操作的死胡同。**请立刻停手，反思是否能通过 Context API 或者全局状态库 (Zustand/Redux) 通过数据流广播来驱动底层的状态改变！**

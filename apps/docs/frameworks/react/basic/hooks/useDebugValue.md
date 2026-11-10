@@ -49,7 +49,7 @@ export function useOnlineStatus() {
     }
   }, [])
 
-  // 🚀 核心魔法：使用 useDebugValue 暴露当前状态！
+  // 核心魔法：使用 useDebugValue 暴露当前状态！
   // 这个字符串/变量，将会在 React DevTools 中紧紧跟在 useOnlineStatus 的名字后面显示。
   useDebugValue(isOnline ? '🟢 在线' : '🔴 断网')
 
@@ -57,7 +57,6 @@ export function useOnlineStatus() {
 }
 ```
 
-**效果震撼对比**：
 当你在 `App` 组件里使用了这个 Hook，打开 React DevTools 选中 `App` 时：
 
 - **没加 `useDebugValue` 前**：面板只显示 `State: true`，鬼知道它是谁。
@@ -85,7 +84,7 @@ function formatSuperBigDateToHumanReadable(dateObj) {
 export function useSpecialDate() {
   const [date, setDate] = useState(new Date())
 
-  // 🚀 核心魔法 2：传入第二个回调参数！
+  // 核心魔法 2：传入第二个回调参数！
   // React 极其聪明：只有当你按下 F12，真正打开了 React DevTools 面板去盯着这个组件看时，
   // 它才会把你传入的 date 喂给第二个函数，执行这个耗时的格式化计算并展示！
   // 在普通用户的浏览器里（没开调试工具），这段耗时计算绝对不会被执行，性能完美保障！
@@ -98,8 +97,6 @@ export function useSpecialDate() {
 ## 3. 常见问题 (FAQ) 与避坑指南
 
 ### 3.1 为什么我在代码里写了 `useDebugValue`，页面上却什么都没变？
-
-这是一个经典的“**表错情**”误区。
 
 - `useDebugValue` 绝对没有任何操纵真实 DOM、改变业务逻辑、或者在页面上打印日志的能力。
 - 它的数据**唯一且只显示在浏览器开发者工具（F12）的 `React DevTools` 插件的 Components 审查面板中**。如果你没装这个插件，或者没打开控制台，这个 Hook 等同于空气。
@@ -133,10 +130,11 @@ function useOnlineStatus() {
 
 **不能直接在一个调用里传多个值，但可以多次调用。**
 
-- 如果你想在一个 Hook 里同时展示“**请求状态**”和“**当前网络状态**”两个维度的调试信息。
-- 你可以合法地写两个：
-  ```jsx
-  useDebugValue(isFetching ? '加载中' : '已完成')
-  useDebugValue(isOnline ? '联网' : '断网')
-  ```
+- 如果你想在一个 Hook 里同时展示“**请求状态**”和“**当前网络状态**”两个维度的调试信息，可以合法地写两个：
+
+```jsx
+useDebugValue(isFetching ? '加载中' : '已完成')
+useDebugValue(isOnline ? '联网' : '断网')
+```
+
 - 在 DevTools 里，它们会被组织成一个数组清晰地并列展示出来。

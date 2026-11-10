@@ -6,9 +6,9 @@ outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 
 ## 1. 核心概念与痛点背景
 
-在 React 严格的单向数据流机制下，数据总是像瀑布一样，从顶层父组件通过 `props` 一层层流向下方的子组件。
+在React严格的单向数据流机制下，数据总是像瀑布一样，从顶层父组件通过`props`一层层流向下方的子组件。
 
-**Context API (上下文)**的核心思想是：**在组件树上方开启一个无形的“广播站” (Provider)，任何深藏在底层的“收音机”组件都可以直接使用 `useContext` 调频接收广播数据，瞬间跳过所有中间层。**
+**Context API (上下文)** 的核心思想是：**在组件树上方开启一个无形的“广播站” (Provider)，任何深藏在底层的“收音机”组件都可以直接使用 `useContext` 调频接收广播数据，瞬间跳过所有中间层。**
 
 ## 2. 核心 API 实战：建立与消费 Context
 
@@ -22,21 +22,25 @@ const value = useContext(SomeContext)
 
 最佳实践：将 Context 放在一个单独的文件中，以便于在全局任意地方导入。
 
-```jsx
-// src/context/ThemeContext.js
+:::code-group
+
+```jsx [src/context/ThemeContext.js]
 import { createContext } from 'react'
 
 // createContext 接收一个默认值。
-// 🚨 注意：这个默认值【只有】在底层组件试图消费 Context，但它头顶上根本没有任何 Provider 包裹它时，才会作为最后的兜底生效！
+// 注意：这个默认值【只有】在底层组件试图消费 Context，但它头顶上根本没有任何 Provider 包裹它时，才会作为最后的兜底生效！
 export const ThemeContext = createContext('light')
 ```
+
+:::
 
 ### 2.2 提供数据 (`Context.Provider`)
 
 在组件树尽可能高的位置（通常是 `App.jsx` 或模块容器层），用 `<Context.Provider>` 包裹需要收到广播的所有子孙组件，并通过 `value` 属性下发数据。
 
-```jsx
-// src/App.jsx
+:::code-group
+
+```jsx [src/App.jsx]
 import { useState } from 'react'
 import { ThemeContext } from './context/ThemeContext'
 import Layout from './components/Layout'
@@ -63,12 +67,15 @@ export default function App() {
 }
 ```
 
+:::
+
 ### 2.3 消费数据 (`useContext`)
 
 在底层的任意函数组件中，使用 `useContext` Hook，像魔法一样凭空抓取顶层的数据。
 
-```jsx
-// src/components/ThemeButton.jsx
+:::code-group
+
+```jsx [src/components/ThemeButton.jsx]
 import { useContext } from 'react'
 import { ThemeContext } from '../context/ThemeContext' // 引入我们在第一步创建的 Context 牌照
 
@@ -87,14 +94,17 @@ export default function ThemeButton() {
 }
 ```
 
+:::
+
 ## 3. 高阶架构：封装自定义 Provider 与 Context Hook
 
 在真实的企业级项目中，把杂乱的 `useState` 和 `<Provider>` 标签堆砌在 `App.jsx` 里显得极度不专业。我们需要利用高阶组件思想将 Context 彻底封装为一个**绝对黑盒**。
 
 ### 3.1 终极企业级写法 (以管理用户权限为例)
 
-```jsx
-// src/context/AuthProvider.jsx
+:::code-group
+
+```jsx [src/context/AuthProvider.jsx]
 import { createContext, useContext, useState, useMemo } from 'react'
 
 // 1. 创建 Context，但不直接默认 export 它，保护底层实现
@@ -116,7 +126,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user')
   }
 
-  // 🚨 绝对致命的性能护城河：必须使用 useMemo 锁住传给 value 的对象！(详见下方 FAQ)
+  // 绝对致命的性能护城河：必须使用 useMemo 锁住传给 value 的对象！
   const contextValue = useMemo(() => {
     return { user, login, logout }
   }, [user]) // 只有 user 变了，这个对象的内存地址才会变
@@ -137,10 +147,7 @@ export function useAuth() {
 }
 ```
 
-**极其清爽的使用体验：**
-
-```jsx
-// 在 App.jsx 中：只需套一个极其干净的壳子
+```jsx [App.jsx]
 import { AuthProvider } from './context/AuthProvider'
 function App() {
   return (
@@ -158,11 +165,11 @@ function LoginForm() {
 }
 ```
 
+:::
+
 ## 4. 常见问题 (FAQ) 与避坑指南
 
 ### 4.1 既然 Context 这么好用，我是不是该把所有数据都放进 Context，彻底抛弃 Props？
-
-**这是极其危险的架构灾难！官方文档极力反对滥用 Context。**
 
 - **性能核爆**：Context 有一个非常原始且致命的缺陷：**只要 Provider 的 `value` 发生变化，它内部所有消费了这个 Context (调用了 `useContext`) 的组件，无论藏得多深，都会被强制无差别重新渲染！** 甚至连 `React.memo` 都拦不住这股“**穿透伤害**”。如果你把频繁变化的表单输入或者秒表数据扔进全局 Context，整个应用会卡到爆炸。
 - **组件复用性丧失**：你的子组件一旦内部写了 `useContext`，它就被死死地绑在了这个特定的 Provider 运行环境中。你把它抽离到别的没有任何 Provider 包裹的页面里，它立刻就报错瘫痪了，变成了一个高度耦合的“**废组件**”。
@@ -170,29 +177,47 @@ function LoginForm() {
 
 ### 4.2 我把一个包含方法和状态的对象传给 Provider，为什么导致整个应用卡爆了？
 
-这是使用 Context 的绝对雷区：**对象引用类型导致的内存地址刷新陷阱。**
+**对象引用类型导致的内存地址刷新陷阱。**
 
-- **案发现场**：
+```jsx
+function App() {
+  const [theme, setTheme] = useState('dark')
+  // 假设应用里有个不相干的计数器
+  const [count, setCount] = useState(0)
 
-  ```jsx
-  function App() {
-    const [theme, setTheme] = useState('dark')
-    // 假设应用里有个不相干的计数器
-    const [count, setCount] = useState(0)
+  // 灾难写法：每次 count 改变导致 App 重新渲染时，
+  // { theme, setTheme } 都会在内存中新建一个一模一样的全新对象！
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme }}>
+      <button onClick={() => setCount(c => c + 1)}>点我加数: {count}</button>
+      <DeepComponents />
+    </ThemeContext.Provider>
+  )
+}
+```
 
-    // 灾难写法：每次 count 改变导致 App 重新渲染时，
-    // { theme, setTheme } 都会在内存中新建一个一模一样的全新对象！
-    return (
-      <ThemeContext.Provider value={{ theme, setTheme }}>
-        <button onClick={() => setCount(c => c + 1)}>点我加数: {count}</button>
-        <DeepComponents />
-      </ThemeContext.Provider>
-    )
-  }
-  ```
-
-- **真相**：Provider 的更新比对逻辑是 `Object.is` (浅比较)。由于每次渲染抛进来的 `{ theme, setTheme }` 对象指针地址不一样，Provider 会惊恐地向全宇宙广播：“**不好了！Theme 的值发生变异了！所有消费这个 Context 的人，立刻给我重新渲染！**” 导致了无数无辜组件的陪葬。
+- **真相**：Provider 的更新比对逻辑是 `Object.is` (浅比较)。由于每次渲染抛进来的 `{ theme, setTheme }` 对象指针地址不一样，Provider 会将所有消费这个 Context 的组件，全部重新渲染。
 - **终极解法**：如果你传给 `value` 的是一个对象或数组，**必须使用 `useMemo` 把它在内存里死死“冻住”！**
+
+```jsx
+function App() {
+  const [theme, setTheme] = useState('dark')
+  const [count, setCount] = useState(0)
+
+  // 解法：只有 theme 变化时才生成新对象，count 变化不再影响这层引用
+  // setTheme 是 useState 返回的稳定引用，不必也无需写进依赖数组
+  const themeContextValue = useMemo(() => ({ theme, setTheme }), [theme])
+
+  return (
+    <ThemeContext.Provider value={themeContextValue}>
+      <button onClick={() => setCount(c => c + 1)}>点我加数: {count}</button>
+      <DeepComponents />
+    </ThemeContext.Provider>
+  )
+}
+```
+
+- 这样一来，点击按钮只重渲染 `App`，`themeContextValue` 的引用纹丝不动，`DeepComponents` 及其内部的消费者不会被牵连；只有 `theme` 真正改变时，才会广播一次更新。
 
 ### 4.3 既然 Context 的渲染连坐这么可怕，我是不是该把读 (State) 和 写 (Dispatch) 分开？
 
@@ -200,13 +225,15 @@ function LoginForm() {
 
 - 如果你把 `{ state, setState }` 塞在同一个 Context 里。哪怕底层的 `Button` 组件只需要拿 `setState` 去触发个动作（根本不需要展示 state），当 `state` 变了的时候，这个 `Button` 也被迫跟着重新渲染一遍！
 - **拆分法**：创建两个完全独立的 Context。
-  ```jsx
-  <ThemeStateContext.Provider value={themeState}>
-    <ThemeDispatchContext.Provider value={setTheme}>
-      {children}
-    </ThemeDispatchContext.Provider>
-  </ThemeStateContext.Provider>
-  ```
+
+```jsx
+<ThemeStateContext.Provider value={themeState}>
+  <ThemeDispatchContext.Provider value={setTheme}>
+    {children}
+  </ThemeDispatchContext.Provider>
+</ThemeStateContext.Provider>
+```
+
 - 此时底层的 `Button` 只去 `useContext(ThemeDispatchContext)`。因为 `setTheme` 函数的内存地址永远不变，所以即使外面的主题翻天覆地地变，这个按钮稳如泰山，绝对不触发重新渲染！
 
 ### 4.4 Context 能完全替代 Redux/Zustand 吗？

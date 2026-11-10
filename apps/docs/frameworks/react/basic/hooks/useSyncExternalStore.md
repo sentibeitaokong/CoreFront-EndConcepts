@@ -20,7 +20,7 @@ const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot?
 
 ### 1.1 基本定义与应用场景
 
-`useSyncExternalStore` 是一个让你完美订阅外部 store 的 Hook。它接受三个参数，并返回该 store 的当前快照（Snapshot）。
+`useSyncExternalStore`是一个让你完美订阅外部store的Hook。它接受三个参数,并返回该store的当前快照。
 
 **核心应用场景**：订阅第三方状态管理库（Zustand、Redux）、订阅浏览器全局 API（如网络状态、窗口尺寸、媒体查询等）、跨组件的非 React 状态共享。
 
@@ -61,8 +61,9 @@ function NetworkStatus() {
 **解决原则**：**将读取外部状态的动作变为“强制同步”。**
 `useSyncExternalStore` 底层做了一件非常霸道的事情：如果在并发渲染期间，它检测到 `getSnapshot` 返回的值发生了变化，它会立刻**放弃当前的并发渲染，强制以同步（Synchronous）的方式从头重新渲染整个树**。这虽然损失了一点并发的性能，但绝对保证了 UI 的一致性和正确性。
 
-```jsx
-// 错误/过时的示范 (极易导致 UI 撕裂)：
+:::code-group
+
+```jsx [错误示范：useEffect 订阅]
 function BadStoreReader() {
   const [state, setState] = useState(store.getState())
   useEffect(() => {
@@ -70,14 +71,17 @@ function BadStoreReader() {
   }, [])
   return <div>{state}</div>
 }
+```
 
-// 正确示范 (防止撕裂)：
+```jsx [正确示范：useSyncExternalStore]
 function GoodStoreReader() {
   // 交由 React 内部机制接管，保证渲染期间状态绝对一致
   const state = useSyncExternalStore(store.subscribe, store.getState)
   return <div>{state}</div>
 }
 ```
+
+:::
 
 ## 3. 高阶进阶：自定义状态管理库的核心基石
 

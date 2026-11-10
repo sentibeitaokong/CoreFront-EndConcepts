@@ -2,7 +2,7 @@
 outline: [2, 3] # 这个页面将显示 h2 和 h3 标题
 ---
 
-# **[`useLayoutEffect`](https://zh-hans.react.dev/reference/react/useLayoutEffect)：同步阻塞与视觉闪烁的终结者**
+# **[`useLayoutEffect`](https://zh-hans.react.dev/reference/react/useLayoutEffect):同步阻塞与视觉闪烁的终结者**
 
 ## 1. 核心概念与底层时序
 
@@ -76,7 +76,7 @@ export default function GoodTooltip({ targetRect }) {
   const tooltipRef = useRef(null)
   const [tooltipHeight, setTooltipHeight] = useState(0)
 
-  // 🚀 仅仅是换了一个 Hook 名字！
+  // 仅仅是换了一个 Hook 名字！
   useLayoutEffect(() => {
     // 此时 React 刚刚把带文字的 <div> 塞进真实的 DOM 树内存里，但浏览器还没画屏幕。
     // 我们在这个极其关键的时间空隙，量出高度。
@@ -116,8 +116,6 @@ export default function GoodTooltip({ targetRect }) {
 - **架构铁律**：99.9% 的场景（发 Ajax、绑全局事件、甚至大部分不需要读真实尺寸的 DOM 操作）**永远首选 `useEffect`**。只有当你肉眼真切地看到了由于尺寸计算时差导致的元素“**闪烁错位**”时，才将那极个别的 Hook 替换为 `useLayoutEffect` 作为急救药。
 
 ### 3.2 为什么服务端渲染 (SSR, 如 Next.js) 时，控制台疯狂报 `useLayoutEffect` 的黄字警告？
-
-这是使用该 Hook 最著名的坑。
 
 - **警告内容**：`Warning: useLayoutEffect does nothing on the server...`
 - **底层原因**：服务端渲染 (SSR) 是在 Node.js 环境里把 React 组件拼接成 HTML 字符串。Node.js 里**根本没有 DOM 树，更没有 getBoundingClientRect 这种测量 API**，也没有所谓的“**浏览器 Paint 绘制**”。

@@ -51,21 +51,25 @@ function PasswordField() {
 
 **解决原则**：**抛弃一切随机数和全局计数器，统一使用 `useId`。React 底层通过组件在树结构中的相对位置来生成这个 ID，从而保证它在服务器和客户端绝对一致！**
 
-```jsx
-// 错误示范 (水合噩梦)：千万不要在组件里用随机数生成 ID
+:::code-group
+
+```jsx [错误示范：随机数]
 function BadInput() {
   // 服务器算出 0.1，客户端算出 0.9，直接导致 Hydration 报错！
   const id = Math.random().toString()
   return <input id={id} />
 }
+```
 
-// 正确示范 (SSR 安全)：
+```jsx [正确示范：useId]
 function GoodInput() {
   // useId 保证了无论是服务器渲染还是客户端接管，生成的值完全一模一样
   const id = useId()
   return <input id={id} />
 }
 ```
+
+:::
 
 ## 3. 高阶进阶：多前缀/后缀复用优化
 

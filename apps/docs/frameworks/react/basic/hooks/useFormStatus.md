@@ -18,7 +18,7 @@ const { pending, data, method, action } = useFormStatus()
 
 `useFormStatus` 不需要传入任何参数。调用它会返回一个包含四个属性的对象，实时反映其**父级** `<form>` 元素的当前状态。
 
-**⚠️ 特别注意导入路径**：它是 DOM 环境特有的 Hook，必须从 **`react-dom`** 导入，而不是 `react`！
+**特别注意导入路径**：它是 DOM 环境特有的 Hook，必须从 **`react-dom`** 导入，而不是 `react`！
 
 **核心应用场景**：在表单提交期间禁用“**提交按钮**”、显示加载动画（Spinner）、或者读取正在提交的表单数据。
 
@@ -65,8 +65,9 @@ function MyForm({ submitAction }) {
 
 **解决原则**：**拥抱原生 `<form action>` 属性。当我们将异步函数传递给 `action` 时，React 会在底层自动接管整个提交流程，并将状态下发给 `useFormStatus`。**
 
-```jsx
-// 错误/过时的示范 (手动管理状态：繁琐且容易漏写 finally)
+:::code-group
+
+```jsx [错误示范：手动管理状态]
 function OldForm() {
   const [isLoading, setIsLoading] = useState(false)
 
@@ -86,8 +87,9 @@ function OldForm() {
     </form>
   )
 }
+```
 
-// 正确示范 (使用 Actions + useFormStatus：极致简洁)
+```jsx [正确示范：Actions + useFormStatus]
 function NewForm({ submitAction }) {
   // 状态管理完全消失了！全部交由底层和 SubmitButton 子组件处理
   return (
@@ -98,6 +100,8 @@ function NewForm({ submitAction }) {
 }
 ```
 
+:::
+
 ## 3. 高阶进阶：Context 机制与组件层级限制
 
 ### 3.1 突破死穴：为什么我调用了 `pending` 却永远是 `false`？
@@ -106,10 +110,11 @@ function NewForm({ submitAction }) {
 
 **解决原则**：**`useFormStatus` 底层的工作原理类似于 React Context。它只能读取位于其“组件树上方”的 `<form>` 的状态。** 它无法读取调用它的同一个组件内渲染的表单状态。
 
-```jsx
+:::code-group
+
+```jsx [错误示范：同级调用]
 import { useFormStatus } from 'react-dom'
 
-// 致命错误示范 (同级调用)：这绝对无法工作！
 function BrokenForm({ submitAction }) {
   // 这里的 useFormStatus 找不到包裹它的父级 <form>，因此 pending 永远是 false
   const { pending } = useFormStatus()
@@ -121,8 +126,11 @@ function BrokenForm({ submitAction }) {
     </form>
   )
 }
+```
 
-// 正确示范 (子组件调用)：必须将需要读取状态的部分抽离为子组件
+```jsx [正确示范：子组件调用]
+import { useFormStatus } from 'react-dom'
+
 function SubmitBtn() {
   const { pending } = useFormStatus() // 这里能正确找到父级的 form
   return <button disabled={pending}>提交</button>
@@ -136,6 +144,8 @@ function WorkingForm({ submitAction }) {
   )
 }
 ```
+
+:::
 
 ## 4. 常见问题 (FAQ) 与避坑指南
 
@@ -187,5 +197,5 @@ function SubmitButton() {
 
 **检查你的导入路径和 React 版本。**
 
-- 第一，记住它是 `import { useFormStatus } from 'react-dom'`，而不是 `react`。
-- 第二，它需要 React 19（或 React 18.3 的某些实验性 Canary 版本）。如果你在一个较老的 React 18 稳定版项目中使用它，会抛出未定义的错误。
+- 记住它是 `import { useFormStatus } from 'react-dom'`，而不是 `react`。
+- 它需要 React 19（或 React 18.3 的某些实验性 Canary 版本）。如果你在一个较老的 React 18 稳定版项目中使用它，会抛出未定义的错误。

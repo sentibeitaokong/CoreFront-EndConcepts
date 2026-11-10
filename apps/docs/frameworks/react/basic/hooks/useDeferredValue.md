@@ -24,8 +24,6 @@ const deferredValue = useDeferredValue(value)
 
 ### 2.1 基础实战：拯救搜索过滤卡顿
 
-这是 `useDeferredValue` 最经典的实战案例。
-
 ```jsx
 import { useState, useDeferredValue, memo } from 'react'
 
@@ -47,7 +45,7 @@ export default function SearchPage() {
   // 核心状态：绑定输入框，必须最高优先级响应
   const [query, setQuery] = useState('')
 
-  // 🚀 核心魔法：创建 query 的低优副本！
+  // 核心魔法：创建 query 的低优副本！
   // deferredQuery 的更新会被 React 自动延后到 CPU 空闲时执行
   const deferredQuery = useDeferredValue(query)
 
@@ -60,7 +58,7 @@ export default function SearchPage() {
         placeholder="快速输入测试性能..."
       />
 
-      {/* 2. 🚨 重点：慢速组件吃的是延迟过后的值 deferredQuery */}
+      {/* 2. 重点：慢速组件吃的是延迟过后的值 deferredQuery */}
       {/* 这样 SlowList 就不会卡死 input 了 */}
       <div style={{ opacity: query !== deferredQuery ? 0.5 : 1 }}>
         <SlowList text={deferredQuery} />
@@ -71,7 +69,7 @@ export default function SearchPage() {
 ```
 
 **运行效果：**
-当你疯狂敲击键盘时，输入框的内容会飞速更新。你会发现底下的列表变得**半透明（因为 `query !== deferredQuery`）**且内容暂时没有变。当你停手几百毫秒后，列表会突然刷新成最新的内容。
+当你疯狂敲击键盘时，输入框的内容会飞速更新。你会发现底下的列表变得 **半透明（因为 `query !== deferredQuery`）** 且内容暂时没有变。当你停手几百毫秒后，列表会突然刷新成最新的内容。
 
 ## 3. `useDeferredValue` 与 `useTransition` 的终极对比
 
@@ -136,8 +134,6 @@ function Search() {
 - **最佳实践**：只针对那个**真正引发严重性能瓶颈的数据点**进行延迟处理。
 
 ### 4.4 为什么我不直接在 `useEffect` 里用 `setTimeout` 来延迟更新呢？
-
-这就是“**刀耕火种**”与“**工业革命**”的区别。
 
 - `setTimeout` 属于外部副作用，它完全游离在 React 的并发渲染架构之外。
 - 它无法感知到渲染是否还有效，无法在中途撤回任务，更无法实现“**时间切片**”让主线程喘息。
