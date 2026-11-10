@@ -4,6 +4,7 @@
   "sitemap_urls": [
     "https://sentibeitaokong.github.io/CoreFront-EndConcepts/sitemap.xml"
   ],
+  "js_render": true,
   "sitemap_alternate_links": true,
   "stop_urls": [],
   "selectors": {
