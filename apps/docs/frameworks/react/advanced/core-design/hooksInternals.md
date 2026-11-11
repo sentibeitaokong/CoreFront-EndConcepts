@@ -373,8 +373,6 @@ function updateWorkInProgressHook() {
 
 :::
 
-关键点：
-
 - `currentHook` 和 `workInProgressHook` 是**同步前进**的游标，分别指向旧树和当前正在构建的树。
 - 它**只靠调用顺序**把新旧 Hook 一一对应，没有 name、没有 key、没有索引参与。
 - 复用分支处理了**渲染被中断后重入**的场景：如果 workInProgress 链表上已经有节点（上次渲染进行到一半被打断），直接复用而不再新建。

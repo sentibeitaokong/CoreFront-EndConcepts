@@ -43,7 +43,7 @@ flowchart TB
 
 - **Effect 是数据，不是调用**——Render 阶段只把副作用“**声明**”成 Effect 对象挂到链表上，真正的执行在 Commit。
 - **`tag` 位标记决定执行时机与是否需要执行**——类型靠 `Passive/Layout/Insertion` 区分，依赖变化靠 `HasEffect` 标记。
-- **环形链表是执行时遍历的载体**——Commit 阶段通过 `fiber.updateQueue.lastEffect` 拿到链表，逐个执行。
+- **环形链表是执行时遍历的载体**——Commit阶段通过`fiber.updateQueue.lastEffect`拿到链表逐个执行。
 
 ## 3. Effect 的数据载体：Effect 对象与环形链表
 
@@ -518,8 +518,6 @@ const fullName = `${firstName} ${lastName}`
 ## 11. 总结
 
 - **Render 声明、Commit 执行**：Effect 在 Render 阶段只被构造成对象挂进环形链表，真正的执行在 Commit（Layout 同步、Passive 异步）。
+- **Effect 同时挂两处，是“执行视图”与“状态视图”的分工**：`fiber.updateQueue.lastEffect` 串起**本 Fiber 所有** Effect，Commit 阶段拿到的只有 finishedWork，沿环形链表扫一圈就能按 `tag` 分派到 Layout / Passive 执行；`hook.memoizedState` 则按 **Hook 调用顺序**保存同一批 Effect，更新阶段靠它定位“**上一次渲染的同一个 useEffect**”，读出 `deps` 比较、取出 `destroy` 复用。两处存的是**同一个 Effect 对象的引用**（`hook.memoizedState = pushEffect(...)`，`pushEffect` 内部又把该对象接到 `updateQueue` 环上），不是两份数据。反过来看：只留链表，更新时无法按 Hook 位置取到旧 `deps`/`destroy`；只留 Hook 节点，Commit 就得遍历整个 hooks 链表并跳过非 Effect Hook，也拿不到按类型聚合的遍历入口。
 - **`tag` 位标记一石二鸟**：类型位决定执行阶段，`HasEffect` 决定是否执行；cleanup 不要求 `HasEffect`，卸载时必然执行。
-- **依赖比较靠 `Object.is`**：`areHookInputsEqual` 逐项对比 deps，变化才打 `HasEffect`。
 - **依赖数组是声明而非触发器**：`areHookInputsEqual` 用 `Object.is` 逐项对比 deps，变化才打 `HasEffect`。
-- **三种时序**：`useInsertionEffect` → `useLayoutEffect` → 浏览器绘制 → `useEffect`。
-- **Strict Mode 双重调用是验证工具**：帮助发现不对称的副作用。

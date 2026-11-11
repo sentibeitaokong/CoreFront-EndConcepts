@@ -103,7 +103,7 @@ interface HostConfig {
 
 `react-dom` 是 React 在浏览器环境下的渲染器，实现了完整的 Web 平台宿主配置：
 
-```text
+```tree
 react-dom/
 ├── client.js                 # 公共入口：createRoot / hydrateRoot
 ├── server.node.js            # Node.js 流式 SSR
@@ -255,8 +255,6 @@ rootNode.addEventListener('click', e => {
 })
 ```
 
-**合成事件的特性：**
-
 [width(18,82)]
 
 | 特性             | 说明                                                  |
@@ -292,8 +290,6 @@ function render(element, canvas) {
   CanvasRenderer.updateContainer(element, root)
 }
 ```
-
-一些流行的自定义渲染器：
 
 [width(27,73)]
 
@@ -337,5 +333,5 @@ sequenceDiagram
 - **react-reconciler 是平台无关核心**：定义了组件调度、协调、副作用管理的逻辑。
 - **react-dom 实现了 Web 平台适配**：包括 DOM 操作、属性更新、合成事件系统。
 - **合成事件系统使用事件委托**：将事件绑定到 root 节点，提高性能并保证跨浏览器兼容。
-- **自定义渲染器使 React 的应用场景远超 Web**：从 CLI 到 3D 渲染，React 的声明式编程模型在多个平台展现价值。
+- **自定义渲染器使React的应用场景远超Web**：从CLI到3D渲染,React的声明式编程模型在多个平台展现价值。
 - **渲染器与协调器的分离是 React 最成功的架构设计之一**。

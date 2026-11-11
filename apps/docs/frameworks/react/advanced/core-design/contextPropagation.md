@@ -45,8 +45,6 @@ class ButtonByContextType extends React.Component {
 }
 ```
 
-三个消费 API 的取舍一句话概括：**函数组件用 `useContext`，Class 组件单 Context 用 `contextType`，`Consumer`（render prop）主要留给旧代码**。`Provider` 的 `value` 变化用 `Object.is` 判定（引用相等，非深比较），嵌套 Provider 就近读取。
-
 ## 2. 全景图：Context 从挂载到更新的全流程
 
 ```mermaid
@@ -409,8 +407,6 @@ function propagateContextChange_eager(workInProgress, context, renderLanes) {
 }
 ```
 
-关键点：
-
 - 只有**显式读取了该 Context** 的组件才会被标记；不消费该 Context 的中间组件不会被打 lane，可在后续 `beginWork` 中**安全 bailout**。
 - 遍历遇到**同类型的嵌套 Provider** 就停止深入，不会越界到别人的值作用域。
 - `propagateContextChange` 本身**不执行任何组件、不产生 DOM**，只是“**点亮一条依赖路径**”；真正的重渲染发生在下一轮 `beginWork`，被点亮的组件重新 `readContext` 读到新值。
@@ -420,7 +416,7 @@ function propagateContextChange_eager(workInProgress, context, renderLanes) {
 
 ## 7. 性能考量
 
-上述机制可归结为一句话：**任何性能问题都等价于“变化的 lane 是否只落在最小必要的订阅者集合上”**。据此得出两条实践：
+任何性能问题都等价于“**变化的 lane 是否只落在最小必要的订阅者集合上**”
 
 ```jsx
 // 每次渲染都新建对象字面量 → 引用变 → 所有消费者被唤醒
@@ -437,7 +433,7 @@ const value = useMemo(() => ({ theme, toggle }), [theme, toggle])
 
 ## 8. 总结
 
-- **Context 是依赖注入机制，不是状态管理器**：在 Fiber 树上建立独立于 props 的“**依赖通道**”，解决逐层透传。
+- **Context 是依赖注入机制，不是状态管理器**：在Fiber树上建立独立于props的“**依赖通道**”，解决逐层透传。
 - **创建靠 `createContext`**：返回带 `$$typeof` 的 Context 对象，`Provider` / `Consumer` 都挂在其上，`defaultValue` 仅作无 Provider 时的兜底。
 - **三种消费写法底层同源**：`useContext`（Hook 分发）、`Consumer`（`$$typeof` 分派）、`contextType`（静态属性检测）最终都调 `readContext`。
 - **读取即订阅**：`readContext` 返回值的同时，把当前 Fiber 登记进 `fiber.dependencies` 依赖链表。

@@ -20,8 +20,6 @@ React 没有选择像 Svelte 那样“**驯服模板**”，也没有像 Vue 那
 
 ### 1.2 React 的两层编译体系
 
-为了解决这个问题，React 演进出了两套编译体系：
-
 - **语法层编译（JSX Compiler）**：在构建时，将 JSX 语法糖“**翻译**”成浏览器或 JavaScript 引擎能直接运行的 `React.createElement` 或 `jsx` 函数调用。
 
 ```js
@@ -209,7 +207,7 @@ function TodoList({ todos, filter }) {
 
 ### 3.3 核心原理：SSA 与依赖追踪
 
-React Compiler 的静态分析能力，根基在于把源码转换成 **SSA（Static Single Assignment，静态单赋值）** 形式。
+React Compiler的静态分析能力，根基在于把源码转换成**SSA(Static Single Assignment，静态单赋值)** 形式。
 
 **SSA 的核心思想**：每个变量只被赋值一次，每次赋值都产生一个“**新版本**”。这使编译器能为**每一个值**精确定位它的“**定义点**”与“**使用点**”，从而构建出精确的依赖图：
 
@@ -239,7 +237,7 @@ flowchart TD
 
 ### 3.4 生成产物：Memo Cache 机制
 
-React Compiler 会在编译产物中插入一套 **Memo Cache（记忆化缓存）**。每个被优化的组件渲染时，都会通过 `react/compiler-runtime` 的 `_c(N)` 分配一个固定大小的缓存数组，数组的每个槽位存储“**依赖值**”或“**计算结果**”：
+React Compiler 会在编译产物中插入一套**Memo Cache(记忆化缓存)**。每个被优化的组件渲染时，都会通过`react/compiler-runtime`的`_c(N)`分配一个固定大小的缓存数组，数组的每个槽位存储**依赖值**或**计算结果**:
 
 ```javascript
 // React Compiler 的产物（基于 babel-plugin-react-compiler，结构简化）
@@ -296,8 +294,6 @@ function TodoList(t0) {
 }
 ```
 
-从产物中可以看出三个关键机制：
-
 - **依赖比对 (`!==`)**：每次渲染用严格相等（`!==`）比对缓存的依赖值与当前值，只有真正变化才重算。这与 `useMemo` 内部用 `Object.is` 比对 deps 是同一思想。
 - **哨兵值 (Sentinel)**：对 `handleToggle` 这类“**依赖为空、永远稳定**”的函数，用 `Symbol.for('react.memo_cache_sentinel')` 判断槽位是否首次写入，等价于一个永不变更的 `useCallback(..., [])`。
 - **JSX 元素也参与缓存**：返回的整棵 JSX 元素被当作一个可记忆化的值（槽位 `$[6]`）。当它的依赖（`filteredTodos`、`handleToggle`）都没变时，`t3` 引用不变，父组件对它的协调直接命中 Bailout。
@@ -349,7 +345,7 @@ React Compiler 能否成功优化，完全取决于代码是否遵守 **Rules of
 
 ### 3.7 校验与放弃优化（Bailout）
 
-除了编译，React Compiler 还承担着**校验（Validation**职责，它会在分析阶段识别违反规则的代码，并采取两种策略：
+除了编译，React Compiler 还承担着**校验职责**，它会在分析阶段识别违反规则的代码，并采取两种策略：
 
 - **拒绝编译**：如“**条件调用 Hooks**”这类破坏 Hooks 顺序假定的硬错误，直接报错终止。
 - **放弃优化（Bailout）**：如“**读取/修改模块级可变变量**”这类无法静态证明安全的场景，跳过该组件或该表达式的记忆化，但保留代码的原始行为。
@@ -392,12 +388,15 @@ React Compiler（前身 React Forget）自 2021 年 React Conf 首次亮相以�
 - **依赖**：推荐 React 19+；React 17/18 也可使用，但需要额外安装 `react-compiler-runtime`，并通过 `target: '17' | '18'` 指定产物目标。
 - **接入方式**：通过 Babel 插件，或在框架层一键开启（Next.js、Vite 的 `@vitejs/plugin-react` 等）。
 
-```javascript
-// babel.config.js
+:::code-group
+
+```javascript [babel.config.js]
 module.exports = {
   plugins: [['babel-plugin-react-compiler', { target: '19' }]],
 }
 ```
+
+:::
 
 - **局部逃生舱**：在文件顶部声明 `"use no memo"`，可让编译器跳过该文件的优化，用于处理少数编译器无法正确分析的特殊代码。
 
@@ -414,8 +413,6 @@ React Compiler 的伟大之处在于**它不需要改变任何现有的 React �
 | 组件优化  | 插入等价于 `React.memo` 的比较    | 比较 props，决定是否需要重新渲染        |
 | Dead Code | 树摇掉未使用的导出                | 无（代码已被移除）                      |
 | 开发调试  | 注入 `__source` 和 DevTools 信息  | DevTools 读取信息，显示组件树和源码位置 |
-
-关键认知：编译器只负责“**产出更聪明的代码**”，真正的执行仍然 100% 由 Fiber 运行时完成。记忆化槽位的 `!==` 比对结果，最终都通过“**引用是否变化**”这个单一信号，回落到 Reconciler 既有的 Bailout 判断上。这也是 React Compiler 能做到“**对开发者透明、对运行时零侵入**”的根本原因——它没有发明任何新的运行时概念，只是把本来要人肉手写的优化，交给了机器。
 
 ## 5. 总结
 

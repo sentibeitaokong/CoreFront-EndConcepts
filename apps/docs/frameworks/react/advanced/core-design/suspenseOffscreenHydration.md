@@ -178,8 +178,6 @@ Activity 允许隐藏的 UI 在后台以**低优先级**准备：
                    当用户切换到 Tab 2 时，内容可能已经就绪
 ```
 
-这与 `keep-alive`（Vue 中的缓存机制）理念类似，但 React 的 Activity 更侧重于**调度优先级**与 effect 的生命周期管理，而非纯粹的内存缓存。
-
 ### 2.4 与手写 `display: none` 的区别
 
 `<Activity mode="hidden">` 底层也会给宿主节点设置 `display: none`，所以“DOM 是否保留”不是它与手写 CSS 的核心区别。关键差异在于：
@@ -193,7 +191,7 @@ Activity 允许隐藏的 UI 在后台以**低优先级**准备：
 
 服务端渲染（SSR）产出的 HTML 是静态的，需要客户端 React “**激活**”以添加交互性——这个过程称为**水合（Hydration）**：
 
-```text
+```markdown
 1. 服务端：渲染 HTML → 发送到浏览器
 2. 浏览器：解析 HTML，显示页面（此时不可交互）
 3. 客户端：下载 JS 包 → React.hydrateRoot()
@@ -229,13 +227,6 @@ function App() {
   )
 }
 ```
-
-**选择性水合的工作方式**：
-
-1. React 开始水合整个页面。
-2. 用户点击了 `Sidebar` 区域 → React **暂停**当前水合。
-3. 优先水合 `Sidebar`（因为用户与之交互了）。
-4. Sidebar 水合完成 → 回到之前暂停的位置继续水合。
 
 ### 3.3 水合不匹配（Hydration Mismatch）
 
@@ -276,14 +267,6 @@ function Component() {
 }
 ```
 
-### 3.4 React 19 的并发水合增强
-
-React 19 对水合做了进一步改进：
-
-- 更激进的选择性水合，减少交互等待时间。
-- 改善水合出错时的恢复策略。
-- 流式 SSR 与水合的更紧密配合。
-
 ## 4. 三者之间的关系
 
 ```mermaid
@@ -311,7 +294,7 @@ flowchart TD
 ## 5. 总结
 
 - **Suspense 是声明式异步 UI 管理**：组件挂起 → 显示 fallback → 数据就绪后恢复。
-- **核心机制是 Render 中抛出 thenable**：React 捕获 thenable，找到最近 Suspense 边界，等待 resolve 后重试。
+- **核心机制是 Render 中抛出 thenable**：React捕获thenable，找到最近Suspense边界，等待resolve后重试。
 - **嵌套 Suspense 边界各自独立**：可以精细控制页面的加载体验。
 - **配合 `startTransition` 避免“闪现 fallback”**：旧 UI 保持可见，新 UI 在后台准备。
 - **Activity（原 Offscreen）保留而非销毁隐藏子树**：状态保持、快速恢复，适合 Tab 切换等场景；隐藏时 effect 会被销毁，恢复时重新 setup。

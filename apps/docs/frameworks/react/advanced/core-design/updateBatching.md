@@ -195,6 +195,102 @@ flowchart TB
     s1 --> s2 --> s3
 ```
 
+### 3.4 队列与 Update 的实际内容
+
+:::code-group
+
+```javascript [react-reconciler/src/ReactFiberHooks.js]
+// 场景：const [count, setCount] = useState(0)，同一次点击里连续调用
+//   setCount(c => c + 1) // → Update A
+//   setCount(c => c + 1) // → Update B
+//   setCount(c => c + 1) // → Update C
+hook.queue = {
+  pending: null, // 还没进入 Render，interleaved 尚未并入
+  interleaved: Update_C, // 指向尾节点 C；从 C.next 遍历才回到 A
+  lanes: NoLanes, // 同步更新不改这里；只有 Transition 会由 entangleTransitionUpdate 并入
+  dispatch: dispatchSetState, // setState 本体，已预绑定 fiber 和 queue
+  lastRenderedReducer: basicStateReducer, // useState 的消费策略：直接替换
+  lastRenderedState: 0, // 上次渲染时的 count，供 eagerState 比较
+}
+
+// 三个 Update 节点：一条环形链表，interleaved 指向尾节点 C
+const Update_A = {
+  lane: SyncLane, // 本次更新的优先级（离散事件）
+  action: c => c + 1, // 函数式更新：action 存函数本身
+  hasEagerState: true, // 队列为空时提前算过一次
+  eagerState: 1, // 提前算出的结果：basicStateReducer(0, fn) = 1
+  next: Update_B, // → Update_B
+}
+
+const Update_B = {
+  lane: SyncLane,
+  action: c => c + 1,
+  hasEagerState: false, // fiber.lanes 已非空，不再提前计算
+  eagerState: null,
+  next: Update_C, // → Update_C
+}
+
+const Update_C = {
+  lane: SyncLane,
+  action: c => c + 1,
+  hasEagerState: false,
+  eagerState: null,
+  next: Update_A, // 尾节点指回头部，形成环
+}
+```
+
+```javascript [react-reconciler/src/ReactUpdateQueue.js]
+// 场景：state = { count: 0, name: '' }，同一次点击里连续调用
+//   this.setState({ count: 1 }) // → Update A
+//   this.setState(prev => ({ count: prev.count + 1 })) // → Update B
+//   this.setState({ name: 'Alice' }, this.onDone) // → Update C
+fiber.updateQueue = {
+  baseState: { count: 0, name: '' }, // 沉淀区起点 = 上次渲染的 state
+  firstBaseUpdate: null, // 没有低优先级更新被跳过，沉淀链表为空
+  lastBaseUpdate: null,
+  shared: {
+    pending: null, // 还没进入 Render，interleaved 尚未并入
+    interleaved: Update_C, // 指向尾节点 C
+    lanes: NoLanes, // 与 Hook 同理，只有 Transition 纠缠时才写入
+    hiddenCallbacks: null, // 离屏子树尚未延迟任何回调
+  },
+  effects: null, // 回调要等 Render 消费到带 callback 的 Update 才追加
+}
+
+// 三个 Update 节点：tag 决定消费方式，callback 保存 setState 第二参数
+const Update_A = {
+  eventTime: 1000.5, // requestEventTime() 记录的触发时间
+  lane: SyncLane,
+  tag: UpdateState, // 0：payload 与旧 state 浅合并
+  payload: { count: 1 }, // 对象 → 部分 state
+  callback: null,
+  next: Update_B,
+}
+
+const Update_B = {
+  eventTime: 1000.6,
+  lane: SyncLane,
+  tag: UpdateState,
+  payload: prevState => ({ count: prevState.count + 1 }), // 函数 → 先调用再合并
+  callback: null,
+  next: Update_C,
+}
+
+const Update_C = {
+  eventTime: 1000.7,
+  lane: SyncLane,
+  tag: UpdateState,
+  payload: { name: 'Alice' },
+  callback: this.onDone, // 进 queue.effects，Commit 后执行
+  next: Update_A, // 尾节点指回头部，形成环
+}
+```
+
+:::
+
+> [!NOTE]
+> 快照对应“**同一 tick 内多次更新、Render 尚未开始**”的时刻：两套队列的 `pending` 都还是 `null`，新 Update 全堆在 `interleaved` 上，且 `interleaved` 指向**尾节点**——这正是环形链表。`finishQueueingConcurrentUpdates` 执行后，链表会整体并入 `pending` 并把 `interleaved` 置空，节点本身不变，只是消费入口从 `interleaved` 换成 `pending`。
+
 ## 4. 入队：dispatchSetState 与 enqueueSetState
 
 ### 4.1 Hook 入队

@@ -22,8 +22,6 @@ RSC 的核心价值：
 
 ## 2. 服务端组件 vs 客户端组件
 
-RSC 将组件明确划分为两类：
-
 [width(20,36,44)]
 
 | 维度               | Server Component               | Client Component           |
@@ -35,8 +33,10 @@ RSC 将组件明确划分为两类：
 | **能否使用 Hooks** | （无 `useState`/`useEffect`）  | 全部 Hooks                 |
 | **能否绑定事件**   | 无事件处理                     | `onClick` 等               |
 
-```jsx
-// app/page.jsx —— 默认是服务端组件，可以 async
+:::code-group
+
+```jsx [app/page.jsx]
+//默认是服务端组件，可以 async
 export default async function Page() {
   const posts = await db.query('SELECT * FROM posts') // 直接访问数据库
   return (
@@ -49,8 +49,8 @@ export default async function Page() {
 }
 ```
 
-```jsx
-// app/Counter.jsx —— 客户端组件
+```jsx [app/Counter.jsx]
+//客户端组件
 'use client'
 
 import { useState } from 'react'
@@ -60,6 +60,8 @@ export default function Counter() {
   return <button onClick={() => setCount(count + 1)}>{count}</button>
 }
 ```
+
+:::
 
 ## 3. `'use client'` 与 `'use server'` 指令
 
@@ -100,8 +102,6 @@ import ServerComponent from './ServerComponent' // 会导致其降级为客户�
 
 客户端收到 Payload 后，与客户端组件 chunk **合并**，形成完整组件树并渲染。
 
-以如下服务端组件为例：
-
 ```jsx
 export default async function Page() {
   const post = await db.query('SELECT * FROM posts WHERE id = 1')
@@ -116,11 +116,11 @@ export default async function Page() {
 
 序列化后的载荷大致结构（示意，非真实字节）：
 
-```text
+```markdown
 // 原生元素 + 内联数据 + 客户端引用占位符
-M1: { "div", props: { children: [...] } }        // 原生标签 → 对象
-J2: "Hello World"                                 // 查询结果 → 内联进 props
-I3: { "chunk": "/LikeButton.js" }                 // 客户端组件 → chunk 引用
+M1: { "div", props: { children: [...] } } // 原生标签 → 对象
+J2: "Hello World" // 查询结果 → 内联进 props
+I3: { "chunk": "/LikeButton.js" } // 客户端组件 → chunk 引用
 ```
 
 - 原生标签与文本被序列化为**对象 / 字面量**，直接内联进载荷。
@@ -150,8 +150,9 @@ export default function Page() {
 
 `'use server'` 声明的函数可以直接从客户端调用，由 React 在服务端执行，用于数据变更（表单提交等），省去手写 API 路由。
 
-```jsx
-// app/actions.js
+:::code-group
+
+```jsx [app/actions.js]
 'use server'
 
 import { db } from './db'
@@ -164,8 +165,8 @@ export async function createPost(formData) {
 }
 ```
 
-```jsx
-// app/form.jsx —— 客户端组件中调用 Server Action
+```jsx [app/form.jsx]
+//客户端组件中调用 Server Action
 'use client'
 import { createPost } from './actions'
 
@@ -179,7 +180,7 @@ export default function Form() {
 }
 ```
 
-**特性：**
+:::
 
 - 支持渐进增强：无 JS 时表单也能通过普通 POST 提交。
 - 可结合 `useActionState`、`useOptimistic` 做乐观更新与 pending 状态。
@@ -211,12 +212,14 @@ export default function Form() {
 - **叶子交互化**：把交互下沉到最小的客户端叶子组件，减少下发 JS。
 - **数据就近**：服务端组件内直接取数据，减少客户端请求与瀑布。
 - **注意序列化**：传给客户端组件的 props 必须可序列化（不含函数、Class 实例）。
-- **`'use client'` 是边界而非位置**：它标记的是「进入客户端的入口」，理解这一点是正确拆分组件树的关键。
+- **`'use client'`是边界而非位置**：它标记的是「进入客户端的入口」。
 
-## 9. 使用示例：一个完整的 RSC 应用
+## 9. 一个完整的 RSC 应用
 
-```jsx
-// app/layout.jsx —— 服务端布局，直接读数据
+:::code-group
+
+```jsx [layout.jsx]
+// 服务端布局，直接读数据
 export default async function Layout({ children }) {
   const user = await getCurrentUser()
   return (
@@ -230,8 +233,8 @@ export default async function Layout({ children }) {
 }
 ```
 
-```jsx
-// app/page.jsx —— 服务端组件，组合服务端/客户端子组件
+```jsx [page.jsx]
+//服务端组件，组合服务端/客户端子组件
 import { Suspense } from 'react'
 import PostList from './PostList'
 import LikeButton from './LikeButton'
@@ -248,8 +251,8 @@ export default function Page() {
 }
 ```
 
-```jsx
-// app/PostList.jsx —— 服务端组件，async 查库
+```jsx [PostList.jsx]
+//服务端组件，async 查库
 export default async function PostList() {
   const posts = await db.query('SELECT * FROM posts LIMIT 20')
   return (
@@ -262,8 +265,8 @@ export default async function PostList() {
 }
 ```
 
-```jsx
-// app/LikeButton.jsx —— 客户端组件（唯一的交互叶子）
+```jsx [LikeButton.jsx]
+//客户端组件（唯一的交互叶子）
 'use client'
 import { useState } from 'react'
 
@@ -274,5 +277,7 @@ export default function LikeButton({ postId }) {
   )
 }
 ```
+
+:::
 
 **关键点：** 只有 `LikeButton` 这一小段交互逻辑会下发 JS；`PostList` 的数据库查询与渲染全部在服务端完成，浏览器拿不到任何 SQL 语句或后端依赖。
