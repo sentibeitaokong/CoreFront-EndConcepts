@@ -111,7 +111,7 @@ function commitRoot(root) {
 
 ## 2. [Vue 3 运行时：分层协作的响应式引擎](../../../vue/advanced/core-design/componentEssence.md)
 
-Vue 3 并未采用类似 Fiber 的单一大结构，而是将职责拆分到多个独立模块，各司其职，协同完成高效的 UI 更新。
+Vue 3 并未采用类似Fiber的单一大结构，而是将职责拆分到多个独立模块，各司其职，协同完成高效的UI更新。
 
 ### 2.1 核心协作模块
 
@@ -183,13 +183,26 @@ function trigger(target, key) {
 
 ## 3. 对比总结
 
-| 职责           | React                                                     | Vue 3                                        |
-| -------------- | --------------------------------------------------------- | -------------------------------------------- |
-| **树遍历**     | Fiber 的 `child` / `sibling` / `return` 指针              | VNode 的 `children` 与组件实例关系           |
-| **组件状态**   | Fiber 的 Hooks 链表或 Class 实例                          | 组件实例中的 `setupState`、`props`、`ctx` 等 |
-| **副作用记录** | `flags` / `subtreeFlags`                                  | VNode 标记、组件更新 Effect 与 patch 分支    |
-| **双缓冲**     | `current` 与 `workInProgress` Fiber 通过 `alternate` 连接 | 没有直接等价结构，更新时比较前后 VNode       |
-| **可中断工作** | Fiber 是可暂停和恢复的工作单元                            | 单个组件的 patch 默认同步完成                |
+### 3.1 运行时结构对照
 
-- React 选择将所有信息集中在一个节点上，单一 Fiber 节点 = 状态容器 + 更新队列 + 副作用记录 + 调度信息 + 树拓扑，通过 alternate 实现双缓冲
-- Vue 3 则保持了响应式系统的简洁性，将优化集中在编译时与依赖追踪上，通过组件实例存状态、VNode 存 UI 描述、Effect 管理依赖追踪、Scheduler 管理更新时序，直接完成新旧 VNode 比较。
+[width(15,43,42)]
+
+| 维度             | React Fiber                                                  | Vue 3 运行时                                                     |
+| ---------------- | ------------------------------------------------------------ | ---------------------------------------------------------------- |
+| **运行时载体**   | Fiber 是单一的全功能节点，承担状态、更新、副作用与调度信息   | VNode、组件实例、ReactiveEffect、Scheduler 分工协作              |
+| **树结构**       | `child` / `sibling` / `return` 指针 + `alternate` 双缓冲     | VNode 的 `children` 与组件实例的 `parent` / `subTree` 关系       |
+| **状态存储**     | Fiber 的 `memoizedState`（Hooks 链表）与 `updateQueue`       | 组件实例的 `setupState`、`props`、`ctx`；响应式状态由 Proxy 追踪 |
+| **更新来源**     | `setState` / `dispatch` 显式触发，标记 lane                  | 响应式对象的 setter 自动触发 `trigger`，命中组件 Effect          |
+| **更新路径**     | 从根开始 `beginWork` / `completeWork`，`childLanes` 跳过子树 | 组件更新 Effect 入队，flush 后执行 render，`patch` 新旧 VNode    |
+| **调度模型**     | Lane + Scheduler，多级优先级                                 | 微任务队列 `queueJob`，去重批量                                  |
+| **可中断性**     | Render 阶段可暂停、恢复、丢弃 WIP；Commit 同步               | 单个组件更新 job 同步执行，不可中断                              |
+| **双缓冲**       | `current` 与 `workInProgress` 通过 `alternate` 连接          | 无完整双树，渲染时比较新旧 VNode / `subTree`                     |
+| **副作用与提交** | `flags` / `subtreeFlags` 收集，Commit 阶段统一执行           | `patch` 过程中直接更新 DOM，生命周期钩子围绕 patch               |
+
+### 3.2 关键差异
+
+- **结构组织**：React 把状态、更新队列、副作用、调度信息集中在 Fiber 上，一个节点同时是状态容器和工作单元；Vue 把职责拆到组件实例、VNode、ReactiveEffect、Scheduler 四个模块，单个节点更轻。
+- **更新入口**：React 由 `setState` 标记 lane，再从根开始协调，靠 `childLanes` / bailout 跳过无工作子树；Vue 由响应式 setter 直接命中依赖组件，`queueJob` 后只执行该组件的更新 Effect，不需要从根遍历。
+- **调度与中断**：React 的 Fiber work loop 在 Render 阶段可以按时间片暂停、恢复，甚至丢弃整个 WIP；Vue 的更新 job 在微任务队列中同步跑完，没有优先级和时间切片。
+- **提交方式**：React 先把副作用收集到 `flags` / `subtreeFlags`，Commit 阶段通过 `alternate` 原子切换 current；Vue 没有完整双树，`patch` 直接比较新旧 VNode 并更新 DOM。
+- **共同点**：两者最终都是组件级更新，也都会合并同一轮内的重复更新；差异在于 React 用“**根协调 + 可中断工作单元**”，Vue 用“**依赖触发 + 同步更新 job**”。

@@ -158,15 +158,13 @@ function beginWork(current, workInProgress) {
 }
 ```
 
-**核心特征**：
-
 - 更新从触发点向上冒泡到根，再从根向下遍历所有子节点
 - 每个组件是否重新执行，取决于 `memo`/`shouldComponentUpdate` 的判断
 - 依赖追踪靠的是“**执行时读到了什么**”——但 React 不会自动记录，需要开发者用 `useMemo`/`useCallback` 显式声明依赖数组
 
 ### 2.2 [Vue 3：自下而上的“**依赖-触发**”模型](../../../vue/advanced/source-code/reactivityUpdate.md)
 
-Vue 3 的更新基于 **依赖图（Dependency Graph）**：数据变化时，只有直接或间接依赖了该数据的 Effect 才会被触发。
+Vue 3 的更新基于 **依赖图**：数据变化时，只有直接或间接依赖了该数据的 Effect 才会被触发。
 
 ```javascript
 // 依赖图枢纽：target → key → 依赖它的 effect 集合
@@ -189,8 +187,6 @@ function trigger(target, key) {
   })
 }
 ```
-
-**核心特征**：
 
 - 依赖在**读取时自动收集**，无需开发者手动声明
 - 更新是**点对点触发**——数据变了，直接通知依赖它的 Effect
@@ -275,8 +271,6 @@ function Toolbar() {
 }
 ```
 
-**核心特征**：
-
 - `useContext` 读取即订阅，Provider value 变化触发所有 Consumer 重渲染
 - 广播式传播：除非用 `memo`/React Compiler 拦截，否则所有 Consumer 都会执行
 - 粗粒度：只用到一小部分字段也会整体重渲染
@@ -298,8 +292,6 @@ import { inject } from 'vue'
 const theme = inject('theme') // 读 theme.value 才触发依赖收集
 </script>
 ```
-
-**核心特征**：
 
 - `provide`/`inject` 本身只沿 parent 链查找一次，**不建立订阅关系**
 - 真正让跨层数据响应化的是被注入的 `ref`/`reactive` 对象
@@ -331,8 +323,6 @@ const theme = inject('theme') // 读 theme.value 才触发依赖收集
 | **派生缓存** | `useMemo`，渲染期同步求值             | `computed`，惰性求值 + dirty 标记 |
 | **跨层注入** | Context Provider + useContext         | provide + inject                  |
 | **注入更新** | Provider value 变 → 广播所有 Consumer | 注入 ref 本身 → 响应式依赖驱动    |
-
-**核心差异要点：**
 
 - **状态定位方式相反**：React 靠 Hooks 的「调用顺序」定位状态（链表无 key 可查，跳过即错位）；Vue 3 靠「响应式属性」精确定位（`Proxy` 拦截），不受调用顺序约束。
 - **依赖追踪的主动权不同**：React 需要开发者用 `deps` 数组「告诉」框架依赖什么；Vue 3 在读取响应式数据时「自动」`track` 收集，几乎零心智成本。

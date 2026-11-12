@@ -1,6 +1,6 @@
 # React 调度与 Vue 3 调度器：优先级抢占与微任务合并的分野
 
-调度（Scheduling）回答的是框架最底层的问题：**状态变化之后，更新任务在什么时候、以什么顺序、以多大粒度获得主线程的执行权。** React 和 Vue 3 在这里走向两条相反的路：React 引入 **Lane 位掩码 + Scheduler 时间切片**，把更新拆成可抢占、可中断、可重放的工作单元，用「**让出主线程**」换取交互的流畅；Vue 3 则基于 **微任务（microtask）队列**做批处理，把同一轮事件循环内的重复更新合并成一次渲染，用「**去重 + 排序 + 时序**」换取简单与可预测。前者解决的是「**长时间工作的执行权分配**」，后者解决的是「**同一轮循环内的重复更新合并**」。
+调度（Scheduling）回答的是框架最底层的问题：**状态变化之后，更新任务在什么时候、以什么顺序、以多大粒度获得主线程的执行权。** React 和 Vue 3 在这里走向两条相反的路：React 引入 **Lane 位掩码 + Scheduler 时间切片**，把更新拆成可抢占、可中断、可重放的工作单元，用**让出主线程**换取交互的流畅；Vue 3 则基于 **微任务（microtask）队列**做批处理，把同一轮事件循环内的重复更新合并成一次渲染，用「**去重 + 排序 + 时序**」换取简单与可预测。前者解决的是「**长时间工作的执行权分配**」，后者解决的是「**同一轮循环内的重复更新合并**」。
 
 ## 1. [React：Lane 模型与优先级](../core-design/schedulingAndLanes.md)
 
@@ -47,6 +47,8 @@ startTransition(() => {
   setSearchResults(search(query)) // 查询结果标记为非紧急，渲染让位给输入
 })
 ```
+
+[width(24,28,11,13,24)]
 
 | 更新来源           | 对应 Lane             | 优先级 | 可被中断 | 典型场景           |
 | ------------------ | --------------------- | ------ | -------- | ------------------ |
@@ -235,40 +237,50 @@ function flushJobs() {
 
 ### 3.2 pre / 组件 job / post 三段时序
 
-真实的 Vue 3 调度器在「组件更新 job」的前后还各有一个回调队列，形成「**pre → 组件渲染 → post**」的稳定时序：
+真实的 Vue 3 调度器在**组件更新 job**前后还各有一个回调队列，形成稳定的三段时序：
+
+```tree
+flushJobs（微任务）
+  ├─ flushPreFlushCbs    watch flush:'pre'
+  ├─ 组件更新 job 队列    按 uid 排序，render → patch
+  └─ flushPostFlushCbs   watch flush:'post'、onUpdated
+```
+
+**pre：组件渲染前**
 
 ```javascript
-// 三段时序：pre 回调 → 组件更新 job → post 回调（简化）
-const pendingPreFlushCbs = [] // watch flush:'pre'、组件更新前回调
-const pendingPostFlushCbs = [] // nextTick、watch flush:'post'、onUpdated
-
-function flushJobs() {
-  isFlushPending = false
-  isFlushing = true
-
-  flushPreFlushCbs() // ① pre：DOM 更新前（可读旧 DOM）
-  queue.sort((a, b) => a.id - b.id)
-  for (let i = 0; i < queue.length; i++) queue[i]() // ② 组件渲染 → patch 更新 DOM
-  flushPostFlushCbs() // ③ post：DOM 更新后、绘制前
-
-  queue.length = 0
-  isFlushing = false
+// 此时 DOM 仍是旧值，适合在渲染前读取或修正状态
+function flushPreFlushCbs() {
+  for (let i = 0; i < pendingPreFlushCbs.length; i++) {
+    pendingPreFlushCbs[i]()
+  }
+  pendingPreFlushCbs.length = 0
 }
 ```
 
+**组件 job：执行 render 与 patch**
+
 ```javascript
-// 组件更新过程：同步多次修改 → 1 次 patch
-const state = reactive({ count: 0, name: 'A' })
+// 按 uid 排序，保证父组件先于子组件更新
+queue.sort((a, b) => a.id - b.id)
 
-// 在同一个同步代码块中修改多次
-state.count = 1
-state.count = 2 // ← 前一次还未 flush，job 已去重，不会调两次
-state.name = 'B'
+for (let i = 0; i < queue.length; i++) {
+  queue[i]() // componentUpdateFn：render → patch，DOM 在这里更新
+}
+```
 
-// Promise.resolve().then(() => {
-//   // 此时才真正执行 1 次 patch——两次 count 变更和 1 次 name 变更合并
-//   // render 函数只执行 1 次，生成 1 个新 VNode，patch 1 次
-// })
+**post：DOM 更新完成后**
+
+```javascript
+// 此时 DOM 已是最新值，适合执行 watcher、onUpdated 等副作用
+function flushPostFlushCbs() {
+  const cbs = [...new Set(pendingPostFlushCbs)]
+  pendingPostFlushCbs.length = 0
+
+  for (let i = 0; i < cbs.length; i++) {
+    cbs[i]()
+  }
+}
 ```
 
 ### 3.3 nextTick
@@ -288,7 +300,7 @@ await nextTick()
 console.log(document.querySelector('div').textContent) // 已是最新值
 ```
 
-### 3.4 两者批处理的对比示例
+### 3.4 批处理对比
 
 ```jsx
 // React：同一事件处理函数中的多次 setState 自动批处理
@@ -310,6 +322,8 @@ function handleClick() {
 
 ## 4. 对比总结
 
+[width(15,45,40)]
+
 | 维度           | React                                                          | Vue 3                                                   |
 | -------------- | -------------------------------------------------------------- | ------------------------------------------------------- |
 | **核心目标**   | 优先级选择、可中断 Render、避免低优先级任务饿死                | 合并同步数据变更、任务去重、保证刷新顺序                |
@@ -322,9 +336,7 @@ function handleClick() {
 | **饥饿防止**   | 超时机制：过期任务强制同步执行                                 | 不适用——单次更新很快完成，无长期占用                    |
 | **逃逸出口**   | `flushSync` 强制同步刷新，跳过批处理                           | `nextTick` 在批处理完成后回调，`flush: 'sync'` 即时执行 |
 
-**关键差异要点：**
-
-- **解决的问题不同**：React 的时间切片控制「**长时间工作的执行权**」——把大任务拆碎、可抢占、可恢复，避免卡顿主线程；Vue 的微任务批处理合并「**同一轮事件循环内的重复更新**」——去重后只渲染一次，避免重复计算。
+- **解决的问题不同**：React 的时间切片控制**长时间工作的执行权**——把大任务拆碎、可抢占、可恢复，避免卡顿主线程；Vue 的微任务批处理合并**同一轮事件循环内的重复更新**——去重后只渲染一次，避免重复计算。
 - **优先级模型的有无**：React 有显式的 Lane 位掩码优先级体系，不同事件来源分配不同优先级；Vue 3 没有面向开发者的优先级概念，更新一视同仁地进队列，只靠 `id` 排序保证父子顺序。
 - **可中断性相反**：React 的并发渲染可被更高优先级任务抢占、可中断重放（基于 `baseState` / `baseQueue`）；Vue 3 的单个组件 `patch` 在微任务内同步完成，一旦开始就不会中断。
 - **复杂度分布相反**：React 把复杂度留给运行时（Lane 位运算、纠缠、超时、时间切片、任务续跑）；Vue 3 把复杂度压到最低（去重 + 排序 + 三段时序），换来更轻量、更易理解的调度器。

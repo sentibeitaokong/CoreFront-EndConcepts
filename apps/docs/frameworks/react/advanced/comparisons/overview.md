@@ -38,7 +38,7 @@ React 的调度器（Scheduler）独立于渲染器，负责管理所有更新�
 React 在内存中维护两棵 Fiber 树：**current**（当前屏幕显示）与 **workInProgress**（正在构建的新树）。两者通过 `alternate` 指针关联，形成“**双缓冲**”模式。
 
 - **Render 阶段**：在 workInProgress 树上执行 `beginWork` / `completeWork`，构建新的 Fiber 树并收集副作用，这一阶段可中断。
-- **Commit 阶段**：一旦 workInProgress 树完成，进入不可中断的提交阶段，依次执行 DOM 突变（mutation）、布局副作用（useLayoutEffect）等，最后将 `root.current` 指向 workInProgress，完成切换。
+- **Commit 阶段**：一旦 workInProgress 树完成，进入不可中断的提交阶段，依次执行DOM突变(mutation)、布局副作用(useLayoutEffect)等，最后将 `root.current` 指向 workInProgress，完成切换。
 
 ## 2. [Vue 3 架构](../../../vue/advanced/core-design/compileAndRun.md)
 

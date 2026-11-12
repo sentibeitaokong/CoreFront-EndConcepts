@@ -15,7 +15,7 @@ react (组件模型)
        └─ react-dom / react-native / ink / react-pdf ... (渲染器：实现 Host Config)
 ```
 
-这种「**协调器驱动、宿主被动响应**」的模型意味着：协调器在 Render 阶段**只记账**（打 `flags`），从不直接触碰宿主；直到 Commit 阶段，才把已经确定的操作清单逐条交给 Host Config 执行。宿主对协调器是「**只提供能力、不参与决策**」的从属角色。
+这种「**协调器驱动、宿主被动响应**」的模型意味着：Render 阶段由协调器决定改什么，并调用 `createInstance`、`prepareUpdate` 等**不产生可见 DOM 变更**的 Host Config 能力，把结果记到 `flags`；真正的插入、更新、删除集中在 Commit 阶段，由协调器逐条交给 Host Config 执行。宿主对协调器是「**只提供能力、不参与决策**」的从属角色。
 
 ### 1.2 Host Config：宿主配置接口
 
@@ -86,9 +86,9 @@ const HostConfig = {
 }
 ```
 
-### 1.3 Commit 阶段：宿主操作的唯一出口
+### 1.3 Commit 阶段：变更型宿主操作的唯一出口
 
-协调器在 Render 阶段产出 `flags` 副作用标记，真正的宿主操作**只发生在 Commit 阶段**，且严格按「**Before Mutation → Mutation → Layout**」三个子阶段依次执行：
+协调器在 Render 阶段产出 `flags` 副作用标记，真正的插入、更新、删除等**变更型宿主操作只发生在 Commit 阶段**，且严格按「**Before Mutation → Mutation → Layout**」三个子阶段依次执行。注意 Render 阶段并非完全不调用 Host Config：`createInstance`、`prepareUpdate` 等非变更接口会在协调过程中执行，但节点尚未插入文档。
 
 ```javascript
 // React DOM commit 阶段的简化流程
@@ -194,7 +194,7 @@ const MyRenderer = Reconciler({
 
 ### 2.1 分层架构：核心渲染器 + 可插拔宿主操作
 
-Vue 3 同样把「**核心渲染逻辑**」与「**宿主操作**」分层，但抽象方式不同：`runtime-core` 内含完整的渲染器（`patch`、`diff`、组件生命周期），它不直接操作 DOM，而是通过 **`nodeOps`（节点操作）+ `patchProp`（属性操作）** 两组可插拔函数接入宿主。
+Vue 3 同样把**核心渲染逻辑**与**宿主操作**分层，但抽象方式不同：`runtime-core` 内含完整的渲染器（`patch`、`diff`、组件生命周期），它不直接操作 DOM，而是通过 **`nodeOps`（节点操作）+ `patchProp`（属性操作）** 两组可插拔函数接入宿主。
 
 ```javascript
 // Vue 3 分层：核心渲染器（平台无关） + 宿主操作（平台相关）
@@ -307,29 +307,32 @@ Vue 3 渲染器的核心是 `patch` 函数，它按 VNode 的 `type` 与 `shapeF
 
 ```javascript
 // Vue 3 patch 函数的核心逻辑（简化）
-function patch(oldVNode, newVNode, container, ...) {
-  // 1. 类型不同 → 直接卸载旧节点，挂载新节点
-  if (oldVNode.type !== newVNode.type) {
+function patch(oldVNode, newVNode, container) {
+  // 1. 类型或 key 不同 → 直接卸载旧节点，挂载新节点
+  if (
+    oldVNode &&
+    (oldVNode.type !== newVNode.type || oldVNode.key !== newVNode.key)
+  ) {
     unmount(oldVNode)
     oldVNode = null // 使后续逻辑走挂载分支
   }
 
   const { type, shapeFlag } = newVNode
   switch (type) {
-    case Text:         // 文本节点
-      processText(oldVNode, newVNode, ...)
+    case Text: // 文本节点
+      processText(oldVNode, newVNode)
       break
-    case Comment:      // 注释节点
-      processCommentNode(oldVNode, newVNode, ...)
+    case Comment: // 注释节点
+      processCommentNode(oldVNode, newVNode)
       break
-    case Fragment:     // Fragment
-      processFragment(oldVNode, newVNode, ...)
+    case Fragment: // Fragment
+      processFragment(oldVNode, newVNode)
       break
     default:
       if (shapeFlag & ShapeFlags.ELEMENT) {
-        processElement(oldVNode, newVNode, ...)    // 普通元素
+        processElement(oldVNode, newVNode) // 普通元素
       } else if (shapeFlag & ShapeFlags.COMPONENT) {
-        processComponent(oldVNode, newVNode, ...)  // 组件
+        processComponent(oldVNode, newVNode) // 组件
       }
   }
 }
@@ -397,22 +400,49 @@ const { render, createApp } = createRenderer({
 
 ## 3. 对比总结
 
-| 维度               | React                                                    | Vue 3                                             |
-| ------------------ | -------------------------------------------------------- | ------------------------------------------------- |
-| **平台无关核心**   | `react-reconciler`（协调器，只记账不施工）               | `@vue/runtime-core`（渲染器，含 patch/diff）      |
-| **DOM 渲染器**     | `react-dom`                                              | `@vue/runtime-dom`                                |
-| **宿主抽象形态**   | Host Config（一整套函数，能力清单）                      | RendererOptions + `nodeOps` + `patchProp`         |
-| **控制方向**       | 协调器驱动，宿主被动响应；记账后统一施工                 | 渲染器主动，边比较边调用宿主 API                  |
-| **变更落盘时机**   | Commit 阶段三子阶段一次性批量应用                        | patch 过程即时调用 `insert` / `patchProp`         |
-| **事件系统**       | 合成事件（SyntheticEvent）+ 根节点委托 + 事件优先级      | 原生 `addEventListener` + invoker 缓存            |
-| **特殊跨容器节点** | Portal（`createPortal`）                                 | Teleport（`<Teleport to>`）                       |
-| **自定义渲染器**   | 使用 `react-reconciler` 构建                             | 使用 `createRenderer()` 构建                      |
-| **附加能力**       | `supportsPersistence`、`supportsHydration`、多渲染器共存 | `setScopeId`（scoped CSS）、`insertStaticContent` |
+### 3.1 共同的抽象原则
 
-**关键差异要点：**
+核心渲染逻辑只声明“**我需要哪些宿主能力**”，平台包负责实现并注入；核心不 import 任何 DOM API，也不假设宿主节点一定是 `Element`。节点句柄对核心是**不透明**的，核心只通过 `create` / `insert` / `remove` / `parentNode` 等原语操作它。
 
-- **抽象的粒度不同**：React 的 Host Config 是一份**细粒度、能力完备**的函数清单（节点、文本、属性、事件、调度、水合……），每个能力都要渲染器逐一实现；Vue 3 的抽象更**精简**——核心是 `nodeOps`（节点）与 `patchProp`（属性），宿主接入的门槛更低。
-- **施工时机相反**：React「**先记账、后施工**」——Render 阶段只打 `flags`，Commit 阶段一次性批量落盘，具备原子性；Vue 3「**边比较、边施工**」——`patch` 过程中即时调用宿主 API，DOM 变更即刻生效，无独立提交阶段。
-- **事件模型不同**：React 用合成事件 + 根节点委托 + 事件优先级，抹平浏览器差异并把事件优先级接入调度体系；Vue 3 用原生 `addEventListener` + invoker 缓存，更贴近浏览器原生行为，无事件优先级概念。
-- **跨容器节点的实现位置不同**：React 的 Portal 由 `react-reconciler` 特殊 Fiber 处理，逻辑与 DOM 归属分离；Vue 3 的 Teleport 是内置组件，由渲染器的 `processTeleport` 分支处理。
-- **一致的抽象原则**：两者都把「**UI 计算**」与「**宿主操作**」解耦，实现一套核心多端复用——区别在于 React 把解耦边界放在「**协调器与渲染器之间**」，Vue 3 把它放在「**核心渲染器与宿主操作之间**」。
+[width(15,40,45)]
+
+| 抽象原则           | React 的体现                                                      | Vue 3 的体现                                                        |
+| ------------------ | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **依赖倒置**       | `react-reconciler` 只依赖 Host Config，由 `react-dom` 提供实现    | `runtime-core` 只依赖 RendererOptions，由 `runtime-dom` 注入        |
+| **宿主节点不透明** | HostInstance 由渲染器定义，协调器不直接访问 DOM                   | `nodeOps` 返回宿主节点，渲染器通过 `el` 持有，不关心具体类型        |
+| **操作原语化**     | `createInstance`、`appendChild`、`insertBefore`、`removeChild` 等 | `createElement`、`insert`、`remove`、`parentNode`、`nextSibling` 等 |
+| **属性更新接口**   | `prepareUpdate` 计算差异，`commitUpdate` 应用差异                 | `patchProp` 按 class / style / 事件 / 普通属性分支处理              |
+| **自定义宿主**     | 基于 `react-reconciler` + Host Config 构建                        | 基于 `createRenderer({ nodeOps, patchProp })` 构建                  |
+| **可选能力**       | `supportsMutation` / `supportsPersistence` / `supportsHydration`  | `createHydrationRenderer`、`insertStaticContent`、`setScopeId`      |
+| **跨容器节点**     | Portal 是特殊 Fiber，逻辑归属不变                                 | Teleport 是内置组件，`processTeleport` 重定向挂载                   |
+
+所以两者都能做到“**核心算法不改，换一套宿主实现就能跑在 DOM / Native / 测试 / Canvas 上**”。
+
+### 3.2 具体区别
+
+[width(13,43,44)]
+
+| 区别点           | React Reconciler                                                                        | Vue 3 渲染器                                                           |
+| ---------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **解耦边界**     | 协调器与渲染器之间：reconciler 产出 `flags`，renderer 执行 Host Config                  | 渲染器内部：`patch` / diff 与 `nodeOps` / `patchProp` 之间             |
+| **谁负责 diff**  | 协调器负责 Fiber 树 diff，渲染器只提供节点和属性原语                                    | `runtime-core` 的 `patch` 负责 VNode diff，宿主只提供操作原语          |
+| **接口形状**     | Host Config 是完整能力契约：创建、插入、删除、属性 diff、文本、水合、调度、渲染模式开关 | RendererOptions 是精简操作集合：`nodeOps` + `patchProp` + 少量可选钩子 |
+| **调用方向**     | 宿主被动：Render 阶段只做非变更型调用，变更操作集中在 Commit                            | 渲染器主动：`patch` 过程中直接调用 `insert` / `patchProp`              |
+| **落盘与原子性** | Commit 三子阶段集中应用；WIP 可丢弃，正常路径下一次性落盘                               | 边比较边修改，无独立 Commit；出错时缺少 WIP 式回滚                     |
+| **属性 diff**    | `prepareUpdate` 先算 payload，`commitUpdate` 再应用                                     | `patchProp` 直接比较新旧值并应用，class / style / 事件内联分支         |
+| **文本处理**     | 独立文本实例：`createTextInstance`、`commitTextUpdate`                                  | `createText` / `setText` / `setElementText`，文本也是宿主节点          |
+| **事件系统**     | DOM 渲染器单独实现合成事件与根节点委托，不放进 Host Config                              | `patchProp` 处理 `on*`，用 invoker 缓存复用监听器                      |
+| **自定义门槛**   | 需要实现完整 Host Config，方法多且带渲染模式开关                                        | 只需提供 `nodeOps` + `patchProp`，接入面更小                           |
+| **扩展能力**     | `supportsHydration`、`supportsPersistence`、`isPrimaryRenderer` 等                      | `createHydrationRenderer`、`insertStaticContent`、`setScopeId`         |
+
+**边界如何体现**
+
+- **React**：Render 阶段调用 `createInstance` / `prepareUpdate` 等非变更接口，变更型操作（如 `appendChild` / `commitUpdate`）集中在 Commit 阶段；DOM 实现由 `react-dom` 提供。边界在**协调器 / 渲染器**之间。
+- **Vue**：`patch` 在 diff 过程中主动调用 `runtime-dom` 通过 `createRenderer(options)` 传入的 `insert` / `patchProp`。边界在**渲染算法 / 宿主操作**之间。
+- 换宿主时，React 替换 renderer / Host Config，Vue 替换 `nodeOps` + `patchProp`。
+
+从接口厚度看：
+
+- **React 的抽象更“厚”**：Host Config 覆盖节点、文本、属性、水合、持久化、调度和渲染模式，核心对宿主的假设最少，但渲染器实现成本最高。
+- **Vue 的抽象更“薄”**：核心接口是节点原语和属性补丁，另有少量可选钩子；接入快、核心更主动。代价是它默认采用可变节点模型，`patch` 直接落盘，所以没有 React 那样的 WIP 回滚空间。
+- **一句话总结**：两者都做了**核心与宿主解耦**，但 React 把边界放在**协调器 / 渲染器**之间，Vue 把边界放在**渲染算法 / 宿主操作**之间；React 用一份厚接口和 Render / Commit 两阶段换原子性，Vue 用一份薄接口换接入成本和直接性。

@@ -94,7 +94,7 @@ function reconcileChildren(current, workInProgress, nextChildren, renderLanes) {
 | `string` / `number`  | `reconcileSingleTextNode` | 文本节点                 |
 | `null` / `undefined` | `deleteRemainingChildren` | 空内容，删除所有旧子节点 |
 
-关键认知：**「单个还是多个」是分岔的第一层**——单节点与多节点是完全不同的两套逻辑，前者的复杂度远低于后者。
+**「单个还是多个」是分岔的第一层**——单节点与多节点是完全不同的两套逻辑，前者的复杂度远低于后者。
 
 ### 1.3 单节点协调
 
@@ -131,7 +131,7 @@ function reconcileSingleElement(
 }
 ```
 
-关键认知：**key 匹配但 type 不同时立即停止扫描**——同一个新节点不可能同时匹配两个旧节点，继续扫描毫无意义。
+**key 匹配但 type 不同时立即停止扫描**——同一个新节点不可能同时匹配两个旧节点，继续扫描毫无意义。
 
 ### 1.4 多节点协调：reconcileChildrenArray 与 lastPlacedIndex
 
@@ -190,8 +190,6 @@ function placeChild(newFiber, lastPlacedIndex, newIndex) {
   return oldIndex // 顺序不变 → 原地复用
 }
 ```
-
-三趟遍历最终把每个节点归入五种协调条件，每种对应不同的 Fiber 标记：
 
 [width(13,33,23,31)]
 
@@ -415,8 +413,6 @@ function patchUnkeyedChildren(c1, c2, container) {
 | **无 key 行为**  | 退化为 index 匹配，易错配                       | 退化为按位置逐项 patch，同样易错配                      |
 | **变更提交**     | Commit 阶段统一处理 Placement、Update、Deletion | patch 过程直接调用 insert、patchProp、remove 等宿主操作 |
 | **跳过工作**     | Bailout、`memo`、稳定引用、编译器缓存           | 响应式依赖、PatchFlags、Block Tree、静态提升            |
-
-**关键差异要点：**
 
 - **数据结构决定算法**：React 的 Fiber 是单向链表，只能单向扫描，移动检测退化为 `lastPlacedIndex` 贪心；Vue 3 的 VNode 是数组，可双端扫描 + 随机访问，用 LIS 求移动次数的数学最优解。
 - **变更提交时机不同**：React 在 Render 阶段只「记账」（打 `flags`），Commit 阶段统一批量应用；Vue 3 的 patch 边比较边调用宿主 API，更新即时落盘。
