@@ -1134,11 +1134,107 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({mode}) => {
                                             collapsed: true, // 初始状态为”展开”
                                             items: [
                                                 {
-                                                    text: 'React源码目录结构',
+                                                    text: '源码目录结构',
                                                     link: '/frameworks/react/advanced/source-code/sourceCodeCatalog'
                                                 },
                                                 {
-                                                    text: '任务调度器',
+                                                    text: '元素与 Fiber',
+                                                    collapsed: true, // 初始状态为“展开”
+                                                    items: [
+                                                        {
+                                                            text: 'ReactElement',
+                                                            link: '/frameworks/react/advanced/source-code/reactElement'
+                                                        },
+                                                        {
+                                                            text: 'Fiber 节点',
+                                                            link: '/frameworks/react/advanced/source-code/reconciler/fiberNode'
+                                                        },
+                                                        {
+                                                            text: 'FiberRoot',
+                                                            link: '/frameworks/react/advanced/source-code/reconciler/fiberRoot'
+                                                        },
+                                                    ]
+                                                },
+                                                {
+                                                    text: 'Render 流程',
+                                                    collapsed: true, // 初始状态为“展开”
+                                                    items: [
+                                                        {
+                                                            text: '工作循环',
+                                                            link: '/frameworks/react/advanced/source-code/reconciler/workLoop'
+                                                        },
+                                                        {
+                                                            text: 'beginWork',
+                                                            link: '/frameworks/react/advanced/source-code/reconciler/beginWork'
+                                                        },
+                                                        {
+                                                            text: 'completeWork',
+                                                            link: '/frameworks/react/advanced/source-code/reconciler/completeWork'
+                                                        },
+                                                        {
+                                                            text: '子节点 Diff',
+                                                            link: '/frameworks/react/advanced/source-code/reconciler/childFiber'
+                                                        },
+                                                    ]
+                                                },
+                                                {
+                                                    text: 'Hooks 与副作用',
+                                                    collapsed: true, // 初始状态为“展开”
+                                                    items: [
+                                                        {
+                                                            text: 'Hooks 链表',
+                                                            link: '/frameworks/react/advanced/source-code/hooks/hooksInternals'
+                                                        },
+                                                        {
+                                                            text: 'useState',
+                                                            link: '/frameworks/react/advanced/source-code/hooks/useState'
+                                                        },
+                                                        {
+                                                            text: 'useReducer',
+                                                            link: '/frameworks/react/advanced/source-code/hooks/useReducer'
+                                                        },
+                                                        {
+                                                            text: 'useEffect',
+                                                            link: '/frameworks/react/advanced/source-code/hooks/useEffect'
+                                                        },
+                                                        {
+                                                            text: 'useLayoutEffect',
+                                                            link: '/frameworks/react/advanced/source-code/hooks/useLayoutEffect'
+                                                        },
+                                                        {
+                                                            text: 'useInsertionEffect',
+                                                            link: '/frameworks/react/advanced/source-code/hooks/useInsertionEffect'
+                                                        },
+                                                        {
+                                                            text: 'useMemo',
+                                                            link: '/frameworks/react/advanced/source-code/hooks/useMemo'
+                                                        },
+                                                        {
+                                                            text: 'useCallback',
+                                                            link: '/frameworks/react/advanced/source-code/hooks/useCallback'
+                                                        },
+                                                        {
+                                                            text: 'useRef',
+                                                            link: '/frameworks/react/advanced/source-code/hooks/useRef'
+                                                        },
+                                                    ]
+                                                },
+                                                {
+                                                    text: 'Commit 与 Context',
+                                                    collapsed: true, // 初始状态为“展开”
+                                                    items: [
+                                                        {
+                                                            text: 'Commit 阶段',
+                                                            link: '/frameworks/react/advanced/source-code/commit/commitWork'
+                                                        },
+                                                        {
+                                                            text: 'Context',
+                                                            link: '/frameworks/react/advanced/source-code/context/context'
+                                                        },
+                                                    ]
+                                                },
+                                                {
+                                                    text: '调度器',
                                                     link: '/frameworks/react/advanced/source-code/scheduler'
                                                 },
                                             ],
