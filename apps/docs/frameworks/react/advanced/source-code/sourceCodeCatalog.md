@@ -171,7 +171,7 @@ packages/react-dom/
 
 ### 3.1 `react`：描述层
 
-```text
+```tree
 packages/react/
 ├── index.js                  # 稳定入口
 ├── jsx-runtime.js            # 自动 JSX runtime 入口
@@ -197,8 +197,6 @@ packages/react/
 - **`ReactHooks.js`（Hooks 空壳）**：每个 Hook 都只是从 `ReactCurrentDispatcher` 取出实现再调用。调用 `useState` 实际上是在调用 Dispatcher，具体实现由 `react-reconciler` 按挂载/更新阶段动态注入。
 - **`ReactContext.js`、`ReactMemo.js`、`ReactLazy.js`、`ReactForwardRef.js`**：只创建 Context 对象或带特殊 `$$typeof` / `type` 的元素类型，具体行为由协调器解释。
 
-更完整的字段、`createElement` 与自动 runtime 的差异，见 [ReactElement](/frameworks/react/advanced/source-code/reactElement)。
-
 ### 3.2 `shared`：共享层
 
 `shared` 通常包含 React Symbols、特性开关、环境检测、浅比较、组件名解析、错误处理以及内部类型。它是最先可以放心阅读的包，因为这里只有常量、类型和纯工具函数，没有组件运行时状态：
@@ -215,7 +213,7 @@ packages/react/
 
 这是整个 React 最复杂、最核心的目录，负责 **Fiber 架构、Diff 算法与生命周期**。v18.3.1 中大多数模块同时存在 `.old.js` 与 `.new.js`，默认走 `.old.js`：
 
-```text
+```tree
 packages/react-reconciler/src/
 ├── ReactFiber.old.js                  # Fiber 创建与双缓冲
 ├── ReactFiberRoot.old.js              # FiberRoot / HostRootFiber
@@ -238,8 +236,6 @@ packages/react-reconciler/src/
 └── ReactFiberReconciler.js            # createContainer / updateContainer 等对外接口
 ```
 
-阅读时可以按主题分成七组：
-
 - **基石数据**：`ReactFiber.old.js` 创建 Fiber，维护 `return` / `child` / `sibling` 三根指针与 `alternate` 双缓冲；`ReactFiberRoot.old.js` 创建 `FiberRootNode` 与 `HostRootFiber`；`ReactWorkTags.js`、`ReactFiberFlags.js` 提供类型标记与副作用位掩码。见 [Fiber 节点](/frameworks/react/advanced/source-code/reconciler/fiberNode)、[FiberRoot](/frameworks/react/advanced/source-code/reconciler/fiberRoot)。
 - **工作循环 (WorkLoop)**：`ReactFiberWorkLoop.old.js` 是引擎的心跳，控制 Render 阶段（可中断）与 Commit 阶段（不可中断），同时负责更新入口、根调度、异常处理与退出状态。见 [工作循环](/frameworks/react/advanced/source-code/reconciler/workLoop)。
 - **Render 阶段 (找不同)**：`ReactFiberBeginWork.old.js` 是“**递**”阶段，按 `WorkTag` 比对状态、生成下级 Fiber；`ReactChildFiber.old.js` 是核心 Diff，单节点先比 `key` 再比 `type`，多节点用两轮遍历处理移动；`ReactFiberCompleteWork.old.js` 是“**归**”阶段，创建宿主节点并把 `flags` 向上汇总成 `subtreeFlags`。见 [beginWork](/frameworks/react/advanced/source-code/reconciler/beginWork)、[子节点 Diff](/frameworks/react/advanced/source-code/reconciler/childFiber)、[completeWork](/frameworks/react/advanced/source-code/reconciler/completeWork)。
@@ -248,13 +244,11 @@ packages/react-reconciler/src/
 - **优先级与并发**：`ReactFiberLane.old.js` 用 31 位二进制表示优先级；`ReactFiberConcurrentUpdates.old.js` 负责并发更新入队。见 [调度与优先级](/frameworks/react/advanced/core-design/schedulingAndLanes)。
 - **Context、Suspense 与水合**：`ReactFiberNewContext.old.js` 维护 Context 值栈、依赖收集与传播；`ReactFiberSuspenseComponent.old.js`、`ReactFiberHydrationContext.old.js` 处理挂起、重试与水合。见 [Context](/frameworks/react/advanced/source-code/context/context)、[并发特性](/frameworks/react/advanced/core-design/suspenseOffscreenHydration)。
 
-把七组串起来的是三个机制：双缓冲让 Render 可以随时丢弃重来；`beginWork` 的“**递**”与 `completeWork` 的“**归**”构成深度优先遍历；`flags` 与 `subtreeFlags` 的位掩码让 Commit 能整棵跳过没有效果的子树。
-
 ### 3.4 `react-dom`：宿主层
 
 `react-dom` 为协调器提供操作浏览器 DOM 的“**武器库**”（Host Config），同时承载事件系统和 SSR 入口：
 
-```text
+```tree
 packages/react-dom/
 ├── client.js                  # react-dom/client 入口
 ├── index.js                   # react-dom 默认入口
@@ -278,14 +272,11 @@ packages/react-dom/
 - **`src/events/`（合成事件系统）**：独立于浏览器的 SyntheticEvent 实现。从 React 17 起，事件委托挂在根容器而不是 `document` 上；事件优先级会映射成 Lane，再参与调度。
 - **`src/server/`（服务端适配）**：Fizz 的 DOM 适配层，提供 `renderToString`、`renderToPipeableStream`、`renderToReadableStream` 等入口。
 
-> [!NOTE]
-> React 19 后 `ReactDOMHostConfig.js` 等文件被拆分、改名，出现了 `ReactFiberConfigDOM.js` 这类新名称。18.3.1 中并不存在这些文件，不要拿 main 的文件名来对照。
-
 ### 3.5 `scheduler`：调度层
 
 `scheduler` 是一个独立于 React 的任务调度库，甚至可以脱离 React 使用。它负责按优先级执行回调，并在占用主线程过久时让出控制权：
 
-```text
+```tree
 packages/scheduler/src/
 ├── forks/
 │   ├── Scheduler.js         # 宿主调度实现，DOM 版使用 MessageChannel
@@ -300,13 +291,10 @@ packages/scheduler/src/
 - **`forks/Scheduler.js`（宏任务时间切片）**：通过 `MessageChannel` 产生宏任务，在 `workLoop` 中每个任务执行完后检查是否超过 5ms 的 `frameInterval`，超时就调用 `shouldYieldToHost` 让出主线程。
 - **`SchedulerMinHeap.js`（任务队列）**：`timerQueue` 存放尚未到期的延时任务，`taskQueue` 存放可以立即执行的任务，两者都按 `expirationTime` 维护为小顶堆，保证 `O(log n)` 取出最早到期的任务。
 - **`SchedulerPriorities.js`（优先级常量）**：提供 Immediate、UserBlocking、Normal、Low、Idle 五档优先级，React 会把 Lane 映射到这几档上。
-- **与 React 的边界**：Scheduler 只知道回调与优先级，不知道 Fiber、Lane 或组件。React 负责把 Lane 映射成 Scheduler 优先级，再在回调里执行 `performConcurrentWorkOnRoot`。
 
 完整的队列结构、`scheduleCallback` 流程与 React 集成方式，见 [调度器](/frameworks/react/advanced/source-code/scheduler)。
 
 ### 3.6 服务端与 RSC
-
-v18.3.1 的服务端相关包分为三层：
 
 [width(20,36,44)]
 
@@ -317,7 +305,7 @@ v18.3.1 的服务端相关包分为三层：
 | `react-server-dom-webpack`  | 面向 webpack 的 Flight 客户端与服务端适配、bundler 配置    | `ReactFlightDOMClient.js`、`ReactFlightDOMServerNode.js`    |
 
 > [!NOTE]
-> Server Components 不是“**组件在服务器生成 HTML**”这么简单。传统 SSR 主要传输 HTML，客户端负责水合；RSC 传输的是可被客户端继续组合、恢复引用的组件数据流，两者可以协同工作。RSC 在 18.3.1 中仍属实验特性，main 分支还新增了 Parcel、Turbopack 适配和 `react-markup` 等包。
+> Server Components 不是“**组件在服务器生成 HTML**”这么简单。传统 SSR 主要传输 HTML，客户端负责水合；RSC 传输的是可被客户端继续组合、恢复引用的组件数据流，两者可以协同工作。
 
 ### 3.7 周边包
 
@@ -339,10 +327,10 @@ v18.3.1 的服务端相关包分为三层：
 
 ### 4.1 阅读原则
 
-1. **先数据后流程**。先弄清 Element、Fiber、FiberRoot 的字段，再读 `workLoop`，否则会在大量状态字段中失去方向。
-2. **先挂载后更新**。Mount 路径没有 bailout、Lane 复用和 Diff 分支，是最干净的入口；Update 路径是在它之上叠加优化。
-3. **沿一条调用链读**。用一个最小示例（一个函数组件、一个 `useState`）打断点，只跟一条路径，不要同时追所有分支。
-4. **官方源码与简化实现对照**。本目录每篇文章末尾都有简化实现对照小节，先看缩小版建立骨架，再回到官方源码补细节。
+- **先数据后流程**。先弄清 Element、Fiber、FiberRoot 的字段，再读 `workLoop`，否则会在大量状态字段中失去方向。
+- **先挂载后更新**。Mount 路径没有 bailout、Lane 复用和 Diff 分支，是最干净的入口；Update 路径是在它之上叠加优化。
+- **沿一条调用链读**。用一个最小示例（一个函数组件、一个 `useState`）打断点，只跟一条路径，不要同时追所有分支。
+- **官方源码与简化实现对照**。先看缩小版建立骨架，再回到官方源码补细节。
 
 ### 4.2 路线总览
 
@@ -376,13 +364,12 @@ flowchart LR
 - **`react/src/ReactElement.js`（元素工厂）**：理解 `ReactElement` 只是一个极轻量级的普通 JavaScript 对象。剖析它的 `type`（元素类型）、`props`（属性）、`key`、`ref` 以及最核心的 `$$typeof`。
 - **`shared/ReactSymbols.js`（安全与类型标识）**：精读 `REACT_ELEMENT_TYPE` 的定义。理解 React 为什么强制要求 `$$typeof: Symbol.for('react.element')`：JSON 无法序列化 Symbol，这一设计从根本上杜绝了服务端注入未经转义的 JSON 字符串所导致的 XSS 攻击。
 - **`ReactFiber.old.js` 与 `ReactFiberRoot.old.js`（工作树）**：弄清 `return`、`child`、`sibling` 三根指针如何组成树，`alternate` 如何指向另一棵缓冲区，`memoizedState`、`updateQueue`、`lanes`、`flags` 各自存什么，以及 `FiberRootNode` 与 `HostRootFiber` 分别负责什么。
-- **完成标志**：能画出“**一个 `<App />` 从 Element 到 Fiber 的字段映射**”，并解释 `current` 与 `workInProgress` 的关系。
 
 ### 4.4 首次挂载
 
 **核心目标：** 追踪 `createRoot` 的完整生命周期，理解双缓存机制的建立，以及 Fiber 树的“**递**”与“**归**”。
 
-```text
+```tree
 createRoot(container)
   └─ createContainer → FiberRootNode + HostRootFiber
 root.render(element)
@@ -395,9 +382,8 @@ root.render(element)
 
 - **`react-dom/src/client/ReactDOMRoot.js`（应用入口）**：观察 `createRoot` 如何在底层创建双重数据结构：`FiberRootNode`（全局根管理器，维护调度优先级与时间信息）与 `HostRootFiber`（当前渲染树的根节点），并在根容器上注册事件监听。
 - **`ReactFiberWorkLoop.old.js`（更新入口）**：看 `root.render` 如何创建 Update、标记 Lane，再通过 `ensureRootIsScheduled` 请求 Scheduler 在合适时机回调。
-- **`ReactFiberBeginWork.old.js`（自顶向下的“递”）**：探究组件的挂载过程。观察 React 如何根据不同的 `WorkTag`（如 `FunctionComponent`、`HostComponent`）进入不同的处理分支，调用组件函数计算新的 React Element，并生成对应的下级 Fiber 节点。返回 `null` 表示当前子树处理完毕，工作循环随即转入回溯。
+- **`ReactFiberBeginWork.old.js`(自顶向下的“递”)**：探究组件的挂载过程。观察React如何根据不同的`WorkTag`(如 `FunctionComponent`、`HostComponent`）进入不同的处理分支，调用组件函数计算新的React Element,并生成对应的下级Fiber节点。返回`null`表示当前子树处理完毕，工作循环随即转入回溯。
 - **`ReactFiberCompleteWork.old.js`（自底向上的“归”）**：这是连接纯逻辑与宿主环境的关键。首次挂载时，React 会调用 `createInstance` 在内存中悄无声息地创建真实 DOM 节点，并通过 `appendAllChildren` 把子 DOM 节点组装成一棵离线 DOM 树，同时收集所有需要突变的副作用标记。
-- **完成标志**：能解释“**DOM 为什么在 `completeWork` 才创建**”“**真正插入页面发生在什么时候**”。
 
 ### 4.5 Commit
 
@@ -409,19 +395,16 @@ root.render(element)
   - **Layout**：同步执行 `useLayoutEffect`、ref 挂载与 `componentDidMount`。此时 DOM 已更新，但浏览器尚未绘制，这是读取布局信息并进行同步修正的最后时机。
 - **Passive Effect（异步副作用）**：`useEffect` 不在这三幕里同步执行，而是通过 Scheduler 以普通优先级调度，在浏览器绘制（Paint）完成之后 flush，防止复杂的副作用逻辑阻塞视觉呈现。
 - **剪枝**：Commit 从根开始，沿 `subtreeFlags` 判断整棵子树是否有效果，没有就跳过。这是 React 18 去掉 effect list 后仍能避免全树扫描的关键。
-- **完成标志**：能排出一次更新中 `getSnapshotBeforeUpdate`、DOM 变更、`useLayoutEffect`、`useEffect` 的先后顺序。
 
 ### 4.6 Hooks 与状态
 
 **核心目标：** 揭开 Hooks 的魔法面纱，理解函数组件的状态是如何跨越渲染周期持久化存活的。
 
-1. **Hooks 链表（`ReactFiberHooks.old.js`）**：精读 `memoizedState` 属性。理解为什么 Hooks 绝对不能写在条件分支里：每一个 Hook 调用（`useState`、`useEffect`）在首次挂载时都会被构建成一个单向链表，后续渲染严重依赖这个链表的绝对顺序来读取状态。见 [Hooks 链表](/frameworks/react/advanced/source-code/hooks/hooksInternals)。
-2. **动态分发**：观察全局 `ReactCurrentDispatcher` 的切换机制，理解为什么 Mount 阶段调用的是 `mountState`，而 Update 阶段会自动切换为 `updateState`。
-3. **状态更新**：看 `dispatch` 如何把每次更新包装成 `Update`，放进 `UpdateQueue` 的**环状单向链表**（通过 `tail.next = head` 实现 `O(1)` 的队尾插入），以及 `baseState` 与 `pendingState` 分离如何保证低优先级任务被高优先级打断后，状态依然能正确计算。见 [useState](/frameworks/react/advanced/source-code/hooks/useState)、[useReducer](/frameworks/react/advanced/source-code/hooks/useReducer)。
-4. **Effect 三件套**：[useEffect](/frameworks/react/advanced/source-code/hooks/useEffect)、[useLayoutEffect](/frameworks/react/advanced/source-code/hooks/useLayoutEffect)、[useInsertionEffect](/frameworks/react/advanced/source-code/hooks/useInsertionEffect)，重点是执行时机、清理顺序与 Effect 循环链表。
-5. **缓存与引用**：[useMemo](/frameworks/react/advanced/source-code/hooks/useMemo)、[useCallback](/frameworks/react/advanced/source-code/hooks/useCallback)、[useRef](/frameworks/react/advanced/source-code/hooks/useRef)，理解依赖比较规则、闭包陷阱与“**引用稳定**”的边界。
-
-**完成标志**：能解释“**为什么 Hooks 不能写在条件分支里**”，以及一次 `setState` 从 `dispatch` 到重新渲染的完整路径。
+- **Hooks 链表（`ReactFiberHooks.old.js`）**：精读 `memoizedState` 属性。理解为什么 Hooks 绝对不能写在条件分支里：每一个 Hook 调用（`useState`、`useEffect`）在首次挂载时都会被构建成一个单向链表，后续渲染严重依赖这个链表的绝对顺序来读取状态。见 [Hooks 链表](/frameworks/react/advanced/source-code/hooks/hooksInternals)。
+- **动态分发**：观察全局 `ReactCurrentDispatcher` 的切换机制，理解为什么 Mount 阶段调用的是 `mountState`，而 Update 阶段会自动切换为 `updateState`。
+- **状态更新**：看 `dispatch` 如何把每次更新包装成 `Update`，放进 `UpdateQueue` 的**环状单向链表**（通过 `tail.next = head` 实现 `O(1)` 的队尾插入），以及 `baseState` 与 `pendingState` 分离如何保证低优先级任务被高优先级打断后，状态依然能正确计算。见 [useState](/frameworks/react/advanced/source-code/hooks/useState)、[useReducer](/frameworks/react/advanced/source-code/hooks/useReducer)。
+- **Effect 三件套**：[useEffect](/frameworks/react/advanced/source-code/hooks/useEffect)、[useLayoutEffect](/frameworks/react/advanced/source-code/hooks/useLayoutEffect)、[useInsertionEffect](/frameworks/react/advanced/source-code/hooks/useInsertionEffect)，重点是执行时机、清理顺序与 Effect 循环链表。
+- **缓存与引用**：[useMemo](/frameworks/react/advanced/source-code/hooks/useMemo)、[useCallback](/frameworks/react/advanced/source-code/hooks/useCallback)、[useRef](/frameworks/react/advanced/source-code/hooks/useRef)，理解依赖比较规则、闭包陷阱与“**引用稳定**”的边界。
 
 ### 4.7 Diff 与更新
 
@@ -431,7 +414,6 @@ root.render(element)
 - **`ReactChildFiber.old.js`（核心 Diff）**：单节点先比 `key` 再比 `type`；多节点先做一次遍历处理常见移动，再用 `lastPlacedIndex` 处理复杂移动。理解为什么 `key` 能决定节点是复用、移动还是销毁。
 - **`ReactFiberNewContext.old.js`（Context 传播）**：Provider 在 `beginWork` 压栈、在 `completeWork` 出栈；消费者通过依赖集合在值变化时被标记，更新时沿依赖关系向上传播。
 - **`ReactFiberLane.old.js`（优先级过滤）**：更新带 lane，`childLanes` 把子树的优先级向上汇总；没有待处理更新的子树可以在 Render 阶段直接 bailout。
-- **完成标志**：能说清 `key` 的作用、多节点 Diff 的两轮遍历，以及一次 Context 更新的传播路径。
 
 ### 4.8 调度与并发
 
@@ -440,25 +422,11 @@ root.render(element)
 - **`scheduler/src/forks/Scheduler.js`（宏任务时间切片）**：理解 React 为什么放弃 `setTimeout` 和 `requestAnimationFrame`，转而使用 `MessageChannel` 来生成 5ms 的时间切片。剖析内部的小顶堆算法，观察调度器如何高效地管理 `timerQueue`（延时任务）和 `taskQueue`（就绪任务）。
 - **`ReactFiberLane.old.js`（车道优先级模型）**：解析 React 18+ 的核心调度数学模型。理解为什么弃用 `ExpirationTime`，转而使用 31 位的二进制位运算来表示优先级（Lanes）。掌握 `按位或 (|)` 合并任务、`按位与 (&)` 判断交集、`补码 (& -lane)` 提取最高优先级的极速算法原理。
 - **`ReactFiberWorkLoop.old.js`（并发引擎心跳）**：对比 `workLoopSync` 与 `workLoopConcurrent`。精读并发循环中的 `shouldYieldToHost()` 函数，观察引擎如何在每个 Fiber 工作单元执行完毕后，检查是否超过了 5ms 阈值，并在超时后主动让出（Yield）主线程控制权给浏览器以保障页面流畅。
-- **完成标志**：能解释 Lane 与 Scheduler 优先级的映射关系，以及 `startTransition` 为什么能产生可中断的低优先级更新。
 
-### 4.9 专项
+### 4.9 阅读陷阱
 
-主线走通后，可以按兴趣选择专项：
-
-- **Context**：[Context](/frameworks/react/advanced/source-code/context/context)，重点看值栈、依赖收集与 `enableLazyContextPropagation` 两条传播路径。
-- **Suspense / Offscreen / 水合**：[并发特性](/frameworks/react/advanced/core-design/suspenseOffscreenHydration)，理解挂起、重试、隐藏树与 SSR 恢复。
-- **RSC 与 Flight**：[React Server Components](/frameworks/react/advanced/core-design/serverComponents)，对照 `react-server` 与 `react-server-dom-webpack`。
-- **React Compiler**：[React 编译器](/frameworks/react/advanced/core-design/compiler)，注意它位于 main 分支的 `compiler/`，与 18.3.1 的运行时主线相互独立。
-- **渲染器架构**：[渲染器架构](/frameworks/react/advanced/core-design/rendererArchitecture)，从 HostConfig 的接口反推协调器与宿主的边界。
-
-### 4.10 阅读陷阱
-
-- **`.old.js`、`.new.js` 和 forks**：某些版本或历史 tag 会同时保留新旧实现，或通过 `forks/` 为不同构建目标选择文件。不要只凭文件名推断最终产物，应结合构建脚本、特性开关与目标发布通道确认实际加载的实现。
+- **`.old.js`、`.new.js`和forks**：某些版本或历史tag会同时保留新旧实现，或通过`forks/`为不同构建目标选择文件。不要只凭文件名推断最终产物,应结合构建脚本、特性开关与目标发布通道确认实际加载的实现。
 - **Flow 类型**：React 核心源码长期使用 Flow，而不是 TypeScript。源码里的 `import type`、精确对象类型和类型转换语法可能无法直接交给普通 Babel/TypeScript 项目执行。读逻辑时可以先跳过类型标注。
-- **Feature Flags 与发布通道**：稳定版、实验版、不同渲染器可能使用不同特性开关。同一段代码在源码中存在，不代表它会进入稳定构建，更不代表已成为公共 API。判断功能状态时需要同时检查 `ReactFeatureFlags`、Rollup 入口、发布通道和官方文档。
+- **Feature Flags 与发布通道**：稳定版、实验版、不同渲染器可能使用不同特性开关。同一段代码在源码中存在,不代表它会进入稳定构建,更不代表已成为公共API。判断状态时需要同时检查`ReactFeatureFlags`、Rollup 入口、发布通道和官方文档。
 - **`__DEV__` 分支**：开发构建包含大量校验、警告和调试字段，生产构建会裁掉。不要把开发期行为当成运行时语义。
 - **`__tests__` 与内联测试**：React 大量测试与源码同目录放置。测试通常比注释更准确地描述并发更新、Effect 顺序、水合恢复和错误边界等边缘行为。阅读一个模块时，建议同步检索同名测试。
-- **简化实现不是官方源码**：本目录的 mini-react / xunbei-react 对照用于建立骨架，字段名、调度细节和边界处理都与官方实现有差异，最终以 `v18.3.1` 源码为准。
-
-读完这张地图，再回到 [ReactElement](/frameworks/react/advanced/source-code/reactElement) 开始第一站即可。遇到读不懂的流程，优先回到 Fiber 的字段和双缓冲模型，大多数分支都能在这里找到解释。

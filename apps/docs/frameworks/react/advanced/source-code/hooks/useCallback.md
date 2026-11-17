@@ -10,36 +10,34 @@ outline: [2, 4]
 
 ## 1. `mountCallback` 与 `updateCallback`
 
-:::code-group
-
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function mountCallback<T>(callback: T, deps: Array<mixed> | void | null): T {
   const hook = mountWorkInProgressHook()
+  // 未传 deps 时记为 null，更新阶段不会命中复用。
   const nextDeps = deps === undefined ? null : deps
+  // 缓存函数引用与依赖，供下一次渲染比较。
   hook.memoizedState = [callback, nextDeps]
   return callback
 }
-```
 
-```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function updateCallback<T>(callback: T, deps: Array<mixed> | void | null): T {
   const hook = updateWorkInProgressHook()
   const nextDeps = deps === undefined ? null : deps
   const prevState = hook.memoizedState
   if (prevState !== null) {
     if (nextDeps !== null) {
-      const prevDeps: Array<mixed> | null = prevState[1]
+      const prevDeps: Array<mixed> | null = prevState[1] // 上次缓存的依赖数组
+      // 依赖逐项相等时复用旧函数引用。
       if (areHookInputsEqual(nextDeps, prevDeps)) {
-        return prevState[0]
+        return prevState[0] // 上次缓存的函数
       }
     }
   }
+  // 依赖变化或没有 deps 时，换成本次的函数并更新缓存。
   hook.memoizedState = [callback, nextDeps]
   return callback
 }
 ```
-
-:::
 
 `useCallback` 的实现与 `useMemo` 几乎同构，区别只在缓存的内容：`useMemo` 缓存工厂函数的返回值，`useCallback` 直接缓存传入的函数。
 
@@ -64,7 +62,7 @@ React 没有让 `useCallback` 内部调用 `useMemo`，而是提供了独立的 
 
 ## 3. 闭包陷阱
 
-`useCallback` 缓存的是“某次渲染中的函数”，函数内部捕获的是那次渲染的变量：
+`useCallback` 缓存的是“**某次渲染中的函数**”，函数内部捕获的是那次渲染的变量：
 
 ```jsx
 function Counter() {

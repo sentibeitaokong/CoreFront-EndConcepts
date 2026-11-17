@@ -4,13 +4,13 @@ outline: [2, 4]
 
 # useMemo
 
-`useMemo` 的目标很单一：在依赖不变时复用上一次的计算结果。它的实现只比 `useCallback` 多一步“执行工厂函数”，核心决策都由 `areHookInputsEqual` 完成。
+`useMemo` 的目标很单一：在依赖不变时复用上一次的计算结果。它的实现只比 `useCallback` 多一步“**执行工厂函数**”，核心决策都由 `areHookInputsEqual` 完成。
 
 实现位于 `packages/react-reconciler/src/ReactFiberHooks.old.js`，入口是 `mountMemo` 与 `updateMemo`。依赖比较规则见 [Hooks 链表](/frameworks/react/advanced/source-code/hooks/hooksInternals#_4-依赖数组的比较规则)。
 
 ## 1. 缓存与引用 Hook 的定位
 
-`useMemo` 与 `useCallback`、`useRef` 同属“缓存与引用”类 Hook，三者的分工不同：
+`useMemo` 与 `useCallback`、`useRef` 同属“**缓存与引用**”类 Hook，三者的分工不同：
 
 [width(23,13,23,41)]
 
@@ -28,9 +28,9 @@ useCallback:  [callback, deps]
 useRef:       { current: initialValue }
 ```
 
-`useMemo` / `useCallback` 把“值 + 依赖”一起存进 Hook 节点，因为下一次渲染必须知道上一次的依赖是什么；`useRef` 只存一个可变对象，不需要依赖数组。
+`useMemo` / `useCallback` 把“**值 + 依赖**”一起存进 Hook 节点，因为下一次渲染必须知道上一次的依赖是什么；`useRef` 只存一个可变对象，不需要依赖数组。
 
-三个 Hook 都不参与更新调度，只决定“本次渲染拿到什么”：
+三个 Hook 都不参与更新调度，只决定“**本次渲染拿到什么**”：
 
 - `useMemo` / `useCallback` 决定返回旧值还是新值。
 - `useRef` 提供一个跨渲染保持稳定的可变容器。
@@ -48,22 +48,20 @@ useRef:       { current: initialValue }
 
 ## 2. `mountMemo` 与 `updateMemo`
 
-:::code-group
-
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function mountMemo<T>(
   nextCreate: () => T,
   deps: Array<mixed> | void | null,
 ): T {
   const hook = mountWorkInProgressHook()
+  // 未传 deps 时记为 null，更新阶段不会命中复用。
   const nextDeps = deps === undefined ? null : deps
+  // 挂载时必定执行工厂函数，并把结果与依赖一起缓存。
   const nextValue = nextCreate()
   hook.memoizedState = [nextValue, nextDeps]
   return nextValue
 }
-```
 
-```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function updateMemo<T>(
   nextCreate: () => T,
   deps: Array<mixed> | void | null,
@@ -72,21 +70,20 @@ function updateMemo<T>(
   const nextDeps = deps === undefined ? null : deps
   const prevState = hook.memoizedState
   if (prevState !== null) {
-    // Assume these are defined. If they're not, areHookInputsEqual will warn.
     if (nextDeps !== null) {
-      const prevDeps: Array<mixed> | null = prevState[1]
+      const prevDeps: Array<mixed> | null = prevState[1] // 上次缓存的依赖数组
+      // 依赖逐项相等时复用上一次的计算结果。
       if (areHookInputsEqual(nextDeps, prevDeps)) {
-        return prevState[0]
+        return prevState[0] // 上次缓存的计算结果
       }
     }
   }
+  // 未命中复用时重新执行工厂函数，并用新值与依赖覆盖缓存。
   const nextValue = nextCreate()
   hook.memoizedState = [nextValue, nextDeps]
   return nextValue
 }
 ```
-
-:::
 
 ## 3. 复用决策
 
@@ -119,10 +116,11 @@ flowchart TD
 `memoizedState` 不只存计算结果，还存本次依赖：
 
 ```js
+// 缓存值与依赖数组，下一次渲染靠 prevState[1] 判断缓存是否失效。
 hook.memoizedState = [nextValue, nextDeps]
 ```
 
-下次渲染时，才能通过 `prevState[1]` 拿到上一次的依赖，和本次 `nextDeps` 做浅比较。如果只存值，缓存就失去了“什么时候失效”的依据。
+下次渲染时，才能通过 `prevState[1]` 拿到上一次的依赖，和本次 `nextDeps` 做浅比较。如果只存值，缓存就失去了“**什么时候失效**”的依据。
 
 依赖数组本身也会被原样保存，因此下面两种写法的缓存行为完全不同：
 
@@ -134,8 +132,8 @@ hook.memoizedState = [nextValue, nextDeps]
 React 官方明确说明：`useMemo` 是性能优化，不是语义保证。未来 React 可能丢弃缓存并重新计算。因此：
 
 - 不要在 `useMemo` 里做有副作用的操作。
-- 不要依赖它“只执行一次”。
-- 需要“只执行一次”的初始化逻辑，用 `useRef` 或 `useState` 惰性初始化。
+- 不要依赖它“**只执行一次**”。
+- 需要“**只执行一次**”的初始化逻辑，用 `useRef` 或 `useState` 惰性初始化。
 
 如果一段逻辑在缓存被丢弃后会产生错误结果，那么它就不应该放在 `useMemo` 里。
 
@@ -151,6 +149,7 @@ const data = useMemo(() => fetchData(options), [options])
 应把稳定值拆成基本类型，或把对象提到组件外：
 
 ```jsx
+// 依赖拆成基本类型，引用稳定才能命中缓存。
 const data = useMemo(() => fetchData({ page, pageSize }), [page, pageSize])
 ```
 
@@ -169,7 +168,7 @@ useMemo(() => compute(a), flag ? [a] : [])
 
 ## 7. 与简化实现的差异
 
-这里的“简化实现”指仓库中用于教学的 mini-react / xunbei-react 版本。它们通常把 Mount 与 Update 合并进一个函数，通过 `hook.memoizedState` 是否为 `null` 来判断阶段。与 React 18.3.1 的差异如下：
+这里的“**简化实现**”指仓库中用于教学的 mini-react / xunbei-react 版本。它们通常把 Mount 与 Update 合并进一个函数，通过 `hook.memoizedState` 是否为 `null` 来判断阶段。与 React 18.3.1 的差异如下：
 
 [width(15,44,41)]
 

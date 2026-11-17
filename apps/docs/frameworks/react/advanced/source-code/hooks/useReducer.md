@@ -4,7 +4,7 @@ outline: [2, 4]
 
 # useReducer
 
-`useReducer` 是状态 Hook 的通用形式：它把“如何根据 action 计算新状态”交给调用方传入的 reducer，自己只负责维护状态、收集更新并触发调度。`useState` 只是把 reducer 固定成 `basicStateReducer` 的特例，两者的底层实现高度重合。
+`useReducer` 是状态 Hook 的通用形式：它把“**如何根据 action 计算新状态**”交给调用方传入的 reducer，自己只负责维护状态、收集更新并触发调度。`useState` 只是把 reducer 固定成 `basicStateReducer` 的特例，两者的底层实现高度重合。
 
 `useReducer` 的实现位于 `packages/react-reconciler/src/ReactFiberHooks.old.js`，主要入口是 `mountReducer`、`updateReducer` 与 `dispatchReducerAction`。阅读前建议先了解 [Hooks 链表](/frameworks/react/advanced/source-code/hooks/hooksInternals) 中的 Dispatcher、Hook 节点和环形队列。
 
@@ -32,21 +32,24 @@ function mountReducer<S, I, A>(
 ): [S, Dispatch<A>] {
   const hook = mountWorkInProgressHook();
   let initialState;
+  // 传入 init 时以 init(initialArg) 作为初始状态，否则直接使用 initialArg。
   if (init !== undefined) {
     initialState = init(initialArg);
   } else {
     initialState = ((initialArg: any): S);
   }
+  // memoizedState 是已呈现状态，baseState 保存应用被跳过的低优先级更新之前的状态基线。
   hook.memoizedState = hook.baseState = initialState;
   const queue: UpdateQueue<S, A> = {
-    pending: null,
-    interleaved: null,
-    lanes: NoLanes,
-    dispatch: null,
-    lastRenderedReducer: reducer,
-    lastRenderedState: (initialState: any),
+    pending: null, // 待处理的更新环形队列
+    interleaved: null, // 交错更新的队列，用于并发渲染
+    lanes: NoLanes, // 队列中待处理更新的 lane 集合
+    dispatch: null, // 稍后绑定为 dispatchReducerAction
+    lastRenderedReducer: reducer, // 缓存 reducer，供渲染和 eager 计算复用
+    lastRenderedState: (initialState: any), // 上次渲染出的 state，供 eager 比较
   };
   hook.queue = queue;
+  // dispatch 预绑定当前 Fiber 与队列，方法引用在多次渲染间保持稳定。
   const dispatch: Dispatch<A> = (queue.dispatch = (dispatchReducerAction.bind(
     null,
     currentlyRenderingFiber,
@@ -59,7 +62,7 @@ function mountReducer<S, I, A>(
 几个细节：
 
 - `init` 存在时，初始状态是 `init(initialArg)`；否则直接使用 `initialArg`。
-- `memoizedState` 与 `baseState` 同时写入初始状态，后者用于记录“尚未被低优先级跳过影响的状态基线”。
+- `memoizedState` 与 `baseState` 同时写入初始状态，后者用于记录“**尚未被低优先级跳过影响的状态基线**”。
 - `queue.lastRenderedReducer` 保存 reducer，供后续渲染和 eager 计算使用。
 - `dispatch` 通过 `bind` 预先绑定 `currentlyRenderingFiber` 与 `queue`，所以组件里拿到的 `dispatch` 身份稳定，不需要额外依赖。
 
@@ -76,20 +79,19 @@ function updateReducer<S, I, A>(
   const hook = updateWorkInProgressHook();
   const queue = hook.queue;
 
-  queue.lastRenderedReducer = reducer;
+  queue.lastRenderedReducer = reducer; // 缓存 reducer，供渲染和 eager 计算复用
 
   const current: Hook = (currentHook: any);
 
-  // The last rebase update that is NOT part of the base state.
+  // baseQueue 中最后一个不属于 baseState 的 rebase 更新
   let baseQueue = current.baseQueue;
 
-  // The last pending update that hasn't been processed yet.
+  // 最后一个尚未被处理的 pending 更新
   const pendingQueue = queue.pending;
   if (pendingQueue !== null) {
-    // We have new updates that haven't been processed yet.
-    // We'll add them to the base queue.
+    // 有新更新尚未处理，先把它们合并进 baseQueue。
     if (baseQueue !== null) {
-      // Merge the pending queue and the base queue.
+      // 把 pending 队列与 baseQueue 拼成一个环。
       const baseFirst = baseQueue.next;
       const pendingFirst = pendingQueue.next;
       baseQueue.next = pendingFirst;
@@ -103,19 +105,17 @@ function updateReducer<S, I, A>(
     const first = baseQueue.next;
     let newState = current.baseState;
 
-    let newBaseState = null;
-    let newBaseQueueFirst = null;
-    let newBaseQueueLast = null;
+    let newBaseState = null; // 下一次渲染使用的 baseState
+    let newBaseQueueFirst = null; // 被跳过更新组成的新 baseQueue 头节点
+    let newBaseQueueLast = null; // 新 baseQueue 的尾节点
     let update = first;
     do {
       const updateLane = update.lane;
       if (!isSubsetOfLanes(renderLanes, updateLane)) {
-        // Priority is insufficient. Skip this update. If this is the first
-        // skipped update, the previous update/state is the new base
-        // update/state.
+        // 优先级不足，跳过这条更新；若是第一条被跳过的更新，当前状态就是新的 baseState。
         // ...
       } else {
-        // This update does have sufficient priority.
+        // 优先级足够，正常应用这条更新。
         // ...
         if (update.hasEagerState) {
           newState = ((update.eagerState: any): S);
@@ -133,6 +133,7 @@ function updateReducer<S, I, A>(
       newBaseQueueLast.next = (newBaseQueueFirst: any);
     }
 
+    // 状态确实变化时才通知 beginWork 本轮有更新。
     if (!is(newState, hook.memoizedState)) {
       markWorkInProgressReceivedUpdate();
     }
@@ -141,7 +142,7 @@ function updateReducer<S, I, A>(
     hook.baseState = newBaseState;
     hook.baseQueue = newBaseQueueLast;
 
-    queue.lastRenderedState = newState;
+    queue.lastRenderedState = newState; // 供下一次 eager 比较
   }
 
   // ... interleaved 更新的处理
@@ -160,7 +161,7 @@ function updateReducer<S, I, A>(
 
 ### 3.1 优先级不足时会发生什么
 
-`updateReducer` 遍历环形队列时，并不是“全部应用”或“全部丢弃”，而是逐条判断：
+`updateReducer` 遍历环形队列时，并不是“**全部应用**”或“**全部丢弃**”，而是逐条判断：
 
 ```text
 update1 (高优先级) → update2 (低优先级) → update3 (高优先级)
@@ -170,13 +171,13 @@ update1 (高优先级) → update2 (低优先级) → update3 (高优先级)
 - 高优先级的 `update1`、`update3` 依次作用于 `newState`。
 - `update2` 的 lane 不在本次 `renderLanes` 中，被复制到新的 `baseQueue`。
 - 第一个被跳过更新之前的状态成为新的 `baseState`，下次渲染以它为起点继续处理 `update2`。
-- 跳过点之后的高优先级更新也会复制进 `baseQueue`，以保持“低优先级更新在前、高优先级更新在后”的原始顺序。
+- 跳过点之后的高优先级更新也会复制进 `baseQueue`，以保持“**低优先级更新在前、高优先级更新在后**”的原始顺序。
 
 这样既保证本次渲染只呈现高优先级结果，又不会丢失低优先级更新。队列因此需要同时维护 `baseState` / `baseQueue`（尚未应用的部分）和 `memoizedState`（已经呈现给用户的状态）。
 
 ## 4. `dispatchReducerAction`
 
-`useReducer` 的 dispatch 只负责“入队 + 调度”，不负责计算状态：
+`useReducer` 的 dispatch 只负责“**入队 + 调度**”，不负责计算状态：
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function dispatchReducerAction<S, A>(
@@ -187,25 +188,28 @@ function dispatchReducerAction<S, A>(
   const lane = requestUpdateLane(fiber);
 
   const update: Update<S, A> = {
-    lane,
-    action,
-    hasEagerState: false,
-    eagerState: null,
-    next: (null: any),
+    lane, // 该更新所属的 lane
+    action, // 本次 dispatch 传入的 action
+    hasEagerState: false, // useReducer 不做 eager 计算
+    eagerState: null, // 未使用，恒为 null
+    next: (null: any), // 环形队列的下一个节点
   };
 
   if (isRenderPhaseUpdate(fiber)) {
+    // 渲染期间产生的更新直接进入本次渲染的队列。
     enqueueRenderPhaseUpdate(queue, update);
   } else {
+    // 普通更新入队，返回需要调度的根节点。
     const root = enqueueConcurrentHookUpdate(fiber, queue, update, lane);
     if (root !== null) {
       const eventTime = requestEventTime();
+      // 调度根节点，并处理 Transition 的 lane 纠缠。
       scheduleUpdateOnFiber(root, fiber, lane, eventTime);
       entangleTransitionUpdate(root, queue, lane);
     }
   }
 
-  markUpdateInDevTools(fiber, lane, action);
+  // 省略 __DEV__ 下的 DevTools 标记
 }
 ```
 
@@ -217,7 +221,7 @@ function dispatchReducerAction<S, A>(
 4. `scheduleUpdateOnFiber` 标记根节点并安排调度；`entangleTransitionUpdate` 处理 Transition 的 lane 纠缠。
 5. `markUpdateInDevTools` 在开发构建中把 action 记录到 DevTools。
 
-真正把 Update 挂进环形队列的是 `enqueueConcurrentHookUpdate`。它和 `scheduleUpdateOnFiber` 一起，把“状态变化”转成“根节点上有一条指定 lane 的待处理工作”。
+真正把 Update 挂进环形队列的是 `enqueueConcurrentHookUpdate`。它和 `scheduleUpdateOnFiber` 一起，把“**状态变化**”转成“**根节点上有一条指定 lane 的待处理工作**”。
 
 ## 5. `useReducer` 与 `useState` 的关系
 

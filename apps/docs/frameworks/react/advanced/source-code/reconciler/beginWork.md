@@ -47,11 +47,8 @@ function beginWork(
     const oldProps = current.memoizedProps
     const newProps = workInProgress.pendingProps
 
-    if (
-      oldProps !== newProps ||
-      hasLegacyContextChanged() ||
-      (__DEV__ ? workInProgress.type !== current.type : false)
-    ) {
+    // 省略 __DEV__ 下对组件 type 变化的校验
+    if (oldProps !== newProps || hasLegacyContextChanged()) {
       // props 或 legacy context 变了，本次必须重新执行组件。
       didReceiveUpdate = true
     } else {
@@ -71,11 +68,8 @@ function beginWork(
           renderLanes,
         )
       }
-      if ((current.flags & ForceUpdateForLegacySuspense) !== NoFlags) {
-        didReceiveUpdate = true
-      } else {
-        didReceiveUpdate = false
-      }
+      // 省略 legacy Suspense 的 ForceUpdateForLegacySuspense 判断
+      didReceiveUpdate = false
     }
   } else {
     didReceiveUpdate = false
@@ -87,6 +81,7 @@ function beginWork(
 
   switch (workInProgress.tag) {
     case IndeterminateComponent: {
+      // 首次渲染，执行后才能确定是函数组件还是类组件。
       return mountIndeterminateComponent(
         current,
         workInProgress,
@@ -95,6 +90,7 @@ function beginWork(
       )
     }
     case LazyComponent: {
+      // 解析 lazy 组件类型后重新分派。
       const elementType = workInProgress.elementType
       return mountLazyComponent(
         current,
@@ -104,6 +100,7 @@ function beginWork(
       )
     }
     case FunctionComponent: {
+      // renderWithHooks 执行组件，再协调返回值。
       const Component = workInProgress.type
       const unresolvedProps = workInProgress.pendingProps
       const resolvedProps =
@@ -119,6 +116,7 @@ function beginWork(
       )
     }
     case ClassComponent: {
+      // 创建/更新实例，render() 后协调返回值。
       const Component = workInProgress.type
       const unresolvedProps = workInProgress.pendingProps
       const resolvedProps =
@@ -134,18 +132,25 @@ function beginWork(
       )
     }
     case HostRoot:
+      // 处理根更新队列，协调 root.render 的顶层元素。
       return updateHostRoot(current, workInProgress, renderLanes)
     case HostComponent:
+      // 判断纯文本子节点优化，协调 children。
       return updateHostComponent(current, workInProgress, renderLanes)
     case HostText:
+      // 没有子节点，直接返回 null。
       return updateHostText(current, workInProgress)
     case Fragment:
+      // 透明容器，协调 children。
       return updateFragment(current, workInProgress, renderLanes)
     case ContextProvider:
+      // 压栈新值，必要时向消费者传播 Context 变化。
       return updateContextProvider(current, workInProgress, renderLanes)
     case ContextConsumer:
+      // 读取当前 Context 值，执行 render props。
       return updateContextConsumer(current, workInProgress, renderLanes)
     case MemoComponent: {
+      // 比较 memo 依赖，决定是否复用子树。
       const type = workInProgress.type
       const unresolvedProps = workInProgress.pendingProps
       let resolvedProps = resolveDefaultProps(type, unresolvedProps)
@@ -159,6 +164,7 @@ function beginWork(
       )
     }
     case ForwardRef: {
+      // 解析 ref 后按函数组件方式渲染。
       const type = workInProgress.type
       const unresolvedProps = workInProgress.pendingProps
       const resolvedProps =
@@ -174,24 +180,25 @@ function beginWork(
       )
     }
     case SuspenseComponent:
+      // 选择 primary 子树或 fallback。
       return updateSuspenseComponent(current, workInProgress, renderLanes)
     case HostPortal:
+      // 协调 Portal 子节点，容器不是父 DOM。
       return updatePortalComponent(current, workInProgress, renderLanes)
     case OffscreenComponent: {
+      // 处理隐藏/离屏子树。
       return updateOffscreenComponent(current, workInProgress, renderLanes)
     }
     // 省略 SimpleMemoComponent、Mode、Profiler、SuspenseListComponent、
     // LegacyHiddenComponent、CacheComponent、TracingMarkerComponent 等分支
   }
 
-  throw new Error(
-    `Unknown unit of work tag (${workInProgress.tag}). This error is likely caused by a bug in ` +
-      'React. Please file an issue.',
-  )
+  // 省略未知 tag 的报错
 }
 ```
 
 ```ts [react-reconciler/src/ReactFiberLane.old.js]
+// 位运算判断：按位与不为 0，说明两组 Lane 至少有一个交集。
 export function includesSomeLane(a: Lanes | Lane, b: Lanes | Lane): boolean {
   return (a & b) !== NoLanes
 }
@@ -201,32 +208,10 @@ export function includesSomeLane(a: Lanes | Lane, b: Lanes | Lane): boolean {
 
 这里有几个值得注意的细节：
 
-- `didReceiveUpdate` 是模块级变量。`beginWork` 先把“是否需要更新”的结论写进去，函数组件、`memo` 等分支会在后续读取它，决定是否跳过渲染。
+- `didReceiveUpdate` 是模块级变量。`beginWork` 先把“**是否需要更新**”的结论写进去，函数组件、`memo` 等分支会在后续读取它，决定是否跳过渲染。
 - `checkScheduledUpdateOrContext` 先看 `current.lanes` 是否包含本次 `renderLanes`；在懒传播 Context 的实现里，它还会检查 `current.dependencies` 中是否有变化的 Context。
-- `attemptEarlyBailoutIfNoScheduledUpdate` 并不是立刻返回 `null`。它仍然要完成 HostRoot、HostComponent、Provider 等节点的“入栈”工作，然后才调用 `bailoutOnAlreadyFinishedWork`。否则回溯阶段出栈时，Context 栈和 Host 容器栈会错位。
+- `attemptEarlyBailoutIfNoScheduledUpdate` 并不是立刻返回 `null`。它仍然要完成 HostRoot、HostComponent、Provider 等节点的“**入栈**”工作，然后才调用 `bailoutOnAlreadyFinishedWork`。否则回溯阶段出栈时，Context 栈和 Host 容器栈会错位。
 - `workInProgress.lanes = NoLanes` 放在 `switch` 之前，表示这次 begin 阶段会消费掉当前 Fiber 上的待处理 lane。
-
-### 2.2 tag 分发表
-
-[width(25,32,43)]
-
-| tag                      | 处理函数                      | 主要工作                                      |
-| ------------------------ | ----------------------------- | --------------------------------------------- |
-| `HostRoot`               | `updateHostRoot`              | 处理根更新队列，协调 `root.render` 的顶层元素 |
-| `HostComponent`          | `updateHostComponent`         | 判断纯文本子节点优化，协调 `children`         |
-| `HostText`               | `updateHostText`              | 没有子节点，直接返回 `null`                   |
-| `FunctionComponent`      | `updateFunctionComponent`     | `renderWithHooks` 后协调返回值                |
-| `ClassComponent`         | `updateClassComponent`        | 创建/更新实例，`render()` 后协调返回值        |
-| `Fragment`               | `updateFragment`              | 透明容器，协调 `children`                     |
-| `ContextProvider`        | `updateContextProvider`       | `pushProvider` 压栈，必要时传播 Context 变化  |
-| `ContextConsumer`        | `updateContextConsumer`       | `readContext` 读取当前值，执行 render props   |
-| `MemoComponent`          | `updateMemoComponent`         | 比较 `memo` 的依赖，决定是否复用子树          |
-| `ForwardRef`             | `updateForwardRef`            | 解析 `ref`，按函数组件方式渲染                |
-| `SuspenseComponent`      | `updateSuspenseComponent`     | 选择 primary 子树或 fallback                  |
-| `HostPortal`             | `updatePortalComponent`       | 协调 Portal 的子节点，容器不是父 DOM          |
-| `OffscreenComponent`     | `updateOffscreenComponent`    | 处理隐藏/离屏子树                             |
-| `LazyComponent`          | `mountLazyComponent`          | 调用 `_init` 解析组件类型后重新分派           |
-| `IndeterminateComponent` | `mountIndeterminateComponent` | 首次渲染时判断函数组件还是类组件              |
 
 ## 3. 根节点：`updateHostRoot`
 
@@ -238,10 +223,7 @@ HostRoot 没有自己的 UI，它的子节点就是 `root.render(element)` 写�
 function updateHostRoot(current, workInProgress, renderLanes) {
   pushHostRootContext(workInProgress)
 
-  if (current === null) {
-    throw new Error('Should have a current fiber. This is a bug in React.')
-  }
-
+  // 省略 invariant：HostRoot 必然已有 current
   const nextProps = workInProgress.pendingProps
   const prevState = workInProgress.memoizedState
   const prevChildren = prevState.element
@@ -249,22 +231,16 @@ function updateHostRoot(current, workInProgress, renderLanes) {
   processUpdateQueue(workInProgress, nextProps, null, renderLanes)
 
   const nextState: RootState = workInProgress.memoizedState
-  const root: FiberRoot = workInProgress.stateNode
-  pushRootTransition(workInProgress, root, renderLanes)
-
-  // 省略 enableCache 下的 CacheProvider 处理
+  // 省略 transition tracing 与 enableCache 下的 CacheProvider 处理
 
   // React DevTools 依赖这个字段名为 "element"。
   const nextChildren = nextState.element
-  if (supportsHydration && prevState.isDehydrated) {
-    // 省略 hydration 分支：挂载现有 DOM，并给子节点打上 Hydrating 标记
-  } else {
-    resetHydrationState()
-    if (nextChildren === prevChildren) {
-      return bailoutOnAlreadyFinishedWork(current, workInProgress, renderLanes)
-    }
-    reconcileChildren(current, workInProgress, nextChildren, renderLanes)
+  // 省略 hydration 分支：复用现有 DOM，并给子节点打上 Hydrating 标记
+  resetHydrationState()
+  if (nextChildren === prevChildren) {
+    return bailoutOnAlreadyFinishedWork(current, workInProgress, renderLanes)
   }
+  reconcileChildren(current, workInProgress, nextChildren, renderLanes)
   return workInProgress.child
 }
 ```
@@ -291,10 +267,7 @@ function updateHostComponent(
 ) {
   pushHostContext(workInProgress)
 
-  if (current === null) {
-    tryToClaimNextHydratableInstance(workInProgress)
-  }
-
+  // 省略 hydration：current === null 时认领可复用的宿主节点
   const type = workInProgress.type
   const nextProps = workInProgress.pendingProps
   const prevProps = current !== null ? current.memoizedProps : null
@@ -317,6 +290,7 @@ function updateHostComponent(
 ```
 
 ```ts [react-dom/src/client/ReactDOMHostConfig.js]
+// 纯文本子节点或 dangerouslySetInnerHTML 可以直接写 textContent/innerHTML，不必创建子 Fiber。
 export function shouldSetTextContent(type: string, props: Props): boolean {
   return (
     type === 'textarea' ||
@@ -348,7 +322,7 @@ export function shouldSetTextContent(type: string, props: Props): boolean {
 
 ### 4.2 `ContentReset` 的意义
 
-`ContentReset` 是官方实现里很容易被忽略的一个标记。它处理的是“上一轮是纯文本，这一轮变成了元素或空”的情况：
+`ContentReset` 是官方实现里很容易被忽略的一个标记。它处理的是“**上一轮是纯文本，这一轮变成了元素或空**”的情况：
 
 ```text
 <div>hello</div>  →  <div><span>hello</span></div>
@@ -379,35 +353,18 @@ function updateFunctionComponent(
   }
 
   let nextChildren
-  let hasId
   prepareToReadContext(workInProgress, renderLanes)
   // 省略调度分析器的 markComponentRenderStarted
 
-  if (__DEV__) {
-    ReactCurrentOwner.current = workInProgress
-    setIsRendering(true)
-    nextChildren = renderWithHooks(
-      current,
-      workInProgress,
-      Component,
-      nextProps,
-      context,
-      renderLanes,
-    )
-    hasId = checkDidRenderIdHook()
-    // 省略 StrictMode 下的双调用
-    setIsRendering(false)
-  } else {
-    nextChildren = renderWithHooks(
-      current,
-      workInProgress,
-      Component,
-      nextProps,
-      context,
-      renderLanes,
-    )
-    hasId = checkDidRenderIdHook()
-  }
+  // 省略 __DEV__ 下的 owner 设置、StrictMode 双调用与渲染状态标记
+  nextChildren = renderWithHooks(
+    current,
+    workInProgress,
+    Component,
+    nextProps,
+    context,
+    renderLanes,
+  )
   // 省略调度分析器的 markComponentRenderStopped
 
   if (current !== null && !didReceiveUpdate) {
@@ -416,9 +373,7 @@ function updateFunctionComponent(
     return bailoutOnAlreadyFinishedWork(current, workInProgress, renderLanes)
   }
 
-  if (getIsHydrating() && hasId) {
-    pushMaterializedTreeId(workInProgress)
-  }
+  // 省略 hydration 下的 tree id 处理
 
   // React DevTools 依赖这个标记判断组件是否执行过 render。
   workInProgress.flags |= PerformedWork
@@ -441,7 +396,7 @@ Hook 链表和 `renderWithHooks` 的细节见 [Hooks 链表](/frameworks/react/a
 
 ### 6.1 实例的三种状态
 
-类组件的 `beginWork` 需要先确定实例处于“首次构造”“恢复挂载”还是“正常更新”，再决定是否调用 `shouldComponentUpdate` 等生命周期。
+类组件的 `beginWork` 需要先确定实例处于“**首次构造**”“**恢复挂载**”还是“**正常更新**”，再决定是否调用 `shouldComponentUpdate` 等生命周期。
 
 :::code-group
 
@@ -468,8 +423,7 @@ function updateClassComponent(
   const instance = workInProgress.stateNode
   let shouldUpdate
   if (instance === null) {
-    resetSuspendedCurrentOnMountInLegacyMode(current, workInProgress)
-
+    // 省略 legacy 模式下对挂起 current 的重置
     // 首次渲染：构造实例并挂载。
     constructClassInstance(workInProgress, Component, nextProps)
     mountClassInstance(workInProgress, Component, nextProps, renderLanes)
@@ -518,7 +472,7 @@ function updateClassComponent(
 
 ### 6.2 `finishClassComponent`
 
-`updateClassInstance` 只负责计算“要不要更新”。真正执行 `render()`、协调子节点、写回 `memoizedState` 的是 `finishClassComponent`。
+`updateClassInstance` 只负责计算“**要不要更新**”。真正执行 `render()`、协调子节点、写回 `memoizedState` 的是 `finishClassComponent`。
 
 :::code-group
 
@@ -594,13 +548,13 @@ function finishClassComponent(
 `shouldUpdate` 为假时，`finishClassComponent` 不会调用 `instance.render()`，而是直接进入 `bailoutOnAlreadyFinishedWork`。但有两个例外：
 
 - `didCaptureError` 为真时，即使 `shouldComponentUpdate` 返回 false，也要渲染错误边界的内容。
-- 类组件本身是 legacy context provider 时，必须调用 `invalidateContextProvider`，把“不更新”的结论传递给下游消费者。
+- 类组件本身是 legacy context provider 时，必须调用 `invalidateContextProvider`，把“**不更新**”的结论传递给下游消费者。
 
 ## 7. Context 的两个分支
 
 ### 7.1 `updateContextProvider`
 
-Provider 是“透明节点”：它不产生 DOM，只在遍历子树期间临时覆盖 Context 的当前值。
+Provider 是“**透明节点**”：它不产生 DOM，只在遍历子树期间临时覆盖 Context 的当前值。
 
 :::code-group
 
@@ -685,15 +639,8 @@ function updateContextConsumer(
   const newValue = readContext(context)
   // 省略调度分析器的 markComponentRenderStarted
 
-  let newChildren
-  if (__DEV__) {
-    ReactCurrentOwner.current = workInProgress
-    setIsRendering(true)
-    newChildren = render(newValue)
-    setIsRendering(false)
-  } else {
-    newChildren = render(newValue)
-  }
+  // 省略 __DEV__ 下的 owner 设置与渲染状态标记
+  let newChildren = render(newValue)
   // 省略调度分析器的 markComponentRenderStopped
 
   // React DevTools 依赖这个标记判断组件是否执行过 render。
@@ -709,7 +656,7 @@ function updateContextConsumer(
 
 ## 8. 子节点协调入口：`reconcileChildren`
 
-所有“容器型”节点最终都会调用 `reconcileChildren`。它根据 `current` 是否为空，选择“挂载工厂”或“更新工厂”。
+所有“**容器型**”节点最终都会调用 `reconcileChildren`。它根据 `current` 是否为空，选择“**挂载工厂**”或“**更新工厂**”。
 
 :::code-group
 
@@ -755,7 +702,7 @@ export function reconcileChildren(
 
 ## 9. bailout：跳过整棵子树
 
-`bailoutOnAlreadyFinishedWork` 是“跳过”逻辑的最后一站。它既要判断子树里是否还有待处理的工作，也要在需要继续时克隆子 Fiber。
+`bailoutOnAlreadyFinishedWork` 是“**跳过**”逻辑的最后一站。它既要判断子树里是否还有待处理的工作，也要在需要继续时克隆子 Fiber。
 
 :::code-group
 
@@ -802,7 +749,7 @@ function bailoutOnAlreadyFinishedWork(
 
 `cloneChildFibers` 不会重新协调子节点，它只是为 `current.child` 创建对应的 WIP 副本，保留原有的 `key`、`type`、`stateNode` 等身份信息。
 
-## 10. 一次“递”的流程
+## 10. 一次“**递**”的流程
 
 ```mermaid
 flowchart TD
@@ -835,7 +782,7 @@ flowchart TD
 
 ## 11. 与简化实现的差异
 
-简化实现（mini-react / xunbei-react）保留了 `beginWork` 的“按 tag 分派 + 协调子节点”骨架，但为了可读性裁掉了官方实现里的调度与边界处理：
+简化实现（mini-react / xunbei-react）保留了 `beginWork` 的“**按 tag 分派 + 协调子节点**”骨架，但为了可读性裁掉了官方实现里的调度与边界处理：
 
 - **没有 `renderLanes`**：函数签名只有 `current` 和 `workInProgress`，也不存在 `didReceiveUpdate`、`checkScheduledUpdateOrContext` 和 `attemptEarlyBailoutIfNoScheduledUpdate`。每次更新都会重新执行组件并重新协调子节点。
 - **HostRoot 直接同步两棵树**：简化实现读取 `workInProgress.memoizedState.element` 后调用 `reconcileChildren`，再把 `workInProgress.child` 赋给 `current.child`，以此维持双缓冲一致；官方实现依赖 `cloneChildFibers` 和 `alternate` 指针，不会在 `updateHostRoot` 里直接改 `current.child`。
@@ -872,4 +819,4 @@ flowchart TD
 | `ContextProvider`   | `pushProvider` 覆盖值，值变化时传播 Context            | 子 Fiber           |
 | `ContextConsumer`   | `readContext` 读取当前值，执行 render props            | 子 Fiber           |
 
-`beginWork` 只负责“算出下一层应该有什么”。真正把 DOM 建出来、把属性差异算出来、把 Context 栈恢复回去，是在回溯阶段由 `completeWork` 完成的。
+`beginWork` 只负责“**算出下一层应该有什么**”。真正把 DOM 建出来、把属性差异算出来、把 Context 栈恢复回去，是在回溯阶段由 `completeWork` 完成的。

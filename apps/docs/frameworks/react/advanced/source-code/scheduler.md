@@ -109,16 +109,6 @@ type Task = {
 
 :::
 
-[width(22,78)]
-
-| 字段             | 作用                                                                                                               |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `id`             | 自增唯一 ID。当两个任务的 `sortIndex` 相同时，通过 `id` 作为次级排序键，保证堆排序的稳定性。                       |
-| `startTime`      | 延迟任务的核心。若 `startTime > currentTime`，任务放入 `timeQueue` 等待；否则放入 `taskQueue` 就绪。               |
-| `expirationTime` | 任务的最晚执行期限。`taskQueue` 中小顶堆的排序键，越紧迫的任务越靠前。                                             |
-| `callback`       | 任务执行体。若返回一个函数，表示“**尚未完成**”，Scheduler 会在下一轮 `workLoop` 继续执行该返回的函数（延续回调）。 |
-| `sortIndex`      | 动态切换：在 `timeQueue` 中按 `startTime` 排序；在 `taskQueue` 中按 `expirationTime` 排序。                        |
-
 ### 3.4 小顶堆（高效的任务排序）
 
 Scheduler 使用**小顶堆 (Min-Heap)** 而非数组排序来管理任务队列。堆的插入 (`push`) 和弹出 (`pop`) 都是 $O(\log n)$，取堆顶 (`peek`) 只需 $O(1)$，远比每次排序的 $O(n \log n)$ 高效。
@@ -453,7 +443,7 @@ export function scheduleCallback(
       timeout = USER_BLOCKING_PRIORITY_TIMEOUT // 250
       break
     case IdlePriority:
-      timeout = IDLE_PRIORITY_TIMEOUT // max int
+      timeout = IDLE_PRIORITY_TIMEOUT // 最大 32 位整数
       break
     case LowPriority:
       timeout = LOW_PRIORITY_TIMEOUT // 10000
@@ -730,6 +720,7 @@ function performWorkUntilDeadline() {
 ```
 
 ```ts [shared/utils.ts]
+// 当前时间获取，底层依赖 performance.now()。
 export const getCurrentTime = (): number => performance.now()
 ```
 
@@ -759,6 +750,7 @@ export function shouldYieldToHost(): boolean {
 ```
 
 ```ts [shared/utils.ts]
+// 当前时间获取，底层依赖 performance.now()。
 export const getCurrentTime = (): number => performance.now()
 ```
 
@@ -801,6 +793,7 @@ function flushWork(initialTime: number) {
 
 ```ts [scheduler/src/SchedulerPriorities.ts]
 export type PriorityLevel = 0 | 1 | 2 | 3 | 4 | 5
+// 简化实现只使用 NormalPriority 这一级。
 export const NormalPriority = 3
 ```
 
@@ -911,6 +904,7 @@ function workLoop(initialTime: number): boolean {
 ```
 
 ```ts [shared/utils.ts]
+// 当前时间获取，底层依赖 performance.now()。
 export const getCurrentTime = (): number => performance.now()
 ```
 
@@ -978,6 +972,7 @@ function requestHostTimeout(callback: Callback, ms: number) {
 ```
 
 ```ts [shared/utils.ts]
+// 当前时间获取，底层依赖 performance.now()。
 export const getCurrentTime = (): number => performance.now()
 ```
 
@@ -1367,7 +1362,7 @@ export function scheduleUpdateOnFiber(
 
 ### 12.2 为什么 Hooks 更新绕过 Scheduler
 
-简化实现把 Hooks 更新视为“必须尽快完成”的同步更新，因此用 `queueMicrotask` 直接执行。官方 React 则会把更新放入 Lane 队列，再由 `ensureRootIsScheduled` 决定优先级：
+简化实现把 Hooks 更新视为“**必须尽快完成**”的同步更新，因此用 `queueMicrotask` 直接执行。官方 React 则会把更新放入 Lane 队列，再由 `ensureRootIsScheduled` 决定优先级：
 
 ```text
 dispatchSetState
@@ -1402,8 +1397,8 @@ React 18 的根调度会先把更新归类到 Lane，再映射成 Scheduler 优�
 - `getHighestPriorityLane(lanes)` 的实现是 `lanes & -lanes`，只保留最低的非零位；
 - `getNextLanes` 负责排除挂起 Lane、优先非 idle 工作、取最高优先级组并扩展纠缠 Lane。
 
-完整的 Lane 位掩码、生命周期与 `getNextLanes` 规则见 [调度与优先级（Lanes）](/frameworks/react/advanced/core-design/schedulingAndLanes)。简化实现没有 `ReactFiberLane.old.js`，`ensureRootIsScheduled` 固定使用 `NormalPriority`，因此无法表达“高优先级插队”和“Transition 可打断”。
+完整的 Lane 位掩码、生命周期与 `getNextLanes` 规则见 [调度与优先级（Lanes）](/frameworks/react/advanced/core-design/schedulingAndLanes)。简化实现没有 `ReactFiberLane.old.js`，`ensureRootIsScheduled` 固定使用 `NormalPriority`，因此无法表达“**高优先级插队**”和“**Transition 可打断**”。
 
 ### 12.5 小结
 
-Scheduler 是 React 并发能力的“发动机”，但发动机只有配上 Lane（决定什么时候点火）和可中断的 workLoop（决定什么时候熄火），才能真正实现并发渲染。简化实现提供了发动机和基础的时间切片，却把 Lane 与可中断的 workLoop 简化掉了，因此不能把它当成并发行为的完整参考。
+Scheduler 是 React 并发能力的“**发动机**”，但发动机只有配上 Lane（决定什么时候点火）和可中断的 workLoop（决定什么时候熄火），才能真正实现并发渲染。简化实现提供了发动机和基础的时间切片，却把 Lane 与可中断的 workLoop 简化掉了，因此不能把它当成并发行为的完整参考。

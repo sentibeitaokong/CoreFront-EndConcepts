@@ -4,7 +4,7 @@ outline: [2, 4]
 
 # 工作循环
 
-`ReactFiberWorkLoop.old.js` 是 React 18.3.1 运行时的“心跳”。它把一次更新拆成两个阶段：
+`ReactFiberWorkLoop.old.js` 是 React 18.3.1 运行时的“**心跳**”。它把一次更新拆成两个阶段：
 
 - **Render 阶段**：可计算、可中断，负责构建 `workInProgress` 树。
 - **Commit 阶段**：不可中断、同步执行，负责把变更写入真实 DOM 并执行布局副作用。
@@ -25,13 +25,13 @@ outline: [2, 4]
 | `prepareFreshStack`             | 清理上一轮状态，从 HostRoot 创建新的 WIP                      |
 | `workLoopSync`                  | 同步循环：一直执行到 `workInProgress === null`                |
 | `workLoopConcurrent`            | 并发循环：每个工作单元后检查 `shouldYield()`                  |
-| `performUnitOfWork`             | 单个工作单元：调用 `beginWork`，决定“向下”还是“向上”          |
+| `performUnitOfWork`             | 单个工作单元：调用 `beginWork`，决定“**向下**”还是“**向上**”  |
 | `completeUnitOfWork`            | 回溯逻辑：`completeWork` 后找兄弟，找不到就回父节点           |
 | `commitRoot` / `commitRootImpl` | Commit 主入口：BeforeMutation、Mutation、切换 current、Layout |
 
 ## 2. 执行上下文
 
-React 用位掩码记录“当前正在做什么”，避免在 Render 或 Commit 中错误地触发新的调度：
+React 用位掩码记录“**当前正在做什么**”，避免在 Render 或 Commit 中错误地触发新的调度：
 
 :::code-group
 
@@ -41,7 +41,7 @@ const BatchedContext = /*               */ 0b001
 const RenderContext = /*                */ 0b010
 const CommitContext = /*                */ 0b100
 
-// Describes where we are in the React execution stack
+// 描述当前处于 React 执行栈的哪一层。
 let executionContext = NoContext
 ```
 
@@ -50,11 +50,13 @@ let executionContext = NoContext
 进入某个阶段时用位或添加标记，退出时恢复旧值：
 
 ```js
+// 进入 Render 阶段前保存旧上下文。
 const prevExecutionContext = executionContext
 executionContext |= RenderContext
 
 // ... 执行 Render
 
+// 退出时恢复，避免影响外层调用。
 executionContext = prevExecutionContext
 ```
 
@@ -66,37 +68,27 @@ if ((executionContext & RenderContext) !== NoContext) {
 }
 ```
 
-`BatchedContext` 用于事件批处理，`RenderContext` 与 `CommitContext` 则保护两个不可重入的阶段。`renderRootSync`、`renderRootConcurrent` 和 `commitRootImpl` 都遵循“保存旧值 → 设置标记 → 执行 → 恢复旧值”的模式。
+`BatchedContext` 用于事件批处理，`RenderContext` 与 `CommitContext` 则保护两个不可重入的阶段。`renderRootSync`、`renderRootConcurrent` 和 `commitRootImpl` 都遵循“**保存旧值 → 设置标记 → 执行 → 恢复旧值**”的模式。
 
 ## 3. 更新入口与根调度
 
 ### 3.1 `scheduleUpdateOnFiber`
 
-`scheduleUpdateOnFiber` 不再直接持有“下一个工作单元”，它只负责两件事：把更新标记到根上，然后请求根调度。
+`scheduleUpdateOnFiber` 不再直接持有“**下一个工作单元**”，它只负责两件事：把更新标记到根上，然后请求根调度。
 
 :::code-group
 
 ```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
 export function scheduleUpdateOnFiber(root, fiber, lane, eventTime) {
-  checkForNestedUpdates()
+  // 省略嵌套更新的 invariant 校验
 
-  // Mark that the root has a pending update.
+  // 标记根上有待处理更新。
   markRootUpdated(root, lane, eventTime)
 
   // 省略 Render 阶段更新、Profiler、Transition Tracing 等分支
 
   ensureRootIsScheduled(root, eventTime)
-
-  if (
-    lane === SyncLane &&
-    executionContext === NoContext &&
-    (fiber.mode & ConcurrentMode) === NoMode &&
-    // Treat `act` as if it's inside `batchedUpdates`, even in legacy mode.
-    !(__DEV__ && ReactCurrentActQueue.isBatchingLegacy)
-  ) {
-    resetRenderTimer()
-    flushSyncCallbacksOnlyInLegacyMode()
-  }
+  // 省略 legacy 模式下的同步刷新
 }
 ```
 
@@ -109,7 +101,7 @@ export function scheduleUpdateOnFiber(root, fiber, lane, eventTime) {
 
 ### 3.2 `ensureRootIsScheduled`
 
-`ensureRootIsScheduled` 负责把“根上有哪些 Lane 待处理”翻译成“Scheduler 里要不要有一个任务”。如果已有同优先级的回调，它会直接复用，而不是重复注册。
+`ensureRootIsScheduled` 负责把“**根上有哪些 Lane 待处理**”翻译成“**Scheduler 里要不要有一个任务**”。如果已有同优先级的回调，它会直接复用，而不是重复注册。
 
 :::code-group
 
@@ -117,14 +109,17 @@ export function scheduleUpdateOnFiber(root, fiber, lane, eventTime) {
 function ensureRootIsScheduled(root, currentTime) {
   const existingCallbackNode = root.callbackNode
 
+  // 长时间得不到执行的 Lane 标记为过期，避免饿死。
   markStarvedLanesAsExpired(root, currentTime)
 
+  // 选出本轮要处理的 Lane。
   const nextLanes = getNextLanes(
     root,
     root === workInProgressRoot ? workInProgressRootRenderLanes : NoLanes,
   )
 
   if (nextLanes === NoLanes) {
+    // 没有待处理工作：取消已有回调并复位状态。
     if (existingCallbackNode !== null) {
       cancelCallback(existingCallbackNode)
     }
@@ -133,6 +128,7 @@ function ensureRootIsScheduled(root, currentTime) {
     return
   }
 
+  // 用最高优先级的 Lane 代表本次回调的优先级。
   const newCallbackPriority = getHighestPriorityLane(nextLanes)
 
   // 省略 act 队列的特判；优先级相同则复用已有任务
@@ -146,6 +142,7 @@ function ensureRootIsScheduled(root, currentTime) {
 
   let newCallbackNode
   if (newCallbackPriority === SyncLane) {
+    // 同步任务不经过 Scheduler，改为在微任务中刷新。
     scheduleSyncCallback(performSyncWorkOnRoot.bind(null, root))
     if (supportsMicrotasks) {
       scheduleMicrotask(() => {
@@ -210,6 +207,7 @@ function ensureRootIsScheduled(root, currentTime) {
 :::code-group
 
 ```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
+// 只有非阻塞、未过期且未超时，才走可中断的并发渲染。
 const shouldTimeSlice =
   !includesBlockingLane(root, lanes) &&
   !includesExpiredLane(root, lanes) &&
@@ -245,6 +243,7 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
     }
   }
 
+  // 选出本轮要处理的 Lane。
   let lanes = getNextLanes(
     root,
     root === workInProgressRoot ? workInProgressRootRenderLanes : NoLanes,
@@ -253,6 +252,7 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
     return null
   }
 
+  // 阻塞 Lane、过期 Lane 或 Scheduler 超时都必须同步渲染。
   const shouldTimeSlice =
     !includesBlockingLane(root, lanes) &&
     !includesExpiredLane(root, lanes) &&
@@ -264,6 +264,7 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
 
   if (exitStatus !== RootInProgress) {
     if (exitStatus === RootErrored) {
+      // 出错后先尝试同步重试一次。
       const errorRetryLanes = getLanesToRetrySynchronouslyOnError(root)
       if (errorRetryLanes !== NoLanes) {
         lanes = errorRetryLanes
@@ -278,6 +279,7 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
       throw fatalError
     }
     if (exitStatus === RootDidNotComplete) {
+      // 未完成整棵树：先挂起根，等待下一轮继续。
       markRootSuspended(root, lanes)
     } else {
       // 省略与外部 store 的一致性检查
@@ -311,6 +313,7 @@ function performConcurrentWorkOnRoot(root, didTimeout) {
 function renderRootSync(root, lanes) {
   const prevExecutionContext = executionContext
   executionContext |= RenderContext
+  // 保存并切换 Hooks dispatcher。
   const prevDispatcher = pushDispatcher()
 
   // 根或 Lane 变化时，丢弃旧栈并准备新的 WIP
@@ -319,6 +322,7 @@ function renderRootSync(root, lanes) {
     prepareFreshStack(root, lanes)
   }
 
+  // 异常交给 handleError 处理后重试，直到工作循环正常结束。
   do {
     try {
       workLoopSync()
@@ -332,13 +336,7 @@ function renderRootSync(root, lanes) {
   executionContext = prevExecutionContext
   popDispatcher(prevDispatcher)
 
-  if (workInProgress !== null) {
-    // 同步渲染必须完成整棵树
-    throw new Error(
-      'Cannot commit an incomplete root. This error is likely caused by a ' +
-        'bug in React. Please file an issue.',
-    )
-  }
+  // 省略“同步渲染必须完成整棵树”的 invariant
 
   workInProgressRoot = null
   workInProgressRootRenderLanes = NoLanes
@@ -382,6 +380,7 @@ function prepareFreshStack(root, lanes) {
   }
 
   workInProgressRoot = root
+  // 从 HostRoot 重新创建 WIP 根节点。
   const rootWorkInProgress = createWorkInProgress(root.current, null)
   workInProgress = rootWorkInProgress
   workInProgressRootRenderLanes =
@@ -400,7 +399,7 @@ function prepareFreshStack(root, lanes) {
 
 :::
 
-注意这里是 `workInProgress = rootWorkInProgress`，而不是“有旧指针就保留”。真正需要续跑时，`workInProgressRoot` 和 `workInProgressRootRenderLanes` 没有变化，`renderRootConcurrent` 会跳过 `prepareFreshStack`，直接从上次保存的 `workInProgress` 继续。
+注意这里是 `workInProgress = rootWorkInProgress`，而不是“**有旧指针就保留**”。真正需要续跑时，`workInProgressRoot` 和 `workInProgressRootRenderLanes` 没有变化，`renderRootConcurrent` 会跳过 `prepareFreshStack`，直接从上次保存的 `workInProgress` 继续。
 
 ### 4.4 工作循环
 
@@ -411,17 +410,15 @@ function prepareFreshStack(root, lanes) {
 ```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
 /** @noinline */
 function workLoopSync() {
-  // Already timed out, so perform work without checking if we need to yield.
+  // 已超时，持续执行到整棵树完成，不再检查是否让出。
   while (workInProgress !== null) {
     performUnitOfWork(workInProgress)
   }
 }
-```
 
-```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
 /** @noinline */
 function workLoopConcurrent() {
-  // Perform work until Scheduler asks us to yield
+  // 每个工作单元后检查是否该让出，直到 Scheduler 要求暂停。
   while (workInProgress !== null && !shouldYield()) {
     performUnitOfWork(workInProgress)
   }
@@ -432,7 +429,7 @@ function workLoopConcurrent() {
 
 `shouldYield()` 来自 Scheduler。它让 React 在时间片用尽后主动让出主线程，浏览器就有机会处理输入、布局和绘制。由于 `workInProgress` 是模块级变量，让出后下一次回调可以直接从断点继续。
 
-### 4.5 `performUnitOfWork`：向下“递”
+### 4.5 `performUnitOfWork`：向下“**递**”
 
 :::code-group
 
@@ -458,16 +455,15 @@ function performUnitOfWork(unitOfWork) {
 
 :::
 
-`beginWork` 返回第一个子 Fiber，或者返回 `null` 表示当前节点没有需要继续处理的子节点。它不负责创建 DOM，只负责“算出下一层应该有什么”，详见 [beginWork](/frameworks/react/advanced/source-code/reconciler/beginWork)。
+`beginWork` 返回第一个子 Fiber，或者返回 `null` 表示当前节点没有需要继续处理的子节点。它不负责创建 DOM，只负责“**算出下一层应该有什么**”，详见 [beginWork](/frameworks/react/advanced/source-code/reconciler/beginWork)。
 
-### 4.6 `completeUnitOfWork`：向上“归”
+### 4.6 `completeUnitOfWork`：向上“**归**”
 
 :::code-group
 
 ```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
 function completeUnitOfWork(unitOfWork) {
-  // Attempt to complete the current unit of work, then move to the next
-  // sibling. If there are no more siblings, return to the parent fiber.
+  // 先完成当前工作单元，再转去下一个兄弟；没有兄弟时回到父节点。
   let completedWork = unitOfWork
   do {
     const current = completedWork.alternate
@@ -559,6 +555,7 @@ function commitRoot(root, recoverableErrors, transitions) {
   const prevTransition = ReactCurrentBatchConfig.transition
 
   try {
+    // Commit 期间使用离散事件优先级，并暂时清空 Transition 配置。
     ReactCurrentBatchConfig.transition = null
     setCurrentUpdatePriority(DiscreteEventPriority)
     commitRootImpl(
@@ -568,6 +565,7 @@ function commitRoot(root, recoverableErrors, transitions) {
       previousUpdateLanePriority,
     )
   } finally {
+    // 结束后恢复进入前的优先级与 Transition 配置。
     ReactCurrentBatchConfig.transition = prevTransition
     setCurrentUpdatePriority(previousUpdateLanePriority)
   }
@@ -698,8 +696,8 @@ Commit 阶段有几条严格的顺序约束：
 
 ### 5.4 Passive Effect 为什么异步
 
-- `useLayoutEffect` 的语义是“DOM 已变、浏览器未绘制”，必须同步执行。
-- `useEffect` 的语义是“浏览器已绘制”，如果同步执行会阻塞首屏。
+- `useLayoutEffect` 的语义是“**DOM 已变、浏览器未绘制**”，必须同步执行。
+- `useEffect` 的语义是“**浏览器已绘制**”，如果同步执行会阻塞首屏。
 - 因此 `commitRootImpl` 只注册 `scheduleCallback(NormalSchedulerPriority, flushPassiveEffects)`，真正的执行发生在当前帧的绘制之后。
 
 `flushPassiveEffects` 会检查 `rootWithPendingPassiveEffects`，避免同一个根上的 Passive Effect 被重复执行；如果在执行过程中又产生了新的 Passive Effect，`commitRootImpl` 开头的 `do...while` 会继续冲刷，直到队列为空。
@@ -746,7 +744,7 @@ Commit 阶段有几条严格的顺序约束：
 `ReactFiberWorkLoop.old.js` 的主线可以概括为：
 
 - `scheduleUpdateOnFiber` 标记根上的 Lane，`ensureRootIsScheduled` 把根任务交给 Scheduler。
-- Render 阶段由 `beginWork` “递”、`completeWork` “归”，`performUnitOfWork` 决定下一步走向。
+- Render 阶段由 `beginWork` “**递**”、`completeWork` “**归**”，`performUnitOfWork` 决定下一步走向。
 - 并发渲染通过 `workLoopConcurrent` + `shouldYield()` 中断，靠全局 `workInProgress` 恢复。
 - Commit 阶段严格按 BeforeMutation → Mutation → 切换 `current` → Layout 的顺序执行，Passive Effect 异步调度。
 

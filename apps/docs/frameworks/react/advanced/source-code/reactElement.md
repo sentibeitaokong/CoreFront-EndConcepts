@@ -4,9 +4,7 @@ outline: [2, 4]
 
 # `ReactElement`
 
-React 的渲染起点不是 DOM，而是一个描述 UI 的普通 JavaScript 对象，也就是 `ReactElement`。它只记录“我想渲染什么”，不持有任何真实节点；真正把它变成 Fiber、再变成 DOM 的工作，由 `react-reconciler` 和 `react-dom` 完成。
-
-React 18.3.1 默认走 `.old.js` 分叉。Element 的创建与类型转换集中在 `packages/react/src/ReactElement.js`、`packages/react/src/jsx/ReactJSXElement.js`、`packages/shared/ReactSymbols.js`、`packages/shared/ReactTypes.js`，以及 `packages/react-reconciler/src/ReactFiber.old.js`。
+React 的渲染起点不是 DOM，而是一个描述 UI 的普通 JavaScript 对象，也就是 `ReactElement`。它只记录“**我想渲染什么**”，不持有任何真实节点；真正把它变成 Fiber、再变成 DOM 的工作，由 `react-reconciler` 和 `react-dom` 完成。
 
 ## 1. 为什么 Element 必须是普通对象
 
@@ -15,7 +13,7 @@ React 18.3.1 默认走 `.old.js` 分叉。Element 的创建与类型转换集中
 - Element 是**不可变**的：每次渲染都产生新的对象，React 不需要追踪它的内部变化。
 - Fiber 是**可变的工作单元**：保存 `child`、`sibling`、`flags` 等运行时状态。
 - 两者分离后，同一份 Element 可以被多次协调，也可以在不同宿主环境（DOM、Native、Canvas）中生成不同的 Fiber。
-- Element 只描述“类型、key、ref、props”，不包含优先级、副作用标记、DOM 引用等调度信息。
+- Element 只描述“**类型、key、ref、props**”，不包含优先级、副作用标记、DOM 引用等调度信息。
 
 ### 1.2 Element 与 Fiber 的对比
 
@@ -40,22 +38,22 @@ React 18 没有把 Element 定义成一个类，而是用一个内部工厂函�
 ```ts [react/src/ReactElement.js]
 const ReactElement = function (type, key, ref, self, source, owner, props) {
   const element = {
-    // This tag allows us to uniquely identify this as a React Element
+    // 用 Symbol 标记它确实是 React Element，JSON 无法伪造。
     $$typeof: REACT_ELEMENT_TYPE,
 
-    // Built-in properties that belong on the element
+    // 核心字段：类型、key、ref 与 props。
     type: type,
     key: key,
     ref: ref,
     props: props,
 
-    // Record the component responsible for creating this element.
+    // 记录创建该元素的组件，开发期用于警告与错误定位。
     _owner: owner,
   }
 
+  // 开发构建额外写入调试字段，并在支持时冻结 props 与整个 element。
   if (__DEV__) {
-    // The validation flag is currently mutative. We put it on
-    // an external backing store so that we can freeze the whole object.
+    // 校验标记需要被原地修改，所以挂到独立的 _store 上，保证对象本身仍可冻结。
     element._store = {}
 
     Object.defineProperty(element._store, 'validated', {
@@ -64,7 +62,7 @@ const ReactElement = function (type, key, ref, self, source, owner, props) {
       writable: true,
       value: false,
     })
-    // self and source are DEV only properties.
+    // _self、_source 只在开发构建存在。
     Object.defineProperty(element, '_self', {
       configurable: false,
       enumerable: false,
@@ -88,6 +86,7 @@ const ReactElement = function (type, key, ref, self, source, owner, props) {
 ```
 
 ```ts [shared/ReactSymbols.js]
+// 内置类型都用 Symbol.for 注册，保证不同 React 副本之间也能互相识别。
 export const REACT_ELEMENT_TYPE = Symbol.for('react.element')
 export const REACT_PORTAL_TYPE = Symbol.for('react.portal')
 export const REACT_FRAGMENT_TYPE = Symbol.for('react.fragment')
@@ -101,39 +100,28 @@ export const REACT_OFFSCREEN_TYPE = Symbol.for('react.offscreen')
 ```
 
 ```ts [shared/ReactTypes.js]
+// Context 对象同时挂载 Provider 与 Consumer，三者通过引用互相连通。
 export type ReactContext<T> = {
-  $$typeof: Symbol | number,
-  Consumer: ReactContext<T>,
-  Provider: ReactProviderType<T>,
-  _currentValue: T,
-  _currentValue2: T,
-  _threadCount: number,
+  $$typeof: Symbol | number, // 固定为 REACT_CONTEXT_TYPE
+  Consumer: ReactContext<T>, // 生产构建下指向 context 自身
+  Provider: ReactProviderType<T>, // 指向携带 _context 的 Provider 对象
+  _currentValue: T, // 当前渲染器读取的值
+  _currentValue2: T, // 第二个渲染器（如 Native）独立维护的值
+  _threadCount: number, // 并发渲染器的引用计数
   ...
 };
 
+// Provider 只保存 $$typeof 和指回 context 的 _context。
 export type ReactProviderType<T> = {
-  $$typeof: Symbol | number,
-  _context: ReactContext<T>,
+  $$typeof: Symbol | number, // 固定为 REACT_PROVIDER_TYPE
+  _context: ReactContext<T>, // 反向指回所属的 context
   ...
 };
 ```
 
 :::
 
-`ReactTypes.js` 用 Flow 类型描述了 Context、Provider、Portal 等“Element-like”对象；`ReactElement` 本身的形状则由上面的工厂函数直接写出。两者共同约束了协调器能接收的输入。
-
-Element 的核心字段可以归纳为：
-
-[width(16,84)]
-
-| 字段       | 作用                                                                 |
-| ---------- | -------------------------------------------------------------------- |
-| `$$typeof` | 标记“这是一个 React Element”，同时承担安全校验职责                   |
-| `type`     | 字符串表示原生标签，函数/类表示组件，Symbol 表示 Fragment 等内置类型 |
-| `key`      | 列表 Diff 的身份标识；没有显式设置时为 `null`                        |
-| `ref`      | 指向 DOM 或类组件实例的引用                                          |
-| `props`    | 包含 `children` 在内的属性集合                                       |
-| `_owner`   | 记录创建该元素的组件，主要用于开发期的警告与错误定位                 |
+`ReactTypes.js` 用 Flow 类型描述了 Context、Provider、Portal 等“**Element-like**”对象；`ReactElement` 本身的形状则由上面的工厂函数直接写出。两者共同约束了协调器能接收的输入。
 
 ### 2.2 只在开发构建出现的字段
 
@@ -152,6 +140,7 @@ React 18 的开发构建会额外写入几个不可枚举字段：
 
 ```js
 {
+  // 攻击者构造的普通对象：形状与 Element 相同，但没有 $$typeof。
   type: 'div',
   props: {
     dangerouslySetInnerHTML: {__html: '<img src=x onerror=alert(1)>'}
@@ -159,14 +148,15 @@ React 18 的开发构建会额外写入几个不可枚举字段：
 }
 ```
 
-仅凭 `type: 'div'` 无法区分“真正的 React Element”和“恰好长得很像的普通对象”。React 需要一个无法由 JSON 伪造的标记。
+仅凭 `type: 'div'` 无法区分“**真正的 React Element**”和“**恰好长得很像的普通对象**”。React 需要一个无法由 JSON 伪造的标记。
 
 ### 3.2 Symbol 与 `isValidElement`
 
-React 把 `$$typeof` 设成 `Symbol.for('react.element')`。判断一个对象是不是元素时，只比较这个 Symbol：
+`$$typeof` 设成 `Symbol.for('react.element')`。判断一个对象是不是元素时，只比较这个 Symbol：
 
 ```ts [react/src/ReactElement.js]
 export function isValidElement(object) {
+  // 只比较 $$typeof，形状相同的普通对象会被拒绝。
   return (
     typeof object === 'object' &&
     object !== null &&
@@ -175,15 +165,9 @@ export function isValidElement(object) {
 }
 ```
 
-这层设计的关键在于：
-
 - `JSON.stringify` 无法序列化 Symbol，服务端返回的 JSON 里不可能出现真正的 `$$typeof`。
 - 即便攻击者写字符串 `"react.element"`，它也只是字符串，不等于 `Symbol.for('react.element')`。
 - 协调器在创建 Fiber 前只接受 `$$typeof` 正确的对象，伪造对象会在入口处被拒绝。
-
-需要注意，`Symbol.for` 使用全局 Symbol 注册表。如果攻击者已经能在同一运行环境执行任意 JavaScript，这层校验并不能阻止他；它防的是“数据被当成代码”的场景，例如把不可信的 JSON 直接交给 `React.createElement` 或渲染树。
-
-React 18 的标记是 `Symbol.for('react.element')`。React 19 改成了 `Symbol.for('react.transitional.element')`，这是与新 JSX runtime 元素格式配套的变更，不能把两个版本的值混用。
 
 ## 4. `createElement` 与自动 runtime
 
@@ -197,7 +181,7 @@ React 18 的标记是 `Symbol.for('react.element')`。React 19 改成了 `Symbol
 export function createElement(type, config, children) {
   let propName
 
-  // Reserved names are extracted
+  // 保留字段单独取出，其余自有属性才会进入 props。
   const props = {}
 
   let key = null
@@ -206,23 +190,18 @@ export function createElement(type, config, children) {
   let source = null
 
   if (config != null) {
+    // 省略 __DEV__ 下 ref、key 的校验与警告。
     if (hasValidRef(config)) {
       ref = config.ref
-
-      if (__DEV__) {
-        warnIfStringRefCannotBeAutoConverted(config)
-      }
     }
     if (hasValidKey(config)) {
-      if (__DEV__) {
-        checkKeyStringCoercion(config.key)
-      }
+      // key 统一转成字符串，避免数字与字符串 key 被当成不同身份。
       key = '' + config.key
     }
 
     self = config.__self === undefined ? null : config.__self
     source = config.__source === undefined ? null : config.__source
-    // Remaining properties are added to a new props object
+    // 其余自有属性原样拷进新的 props 对象。
     for (propName in config) {
       if (
         hasOwnProperty.call(config, propName) &&
@@ -233,8 +212,7 @@ export function createElement(type, config, children) {
     }
   }
 
-  // Children can be more than one argument, and those are transferred onto
-  // the newly allocated props object.
+  // 第三个及之后的参数都是子节点：单个保持原值，多个收进数组。
   const childrenLength = arguments.length - 2
   if (childrenLength === 1) {
     props.children = children
@@ -246,7 +224,7 @@ export function createElement(type, config, children) {
     props.children = childArray
   }
 
-  // Resolve default props
+  // 仅在对应 prop 为 undefined 时用 defaultProps 补值。
   if (type && type.defaultProps) {
     const defaultProps = type.defaultProps
     for (propName in defaultProps) {
@@ -266,9 +244,10 @@ export function createElement(type, config, children) {
     props,
   )
 }
-```
 
-```ts [react/src/ReactElement.js]
+// ...
+
+// 这四个字段由 createElement 单独处理，不允许出现在 props 中。
 const RESERVED_PROPS = {
   key: true,
   ref: true,
@@ -279,16 +258,14 @@ const RESERVED_PROPS = {
 
 :::
 
-几个容易忽略的细节：
-
-- `key` 会被强制转成字符串：`key = '' + config.key`。
-- `ref`、`key`、`__self`、`__source` 不会进入 `props`。
-- 多个子节点会被收集成数组，单个子节点则保持原值。
-- `defaultProps` 只在对应 prop 为 `undefined` 时补值。
-
 ### 4.2 自动 runtime 的 `jsx` / `jsxs`
 
-现代 JSX 转换不再生成 `React.createElement`，而是从 `react/jsx-runtime` 引入 `jsx` / `jsxs`。React 18.3.1 的入口在 `ReactJSX.js`：
+`jsx` 与 `jsxs` 是自动 JSX 转换（automatic runtime，React 17 起）生成的调用入口，来自 `react/jsx-runtime`。两者最终都创建同一种 `ReactElement`，区别只在负责的场景：
+
+- `jsx(type, props, key)`：单个静态节点、字符串，或由表达式动态算出的 `children`。
+- `jsxs(type, props, key)`：子节点在编译期就能确定为多个，`children` 是一个静态数组。
+
+:::code-group
 
 ```ts [react/src/jsx/ReactJSX.js]
 import { REACT_FRAGMENT_TYPE } from 'shared/ReactSymbols'
@@ -298,36 +275,34 @@ import {
   jsxWithValidation,
 } from './ReactJSXElementValidator'
 import { jsx as jsxProd } from './ReactJSXElement'
+// 开发构建换成带校验的版本，生产构建直接用 jsxProd。
 const jsx = __DEV__ ? jsxWithValidationDynamic : jsxProd
 const jsxs = __DEV__ ? jsxWithValidationStatic : jsxProd
+// jsxDEV 只在开发构建导出，供自动 runtime 传入调用位置信息。
 const jsxDEV = __DEV__ ? jsxWithValidation : undefined
 
 export { REACT_FRAGMENT_TYPE as Fragment, jsx, jsxs, jsxDEV }
 ```
 
-生产构建的 `jsx` 实现在 `ReactJSXElement.js`。它与 `createElement` 的最大区别是：`key` 作为第三个参数单独传入，不再从 `config` 里读取。
-
 ```ts [react/src/jsx/ReactJSXElement.js]
+// 生产构建：jsx 与 jsxs 共用这个实现。
 export function jsx(type, config, maybeKey) {
   let propName
 
-  // Reserved names are extracted
+  // 保留字段单独取出，其余自有属性进入 props。
   const props = {}
 
   let key = null
   let ref = null
 
+  // 省略 __DEV__ 下 key 的字符串强转校验。
+  // 第三个参数是编译期单独传出的 key，先转成字符串。
   if (maybeKey !== undefined) {
-    if (__DEV__) {
-      checkKeyStringCoercion(maybeKey)
-    }
     key = '' + maybeKey
   }
 
+  // config 里若还带 key，会覆盖第三个参数。
   if (hasValidKey(config)) {
-    if (__DEV__) {
-      checkKeyStringCoercion(config.key)
-    }
     key = '' + config.key
   }
 
@@ -335,7 +310,7 @@ export function jsx(type, config, maybeKey) {
     ref = config.ref
   }
 
-  // Remaining properties are added to a new props object
+  // 其余自有属性原样拷进 props。
   for (propName in config) {
     if (
       hasOwnProperty.call(config, propName) &&
@@ -345,7 +320,7 @@ export function jsx(type, config, maybeKey) {
     }
   }
 
-  // Resolve default props
+  // 仅在对应 prop 为 undefined 时补 defaultProps。
   if (type && type.defaultProps) {
     const defaultProps = type.defaultProps
     for (propName in defaultProps) {
@@ -367,41 +342,125 @@ export function jsx(type, config, maybeKey) {
 }
 ```
 
-因此：
+```javascript [ReactJSXElementValidator.js]
+// `jsxDEV` 的创建流程与 `jsx` 相同，只是额外接收 `source` / `self` 并追加调试警告。
+export function jsxWithValidation(
+  type,
+  props,
+  key,
+  isStaticChildren,
+  source,
+  self,
+) {
+  // 创建仍复用 jsxDEV，开发构建只多做校验。
+  const element = jsxDEV(type, props, key, source, self)
 
-```jsx
-function App() {
-  return (
-    <div className="box" id="app">
-      <span>hello</span>
-    </div>
-  )
+  const children = props.children
+  if (children !== undefined) {
+    // 静态多子节点：逐个校验 key，并冻结数组。
+    if (isStaticChildren) {
+      if (isArray(children)) {
+        for (let i = 0; i < children.length; i++) {
+          validateChildKeys(children[i], type)
+        }
+        Object.freeze(children)
+      }
+    } else {
+      // 单子节点：只校验这一个值。
+      validateChildKeys(children, type)
+    }
+  }
+
+  return element
+}
+
+// jsxs 的开发入口：把 isStaticChildren 置为 true。
+export function jsxWithValidationStatic(type, props, key) {
+  return jsxWithValidation(type, props, key, true)
+}
+
+// jsx 的开发入口：同一套校验，isStaticChildren 为 false。
+export function jsxWithValidationDynamic(type, props, key) {
+  return jsxWithValidation(type, props, key, false)
 }
 ```
 
-会被编译成近似下面的形式：
+:::
+
+源码里没有独立的 `jsxs` 函数：生产构建中 `jsx` 与 `jsxs` 指向同一个 `jsx`（抽出 `key` / `ref`、把剩余属性拷进 `props`、按需补 `defaultProps`，最后交给 `ReactElement`）。
+
+单个子节点交给 `jsx`，`children` 直接是内层 element，而不是数组：
+
+```jsx
+const single = (
+  <div className="box" id="app">
+    <span>hello</span>
+  </div>
+)
+```
+
+```js
+import { jsx as _jsx } from 'react/jsx-runtime'
+
+// 只有一个子节点：调用 jsx，children 直接放 element。
+const single = _jsx('div', {
+  className: 'box',
+  id: 'app',
+  children: _jsx('span', { children: 'hello' }),
+})
+```
+
+两个及以上静态子节点交给 `jsxs`，`children` 是数组：
+
+```jsx
+const multiple = (
+  <ul>
+    <li>a</li>
+    <li>b</li>
+  </ul>
+)
+```
 
 ```js
 import { jsx as _jsx, jsxs as _jsxs } from 'react/jsx-runtime'
 
-function App() {
-  return _jsxs('div', {
-    className: 'box',
-    id: 'app',
-    children: _jsx('span', { children: 'hello' }),
-  })
-}
+// 静态多子节点：调用 jsxs，children 是数组。
+const multiple = _jsxs('ul', {
+  children: [_jsx('li', { children: 'a' }), _jsx('li', { children: 'b' })],
+})
 ```
 
-- `jsx` 用于单个子节点，`jsxs` 用于静态子节点数组。
-- `<span>hello</span>` 的 `children` 是字符串，不是数组。
-- `key` 会从 `props` 中抽离，作为 `jsx` 的第三个参数传入。
+两者返回的 `ReactElement` 形状相同，只有 `props.children` 的形态不同（`_owner` 等调试字段省略）：
+
+```js
+single
+// {
+//   $$typeof: Symbol.for('react.element'),
+//   type: 'div',
+//   key: null,
+//   ref: null,
+//   props: {
+//     className: 'box',
+//     id: 'app',
+//     children: { $$typeof: Symbol.for('react.element'), type: 'span', ... },
+//   },
+// }
+
+multiple.props.children
+// [
+//   { $$typeof: Symbol.for('react.element'), type: 'li', ... },
+//   { $$typeof: Symbol.for('react.element'), type: 'li', ... },
+// ]
+```
+
+`jsxs` 的 `children` 一定是数组；`jsx` 保持传入值的原样（单个 element、字符串，或调用方自己给出的数组）。最内层的 `_jsx('span', { children: 'hello' })` 里，`children` 就是字符串 `'hello'`。
 
 ### 4.3 Element 只是一个对象
 
 `_jsx('span', {children: 'hello'})` 的返回值可以近似理解为：
 
 ```js
+// 一个纯数据对象：只描述类型与 props，不持有 DOM 节点。
 const element = {
   $$typeof: Symbol.for('react.element'),
   type: 'span',
@@ -412,8 +471,6 @@ const element = {
 }
 ```
 
-React 后续的所有工作，都是围绕这个对象展开的：先由 `createFiberFromElement` 转成 Fiber，再由 `beginWork` 协调它的 `props.children`。
-
 ## 5. `type` 如何决定 Fiber 的 `tag`
 
 ### 5.1 `shouldConstruct`：区分类组件与函数组件
@@ -423,6 +480,8 @@ React 18 没有用 `instanceof` 判断类组件，而是检查原型上的标记
 ```ts [react-reconciler/src/ReactFiber.old.js]
 function shouldConstruct(Component: Function) {
   const prototype = Component.prototype
+  // 类组件在原型上带 isReactComponent 标记，普通函数没有。
+  // prototype && 同时兜住箭头函数没有 prototype 的情况。
   return !!(prototype && prototype.isReactComponent)
 }
 ```
@@ -431,69 +490,84 @@ function shouldConstruct(Component: Function) {
 
 ### 5.2 `createFiberFromTypeAndProps`
 
-Fiber 的类型分发集中在 `createFiberFromTypeAndProps`：
+Fiber 的类型分发集中在 `createFiberFromTypeAndProps`，它算出 `tag` 后通过底层的 `createFiber` 创建节点，入口则是 `createFiberFromElement`：
 
 :::code-group
 
 ```ts [react-reconciler/src/ReactFiber.old.js]
+export function createFiberFromElement(
+  element: ReactElement,
+  mode: TypeOfMode,
+  lanes: Lanes,
+): Fiber {
+  const type = element.type
+  const key = element.key
+  const pendingProps = element.props
+  // 拆出 type、key、props 后交给类型分发函数；owner 仅开发构建使用，这里传 null。
+  // 省略 __DEV__ 下挂载 _debugSource、_debugOwner 的代码。
+  const fiber = createFiberFromTypeAndProps(
+    type,
+    key,
+    pendingProps,
+    null,
+    mode,
+    lanes,
+  )
+  return fiber
+}
+
 export function createFiberFromTypeAndProps(
   type: any, // React$ElementType
   key: null | string,
   pendingProps: any,
-  owner: null | Fiber,
+  owner: null | Fiber, // 仅开发构建使用的调试信息，生产构建为 null
   mode: TypeOfMode,
   lanes: Lanes,
 ): Fiber {
+  // 默认先记为待定型组件，函数组件要等首次执行后才能确定 tag。
   let fiberTag = IndeterminateComponent
-  // The resolved type is set if we know what the final type will be. I.e. it's not lazy.
+  // resolvedType 表示解析后的最终类型；lazy 在 resolve 前无法确定，会置为 null。
   let resolvedType = type
   if (typeof type === 'function') {
+    // 函数类型：原型上带 isReactComponent 标记的是类组件。
     if (shouldConstruct(type)) {
       fiberTag = ClassComponent
     }
   } else if (typeof type === 'string') {
+    // 字符串类型直接对应宿主组件。
     fiberTag = HostComponent
   } else {
+    // 非函数、非字符串的 type 在这里按内置标记分发。
     getTag: switch (type) {
-      case REACT_FRAGMENT_TYPE:
+      case REACT_FRAGMENT_TYPE: // Fragment
         return createFiberFromFragment(pendingProps.children, mode, lanes, key)
-      case REACT_SUSPENSE_TYPE:
+      case REACT_SUSPENSE_TYPE: // SuspenseComponent
         return createFiberFromSuspense(pendingProps, mode, lanes, key)
-      case REACT_OFFSCREEN_TYPE:
+      case REACT_OFFSCREEN_TYPE: // OffscreenComponent
         return createFiberFromOffscreen(pendingProps, mode, lanes, key)
       default: {
         if (typeof type === 'object' && type !== null) {
           switch (type.$$typeof) {
-            case REACT_PROVIDER_TYPE:
+            case REACT_PROVIDER_TYPE: // ContextProvider
               fiberTag = ContextProvider
               break getTag
-            case REACT_CONTEXT_TYPE:
-              // This is a consumer
+            case REACT_CONTEXT_TYPE: // ContextConsumer（$$typeof 为 context 自身）
               fiberTag = ContextConsumer
               break getTag
-            case REACT_FORWARD_REF_TYPE:
+            case REACT_FORWARD_REF_TYPE: // ForwardRef
               fiberTag = ForwardRef
               break getTag
-            case REACT_MEMO_TYPE:
+            case REACT_MEMO_TYPE: // MemoComponent
               fiberTag = MemoComponent
               break getTag
-            case REACT_LAZY_TYPE:
+            case REACT_LAZY_TYPE: // LazyComponent，resolvedType 置为 null
               fiberTag = LazyComponent
               resolvedType = null
               break getTag
           }
         }
-
-        let info = ''
-        if (__DEV__) {
-          // ...
-        }
-
-        throw new Error(
-          'Element type is invalid: expected a string (for built-in ' +
-            'components) or a class/function (for composite components) ' +
-            `but got: ${type == null ? type : typeof type}.${info}`,
-        )
+        // 省略 __DEV__ 下拼装错误提示的代码
+        throw new Error('Element type is invalid')
       }
     }
   }
@@ -505,57 +579,22 @@ export function createFiberFromTypeAndProps(
 
   return fiber
 }
-```
 
-```ts [react-reconciler/src/ReactFiber.old.js]
-export function createFiberFromElement(
-  element: ReactElement,
+// Fiber 的构造入口：所有 createFiberFrom* 最终都落到这里。
+const createFiber = function (
+  tag: WorkTag,
+  pendingProps: mixed,
+  key: null | string,
   mode: TypeOfMode,
-  lanes: Lanes,
 ): Fiber {
-  let owner = null
-  if (__DEV__) {
-    owner = element._owner
-  }
-  const type = element.type
-  const key = element.key
-  const pendingProps = element.props
-  const fiber = createFiberFromTypeAndProps(
-    type,
-    key,
-    pendingProps,
-    owner,
-    mode,
-    lanes,
-  )
-  if (__DEV__) {
-    fiber._debugSource = element._source
-    fiber._debugOwner = element._owner
-  }
-  return fiber
+  // $FlowFixMe: the shapes are exact here but Flow doesn't like constructors
+  return new FiberNode(tag, pendingProps, key, mode)
 }
 ```
 
 :::
 
-类型判断规则可以归纳为：
-
-[width(45,23,32)]
-
-| `type` 的形态                                  | Fiber `tag`              | 例子                          |
-| ---------------------------------------------- | ------------------------ | ----------------------------- |
-| 字符串                                         | `HostComponent`          | `'div'`、`'span'`             |
-| 函数，且 `prototype.isReactComponent` 为真     | `ClassComponent`         | `class App extends Component` |
-| 普通函数                                       | `IndeterminateComponent` | `function App() {}`           |
-| `REACT_FRAGMENT_TYPE`                          | `Fragment`               | `<></>`、`<Fragment>`         |
-| `$$typeof === REACT_PROVIDER_TYPE`             | `ContextProvider`        | `<Context.Provider>`          |
-| `$$typeof === REACT_CONTEXT_TYPE`              | `ContextConsumer`        | `<Context.Consumer>`          |
-| `$$typeof === REACT_FORWARD_REF_TYPE`          | `ForwardRef`             | `React.forwardRef(...)`       |
-| `$$typeof === REACT_MEMO_TYPE`                 | `MemoComponent`          | `React.memo(...)`             |
-| `$$typeof === REACT_LAZY_TYPE`                 | `LazyComponent`          | `React.lazy(...)`             |
-| `REACT_SUSPENSE_TYPE` / `REACT_OFFSCREEN_TYPE` | `SuspenseComponent` 等   | `<Suspense>`、Offscreen       |
-
-普通函数组件的 `tag` 不是 `FunctionComponent`，而是 `IndeterminateComponent`。首次挂载时，`beginWork` 会调用 `mountIndeterminateComponent`，执行一次组件函数，再根据返回结果把它“定型”为函数组件或类组件。这样设计是为了兼容早期不返回 JSX 的函数组件写法。
+普通函数组件的 `tag` 不是 `FunctionComponent`，而是 `IndeterminateComponent`。首次挂载时，`beginWork` 会调用 `mountIndeterminateComponent`，执行一次组件函数，再根据返回结果把它“**定型**”为函数组件或类组件。这样设计是为了兼容早期不返回 JSX 的函数组件写法。
 
 ### 5.3 从 Element 到 Fiber 的完整链路
 
@@ -569,13 +608,15 @@ flowchart LR
     F --> G["beginWork 协调子树"]
 ```
 
-`createFiberFromElement` 不创建 DOM，只建立链表节点；真正的 DOM 创建发生在 `completeWork`，而子节点协调发生在 `beginWork`。关于 Fiber 自身的字段与双缓冲，可以继续阅读 [Fiber 节点](/frameworks/react/advanced/source-code/reconciler/fiberNode)。
+`createFiberFromElement` 不创建 DOM，只建立链表节点；真正的 DOM 创建发生在 `completeWork`，而子节点协调发生在 `beginWork`。
 
 ## 6. Fragment、Provider 与 Consumer
 
 ### 6.1 Fragment
 
-`<>...</>` 编译后 `type` 是 `REACT_FRAGMENT_TYPE`。它不会创建 DOM，只会在 Fiber 树中充当透明容器：
+`<>...</>` 编译后 `type` 是 `REACT_FRAGMENT_TYPE`。它不会创建 DOM，只会在 Fiber 树中充当透明容器。`createFiberFromFragment` 本身只是给底层的 `createFiber` 固定 `Fragment` 这个 tag，再补上 lanes：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiber.old.js]
 export function createFiberFromFragment(
@@ -584,11 +625,27 @@ export function createFiberFromFragment(
   lanes: Lanes,
   key: null | string,
 ): Fiber {
+  // Fragment 没有自己的 props，直接把 children 当作 pendingProps。
   const fiber = createFiber(Fragment, elements, key, mode)
   fiber.lanes = lanes
   return fiber
 }
+
+// ...
+
+// Fiber 的构造入口：所有 createFiberFrom* 最终都落到这里。
+const createFiber = function (
+  tag: WorkTag,
+  pendingProps: mixed,
+  key: null | string,
+  mode: TypeOfMode,
+): Fiber {
+  // $FlowFixMe: the shapes are exact here but Flow doesn't like constructors
+  return new FiberNode(tag, pendingProps, key, mode)
+}
 ```
+
+:::
 
 注意 Fragment 直接复用 `pendingProps.children` 作为 `pendingProps`，因此 `beginWork` 对 `Fragment` 的处理就是取出 `props.children` 继续向下协调。
 
@@ -600,36 +657,36 @@ export function createFiberFromFragment(
 
 ```ts [react/src/ReactContext.js]
 export function createContext<T>(defaultValue: T): ReactContext<T> {
+  // context 对象同时承载 Provider、Consumer 与当前值。
   const context: ReactContext<T> = {
-    $$typeof: REACT_CONTEXT_TYPE,
-    _currentValue: defaultValue,
-    _currentValue2: defaultValue,
-    _threadCount: 0,
-    // These are circular
+    $$typeof: REACT_CONTEXT_TYPE, // 标记这是 context 对象
+    _currentValue: defaultValue, // 当前渲染器读取的值
+    _currentValue2: defaultValue, // 第二个渲染器独立维护的值
+    _threadCount: 0, // 并发渲染器的引用计数
+    // Provider 与 Consumer 会反向引用 context，形成循环结构。
     Provider: (null: any),
     Consumer: (null: any),
 
-    // Add these to use same hidden class in VM as ServerContext
+    // 补齐字段，让 VM 中的隐藏类与 ServerContext 保持一致。
     _defaultValue: (null: any),
     _globalName: (null: any),
   };
 
+  // Provider 通过 _context 指回 context 对象。
   context.Provider = {
     $$typeof: REACT_PROVIDER_TYPE,
     _context: context,
   };
 
-  if (__DEV__) {
-    // 开发构建会创建一个带警告的 Consumer 代理对象
-  } else {
-    context.Consumer = context;
-  }
+  // 省略 __DEV__ 下带警告的 Consumer 代理对象；生产构建直接复用 context 自身。
+  context.Consumer = context;
 
   return context;
 }
 ```
 
 ```ts [shared/ReactSymbols.js]
+// Provider 与 Consumer 的区分完全依赖这两个 Symbol。
 export const REACT_PROVIDER_TYPE = Symbol.for('react.provider')
 export const REACT_CONTEXT_TYPE = Symbol.for('react.context')
 ```
@@ -640,29 +697,10 @@ export const REACT_CONTEXT_TYPE = Symbol.for('react.context')
 - `<Context.Consumer>{value => ...}</Context.Consumer>` 的 `type` 就是 `context` 本身，因此识别为 `ContextConsumer`。
 - 两者最终都指向同一个 `_currentValue`，这也是 `useContext` 能直接读取当前值的原因。Context 的依赖传播细节见 [Context 与依赖传播](/frameworks/react/advanced/source-code/context/context)。
 
-## 7. 与简化实现的差异
-
-这里的“简化实现”指仓库中用于教学的 mini-react / xunbei-react 版本。它们通常只保留“函数组件、类组件、原生标签、Fragment、Provider、Consumer”六种分发，并把 Element 到 Fiber 的转换压缩成一个函数。与 React 18.3.1 的主要差异如下：
-
-[width(16,59,25)]
-
-| 维度         | React 18.3.1                                                  | 简化实现                                          |
-| ------------ | ------------------------------------------------------------- | ------------------------------------------------- |
-| 元素标识     | `Symbol.for('react.element')`                                 | 可能使用 React 19 的 `react.transitional.element` |
-| JSX runtime  | 自带 `react/jsx-runtime`，区分 `jsx` / `jsxs` / `jsxDEV`      | 往往直接消费官方 runtime 的产物                   |
-| 类型分发     | 覆盖 `memo`、`lazy`、`forwardRef`、`Suspense`、`Offscreen` 等 | 只保留常用六种                                    |
-| 函数组件 tag | 先设为 `IndeterminateComponent`，挂载时再定型                 | 可能直接写成 `FunctionComponent`                  |
-| 开发期字段   | `_store`、`_self`、`_source`、`_debugSource` 等               | 通常省略                                          |
-| 安全校验     | 创建与协调两处都依赖 `$$typeof`                               | 可能只做简单判断                                  |
-
-因此，简化实现足以跑通大部分 demo，但不能直接用来解释 React 18 的完整类型分发和开发期行为。阅读源码时，应以 `.old.js` 中的官方实现为准。
-
-## 8. 总结
+## 7. 总结
 
 - `ReactElement` 是纯数据，`$$typeof` 用 Symbol 保证它无法被 JSON 伪造。
-- Element 的 `type` 决定 Fiber 的 `tag`，`key` 决定 Diff 时能否复用，`props.children` 决定下一层协调的输入。
-- `createElement` 与 `jsx` / `jsxs` 只是两种创建 Element 的入口，最终都会调用同一个 `ReactElement` 工厂。
+- Element的`type`决定Fiber的`tag`，`key`决定Diff时能否复用，`props.children`决定下一层协调的输入。
+- `createElement`与`jsx`/`jsxs`只是两种创建Element的入口，最终都会调用同一个`ReactElement`工厂。
 - 普通函数组件先以 `IndeterminateComponent` 进入协调流程，挂载时才被定型。
 - 从 Element 到 Fiber 的入口是 `createFiberFromElement`，它不创建 DOM，只建立链表节点。
-
-下一篇进入 Fiber 节点本身，看看 React 如何把一棵 Element 树变成可中断、可标记的工作单元。

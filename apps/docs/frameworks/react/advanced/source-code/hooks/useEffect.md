@@ -4,7 +4,7 @@ outline: [2, 4]
 
 # useEffect
 
-`useEffect` 是三种 Effect 中最“晚”执行的一种：它不阻塞浏览器绘制，而是在 Commit 完成后由 Scheduler 异步回调。实现上，它用 `HookPassive` 标记 Effect，用 `PassiveEffect | PassiveStaticEffect` 标记 Fiber，并把待执行的回调挂到根节点的 `pendingPassiveEffects` 上。
+`useEffect` 是三种 Effect 中最“**晚**”执行的一种：它不阻塞浏览器绘制，而是在 Commit 完成后由 Scheduler 异步回调。实现上，它用 `HookPassive` 标记 Effect，用 `PassiveEffect | PassiveStaticEffect` 标记 Fiber，并把待执行的回调挂到根节点的 `pendingPassiveEffects` 上。
 
 `useEffect`、`useLayoutEffect` 与 `useInsertionEffect` 共用 `mountEffectImpl` / `updateEffectImpl`，差异体现在 Fiber 标记、Effect 标记和执行阶段。本文先讲三者共用的数据结构、链表与执行顺序，再展开 `useEffect` 的入口函数与 Passive 调度；`useLayoutEffect` 与 `useInsertionEffect` 的专属执行路径见各自文档。
 
@@ -12,7 +12,7 @@ outline: [2, 4]
 
 ## 1. 三种 Effect 与执行时机
 
-三者的区别不在“做什么”，而在“什么时候做”：
+三者的区别不在“**做什么**”，而在“**什么时候做**”：
 
 - `useInsertionEffect`：Mutation 阶段早期同步执行，主要供 CSS-in-JS 注入样式。
 - `useLayoutEffect`：DOM 已变更、浏览器尚未绘制，**同步**执行。
@@ -28,7 +28,7 @@ outline: [2, 4]
 | `useLayoutEffect`    | `UpdateEffect`（满足条件时再加 `LayoutStaticEffect`） | `HookLayout`    | Mutation 之后、浏览器绘制之前，同步  |
 | `useInsertionEffect` | `UpdateEffect`                                        | `HookInsertion` | Mutation 阶段早期，早于 Layout，同步 |
 
-Fiber 标记用于让 Commit 阶段知道“这棵子树有没有对应类型的副作用”，Effect 标记用于在遍历 Effect 循环链表时过滤具体节点。两者是不同层级的位掩码，不能混为一谈。
+Fiber 标记用于让 Commit 阶段知道“**这棵子树有没有对应类型的副作用**”，Effect 标记用于在遍历 Effect 循环链表时过滤具体节点。两者是不同层级的位掩码，不能混为一谈。
 
 ### 1.2 一次更新的时间线
 
@@ -50,10 +50,13 @@ flowchart LR
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 export type Effect = {|
+  // 位标记：执行阶段 + 本次是否需要执行。
   tag: HookFlags,
   create: () => (() => void) | void,
   destroy: (() => void) | void,
+  // 依赖数组，null 表示每次渲染都执行。
   deps: Array<mixed> | null,
+  // 串成循环链表，挂在 Fiber.updateQueue 上。
   next: Effect,
 |};
 ```
@@ -63,10 +66,10 @@ export type HookFlags = number
 
 export const NoFlags = /*   */ 0b0000
 
-// Represents whether effect should fire.
+// 表示该 Effect 本次是否需要执行。
 export const HasEffect = /* */ 0b0001
 
-// Represents the phase in which the effect (not the clean-up) fires.
+// 表示 Effect（而非清理函数）在哪个阶段执行。
 export const Insertion = /*  */ 0b0010
 export const Layout = /*    */ 0b0100
 export const Passive = /*   */ 0b1000
@@ -85,7 +88,9 @@ Effect 节点不挂在 `hook.queue` 上，而是挂在函数组件 Fiber 的 `up
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 export type FunctionComponentUpdateQueue = {|
+  // 指向 Effect 循环链表的最后一个节点，next 即最早节点。
   lastEffect: Effect | null,
+  // useSyncExternalStore 的一致性检查。
   stores: Array<StoreConsistencyCheck<any>> | null,
 |};
 ```
@@ -100,9 +105,13 @@ export type FunctionComponentUpdateQueue = {|
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function mountEffectImpl(fiberFlags, hookFlags, create, deps): void {
+  // 挂载阶段新建 Hook 节点。
   const hook = mountWorkInProgressHook()
+  // 不传依赖时归一为 null，表示每次渲染都执行。
   const nextDeps = deps === undefined ? null : deps
+  // 给 Fiber 打标记，Commit 阶段据此判断子树是否含副作用。
   currentlyRenderingFiber.flags |= fiberFlags
+  // 挂载时一定执行，因此 tag 带上 HookHasEffect。
   hook.memoizedState = pushEffect(
     HookHasEffect | hookFlags,
     create,
@@ -110,26 +119,28 @@ function mountEffectImpl(fiberFlags, hookFlags, create, deps): void {
     nextDeps,
   )
 }
-```
 
-```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function updateEffectImpl(fiberFlags, hookFlags, create, deps): void {
+  // 取出 current 树上对应位置的 Hook。
   const hook = updateWorkInProgressHook()
   const nextDeps = deps === undefined ? null : deps
   let destroy = undefined
 
   if (currentHook !== null) {
     const prevEffect = currentHook.memoizedState
+    // 沿用上一次 create 返回的清理函数。
     destroy = prevEffect.destroy
     if (nextDeps !== null) {
       const prevDeps = prevEffect.deps
       if (areHookInputsEqual(nextDeps, prevDeps)) {
+        // 依赖相等：仍 push 新节点，但不带 HookHasEffect，本次不执行。
         hook.memoizedState = pushEffect(hookFlags, create, destroy, nextDeps)
         return
       }
     }
   }
 
+  // 需要执行：打 Fiber 标记，并让 tag 带上 HookHasEffect。
   currentlyRenderingFiber.flags |= fiberFlags
 
   hook.memoizedState = pushEffect(
@@ -174,19 +185,23 @@ function pushEffect(tag, create, destroy, deps) {
     create,
     destroy,
     deps,
-    // Circular
+    // 环形：next 最后会指回队首。
     next: (null: any),
   };
+  // Effect 链表挂在组件的 updateQueue 上，而不是 hook.queue。
   let componentUpdateQueue: null | FunctionComponentUpdateQueue = (currentlyRenderingFiber.updateQueue: any);
   if (componentUpdateQueue === null) {
     componentUpdateQueue = createFunctionComponentUpdateQueue();
     currentlyRenderingFiber.updateQueue = (componentUpdateQueue: any);
+    // 首次 push：新节点自指，构成只有一个节点的环。
     componentUpdateQueue.lastEffect = effect.next = effect;
   } else {
     const lastEffect = componentUpdateQueue.lastEffect;
     if (lastEffect === null) {
+      // 队列已建立但还没有 effect。
       componentUpdateQueue.lastEffect = effect.next = effect;
     } else {
+      // 插到 lastEffect 之后，并让它成为新的尾节点。
       const firstEffect = lastEffect.next;
       lastEffect.next = effect;
       effect.next = firstEffect;
@@ -223,15 +238,17 @@ lastEffect ──▶ effect3 ──next──▶ effect1 ──next──▶ eff
 function commitHookEffectListMount(flags: HookFlags, finishedWork: Fiber) {
   const updateQueue: FunctionComponentUpdateQueue | null = (finishedWork.updateQueue: any);
   const lastEffect = updateQueue !== null ? updateQueue.lastEffect : null;
+  // 链表非空时，从 lastEffect.next（最早节点）开始绕环一周。
   if (lastEffect !== null) {
     const firstEffect = lastEffect.next;
     let effect = firstEffect;
     do {
+      // tag 覆盖 flags 的 Effect 才在本次执行。
       if ((effect.tag & flags) === flags) {
-        // Mount
+        // 执行 create，返回值存为下次的 destroy。
         const create = effect.create;
         effect.destroy = create();
-        // ... DEV 下会检查 create 是否返回了函数，以及是否在渲染中更新
+        // 省略 DEV 下对 create 返回值与渲染期更新的校验。
       }
       effect = effect.next;
     } while (effect !== firstEffect);
@@ -251,13 +268,15 @@ function commitHookEffectListUnmount(
 ) {
   const updateQueue: FunctionComponentUpdateQueue | null = (finishedWork.updateQueue: any);
   const lastEffect = updateQueue !== null ? updateQueue.lastEffect : null;
+  // 同样从最早节点开始绕环遍历。
   if (lastEffect !== null) {
     const firstEffect = lastEffect.next;
     let effect = firstEffect;
     do {
       if ((effect.tag & flags) === flags) {
-        // Unmount
+        // 执行上一次 create 返回的清理函数。
         const destroy = effect.destroy;
+        // 先清空，避免同一次提交中重复清理。
         effect.destroy = undefined;
         if (destroy !== undefined) {
           safelyCallDestroy(finishedWork, nearestMountedAncestor, destroy);
@@ -291,29 +310,23 @@ function commitMutationEffectsOnFiber(
       recursivelyTraverseMutationEffects(root, finishedWork, lanes)
       commitReconciliationEffects(finishedWork)
 
+      // 只有 Update 标记的 Fiber 才需要处理 effect。
       if (flags & Update) {
-        try {
-          commitHookEffectListUnmount(
-            HookInsertion | HookHasEffect,
-            finishedWork,
-            finishedWork.return,
-          )
-          commitHookEffectListMount(HookInsertion | HookHasEffect, finishedWork)
-        } catch (error) {
-          captureCommitPhaseError(finishedWork, finishedWork.return, error)
-        }
+        // 省略 各调用外的错误捕获。
+        // Insertion Effect 的 destroy 与 create 都在 Mutation 早期同步执行。
+        commitHookEffectListUnmount(
+          HookInsertion | HookHasEffect,
+          finishedWork,
+          finishedWork.return,
+        )
+        commitHookEffectListMount(HookInsertion | HookHasEffect, finishedWork)
 
-        // Layout effects are destroyed during the mutation phase so that all
-        // destroy functions for all fibers are called before any create functions.
-        try {
-          commitHookEffectListUnmount(
-            HookLayout | HookHasEffect,
-            finishedWork,
-            finishedWork.return,
-          )
-        } catch (error) {
-          captureCommitPhaseError(finishedWork, finishedWork.return, error)
-        }
+        // Layout Effect 只在这里执行 destroy，所有 create 统一留到 Layout 阶段。
+        commitHookEffectListUnmount(
+          HookLayout | HookHasEffect,
+          finishedWork,
+          finishedWork.return,
+        )
       }
       return
     }
@@ -372,6 +385,7 @@ function mountEffect(
     enableStrictEffects &&
     (currentlyRenderingFiber.mode & StrictEffectsMode) !== NoMode
   ) {
+    // Strict Effects 下额外带 MountPassiveDevEffect，用于模拟卸载再挂载。
     return mountEffectImpl(
       MountPassiveDevEffect | PassiveEffect | PassiveStaticEffect,
       HookPassive,
@@ -379,6 +393,7 @@ function mountEffect(
       deps,
     )
   } else {
+    // 非 Strict Effects 下只带 PassiveStaticEffect 静态标记，不模拟双调用。
     return mountEffectImpl(
       PassiveEffect | PassiveStaticEffect,
       HookPassive,
@@ -392,6 +407,7 @@ function updateEffect(
   create: () => (() => void) | void,
   deps: Array<mixed> | void | null,
 ): void {
+  // 更新阶段只传 PassiveEffect，是否执行由 HookHasEffect 决定。
   return updateEffectImpl(PassiveEffect, HookPassive, create, deps)
 }
 ```
@@ -400,7 +416,7 @@ function updateEffect(
 
 与另外两种 Effect 相比，`useEffect` 的标记有两个特点：
 
-- **Fiber 标记带 `PassiveStaticEffect`**：即使依赖没有变化，也标记“这个组件含有静态 Passive Effect”，方便 Commit 阶段决定是否需要调度 Passive 回调。
+- **Fiber 标记带 `PassiveStaticEffect`**：即使依赖没有变化，也标记“**这个组件含有静态 Passive Effect**”，方便 Commit 阶段决定是否需要调度 Passive 回调。
 - **开发构建下可能带 `MountPassiveDevEffect`**：Strict Effects 模式下，挂载时的 Effect 会被额外标记，用于模拟卸载与重新挂载，帮助暴露没有正确清理的副作用。
 
 `updateEffect` 只传 `PassiveEffect`，因为更新阶段的执行由 `HookHasEffect` 控制，不需要静态标记。
@@ -428,15 +444,16 @@ if (
   (finishedWork.subtreeFlags & PassiveMask) !== NoFlags ||
   (finishedWork.flags & PassiveMask) !== NoFlags
 ) {
+  // 同一个根节点只调度一次 Passive 回调。
   if (!rootDoesHavePassiveEffects) {
     rootDoesHavePassiveEffects = true
+    // 保存本次渲染的 lane 与 transition，供回调执行时使用。
     pendingPassiveEffectsRemainingLanes = remainingLanes
     pendingPassiveTransitions = transitions
     scheduleCallback(NormalSchedulerPriority, () => {
       flushPassiveEffects()
-      // This render triggered passive effects: release the root cache pool
-      // *after* passive effects fire to avoid freeing a cache pool that may
-      // be referenced by a node in the tree (HostRoot, Cache boundary etc)
+      // Passive 回调执行后再释放 root 的 cache pool，
+      // 避免释放仍被树中节点（HostRoot、Cache 边界等）引用的缓存池。
       return null
     })
   }
@@ -455,11 +472,12 @@ if (
 真正的刷新发生在 `flushPassiveEffectsImpl`：
 
 ```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
+// 先清理上一次的副作用，再执行本次的副作用。
 commitPassiveUnmountEffects(root.current)
 commitPassiveMountEffects(root, root.current, lanes, transitions)
 ```
 
-顺序固定为“先清理上一次的副作用，再执行本次的副作用”。这样即使组件在更新中更换了依赖，也能保证旧订阅先解除、新订阅再建立，不会出现重复订阅。
+顺序固定为“**先清理上一次的副作用，再执行本次的副作用**”。这样即使组件在更新中更换了依赖，也能保证旧订阅先解除、新订阅再建立，不会出现重复订阅。
 
 如果本次渲染被更高优先级的更新打断，`flushPassiveEffects` 会在新的渲染开始前先同步刷新已挂起的 Passive Effect，避免副作用与页面状态不一致。
 
@@ -478,15 +496,16 @@ function commitPassiveMountOnFiber(
     case FunctionComponent:
     case ForwardRef:
     case SimpleMemoComponent: {
+      // 回退到函数组件节点时执行本次的 Passive create。
       commitHookEffectListMount(HookPassive | HookHasEffect, finishedWork)
       break
     }
-    // ... HostRoot、Cache 等分支
+    // 省略 HostRoot、Cache 等分支。
   }
 }
 ```
 
-遍历方向是**子先父后**：`commitPassiveMountEffects_begin` 先向下遍历 child，再在回退时处理当前节点。这与 React 中“子组件的副作用先于父组件执行”的直觉一致。
+遍历方向是**子先父后**：`commitPassiveMountEffects_begin` 先向下遍历 child，再在回退时处理当前节点。这与 React 中“**子组件的副作用先于父组件执行**”的直觉一致。
 
 ## 10. 卸载清理
 
@@ -501,21 +520,22 @@ function commitPassiveUnmountInsideDeletedTreeOnFiber(
     case FunctionComponent:
     case ForwardRef:
     case SimpleMemoComponent: {
+      // 删除路径不带 HookHasEffect，清理该组件的全部 Passive effect。
       commitHookEffectListUnmount(HookPassive, current, nearestMountedAncestor)
       break
     }
-    // ... HostRoot 等分支
+    // 省略 HostRoot 等分支。
   }
 }
 ```
 
 对比来看，组件仍在树上、只是发生更新时，`commitPassiveUnmountOnFiber` 使用的是 `HookPassive | HookHasEffect`，只清理本次依赖确实变化的旧 Effect；而删除路径使用 `HookPassive`，保证卸载时不会漏掉任何一个 `create` 返回的 `destroy`。
 
-对于仍在树上的组件，Passive unmount 先处理子节点，再处理父节点；对于被删除的子树，注释明确说明是 parent → child。两种遍历方向不同，但都保证“清理函数在对应的 create 之后、下次 create 之前执行”。
+对于仍在树上的组件，Passive unmount 先处理子节点，再处理父节点；对于被删除的子树，注释明确说明是 parent → child。两种遍历方向不同，但都保证“**清理函数在对应的 create 之后、下次 create 之前执行**”。
 
 ## 11. 与简化实现的差异
 
-这里的“简化实现”指仓库中用于教学的 mini-react / xunbei-react 版本。它们通常把 Layout Effect 和 Passive Effect 都放在 Commit 阶段同步处理，并且只用一个 `finishedWork` 引用保存待执行的 Passive Effect。与 React 18.3.1 的差异如下：
+这里的“**简化实现**”指仓库中用于教学的 mini-react / xunbei-react 版本。它们通常把 Layout Effect 和 Passive Effect 都放在 Commit 阶段同步处理，并且只用一个 `finishedWork` 引用保存待执行的 Passive Effect。与 React 18.3.1 的差异如下：
 
 [width(19,40,41)]
 
@@ -528,7 +548,7 @@ function commitPassiveUnmountInsideDeletedTreeOnFiber(
 | 优先级         | 按 lanes 计算 Passive 回调优先级                                      | 没有优先级与批次概念                    |
 | Insertion Hook | 有完整实现                                                            | 可能只定义了标记，没有执行逻辑          |
 
-最关键的区别是 `HookHasEffect`：官方用它区分“本次真的要执行”和“只是保留清理函数”。没有这个位，就无法在不执行 create 的情况下安全地携带 destroy。
+最关键的区别是 `HookHasEffect`：官方用它区分“**本次真的要执行**”和“**只是保留清理函数**”。没有这个位，就无法在不执行 create 的情况下安全地携带 destroy。
 
 ## 12. 总结
 
@@ -559,4 +579,4 @@ function commitPassiveUnmountInsideDeletedTreeOnFiber(
 | 是否阻塞绘制 | 否                 | 是                     | 是                   |
 | 典型场景     | 请求、订阅、日志   | 测量布局、同步修改 DOM | CSS-in-JS 注入样式   |
 
-Effect 的核心是“循环链表 + 依赖比较 + 标记驱动执行”。理解它之后，Commit 阶段的 Mutation / Layout / Passive 流程就只剩下具体的遍历与 DOM 操作本身了。下一步可以结合 [Commit 阶段](/frameworks/react/advanced/source-code/commit/commitWork) 一起阅读；需要同步读取布局时使用 [useLayoutEffect](/frameworks/react/advanced/source-code/hooks/useLayoutEffect)，需要在 Mutation 早期注入样式时使用 [useInsertionEffect](/frameworks/react/advanced/source-code/hooks/useInsertionEffect)。
+Effect 的核心是“**循环链表 + 依赖比较 + 标记驱动执行**”。理解它之后，Commit 阶段的 Mutation / Layout / Passive 流程就只剩下具体的遍历与 DOM 操作本身了。下一步可以结合 [Commit 阶段](/frameworks/react/advanced/source-code/commit/commitWork) 一起阅读；需要同步读取布局时使用 [useLayoutEffect](/frameworks/react/advanced/source-code/hooks/useLayoutEffect)，需要在 Mutation 早期注入样式时使用 [useInsertionEffect](/frameworks/react/advanced/source-code/hooks/useInsertionEffect)。

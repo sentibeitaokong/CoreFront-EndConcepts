@@ -13,17 +13,16 @@ outline: [2, 4]
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function mountRef<T>(initialValue: T): {|current: T|} {
   const hook = mountWorkInProgressHook();
-  if (enableUseRefAccessWarning) {
-    // ... DEV 下返回一个带 getter/setter 的对象，用于警告渲染期读写
-  } else {
-    const ref = {current: initialValue};
-    hook.memoizedState = ref;
-    return ref;
-  }
+  // 省略 enableUseRefAccessWarning 开启时的 DEV 警告对象
+  // 默认构建创建普通对象并存入 Hook 节点。
+  const ref = {current: initialValue};
+  hook.memoizedState = ref;
+  return ref;
 }
 
 function updateRef<T>(initialValue: T): {|current: T|} {
   const hook = updateWorkInProgressHook();
+  // 直接返回同一个对象，忽略新的 initialValue。
   return hook.memoizedState;
 }
 ```
@@ -34,7 +33,7 @@ function updateRef<T>(initialValue: T): {|current: T|} {
 - Update 时直接返回同一个对象，完全忽略新的 `initialValue`。
 - 修改 `ref.current` 不会触发渲染，因为 React 不监听这个普通对象。
 
-`enableUseRefAccessWarning` 是开发期的可选特性，开启后会返回一个带 `get current()` / `set current()` 的对象，用于警告“在渲染期间读写 ref”。默认构建走 `else` 分支，就是普通对象。
+`enableUseRefAccessWarning` 是开发期的可选特性，开启后会返回一个带 `get current()` / `set current()` 的对象，用于警告“**在渲染期间读写 ref**”。默认构建返回的就是普通对象。
 
 ## 2. 为什么能跨渲染保持不变
 
@@ -46,14 +45,13 @@ function updateRef<T>(initialValue: T): {|current: T|} {
 
 `useRef` 只负责创建对象，真正的 DOM 赋值发生在 Commit 阶段：
 
-:::code-group
-
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 function commitAttachRef(finishedWork: Fiber) {
-  const ref = finishedWork.ref
+  const ref = finishedWork.ref // 可能是回调函数或 { current } 对象
   if (ref !== null) {
     const instance = finishedWork.stateNode
     let instanceToUse
+    // HostComponent 取公开实例，其他类型直接使用 stateNode。
     switch (finishedWork.tag) {
       case HostComponent:
         instanceToUse = getPublicInstance(instance)
@@ -62,35 +60,22 @@ function commitAttachRef(finishedWork: Fiber) {
         instanceToUse = instance
     }
 
+    // 回调 ref 以实例为参数调用。
     if (typeof ref === 'function') {
-      let retVal
-      if (
-        enableProfilerTimer &&
-        enableProfilerCommitHooks &&
-        finishedWork.mode & ProfileMode
-      ) {
-        try {
-          startLayoutEffectTimer()
-          retVal = ref(instanceToUse)
-        } finally {
-          recordLayoutEffectDuration(finishedWork)
-        }
-      } else {
-        retVal = ref(instanceToUse)
-      }
-      // ... DEV 下会检查 retVal 是否为函数
+      // 省略 Profiler 计时
+      ref(instanceToUse)
     } else {
-      // ... DEV 下会检查 ref 是否带有 current
+      // 对象 ref 直接把实例写入 current。
       ref.current = instanceToUse
     }
+    // 省略 DEV 下对回调返回值与 ref 对象的校验
   }
 }
-```
 
-```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 function commitDetachRef(current: Fiber) {
   const currentRef = current.ref
   if (currentRef !== null) {
+    // 回调 ref 传 null 通知卸载，对象 ref 清空 current。
     if (typeof currentRef === 'function') {
       currentRef(null)
     } else {
@@ -99,8 +84,6 @@ function commitDetachRef(current: Fiber) {
   }
 }
 ```
-
-:::
 
 - `commitAttachRef` 把 `fiber.stateNode` 写入 `ref.current`，或作为参数调用回调 ref。
 - `commitDetachRef` 在卸载或 ref 变化时把 `ref.current` 置空。
@@ -113,11 +96,13 @@ function Timer() {
   const timerRef = useRef(null)
 
   useEffect(() => {
+    // 定时器 ID 存在 ref 中，修改它不会触发渲染。
     timerRef.current = window.setInterval(() => {
       console.log('tick')
     }, 1000)
 
     return () => {
+      // 清理函数在组件卸载时清除定时器。
       if (timerRef.current !== null) {
         clearInterval(timerRef.current)
       }
@@ -134,7 +119,7 @@ function Timer() {
 
 ## 5. 与简化实现的差异
 
-这里的“简化实现”指仓库中用于教学的 mini-react / xunbei-react 版本。它们通常只创建普通对象，也不会在 Commit 阶段完整处理 ref 的挂载与卸载。与 React 18.3.1 的差异如下：
+这里的“**简化实现**”指仓库中用于教学的 mini-react / xunbei-react 版本。它们通常只创建普通对象，也不会在 Commit 阶段完整处理 ref 的挂载与卸载。与 React 18.3.1 的差异如下：
 
 [width(18,62,20)]
 
@@ -156,4 +141,4 @@ function Timer() {
 | `commitDetachRef` | 卸载或 ref 变化时把 `ref.current` 置空            |
 | 不触发渲染        | 修改 `ref.current` 不会通知 React                 |
 
-`useRef` 适合保存“可变但不需要参与渲染”的数据。如果需要缓存计算结果或函数引用，分别见 [useMemo](/frameworks/react/advanced/source-code/hooks/useMemo) 与 [useCallback](/frameworks/react/advanced/source-code/hooks/useCallback)。
+`useRef` 适合保存“**可变但不需要参与渲染**”的数据。如果需要缓存计算结果或函数引用，分别见 [useMemo](/frameworks/react/advanced/source-code/hooks/useMemo) 与 [useCallback](/frameworks/react/advanced/source-code/hooks/useCallback)。

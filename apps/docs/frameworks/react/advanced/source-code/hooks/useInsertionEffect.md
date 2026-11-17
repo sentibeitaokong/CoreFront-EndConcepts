@@ -15,6 +15,7 @@ function mountInsertionEffect(
   create: () => (() => void) | void,
   deps: Array<mixed> | void | null,
 ): void {
+  // 与 useLayoutEffect 共用实现，Effect 类型标记为 HookInsertion。
   return mountEffectImpl(UpdateEffect, HookInsertion, create, deps)
 }
 
@@ -22,6 +23,7 @@ function updateInsertionEffect(
   create: () => (() => void) | void,
   deps: Array<mixed> | void | null,
 ): void {
+  // 更新阶段同样只传这两个标记，是否执行由依赖比较决定。
   return updateEffectImpl(UpdateEffect, HookInsertion, create, deps)
 }
 ```
@@ -73,4 +75,4 @@ Mutation
 | `commitMutationEffectsOnFiber` | 在 Mutation 阶段早期执行 destroy 与 create |
 | `HookHasEffect`                | 过滤出本次依赖变化的 Effect                |
 
-`useInsertionEffect` 的“早”是为了让样式在布局读取前生效；它不参与普通业务副作用的执行。需要读取布局时使用 [useLayoutEffect](/frameworks/react/advanced/source-code/hooks/useLayoutEffect)，不阻塞绘制时使用 [useEffect](/frameworks/react/advanced/source-code/hooks/useEffect)。
+`useInsertionEffect` 的“**早**”是为了让样式在布局读取前生效；它不参与普通业务副作用的执行。需要读取布局时使用 [useLayoutEffect](/frameworks/react/advanced/source-code/hooks/useLayoutEffect)，不阻塞绘制时使用 [useEffect](/frameworks/react/advanced/source-code/hooks/useEffect)。

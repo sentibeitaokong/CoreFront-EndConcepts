@@ -14,7 +14,7 @@ outline: [2, 4]
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function basicStateReducer<S>(state: S, action: BasicStateAction<S>): S {
-  // $FlowFixMe: Flow doesn't like mixed types
+  // action 是函数时以当前 state 为参数调用，否则直接作为新状态。
   return typeof action === 'function' ? action(state) : action
 }
 ```
@@ -30,6 +30,7 @@ function basicStateReducer<S>(state: S, action: BasicStateAction<S>): S {
 function updateState<S>(
   initialState: (() => S) | S,
 ): [S, Dispatch<BasicStateAction<S>>] {
+  // 更新阶段不使用 initialState，状态由 updateReducer 从 Hook 节点与队列中恢复。
   return updateReducer(basicStateReducer, (initialState: any));
 }
 ```
@@ -46,19 +47,20 @@ function mountState<S>(
 ): [S, Dispatch<BasicStateAction<S>>] {
   const hook = mountWorkInProgressHook();
   if (typeof initialState === 'function') {
-    // $FlowFixMe: Flow doesn't like mixed types
+    // 初始值是函数时视为惰性初始化，只在挂载阶段调用一次。
     initialState = initialState();
   }
   hook.memoizedState = hook.baseState = initialState;
   const queue: UpdateQueue<S, BasicStateAction<S>> = {
-    pending: null,
-    interleaved: null,
-    lanes: NoLanes,
-    dispatch: null,
-    lastRenderedReducer: basicStateReducer,
-    lastRenderedState: (initialState: any),
+    pending: null, // 待处理的更新环形队列
+    interleaved: null, // 交错更新的队列，用于并发渲染
+    lanes: NoLanes, // 队列中待处理更新的 lane 集合
+    dispatch: null, // 稍后绑定为 dispatchSetState
+    lastRenderedReducer: basicStateReducer, // 队列固定使用的 reducer
+    lastRenderedState: (initialState: any), // 上次渲染出的 state，供 eager 比较
   };
   hook.queue = queue;
+  // dispatch 预绑定当前 Fiber 与队列，函数引用在多次渲染间保持稳定。
   const dispatch: Dispatch<
     BasicStateAction<S>,
   > = (queue.dispatch = (dispatchSetState.bind(
@@ -89,7 +91,7 @@ updateState
       → 写回 hook.memoizedState
 ```
 
-因此 `useState` 在更新阶段没有额外的状态计算逻辑，所有“这次渲染能否处理这条更新”的判断都与 `useReducer` 一致。
+因此 `useState` 在更新阶段没有额外的状态计算逻辑，所有“**这次渲染能否处理这条更新**”的判断都与 `useReducer` 一致。
 
 ## 4. `dispatchSetState` 与 eager bailout
 
@@ -104,14 +106,15 @@ function dispatchSetState<S, A>(
   const lane = requestUpdateLane(fiber);
 
   const update: Update<S, A> = {
-    lane,
-    action,
-    hasEagerState: false,
-    eagerState: null,
-    next: (null: any),
+    lane, // 该更新所属的 lane
+    action, // 本次 dispatch 传入的值或函数
+    hasEagerState: false, // 是否已在 dispatch 阶段提前算出新状态
+    eagerState: null, // 提前算出的新状态，供渲染阶段复用
+    next: (null: any), // 环形队列的下一个节点
   };
 
   if (isRenderPhaseUpdate(fiber)) {
+    // 渲染期间调用 setState，直接放进本次渲染的更新队列。
     enqueueRenderPhaseUpdate(queue, update);
   } else {
     const alternate = fiber.alternate;
@@ -119,9 +122,7 @@ function dispatchSetState<S, A>(
       fiber.lanes === NoLanes &&
       (alternate === null || alternate.lanes === NoLanes)
     ) {
-      // The queue is currently empty, which means we can eagerly compute the
-      // next state before entering the render phase. If the new state is the
-      // same as the current state, we may be able to bail out entirely.
+      // 队列为空，可以在进入渲染阶段前提前算出新状态；若与当前状态相同就能直接 bailout。
       const lastRenderedReducer = queue.lastRenderedReducer;
       if (lastRenderedReducer !== null) {
         try {
@@ -130,7 +131,7 @@ function dispatchSetState<S, A>(
           update.hasEagerState = true;
           update.eagerState = eagerState;
           if (is(eagerState, currentState)) {
-            // Fast path. We can bail out without scheduling React to re-render.
+            // 快速路径：不调度重新渲染，直接退出。
             enqueueConcurrentHookUpdateAndEagerlyBailout(
               fiber,
               queue,
@@ -140,11 +141,7 @@ function dispatchSetState<S, A>(
             return;
           }
         } catch (error) {
-          // Suppress the error. It will throw again in the render phase.
-        } finally {
-          if (__DEV__) {
-            // ... 恢复之前的 Dispatcher
-          }
+          // 先吞掉错误，渲染阶段会再次抛出。
         }
       }
     }
@@ -157,7 +154,7 @@ function dispatchSetState<S, A>(
     }
   }
 
-  markUpdateInDevTools(fiber, lane, action);
+  // 省略 __DEV__ 下的 Dispatcher 恢复与 DevTools 标记
 }
 ```
 
@@ -166,7 +163,7 @@ function dispatchSetState<S, A>(
 - **相同值会 bailout**：`is(eagerState, currentState)` 为真时，Update 仍然入队（为了后续 rebase），但不会调度新的渲染。
 - **函数式更新按队列顺序叠加**：`lastRenderedReducer` 是 `basicStateReducer`。函数式 action 会进入队列，渲染时以当前累计状态依次执行；同一事件中的多次 `setState(fn)` 不会互相覆盖。
 
-eager 计算只在“队列为空”时进行：一旦 `fiber.lanes` 或 `alternate.lanes` 非空，说明已有待处理更新，React 无法保证提前计算的结果与队列最终结果一致，于是放弃快速路径，交给渲染阶段处理。
+eager 计算只在“**队列为空**”时进行：一旦 `fiber.lanes` 或 `alternate.lanes` 非空，说明已有待处理更新，React 无法保证提前计算的结果与队列最终结果一致，于是放弃快速路径，交给渲染阶段处理。
 
 ## 5. 函数式更新与批量
 
@@ -177,6 +174,7 @@ function Counter() {
   const [count, setCount] = useState(0)
 
   function handleClick() {
+    // 函数式更新依次叠加，每次都能拿到上一次累加后的状态。
     setCount(c => c + 1)
     setCount(c => c + 1)
     setCount(c => c + 1)

@@ -6,8 +6,6 @@ outline: [2, 4]
 
 React 18.3.1 的运行时围绕 Fiber 展开。它既是组件在内存中的表示，也是可中断的工作单元，同时还是由 `return`、`child`、`sibling` 串起来的树节点。理解 Fiber 的字段、创建方式和双缓冲，是继续阅读 `beginWork`、`completeWork`、Diff 与 Commit 的前提。
 
-Fiber 的实现位于 `packages/react-reconciler/src/ReactFiber.old.js`、`ReactInternalTypes.js`、`ReactWorkTags.js`、`ReactFiberFlags.js` 和 `ReactFiberCompleteWork.old.js`。React 18.3.1 默认使用 `.old.js` 分叉。代码引用会省略 Flow 类型标注、`__DEV__` 与 Profiler 分支，主体与官方源码一致。
-
 ## 1. Fiber 要解决的问题
 
 ### 1.1 从递归调用栈到链表
@@ -18,9 +16,9 @@ Fiber 的实现位于 `packages/react-reconciler/src/ReactFiber.old.js`、`React
 - 高优先级更新（输入、点击）必须排队等待。
 - 无法在浏览器需要绘制时让出控制权。
 
-Fiber 把递归调用栈“拍平”成链表：
+Fiber 把递归调用栈“**拍平**”成链表：
 
-```text
+```tree
 parent
   │ child
   ▼
@@ -52,160 +50,113 @@ first child ──sibling──▶ second child ──sibling──▶ third chi
 
 ```ts [react-reconciler/src/ReactFiber.old.js]
 function FiberNode(tag, pendingProps, key, mode) {
-  // Instance
-  this.tag = tag
-  this.key = key
-  this.elementType = null
-  this.type = null
-  this.stateNode = null
+  // 实例信息
+  this.tag = tag // Fiber 类型，决定 beginWork / completeWork 走哪个分支
+  this.key = key // 列表 Diff 的身份标识
+  this.elementType = null // 元素原始类型，如 'div'、App、Fragment
+  this.type = null // 实际参与渲染的类型，通常与 elementType 相同
+  this.stateNode = null // 关联的宿主节点或组件实例（DOM、类实例、FiberRoot）
 
   // Fiber：由三个指针组成的链表树
-  this.return = null
-  this.child = null
-  this.sibling = null
-  this.index = 0
+  this.return = null // 父 Fiber；完成工作后返回这里
+  this.child = null // 第一个子 Fiber
+  this.sibling = null // 下一个兄弟 Fiber
+  this.index = 0 // 在父节点子列表中的位置，Diff 判断是否移动时使用
 
-  this.ref = null
+  this.ref = null // 本次渲染要绑定的 ref
 
-  this.pendingProps = pendingProps
-  this.memoizedProps = null
-  this.updateQueue = null
-  this.memoizedState = null
-  this.dependencies = null
+  this.pendingProps = pendingProps // 本次渲染待处理的新 props
+  this.memoizedProps = null // 上一次渲染完成后的 props
+  this.updateQueue = null // 更新队列；函数组件中存放 Effect 循环链表
+  this.memoizedState = null // 上一次渲染后的状态；函数组件中指向第一个 Hook
+  this.dependencies = null // Context 依赖链表
 
-  this.mode = mode
+  this.mode = mode // 子树模式位，如 ConcurrentMode、StrictLegacyMode
 
-  // Effects
-  this.flags = NoFlags
-  this.subtreeFlags = NoFlags
-  this.deletions = null
+  // 副作用与优先级
+  this.flags = NoFlags // 当前 Fiber 自身的副作用位掩码
+  this.subtreeFlags = NoFlags // 子树副作用标记汇总，供 Commit 剪枝
+  this.deletions = null // 本轮需要删除的子 Fiber 数组
 
-  this.lanes = NoLanes
-  this.childLanes = NoLanes
+  this.lanes = NoLanes // 当前 Fiber 上待处理的优先级
+  this.childLanes = NoLanes // 子树中待处理的优先级汇总
 
-  this.alternate = null
+  this.alternate = null // 另一棵 Fiber 树中的对应节点，双缓冲的关键
 
-  // 省略 enableProfilerTimer 分支中的 actualDuration、treeBaseDuration 等字段
+  // 省略 enableProfilerTimer 下的性能字段，以及 __DEV__ 下的调试字段
 }
 ```
 
 :::
 
-### 2.2 字段说明
+`flags` 与 `subtreeFlags` 的分工是理解 React 18 提交优化的关键：`flags` 描述“**这个节点自己要不要做什么**”，`subtreeFlags` 描述“**这棵子树里有没有值得提交的事情**”。父节点在 `completeWork` 阶段把子节点的标记向上汇总，Commit 阶段就可以整棵跳过没有效果的子树。
 
-[width(22,78)]
+### 2.2 三个链表指针
 
-| 字段                         | 含义                                                                 |
-| ---------------------------- | -------------------------------------------------------------------- |
-| `tag`                        | Fiber 类型，决定 `beginWork` / `completeWork` 走哪个分支             |
-| `key`                        | 列表 Diff 的身份标识                                                 |
-| `elementType`                | 元素原始类型，如 `'div'`、`App`、`Fragment`                          |
-| `type`                       | 实际参与渲染的类型，通常与 `elementType` 相同                        |
-| `stateNode`                  | 关联的宿主节点或组件实例：DOM、文本节点、类实例、`FiberRoot`         |
-| `return`                     | 父 Fiber；含义是“完成工作后返回哪里”                                 |
-| `child`                      | 第一个子 Fiber                                                       |
-| `sibling`                    | 下一个兄弟 Fiber                                                     |
-| `index`                      | 在父节点子列表中的位置，Diff 判断是否移动时使用                      |
-| `ref`                        | 本次渲染要绑定的 ref                                                 |
-| `pendingProps`               | 本次渲染待处理的新 props                                             |
-| `memoizedProps`              | 上一次渲染完成后的 props                                             |
-| `updateQueue`                | 更新队列；函数组件中存放 Effect 循环链表                             |
-| `memoizedState`              | 上一次渲染后的状态；函数组件中指向第一个 Hook                        |
-| `dependencies`               | Context 依赖链表                                                     |
-| `mode`                       | 子树模式位，如 `ConcurrentMode`、`StrictLegacyMode`                  |
-| `flags`                      | 当前 Fiber 自身的副作用位掩码                                        |
-| `subtreeFlags`               | 子树副作用标记汇总，Commit 时可据此跳过无副作用子树                  |
-| `deletions`                  | 本轮需要删除的子 Fiber 数组                                          |
-| `nextEffect`                 | 旧 effect list 的遗留字段                                            |
-| `firstEffect` / `lastEffect` | 旧 effect list 的头尾指针；18 的提交路径主要依赖 `subtreeFlags` 剪枝 |
-| `lanes`                      | 当前 Fiber 上待处理的优先级                                          |
-| `childLanes`                 | 子树中待处理的优先级汇总                                             |
-| `alternate`                  | 另一棵 Fiber 树中的对应节点，双缓冲的关键                            |
+Fiber 放弃了传统的 `children: []` 数组，改用 **“第一个子节点 + 兄弟节点 + 父节点”三指针链表**：
 
-`flags` 与 `subtreeFlags` 的分工是理解 React 18 提交优化的关键：`flags` 描述“这个节点自己要不要做什么”，`subtreeFlags` 描述“这棵子树里有没有值得提交的事情”。父节点在 `completeWork` 阶段把子节点的标记向上汇总，Commit 阶段就可以整棵跳过没有效果的子树。
+```mermaid
+graph TD
+    Root[FiberRoot<br/>容器根] -->|child| A[Fiber A<br/>HostRoot]
+    A -->|child| B[Fiber B<br/>div]
+    B -->|child| C[Fiber C<br/>span]
+    C -->|sibling| D[Fiber D<br/>text]
+    B -->|sibling| E[Fiber E<br/>button]
+    E -->|child| F[Fiber F<br/>text]
 
-### 2.3 三个链表指针
+    A -->|return| Root
+    B -->|return| A
+    C -->|return| B
+    D -->|return| B
+    E -->|return| A
+    F -->|return| E
 
-`return`、`child`、`sibling` 构成了一棵“用链表表示的树”：
-
-- 向下：`child`
-- 横向：`sibling`
-- 向上：`return`
-
-深度优先遍历的顺序可以写成：
-
-```text
-beginWork(parent)
-  → beginWork(child)
-    → beginWork(grandchild)
-    → completeWork(grandchild)
-  → completeWork(child)
-→ beginWork(sibling)
-  → completeWork(sibling)
-→ completeWork(parent)
+    style Root fill:#f9f,stroke:#333
+    style A fill:#bbf,stroke:#333
+    style B fill:#bbf,stroke:#333
+    style C fill:#bbf,stroke:#333
+    style D fill:#bbf,stroke:#333
+    style E fill:#bbf,stroke:#333
+    style F fill:#bbf,stroke:#333
 ```
 
 ## 3. Fiber 的类型标签
 
-`ReactWorkTags.js` 使用数字而不是字符串，方便 `switch` 做整数比较。完整标签覆盖 0 到 25，下面摘录官方常量定义。
+`ReactWorkTags.js` 使用数字而不是字符串，方便 `switch` 做整数比较。
 
 :::code-group
 
 ```ts [react-reconciler/src/ReactWorkTags.js]
-export const FunctionComponent = 0
-export const ClassComponent = 1
-export const IndeterminateComponent = 2 // Before we know whether it is function or class
-export const HostRoot = 3 // Root of a host tree. Could be nested inside another node.
-export const HostPortal = 4 // A subtree. Could be an entry point to a different renderer.
-export const HostComponent = 5
-export const HostText = 6
-export const Fragment = 7
-export const Mode = 8
-export const ContextConsumer = 9
-export const ContextProvider = 10
-export const ForwardRef = 11
-export const Profiler = 12
-export const SuspenseComponent = 13
-export const MemoComponent = 14
-export const SimpleMemoComponent = 15
-export const LazyComponent = 16
-export const IncompleteClassComponent = 17
-export const DehydratedFragment = 18
-export const SuspenseListComponent = 19
-export const ScopeComponent = 21
-export const OffscreenComponent = 22
-export const LegacyHiddenComponent = 23
-export const CacheComponent = 24
-export const TracingMarkerComponent = 25
+export const FunctionComponent = 0 // 函数组件
+export const ClassComponent = 1 // 类组件
+export const IndeterminateComponent = 2 // 尚未确定是函数组件还是类组件
+export const HostRoot = 3 // 宿主树的根（FiberRoot.current），可嵌套在另一个节点内部
+export const HostPortal = 4 // Portal 子树，可作为接入另一个渲染器的入口
+export const HostComponent = 5 // 原生宿主组件，如 div、span
+export const HostText = 6 // 文本节点
+export const Fragment = 7 // Fragment，<></>
+export const Mode = 8 // 子树模式节点，如 StrictMode
+export const ContextConsumer = 9 // <Context.Consumer> / useContext
+export const ContextProvider = 10 // <Context.Provider>
+export const ForwardRef = 11 // forwardRef 包装的组件
+export const Profiler = 12 // <Profiler>
+export const SuspenseComponent = 13 // <Suspense>
+export const MemoComponent = 14 // memo 包装的组件
+export const SimpleMemoComponent = 15 // 可简化的 memo 函数组件
+export const LazyComponent = 16 // lazy 包装的组件
+export const IncompleteClassComponent = 17 // 首次挂载失败的类组件，不视作已完成
+export const DehydratedFragment = 18 // hydration 时创建的 Suspense 占位片段
+export const SuspenseListComponent = 19 // <SuspenseList>
+export const ScopeComponent = 21 // React Scope 测试节点
+export const OffscreenComponent = 22 // 离屏渲染的子树
+export const LegacyHiddenComponent = 23 // LegacyHidden 包裹的子树
+export const CacheComponent = 24 // Cache 边界
+export const TracingMarkerComponent = 25 // TracingMarker，追踪一组组件的渲染
 ```
 
 :::
 
-[width(34,8,58)]
-
-| 常量                     | 值  | 用途                                |
-| ------------------------ | --- | ----------------------------------- |
-| `FunctionComponent`      | 0   | 函数组件                            |
-| `ClassComponent`         | 1   | 类组件                              |
-| `IndeterminateComponent` | 2   | 尚未确定是函数组件还是类组件        |
-| `HostRoot`               | 3   | Fiber 树的根（`FiberRoot.current`） |
-| `HostPortal`             | 4   | Portal 子树                         |
-| `HostComponent`          | 5   | 原生 DOM 标签                       |
-| `HostText`               | 6   | 文本节点                            |
-| `Fragment`               | 7   | `<></>`                             |
-| `Mode`                   | 8   | `StrictMode` 等模式节点             |
-| `ContextConsumer`        | 9   | `<Context.Consumer>` / `useContext` |
-| `ContextProvider`        | 10  | `<Context.Provider>`                |
-| `ForwardRef`             | 11  | `forwardRef`                        |
-| `Profiler`               | 12  | `<Profiler>`                        |
-| `SuspenseComponent`      | 13  | `Suspense`                          |
-| `MemoComponent`          | 14  | `memo`                              |
-| `SimpleMemoComponent`    | 15  | 可简化的 `memo` 函数组件            |
-| `LazyComponent`          | 16  | `lazy`                              |
-| `OffscreenComponent`     | 22  | 离屏渲染                            |
-| `CacheComponent`         | 24  | Cache 边界                          |
-
-标签值直接参与 `switch` 分派，例如 `beginWork` 和 `completeWork` 都按 `workInProgress.tag` 进入不同分支。
+标签值直接参与 `switch` 分派，`beginWork` 和 `completeWork` 都按 `workInProgress.tag` 进入不同分支。
 
 ## 4. 副作用标记：`flags` 与 `subtreeFlags`
 
@@ -229,30 +180,55 @@ fiber.flags &= ~Placement
 :::code-group
 
 ```ts [react-reconciler/src/ReactFiberFlags.js]
-export const NoFlags = /*                      */ 0b00000000000000000000000000
-export const PerformedWork = /*                */ 0b00000000000000000000000001
+// 无副作用
+export const NoFlags = 0b00000000000000000000000000
+// DevTools 用来标记真正执行了工作
+export const PerformedWork = 0b00000000000000000000000001
 
-export const Placement = /*                    */ 0b00000000000000000000000010
-export const Update = /*                       */ 0b00000000000000000000000100
-export const Deletion = /*                     */ 0b00000000000000000000001000
-export const ChildDeletion = /*                */ 0b00000000000000000000010000
-export const ContentReset = /*                 */ 0b00000000000000000000100000
-export const Callback = /*                     */ 0b00000000000000000001000000
-export const DidCapture = /*                   */ 0b00000000000000000010000000
-export const Ref = /*                          */ 0b00000000000000001000000000
-export const Snapshot = /*                     */ 0b00000000000000010000000000
-export const Passive = /*                      */ 0b00000000000000100000000000
-export const Hydrating = /*                    */ 0b00000000000001000000000000
-export const Visibility = /*                   */ 0b00000000000010000000000000
+// 常用副作用标记
+// 插入或移动宿主节点
+export const Placement = 0b00000000000000000000000010
+// 更新属性、文本或执行 Layout Effect
+export const Update = 0b00000000000000000000000100
+// 保留的删除标记；删除子节点实际用 ChildDeletion
+export const Deletion = 0b00000000000000000000001000
+// 当前节点的某个子节点需要删除
+export const ChildDeletion = 0b00000000000000000000010000
+// 重置文本内容
+export const ContentReset = 0b00000000000000000000100000
+// 需要执行 setState / forceUpdate 的回调
+export const Callback = 0b00000000000000000001000000
+// 错误边界已经捕获错误
+export const DidCapture = 0b00000000000000000010000000
+// 需要绑定或解绑 ref
+export const Ref = 0b00000000000000001000000000
+// 需要执行 getSnapshotBeforeUpdate
+export const Snapshot = 0b00000000000000010000000000
+// 需要执行 Passive Effect（useEffect）
+export const Passive = 0b00000000000000100000000000
+// hydration 进行中，提交阶段消费后清位
+export const Hydrating = 0b00000000000001000000000000
+// 子树从隐藏恢复可见
+export const Visibility = 0b00000000000010000000000000
 
-export const Incomplete = /*                   */ 0b00000000001000000000000000
-export const ShouldCapture = /*                */ 0b00000000010000000000000000
-export const Forked = /*                       */ 0b00000100000000000000000000
+// 错误捕获与 hydration 专用标记
+// 渲染未完成，需要沿 return 回溯
+export const Incomplete = 0b00000000001000000000000000
+// 子树有错误，需要被错误边界捕获
+export const ShouldCapture = 0b00000000010000000000000000
+// hydration 时打的标记，供 useId 对齐两端
+export const Forked = 0b00000100000000000000000000
 
-export const RefStatic = /*                    */ 0b00001000000000000000000000
-export const LayoutStatic = /*                 */ 0b00010000000000000000000000
-export const PassiveStatic = /*                */ 0b00100000000000000000000000
+// 跨 render 保留的静态标记
+// 子树含有 ref
+export const RefStatic = 0b00001000000000000000000000
+// 子树含有 Layout Effect
+export const LayoutStatic = 0b00010000000000000000000000
+// 子树含有 Passive Effect
+export const PassiveStatic = 0b00100000000000000000000000
 
+// 提交阶段与静态标记的掩码组合
+// Mutation 阶段要消费的标记
 export const MutationMask =
   Placement |
   Update |
@@ -261,31 +237,16 @@ export const MutationMask =
   Ref |
   Hydrating |
   Visibility
+// Layout 阶段要消费的标记
 export const LayoutMask = Update | Callback | Ref | Visibility
+// Passive 阶段要消费的标记
 export const PassiveMask = Passive | ChildDeletion
 
+// clone 时保留、跨 render 有效的静态标记
 export const StaticMask = LayoutStatic | PassiveStatic | RefStatic
 ```
 
 :::
-
-[width(21,37,42)]
-
-| 标记            | 值                                           | 含义                                               |
-| --------------- | -------------------------------------------- | -------------------------------------------------- |
-| `NoFlags`       | `0b00000000000000000000000000`               | 无副作用                                           |
-| `PerformedWork` | `0b00000000000000000000000001`               | DevTools 用来标记“真正执行了工作”                  |
-| `Placement`     | `0b00000000000000000000000010`               | 插入或移动宿主节点                                 |
-| `Update`        | `0b00000000000000000000000100`               | 更新属性、文本或执行 Layout Effect                 |
-| `Deletion`      | `0b00000000000000000000001000`               | 保留的删除标记；删除子节点实际使用 `ChildDeletion` |
-| `ChildDeletion` | `0b00000000000000000000010000`               | 当前节点的某个子节点需要删除                       |
-| `ContentReset`  | `0b00000000000000000000100000`               | 重置文本内容                                       |
-| `Ref`           | `0b00000000000000001000000000`               | 需要绑定或解绑 ref                                 |
-| `Snapshot`      | `0b00000000000000010000000000`               | 需要执行 `getSnapshotBeforeUpdate`                 |
-| `Passive`       | `0b00000000000000100000000000`               | 需要执行 Passive Effect（`useEffect`）             |
-| `Incomplete`    | `0b00000000001000000000000000`               | 渲染未完成，需要沿 `return` 回溯                   |
-| `Forked`        | `0b00000100000000000000000000`               | 节点被克隆（Suspense 等场景）                      |
-| `StaticMask`    | `LayoutStatic \| PassiveStatic \| RefStatic` | 跨 render 生命周期保留的静态标记                   |
 
 `subtreeFlags` 由 `completeWork` 阶段向上汇总。官方 `bubbleProperties` 的核心逻辑是：
 
@@ -293,15 +254,18 @@ export const StaticMask = LayoutStatic | PassiveStatic | RefStatic
 
 ```ts [react-reconciler/src/ReactFiberCompleteWork.old.js]
 function bubbleProperties(completedWork) {
+  // child 指针未变，说明本轮没有重新协调子节点。
   const didBailout =
     completedWork.alternate !== null &&
     completedWork.alternate.child === completedWork.child
 
+  // 汇总 childLanes 与 subtreeFlags 的累加器。
   let newChildLanes = NoLanes
   let subtreeFlags = NoFlags
 
   if (!didBailout) {
     // 省略 Profiler 计时分支
+    // 遍历子链表：合并每个子节点（含其孙辈汇总）的 lane。
     let child = completedWork.child
     while (child !== null) {
       newChildLanes = mergeLanes(
@@ -309,16 +273,19 @@ function bubbleProperties(completedWork) {
         mergeLanes(child.lanes, child.childLanes),
       )
 
+      // 子节点自身的 flags 与整棵子树的 subtreeFlags 都要并进来。
       subtreeFlags |= child.subtreeFlags
       subtreeFlags |= child.flags
 
+      // 修正 return 指针，保证遍历与错误回溯链路完整。
       child.return = completedWork
       child = child.sibling
     }
 
+    // 把本轮汇总结果并到当前节点，供上级继续向上冒泡。
     completedWork.subtreeFlags |= subtreeFlags
   } else {
-    // bailout 时只向上汇总静态标记
+    // bailout 时只保留静态标记：其余副作用已在上一轮提交过。
     let child = completedWork.child
     while (child !== null) {
       newChildLanes = mergeLanes(
@@ -326,6 +293,7 @@ function bubbleProperties(completedWork) {
         mergeLanes(child.lanes, child.childLanes),
       )
 
+      // 静态标记描述“子树里有没有 ref / Effect”，必须跨 render 保留。
       subtreeFlags |= child.subtreeFlags & StaticMask
       subtreeFlags |= child.flags & StaticMask
 
@@ -336,59 +304,114 @@ function bubbleProperties(completedWork) {
     completedWork.subtreeFlags |= subtreeFlags
   }
 
+  // 回写 childLanes，调度阶段据此沿子树查找待处理工作。
   completedWork.childLanes = newChildLanes
 
+  // 返回是否 bailout，调用方据此决定后续复用逻辑。
   return didBailout
 }
 ```
 
 :::
 
-这段代码同时完成了三件事：汇总 `childLanes`、汇总 `subtreeFlags`、修正子节点的 `return` 指针。
-
 ## 5. 创建 Fiber
-
-### 5.1 `createFiber` 与 `createFiberFromElement`
 
 :::code-group
 
 ```ts [react-reconciler/src/ReactFiber.old.js]
-const createFiber = function (tag, pendingProps, key, mode) {
-  // $FlowFixMe: the shapes are exact here but Flow doesn't like constructors
-  return new FiberNode(tag, pendingProps, key, mode)
-}
-```
-
-```ts [react-reconciler/src/ReactFiber.old.js]
-export function createFiberFromElement(element, mode, lanes) {
-  let owner = null
-  if (__DEV__) {
-    owner = element._owner
-  }
+export function createFiberFromElement(
+  element: ReactElement,
+  mode: TypeOfMode,
+  lanes: Lanes,
+): Fiber {
   const type = element.type
   const key = element.key
   const pendingProps = element.props
+  // 省略 __DEV__ 下的 owner、debugSource 采集
+  // 拆出 type、key、props 后交给类型分发函数。
   const fiber = createFiberFromTypeAndProps(
     type,
     key,
     pendingProps,
-    owner,
+    null,
     mode,
     lanes,
   )
-  if (__DEV__) {
-    fiber._debugSource = element._source
-    fiber._debugOwner = element._owner
-  }
   return fiber
 }
-```
 
-```ts [react-reconciler/src/ReactFiber.old.js]
-export function createFiberFromText(content, mode, lanes) {
-  const fiber = createFiber(HostText, content, null, mode)
+export function createFiberFromTypeAndProps(
+  type: any, // React$ElementType
+  key: null | string,
+  pendingProps: any,
+  owner: null | Fiber,
+  mode: TypeOfMode,
+  lanes: Lanes,
+): Fiber {
+  // 默认先记为待定型组件，函数组件要等首次执行后才能确定 tag。
+  let fiberTag = IndeterminateComponent
+  // resolvedType 表示解析后的最终类型；lazy 在 resolve 前无法确定，会置为 null。
+  let resolvedType = type
+  if (typeof type === 'function') {
+    // 函数类型：原型上带 isReactComponent 标记的是类组件。
+    if (shouldConstruct(type)) {
+      fiberTag = ClassComponent
+    }
+  } else if (typeof type === 'string') {
+    // 字符串类型直接对应宿主组件。
+    fiberTag = HostComponent
+  } else {
+    // 非函数、非字符串的 type 在这里按内置标记分发。
+    getTag: switch (type) {
+      case REACT_FRAGMENT_TYPE:
+        return createFiberFromFragment(pendingProps.children, mode, lanes, key)
+      case REACT_SUSPENSE_TYPE:
+        return createFiberFromSuspense(pendingProps, mode, lanes, key)
+      case REACT_OFFSCREEN_TYPE:
+        return createFiberFromOffscreen(pendingProps, mode, lanes, key)
+      default: {
+        if (typeof type === 'object' && type !== null) {
+          switch (type.$$typeof) {
+            case REACT_PROVIDER_TYPE:
+              fiberTag = ContextProvider
+              break getTag
+            case REACT_CONTEXT_TYPE:
+              // $$typeof 为 context 自身，说明这是 Consumer。
+              fiberTag = ContextConsumer
+              break getTag
+            case REACT_FORWARD_REF_TYPE:
+              fiberTag = ForwardRef
+              break getTag
+            case REACT_MEMO_TYPE:
+              fiberTag = MemoComponent
+              break getTag
+            case REACT_LAZY_TYPE:
+              fiberTag = LazyComponent
+              resolvedType = null
+              break getTag
+          }
+        }
+        // 省略非法元素类型的报错
+      }
+    }
+  }
+
+  const fiber = createFiber(fiberTag, pendingProps, key, mode)
+  fiber.elementType = type
+  fiber.type = resolvedType
   fiber.lanes = lanes
+
   return fiber
+}
+
+// Fiber 的构造入口：所有 createFiberFrom* 最终都落到这里。
+const createFiber = function (
+  tag: WorkTag,
+  pendingProps: mixed,
+  key: null | string,
+  mode: TypeOfMode,
+): Fiber {
+  return new FiberNode(tag, pendingProps, key, mode)
 }
 ```
 
@@ -400,7 +423,7 @@ export function createFiberFromText(content, mode, lanes) {
 
 ### 6.1 为什么需要两棵树
 
-如果直接在页面正在使用的 Fiber 树上修改，Render 阶段一旦中断，用户就会看到“改了一半”的 UI。双缓冲把工作分成两棵树：
+如果直接在页面正在使用的 Fiber 树上修改，Render 阶段一旦中断，用户就会看到“**改了一半**”的 UI。双缓冲把工作分成两棵树：
 
 - `current`：当前屏幕上已经提交的树。
 - `workInProgress`：内存中正在构建的新树。
@@ -425,7 +448,7 @@ flowchart LR
 
 ### 6.2 `createWorkInProgress`
 
-React 采用“池化”策略：每个 Fiber 最多保留两个版本，旧的 `alternate` 会被下一轮更新复用，而不是每次重新分配。
+React 采用“**池化**”策略：每个 Fiber 最多保留两个版本，旧的 `alternate` 会被下一轮更新复用，而不是每次重新分配。
 
 :::code-group
 
@@ -487,9 +510,7 @@ export function createWorkInProgress(current, pendingProps) {
 
 :::
 
-几个容易误读的点：
-
-- `child` 直接从 `current.child` 拷贝，表示“先沿用旧的子链表”，后续 `reconcileChildren` 会把它替换成新的子链表。
+- `child` 直接从 `current.child` 拷贝，表示“**先沿用旧的子链表**”，后续 `reconcileChildren` 会把它替换成新的子链表。
 - `flags` 不是简单拷贝，而是 `current.flags & StaticMask`，只保留 `RefStatic`、`LayoutStatic`、`PassiveStatic` 这类跨 render 有效的标记。
 - 复用旧 WIP 时，`subtreeFlags` 和 `deletions` 会被清零，避免上一轮的副作用污染本轮。
 - `stateNode` 不重新创建，因此 DOM 节点、类实例都能在更新时复用。
@@ -501,6 +522,7 @@ export function createWorkInProgress(current, pendingProps) {
 Commit 阶段完成 Mutation 之后执行：
 
 ```js
+// 提交完成后切换当前树，WIP 成为新的 current。
 root.current = finishedWork
 ```
 
@@ -508,19 +530,17 @@ root.current = finishedWork
 
 ## 7. 总结
 
-Fiber 的骨架可以概括为“三指针链表 + `alternate` 双缓冲 + 位掩码副作用”。官方 React 18.3.1 在此基础上补齐了 Lane 优先级、`subtreeFlags` 汇总和完整的中断恢复能力。
+[width(13,29,58)]
 
-[width(13,25,62)]
+| 关注点     | 源码位置                                           | 实现要点                                                                                                                                                               |
+| ---------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 结构       | `ReactFiber.old.js` · `FiberNode`                  | 普通函数一次性初始化 tag、三指针、props/state、flags、lanes、alternate 等全部字段                                                                                      |
+| 类型       | `ReactWorkTags.js` · `createFiberFromTypeAndProps` | 数字 tag 进入 `switch`；普通函数为 `IndeterminateComponent`，类组件由 `shouldConstruct` 判定，`Fragment` / `Suspense` / `Offscreen` 走专用工厂，最终统一 `createFiber` |
+| 副作用     | `ReactFiberFlags.js` · `bubbleProperties`          | 位掩码表示插入、更新、删除、ref、Effect；回溯时汇总 `flags` / `subtreeFlags`，bailout 只保留 `StaticMask`                                                              |
+| 双缓冲     | `createWorkInProgress`                             | 复用 `current.alternate`，最多两棵树；旧 WIP 清空 `flags` / `subtreeFlags` / `deletions`，再重置为 `current.flags & StaticMask`                                        |
+| 提交切换   | `ReactFiberWorkLoop.old.js` · `commitRootImpl`     | Mutation 之后、Layout 之前执行 `root.current = finishedWork`                                                                                                           |
+| 调度与中断 | `lanes` / `childLanes` · `workLoopConcurrent`      | Lane 记录优先级；`shouldYield()` 让出后，下一轮从模块级 `workInProgress` 续跑                                                                                          |
 
-| 关注点   | 简化实现                            | React 18.3.1                                             |
-| -------- | ----------------------------------- | -------------------------------------------------------- |
-| 树结构   | `child` / `sibling` / `return` 链表 | 相同                                                     |
-| 双缓冲   | `alternate` 互相引用                | 相同，但复用时会重置 `subtreeFlags`、`deletions` 等字段  |
-| 优先级   | 无 Lane，固定优先级                 | `lanes` / `childLanes`                                   |
-| 副作用   | 只维护 `flags`                      | `flags` + `subtreeFlags`，Commit 可跳过无效果子树        |
-| 可中断   | 同步循环，不支持                    | `workLoopConcurrent` + `shouldYield()` + 全局工作指针    |
-| 更新起点 | 直接指向触发更新的 Fiber            | 从 HostRoot 创建新 WIP，沿 `childLanes` 决定要处理的子树 |
+这些机制最终都汇入 `beginWork` / `completeWork` / `commitRootImpl` 的调用链。
 
-简化实现（mini-react / xunbei-react）为了压缩篇幅，通常只保留 `child`、`sibling`、`return`、`alternate` 和少量 `flags`，并用固定优先级与同步循环代替 Lane 和并发渲染。它能演示“Fiber 如何遍历、双缓冲如何切换”，但不能解释“渲染中断后如何恢复”。阅读官方源码时，应以 `ReactFiber.old.js` 与 `ReactFiberWorkLoop.old.js` 的实际字段和流程为准。
-
-理解 Fiber 之后，下一步是看这棵树如何被“调度起来”：[`FiberRoot` 与应用入口](/frameworks/react/advanced/source-code/reconciler/fiberRoot) 负责持有根容器，[工作循环](/frameworks/react/advanced/source-code/reconciler/workLoop) 负责驱动 `beginWork` 与 `completeWork`。
+理解 Fiber 之后，下一步是看这棵树如何被“**调度起来**”：[`FiberRoot` 与应用入口](/frameworks/react/advanced/source-code/reconciler/fiberRoot) 负责持有根容器，[工作循环](/frameworks/react/advanced/source-code/reconciler/workLoop) 负责驱动 `beginWork` 与 `completeWork`。

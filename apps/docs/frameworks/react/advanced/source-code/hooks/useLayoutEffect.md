@@ -17,24 +17,17 @@ function mountLayoutEffect(
   create: () => (() => void) | void,
   deps: Array<mixed> | void | null,
 ): void {
+  // 基础标记是 UpdateEffect，表示子树中存在需要执行的 Layout Effect。
   let fiberFlags: Flags = UpdateEffect
-  if (enableSuspenseLayoutEffectSemantics) {
-    fiberFlags |= LayoutStaticEffect
-  }
-  if (
-    __DEV__ &&
-    enableStrictEffects &&
-    (currentlyRenderingFiber.mode & StrictEffectsMode) !== NoMode
-  ) {
-    fiberFlags |= MountLayoutDevEffect
-  }
-  return mountEffectImpl(fiberFlags, HookLayout, create, deps)
+  // 省略 Suspense/Offscreen 与 Strict Effects 下的附加标记
+  return mountEffectImpl(fiberFlags, HookLayout, create, deps) // HookLayout 标记 Effect 类型为 Layout
 }
 
 function updateLayoutEffect(
   create: () => (() => void) | void,
   deps: Array<mixed> | void | null,
 ): void {
+  // 更新阶段沿用相同标记，是否真正执行由依赖比较决定。
   return updateEffectImpl(UpdateEffect, HookLayout, create, deps)
 }
 ```
@@ -44,7 +37,7 @@ function updateLayoutEffect(
 标记说明：
 
 - `UpdateEffect`：表示这棵子树含有需要执行的 Layout Effect。
-- `LayoutStaticEffect`：开启 `enableSuspenseLayoutEffectSemantics` 时追加，用于 Suspense / Offscreen 场景下区分“静态”Layout Effect。
+- `LayoutStaticEffect`：开启 `enableSuspenseLayoutEffectSemantics` 时追加，用于 Suspense / Offscreen 场景下区分“**静态**”Layout Effect。
 - `MountLayoutDevEffect`：开发构建的 Strict Effects 模式下追加，用于模拟卸载与重新挂载。
 
 与 `useEffect` 不同，`useLayoutEffect` 没有 `PassiveStaticEffect`，因为它的执行由 Commit 阶段同步驱动，不需要额外的静态标记来决定是否调度。
@@ -61,7 +54,7 @@ Layout
   → useLayoutEffect create         ← 所有组件的 create 在这里开始
 ```
 
-把 destroy 提前到 Mutation 阶段，是为了保证“**所有** Layout Effect 的 destroy 都先于“**任何** Layout Effect 的 create”执行。如果某个组件的清理函数依赖另一个组件刚刚建立的状态（例如覆盖了同一个 ref），先 destroy 后 create 才能避免交叉污染。
+把 destroy 提前到 Mutation 阶段，是为了保证“**所有**” Layout Effect 的 destroy 都先于“**任何 Layout Effect 的 create**”执行。如果某个组件的清理函数依赖另一个组件刚刚建立的状态（例如覆盖了同一个 ref），先 destroy 后 create 才能避免交叉污染。
 
 ## 3. Layout 阶段：执行 create
 
@@ -75,17 +68,15 @@ function commitLayoutEffectOnFiber(
   committedLanes: Lanes,
 ): void {
   if ((finishedWork.flags & LayoutMask) !== NoFlags) {
+    // 只处理带 Layout 标记的 Fiber
     switch (finishedWork.tag) {
+      // 函数组件、forwardRef 与 memo 组件统一通过 Hook 链表执行。
       case FunctionComponent:
       case ForwardRef:
       case SimpleMemoComponent: {
-        if (
-          !enableSuspenseLayoutEffectSemantics ||
-          !offscreenSubtreeWasHidden
-        ) {
-          // At this point layout effects have already been destroyed (during mutation phase).
-          commitHookEffectListMount(HookLayout | HookHasEffect, finishedWork)
-        }
+        // 省略 Suspense/Offscreen 隐藏子树的判断
+        // 此时 Layout Effect 已在 Mutation 阶段销毁，这里只执行 create。
+        commitHookEffectListMount(HookLayout | HookHasEffect, finishedWork) // 只执行依赖变化的 Layout Effect
         break
       }
       // ... 类组件的 componentDidMount / componentDidUpdate
@@ -98,7 +89,7 @@ Layout 阶段只执行带 `HookHasEffect` 的 Layout Effect，也就是本次依
 
 ## 4. 为什么必须同步执行
 
-`useLayoutEffect` 的价值在于“绘制前拿到确定的结果”：
+`useLayoutEffect` 的价值在于“**绘制前拿到确定的结果**”：
 
 - **测量布局**：读取 `getBoundingClientRect()`、`offsetWidth` 等，再同步调整状态，避免用户看到中间态。
 - **同步修改 DOM**：例如在绘制前滚动到指定位置、设置焦点、修正 tooltip 位置。
@@ -133,4 +124,4 @@ Layout 阶段只执行带 `HookHasEffect` 的 Layout Effect，也就是本次依
 | `commitLayoutEffectOnFiber`           | 在 Layout 阶段同步执行 Layout create     |
 | `HookHasEffect`                       | 过滤出本次依赖变化的 Effect              |
 
-`useLayoutEffect` 的“同步”来自 Commit 阶段的执行位置，而不是 Hook 本身做了什么特殊处理。需要更早注入样式时使用 [useInsertionEffect](/frameworks/react/advanced/source-code/hooks/useInsertionEffect)；不依赖布局的副作用应优先使用 [useEffect](/frameworks/react/advanced/source-code/hooks/useEffect)。
+`useLayoutEffect` 的“**同步**”来自 Commit 阶段的执行位置，而不是 Hook 本身做了什么特殊处理。需要更早注入样式时使用 [useInsertionEffect](/frameworks/react/advanced/source-code/hooks/useInsertionEffect)；不依赖布局的副作用应优先使用 [useEffect](/frameworks/react/advanced/source-code/hooks/useEffect)。
