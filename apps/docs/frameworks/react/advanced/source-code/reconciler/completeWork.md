@@ -4,30 +4,34 @@ outline: [2, 4]
 
 # completeWork
 
-`beginWork` 负责“**向下问**”：这个节点应该有哪些子节点？`completeWork` 负责“**向上答**”：子节点都处理完了，当前节点该创建什么、挂载什么、恢复什么、向上冒泡什么？
+`beginWork` 负责“**向下问**”：这个节点应该有哪些子节点？`completeWork` 负责“**向上答**”：子节点都处理完了，当前节点该创建什么、挂载什么、恢复什么、向上冒泡什么？它是 React 18.3.1 Render 阶段回溯时的收尾函数，在 DOM 渲染器里始终返回 `null`。
 
-在 React 18.3.1 的深度优先遍历里，`completeWork` 的执行顺序是自底向上的：先完成叶子节点，再完成父节点。真实 DOM 就是在这个阶段被创建并组装成子树的。其实现位于 `packages/react-reconciler/src/ReactFiberCompleteWork.old.js`，宿主环境相关函数位于 `packages/react-dom/src/client/ReactDOMHostConfig.js`。
+## 1. 职责与返回值
 
-## 1. 职责
+### 1.1 三个核心动作
 
-`completeWork` 主要做六件事：
+对每个 Fiber，`completeWork` 大致做三件事：
 
-[width(18,82)]
+- **创建或更新宿主节点**：`HostComponent` 挂载时调用 `createInstance`，更新时调用 `updateHostComponent`；`HostText` 则调用 `createTextInstance` 或 `updateHostText`。
+- **组装子树并初始化属性**：`appendAllChildren` 把后代宿主节点挂到当前 DOM 上，`finalizeInitialChildren` 负责写入初始属性。
+- **恢复栈并向上汇总**：`popTreeContext` / `popHostContext` / `popProvider` 等出栈操作与 `beginWork` 的入栈一一对应，最后由 `bubbleProperties` 把子树的 `childLanes` 与 `subtreeFlags` 汇总回来。
 
-| 职责           | 官方实现                                                                  |
-| -------------- | ------------------------------------------------------------------------- |
-| 创建宿主节点   | `HostComponent` 调用 `createInstance`，最终执行 `createElement`           |
-| 初始化属性     | `finalizeInitialChildren` → `setInitialProperties`                        |
-| 组装子树       | `appendAllChildren` → `appendInitialChild`                                |
-| 计算更新差异   | `prepareUpdate` → `diffProperties`，结果存入 `workInProgress.updateQueue` |
-| 恢复 Context   | `ContextProvider` 离开时执行 `popProvider`                                |
-| 冒泡 lane/flag | `bubbleProperties` 把子树的 `childLanes` 与 `subtreeFlags` 汇总到父节点   |
+> [!TIP]
+> `completeWork` 不负责把最顶层的 DOM 插入容器，也不直接修改已有DOM的属性。前者由Commit阶段的`Placement`完成，后者被`prepareUpdate` 打包成`updatePayload`，留给`commitUpdate`应用。
 
-它不负责把最顶层的 DOM 插入容器，那一步由 Commit 阶段的 `Placement` 处理。它也不直接修改已有 DOM 的属性，属性差异会被打包成 `updatePayload`，留给 `commitUpdate` 应用。
+### 1.2 返回值约定
 
-## 2. 入口与 tag 分发
+[width(12,88)]
 
-`completeWork` 的签名比 `beginWork` 多一个 `renderLanes`。它在函数开头先执行 `popTreeContext`，然后按 tag 分派。绝大多数分支做完自己的事情后调用 `bubbleProperties` 并返回 `null`。
+| 返回值 | 含义                                                        |
+| ------ | ----------------------------------------------------------- |
+| `null` | DOM 渲染器的所有分支都返回 `null`，工作循环沿 `return` 回溯 |
+
+`beginWork` 返回的是“**下一个工作单元**”，而 `completeWork` 没有向下的工作可以交出去，工作循环会转而查看 `sibling`，没有兄弟再沿 `return` 回到父节点。函数签名虽然允许返回 `Fiber | null`，但 DOM 渲染器的每个分支都以 `return null` 收尾。
+
+## 2. `completeWork` 入口：先出栈，再按 tag 收尾
+
+`completeWork` 与 `beginWork` 一样按 `workInProgress.tag` 分派，但它不生成子 Fiber，只给当前节点“**收尾**”。函数第一件事是 `popTreeContext`，与 `beginWork` 进入节点时的入栈严格配对。
 
 :::code-group
 
@@ -38,8 +42,9 @@ function completeWork(
   renderLanes: Lanes,
 ): Fiber | null {
   const newProps = workInProgress.pendingProps
-  // 离开当前 Fiber 的树上下文，与 beginWork 中的入栈对应。
+  // 离开当前 Fiber 的树上下文，与 beginWork 阶段的入栈配对。
   popTreeContext(workInProgress)
+
   switch (workInProgress.tag) {
     case IndeterminateComponent:
     case LazyComponent:
@@ -51,12 +56,13 @@ function completeWork(
     case Profiler:
     case ContextConsumer:
     case MemoComponent:
-      // 没有宿主节点的类型：只需向上汇总 lane 与 flags。
+      // 没有宿主节点的类型：只需把子树的 lane 与 flags 汇总上来。
       bubbleProperties(workInProgress)
       return null
     case ClassComponent: {
       const Component = workInProgress.type
       if (isLegacyContextProvider(Component)) {
+        // legacy context 在这里出栈，与 beginWork 的 push 配对。
         popLegacyContext(workInProgress)
       }
       bubbleProperties(workInProgress)
@@ -64,10 +70,13 @@ function completeWork(
     }
     // 省略 HostRoot、SuspenseComponent、HostPortal 等分支
     case HostComponent: {
+      // 与 beginWork 的 pushHostContext 配对，恢复外层宿主容器。
       popHostContext(workInProgress)
       const rootContainerInstance = getRootHostContainer()
       const type = workInProgress.type
+      //这个 DOM 已经存在，进入更新分支，只计算 updatePayload。
       if (current !== null && workInProgress.stateNode != null) {
+        // 已有 DOM：只计算属性差异，结果写入 updateQueue。
         updateHostComponent(
           current,
           workInProgress,
@@ -77,17 +86,19 @@ function completeWork(
         )
 
         if (current.ref !== workInProgress.ref) {
+          // ref 变了，Commit 阶段需要重新绑定。
           markRef(workInProgress)
         }
       } else {
         if (!newProps) {
-          // 工作被中断时可能走到这里。
+          // 工作被中断时可能走到这里，没有 props 可以创建 DOM。
           bubbleProperties(workInProgress)
           return null
         }
 
         const currentHostContext = getHostContext()
         // 省略 hydration 分支：复用服务端 DOM 并标记 Update
+        // 新建 DOM 节点，同时建立 DOM 与 Fiber 的关联。
         const instance = createInstance(
           type,
           newProps,
@@ -96,6 +107,7 @@ function completeWork(
           workInProgress,
         )
 
+        // 递归收集所有后代宿主节点，挂到刚创建的 DOM 上。
         appendAllChildren(instance, workInProgress, false, false)
 
         workInProgress.stateNode = instance
@@ -109,10 +121,12 @@ function completeWork(
             currentHostContext,
           )
         ) {
+          // true 表示 Commit 阶段还要再处理一次（autoFocus、img）。
           markUpdate(workInProgress)
         }
 
         if (workInProgress.ref !== null) {
+          // 首次挂载带 ref，Commit 阶段需要绑定。
           markRef(workInProgress)
         }
       }
@@ -122,12 +136,14 @@ function completeWork(
     case HostText: {
       const newText = newProps
       if (current && workInProgress.stateNode != null) {
+        // 已有文本节点：只在内容变化时打 Update。
         const oldText = current.memoizedProps
         updateHostText(current, workInProgress, oldText, newText)
       } else {
         const rootContainerInstance = getRootHostContainer()
         const currentHostContext = getHostContext()
         // 省略 hydration 分支：复用服务端文本节点并标记 Update
+        // 新建文本节点，pendingProps 就是文本内容本身。
         workInProgress.stateNode = createTextInstance(
           newText,
           rootContainerInstance,
@@ -140,7 +156,7 @@ function completeWork(
     }
     // 省略 SuspenseComponent、HostPortal、SuspenseListComponent 等分支
     case ContextProvider: {
-      // 离开 Provider，恢复外层 Context 值。
+      // 离开 Provider，恢复外层 Context 的值。
       const context: ReactContext<any> = workInProgress.type._context
       popProvider(context, workInProgress)
       bubbleProperties(workInProgress)
@@ -155,99 +171,80 @@ function completeWork(
 
 :::
 
-`HostComponent` 的两个分支很好区分：
-
-- `current !== null && workInProgress.stateNode != null`：这个 DOM 已经存在，进入更新分支，只计算 `updatePayload`。
-- 否则：这是一个全新的 DOM，进入挂载分支，创建节点、组装子树、初始化属性。
-
 ## 3. 挂载：创建并组装 DOM
 
-### 3.1 三个步骤
+挂载分支在 `current === null` 或 `workInProgress.stateNode` 为空时执行，依次调用三个宿主函数：`createInstance` 创建 DOM、`appendAllChildren` 组装子树、`finalizeInitialChildren` 初始化属性。
 
-以 `<div className="box"><span>hello</span></div>` 为例：
+### 3.1 `createInstance`：创建宿主节点
 
-1. `createInstance` 调用 `createElement(type, props, rootContainerInstance, parentNamespace)` 创建父 DOM，并通过 `precacheFiberNode` 建立 DOM 与 Fiber 的关联。
-2. `appendAllChildren(instance, workInProgress, false, false)` 遍历子 Fiber，把 `<span>` 的 `stateNode` 挂到父 DOM。
-3. `finalizeInitialChildren` 调用 `setInitialProperties` 写入 `className` 等属性，并返回一个布尔值，表示是否需要在 Commit 阶段补做挂载副作用。
-
-`finalizeInitialChildren` 的返回值不是“**有没有属性**”，而是“**是否需要 Commit 阶段再处理一次**”。React DOM 对 `autoFocus` 和 `img` 做了特殊处理：
+`createInstance` 负责创建真实 DOM，并建立 DOM 与 Fiber 的关联。`createElement` 只按标签和命名空间创建元素，`precacheFiberNode` 与 `updateFiberProps` 负责后续的事件系统与 DevTools 反查。
 
 :::code-group
 
 ```ts [react-dom/src/client/ReactDOMHostConfig.js]
-export function appendInitialChild(
-  parentInstance: Instance,
-  child: Instance | TextInstance,
-): void {
-  parentInstance.appendChild(child)
-}
-
-export function finalizeInitialChildren(
-  domElement: Instance,
+export function createInstance(
   type: string,
   props: Props,
   rootContainerInstance: Container,
   hostContext: HostContext,
-): boolean {
-  // 初始化属性，并返回是否需要 Commit 阶段再处理一次。
-  setInitialProperties(domElement, type, props, rootContainerInstance)
-  switch (type) {
-    case 'button':
-    case 'input':
-    case 'select':
-    case 'textarea':
-      // 带 autoFocus 的表单元素需要在 Commit 阶段真正聚焦。
-      return !!props.autoFocus
-    case 'img':
-      // img 固定返回 true，让 Commit 阶段再补处理。
-      return true
-    default:
-      return false
-  }
+  internalInstanceHandle: Object,
+): Instance {
+  // 省略 __DEV__ 下的 DOM nesting 校验
+  // HostContext 缓存了当前命名空间，SVG / MathML 子节点按它创建。
+  const parentNamespace = hostContext.namespace
+  // 创建真实 DOM 节点。
+  const domElement: Instance = createElement(
+    type,
+    props,
+    rootContainerInstance,
+    parentNamespace,
+  )
+  // 把 Fiber 挂到 DOM 节点的内部属性上，供事件系统和 DevTools 反查。
+  precacheFiberNode(internalInstanceHandle, domElement)
+  // 缓存当前的 props，后续事件分发需要读取最新的处理函数。
+  updateFiberProps(domElement, props)
+  return domElement
 }
 ```
 
 :::
 
-`createInstance` 本身还负责两件与 DOM 无关的事：
+返回值被赋给 `workInProgress.stateNode`。此时 DOM 既没有父节点，也没有子节点，属性也尚未写入，后续补齐图结构与属性。
 
-- `precacheFiberNode(internalInstanceHandle, domElement)`：把 Fiber 挂到 DOM 节点的内部属性上，供事件系统和 DevTools 反查。
-- `updateFiberProps(domElement, props)`：缓存当前的 props，后续事件分发需要读取最新的事件处理函数。
+### 3.2 `appendAllChildren`：组装子树
 
-### 3.2 `appendAllChildren`
+子 Fiber 不一定是宿主节点。函数组件、Context、Fragment 等组合节点没有 `stateNode`，它们的 DOM 在更深的后代里。`appendAllChildren` 只对 `HostComponent` 和 `HostText` 执行挂载，其余节点继续向下遍历。
 
-`appendAllChildren` 要解决一个核心问题：**子 Fiber 不一定是宿主节点**。
+以 `<div><App /></div>` 为例，`<div>` 的 `stateNode` 可以直接挂到父 DOM，`App` 下的 `<span>` 则必须由 `appendAllChildren` 递归找到：
 
-例如：
-
-```text
+```html
 <div>
   <App />
 </div>
 ```
 
-`App` 是函数组件，没有 `stateNode`；它的 DOM 在更深层的 `<span>` 上。因此不能简单遍历 `child` 就 `appendChild`，而要递归下降，直到找到 `HostComponent` 或 `HostText`。
-
 :::code-group
 
-```ts [react-reconciler/src/ReactFiberCompleteWork.old.js]
+```ts [react-reconciler/src/ReactFiberCompleteWork.js]
 let appendAllChildren
 
 if (supportsMutation) {
   appendAllChildren = function (
     parent: Instance,
     workInProgress: Fiber,
-    needsVisibilityToggle: boolean,
-    isHidden: boolean,
+    needsVisibilityToggle: boolean, //Offscreen隐藏子树参数
+    isHidden: boolean, //Suspense隐藏子树参数
   ) {
-    // 当前只有顶层 Fiber，需要递归它的子树，找到所有终端宿主节点。
+    // 从当前 Fiber 的子节点开始，递归寻找所有终端宿主节点。
     let node = workInProgress.child
     while (node !== null) {
       if (node.tag === HostComponent || node.tag === HostText) {
+        // 宿主节点直接挂到父 DOM 上。
         appendInitialChild(parent, node.stateNode)
       } else if (node.tag === HostPortal) {
         // Portal 的子节点会插入到自己的容器，这里不向下遍历。
       } else if (node.child !== null) {
+        // 组合组件没有 DOM，继续向下找。
         node.child.return = node
         node = node.child
         continue
@@ -269,29 +266,59 @@ if (supportsMutation) {
 }
 ```
 
-:::
-
-这段循环等价于一次“**只在宿主节点上做事的深度优先遍历**”：
-
-```text
-child → 是 HostComponent / HostText？appendInitialChild
-      → 否，是 HostPortal？跳过，不进入它的子树
-      → 否，有 child？继续向下
-      → 否，有 sibling？横向
-      → 否，回父节点
+```ts [react-dom/src/client/ReactDOMHostConfig.js]
+export function appendInitialChild(
+  parentInstance: Instance,
+  child: Instance | TextInstance,
+): void {
+  // 子 DOM 的组装最终落到 appendChild。
+  parentInstance.appendChild(child)
+}
 ```
 
-几个边界值得注意：
+:::
 
-- `HostPortal` 的子节点不属于当前父 DOM，所以这里遇到 Portal 就直接跳过，插入工作由 Portal 自己的提交逻辑处理。
-- 循环中会顺手修复 `child.return` 和 `sibling.return`。Render 阶段可能被中断，Fiber 的 `return` 指针需要保持一致。
-- `needsVisibilityToggle` 与 `isHidden` 是为 Offscreen / Suspense 的隐藏子树准备的参数，普通挂载时都传 `false`。
+### 3.3 `finalizeInitialChildren`：初始化属性
 
-### 3.3 为什么不在 `beginWork` 创建 DOM
+`finalizeInitialChildren` 调用 `setInitialProperties`写入初始属性，并返回一个布尔值。返回值表示是否需要在Commit阶段再处理一次：带`autoFocus`的表单元素和`img`返回`true`，其余标签返回 `false`。
 
-- `beginWork` 是“**计算**”阶段，可能因为更高优先级的更新被打断。如果在里面创建 DOM，会留下未被使用的节点。
+:::code-group
+
+```ts [react-dom/src/client/ReactDOMHostConfig.js]
+export function finalizeInitialChildren(
+  domElement: Instance,
+  type: string,
+  props: Props,
+  rootContainerInstance: Container,
+  hostContext: HostContext,
+): boolean {
+  // 设置初始属性，返回值表示是否需要 Commit 阶段再处理。
+  setInitialProperties(domElement, type, props, rootContainerInstance)
+  switch (type) {
+    case 'button':
+    case 'input':
+    case 'select':
+    case 'textarea':
+      // 带 autoFocus 的表单元素需要在 Commit 阶段真正聚焦。
+      return !!props.autoFocus
+    case 'img':
+      // img 固定返回 true，让 Commit 阶段再补处理。
+      return true
+    default:
+      return false
+  }
+}
+```
+
+:::
+
+返回值不是“**有没有属性**”，而是“**是否需要 Commit 阶段再处理一次**”。`completeWork` 拿到 `true` 后会调用 `markUpdate`，Commit 阶段再执行 `autoFocus` 等副作用。
+
+### 3.4 DOM 创建推迟到 `completeWork`
+
+- `beginWork` 是“**计算**”阶段，可能因为更高优先级的更新被打断。在里面创建 DOM 会留下未被使用的节点。
 - `completeWork` 在子树全部处理完后才执行，此时可以确定子 DOM 已经准备好。
-- 把 DOM 创建推迟到“**归**”阶段，让 `appendAllChildren` 能一次性组装完整子树，减少页面重排。
+- 把 DOM 创建放在“**归**”阶段，`appendAllChildren` 能一次性组装完整子树，减少页面重排。
 
 ## 4. 更新：属性 Diff 与 `updatePayload`
 
@@ -302,23 +329,24 @@ child → 是 HostComponent / HostText？appendInitialChild
 :::code-group
 
 ```ts [react-reconciler/src/ReactFiberCompleteWork.old.js]
-updateHostComponent = function(
+updateHostComponent = function (
   current: Fiber,
   workInProgress: Fiber,
   type: Type,
   newProps: Props,
   rootContainerInstance: Container,
 ) {
-  // 有 alternate 说明这是更新，需要安排一个 Commit 副作用。
-  const oldProps = current.memoizedProps;
+  // 更新分支一定存在 alternate，旧 props 从 current 上取。
+  const oldProps = current.memoizedProps
   if (oldProps === newProps) {
     // mutation 模式下，props 引用不变就足以 bailout：
     // 即使 children 变了，也不会碰这个节点。
-    return;
+    return
   }
 
-  const instance: Instance = workInProgress.stateNode;
-  const currentHostContext = getHostContext();
+  const instance: Instance = workInProgress.stateNode
+  const currentHostContext = getHostContext()
+  // 只比较 props 并返回差异数组，不直接写 DOM。
   const updatePayload = prepareUpdate(
     instance,
     type,
@@ -326,23 +354,23 @@ updateHostComponent = function(
     newProps,
     rootContainerInstance,
     currentHostContext,
-  );
+  )
   // 把差异挂到 updateQueue，Commit 阶段由 commitUpdate 消费。
-  workInProgress.updateQueue = (updatePayload: any);
+  workInProgress.updateQueue = (updatePayload: any)
   if (updatePayload) {
-    markUpdate(workInProgress);
+    markUpdate(workInProgress)
   }
-};
-
-// ...
+}
 
 function markUpdate(workInProgress: Fiber) {
-  // 把 Update 标记加到 Fiber 上，Placement 会变成 PlacementAndUpdate。
+  // 把 Update 标记加到 Fiber 上，Commit 阶段才会调用 commitUpdate。
   workInProgress.flags |= Update
 }
 ```
 
 :::
+
+`oldProps === newProps` 时直接返回，是因为 mutation 模式下 props 引用不变就不需要触碰这个 DOM；即使 `children` 变了，子节点也会在各自的 `completeWork` 中处理差异。
 
 这段代码体现了 React 的一条重要原则：**Render 阶段只计算差异，不产生 DOM 副作用**。`prepareUpdate` 只是比较 props，真正的写入发生在 Commit 阶段。
 
@@ -362,6 +390,7 @@ export function prepareUpdate(
   hostContext: HostContext,
 ): null | Array<mixed> {
   // 省略 __DEV__ 下的 DOM nesting 校验
+  // 只负责算出差异，真正的写入留给 commitUpdate。
   return diffProperties(
     domElement,
     type,
@@ -394,9 +423,7 @@ export function commitUpdate(
 - Commit 阶段拿到的是已经算好的差异，可以批量应用。
 - 差异结构可以被 DevTools、测试和性能分析工具复用。
 
-`markUpdate` 的作用是把 `Update` 标记加到 Fiber 上。Commit 阶段遍历 `subtreeFlags` 时，看到 `Update` 才会调用 `commitUpdate`。
-
-## 5. 文本节点
+## 5. 文本节点：`updateHostText`
 
 `HostText` 的处理非常直接。更新时只比较新旧文本，不同就标记 `Update`；挂载时直接创建文本节点。
 
@@ -451,7 +478,7 @@ sequenceDiagram
 
 因为深度优先遍历保证“**进入 Provider 一定先于子树、离开 Provider 一定晚于子树**”，所以 Context 的覆盖天生满足后进先出，可以用一个栈管理。
 
-`popProvider` 做的是“**出栈恢复**”：它从 Context 栈中弹出当前 Provider 保存的旧值，再把它写回 `context._currentValue`（非 primary renderer 写 `_currentValue2`）。这样离开 Provider 后，后续兄弟节点读到的又是外层 Provider 的值。
+`popProvider` 做的是“**出栈恢复**”：它从 Context 栈中弹出当前 Provider 保存的旧值，再把它写回 `context._currentValue`（非 primary renderer 写 `_currentValue2`）。这样离开 Provider 后，后续兄弟节点读到的又是外层 Provider 的值。消费者节点的 `dependencies` 不受影响，下一次 Provider 值变化时，`propagateContextChange` 仍然能顺着依赖链找到它们。
 
 ## 7. `bubbleProperties`：向上汇总 lane 与 flags
 
@@ -478,6 +505,7 @@ function bubbleProperties(completedWork: Fiber) {
         mergeLanes(child.lanes, child.childLanes),
       )
 
+      // 子节点自身的 flags 和它整棵子树的 subtreeFlags 都要并上来。
       subtreeFlags |= child.subtreeFlags
       subtreeFlags |= child.flags
 
@@ -490,7 +518,7 @@ function bubbleProperties(completedWork: Fiber) {
     // 子树副作用标记的并集，Commit 阶段据此决定要遍历哪些节点。
     completedWork.subtreeFlags |= subtreeFlags
   } else {
-    // bailout 时只向上冒泡 StaticMask 里的静态标记。
+    // bailout 时不能冒泡上一轮的普通 flags，只保留静态标记。
     let child = completedWork.child
     while (child !== null) {
       newChildLanes = mergeLanes(
@@ -554,7 +582,7 @@ sequenceDiagram
 
 `appendChildToContainer` 还处理了注释容器的情况：如果容器本身是注释节点，它会用 `insertBefore` 把子节点插到注释节点前面，而不是调用 `appendChild`。
 
-## 9. 一次“**归**”的流程
+## 9. 完整流程图
 
 ```mermaid
 flowchart TD
@@ -587,30 +615,7 @@ flowchart TD
     S --> T[返回 null]
 ```
 
-## 10. 与简化实现的差异
-
-简化实现（mini-react / xunbei-react）把 `completeWork` 压缩成“**创建 DOM + 直接改属性 + 挂载子节点**”三步，保留了自底向上的顺序，但去掉了官方实现里的差异计算与提交解耦：
-
-- **直接在 `completeWork` 里创建 DOM**：这与官方一致，`HostComponent` 挂载时调用 `document.createElement`，`HostText` 调用 `createTextNode`。
-- **直接在 `completeWork` 里读写属性**：简化版的 `finalizeInitialChildren` 会遍历新旧 props，直接给 DOM 赋值、移除旧事件、写 `textContent`。官方只在 `completeWork` 中计算 `updatePayload`，真正的 DOM 写入留给 Commit 阶段的 `commitUpdate`。
-- **`appendAllChildren` 只识别 `HostComponent` 与 `HostText`**：遇到函数组件会继续向下找子节点，但没有处理 `HostPortal`、`OffscreenComponent`、Suspense fallback 等特殊子树。
-- **Context 使用 `popProvide`**：函数名与官方 `popProvider` 不同，语义也更简单；官方通过 `valueCursor` 栈恢复 `_currentValue` / `_currentValue2`。
-- **没有 `bubbleProperties`**：不会向上汇总 `childLanes` 与 `subtreeFlags`，因此也没有基于 lane 的跳过和 Commit 阶段的子树裁剪。
-- **没有 hydration**：不会处理服务端渲染留下的 DOM，也不会使用 `Hydrating` 标记。
-
-[width(19,32,49)]
-
-| 关注点        | 简化实现                               | React 18.3.1                                          |
-| ------------- | -------------------------------------- | ----------------------------------------------------- |
-| 创建 DOM      | `completeWork` 中直接 `createElement`  | `createInstance` → `createElement`                    |
-| 更新属性      | `finalizeInitialChildren` 直接读写 DOM | `prepareUpdate` 生成 `updatePayload`，Commit 应用     |
-| 挂载子节点    | `appendAllChildren` 只处理 Host 节点   | 额外处理 Portal、Offscreen、Suspense                  |
-| Context 恢复  | `popProvide`                           | `popProvider`，通过 `valueCursor` 栈恢复              |
-| 向上汇总      | 无                                     | `bubbleProperties` 汇总 `childLanes` / `subtreeFlags` |
-| Hydration     | 无                                     | `popHydrationState` + `Hydrating`                     |
-| Render 副作用 | 有，直接改 DOM                         | 无，差异留给 Commit                                   |
-
-## 11. 总结
+## 10. 总结
 
 [width(24,40,36)]
 

@@ -852,36 +852,7 @@ flowchart TD
     L --> M
 ```
 
-## 7. 与简化实现的差异
-
-简化实现（mini-react / xunbei-react）的多节点 Diff 与官方版本在**主干流程**上一致：
-
-1. 第一轮用 `updateSlot` 顺序扫描；
-2. 单边剩余直接创建或删除；
-3. 双边剩余用 `mapRemainingChildren` + `updateFromMap`；
-4. `placeChild` 维护 `lastPlaceIndex`（官方命名为 `lastPlacedIndex`）。
-
-差异主要集中在边界与扩展能力：
-
-- **单文本节点**：简化实现总是新建文本 Fiber，不与旧文本比较；官方的 `reconcileSingleTextNode` 会复用第一个 `HostText`，并删除其余兄弟。
-- **单元素节点**：简化实现找到可复用节点后直接返回；官方会先 `deleteRemainingChildren(child.sibling)`，确保旧链表中多余的兄弟被标记删除。
-- **支持的子节点类型**：简化实现只处理 Element、文本和数组；官方还处理 `Portal`、`Lazy`、`Iterator`，以及顶层无 key 的 Fragment。
-- **Lane 与 hydration**：简化实现没有 `lanes`，也不会标记 `Forked`；官方的协调函数接收 `lanes`，并在 hydration 时维护 `Forked` 供 `useId` 使用。
-- **开发期校验**：简化实现没有重复 key、缺失 key、非法对象类型等告警；官方的 `warnOnInvalidKey`、`throwOnInvalidObjectType` 会在开发期给出明确错误。
-
-[width(15,36,49)]
-
-| 关注点     | 简化实现                      | React 18.3.1                           |
-| ---------- | ----------------------------- | -------------------------------------- |
-| 双工厂     | `createChildReconciler(bool)` | `ChildReconciler(bool)`                |
-| 单文本复用 | 总是新建                      | 复用第一个 `HostText`，删除其余兄弟    |
-| 单元素复用 | 找到即返回                    | 删除其余兄弟后复用                     |
-| 数组算法   | 顺序扫描 + Map                | 顺序扫描 + Map，命名 `lastPlacedIndex` |
-| 特殊节点   | 无 Portal / Lazy / Iterator   | 全部支持                               |
-| 调度信息   | 无 lane                       | `lanes` + `Forked`                     |
-| 开发期校验 | 无                            | 重复 key、缺失 key、非法对象类型       |
-
-## 8. 总结
+## 7. 总结
 
 [width(18,47,35)]
 

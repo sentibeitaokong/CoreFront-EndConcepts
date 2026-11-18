@@ -473,25 +473,7 @@ sequenceDiagram
 
 这条链路上的调度与双缓冲细节，可以继续阅读 [WorkLoop 与调度](/frameworks/react/advanced/source-code/reconciler/workLoop) 和 [Fiber 节点](/frameworks/react/advanced/source-code/reconciler/fiberNode)。
 
-## 7. 与简化实现的差异
-
-这里的“**简化实现**”指仓库中用于教学的 mini-react / xunbei-react 版本。它们通常把 Mount/Update 合并到同一个函数里，用 `fiber.alternate` 是否存在来判断阶段；dispatch 则直接调用 reducer 并修改 `hook.memoizedState`。与 React 18.3.1 的差异可以概括为：
-
-[width(13,50,37)]
-
-| 维度     | React 18.3.1                                         | 简化实现                         |
-| -------- | ---------------------------------------------------- | -------------------------------- |
-| 阶段切换 | `ReactCurrentDispatcher` 切换两套 Dispatcher         | 在 Hook 内部判断 `alternate`     |
-| 状态计算 | dispatch 只入队，渲染阶段在 `updateReducer` 中计算   | dispatch 时立即计算并写回        |
-| 更新载体 | `Update` 环形队列 + `baseQueue` / `pending`          | 直接修改 `hook.memoizedState`    |
-| 优先级   | Lane + `renderLanes`，低优先级更新留到下一轮         | 固定同步或微任务，没有 lane 概念 |
-| 批量更新 | `batchedUpdates` + 并发队列                          | 没有显式批量逻辑                 |
-| 相同值   | `dispatchSetState` 用 eagerState 做 bailout          | 通常总是调度一次渲染             |
-| 双缓冲   | `createWorkInProgress` 建立完整 WIP，Hook 按节点克隆 | 可能用浅拷贝模拟 `alternate`     |
-
-“**入队延后计算**”是官方实现与简化实现最本质的分歧。只有把更新保留为队列，React 才能支持高优先级插入、同一事件中的多次合并、可中断渲染，以及基于最新状态依次执行函数式更新。
-
-## 8. 总结
+## 7. 总结
 
 [width(33,67)]
 

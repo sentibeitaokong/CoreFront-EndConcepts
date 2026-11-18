@@ -6,19 +6,18 @@ outline: [2, 4]
 
 `beginWork` 是 React 18.3.1 Render 阶段向下遍历的核心函数。它接收当前树上的 `current`、正在构建的 `workInProgress` 和本次渲染的 `renderLanes`，根据 `workInProgress.tag` 决定如何生成下一层子 Fiber，并返回第一个子 Fiber。返回 `null` 表示当前子树没有需要继续处理的节点，工作循环随即转入 `completeWork` 回溯。
 
-React 18.3.1 的 reconciler 同时保留 `.old.js` 与 `.new.js` 两套实现，默认启用 `.old.js` 分叉。`beginWork` 的实现位于 `packages/react-reconciler/src/ReactFiberBeginWork.old.js`，宿主环境相关函数位于 `packages/react-dom/src/client/ReactDOMHostConfig.js`。
-
 ## 1. 职责与返回值
 
 ### 1.1 三个核心动作
 
 对每个 Fiber，`beginWork` 大致做三件事：
 
-1. **判断是否可跳过**：比较 `current` 与 `workInProgress` 的 props，并检查是否有待处理的更新或 Context 变化；满足条件时直接 bailout，不进入组件逻辑。
-2. **执行组件逻辑**：函数组件调用 `renderWithHooks`，类组件走 `constructClassInstance` / `updateClassInstance` 后调用 `instance.render()`，Provider 则把新值压入 Context 栈。
-3. **协调子节点**：把组件返回的 JSX 交给 `reconcileChildren`，与旧子链表比较并生成下一层 Fiber。
+- **判断是否可跳过**：比较 `current` 与 `workInProgress` 的 props，并检查是否有待处理的更新或 Context 变化；满足条件时直接 bailout，不进入组件逻辑。
+- **执行组件逻辑**：函数组件调用 `renderWithHooks`，类组件走 `constructClassInstance` / `updateClassInstance` 后调用 `instance.render()`，Provider 则把新值压入 Context 栈。
+- **协调子节点**：把组件返回的 JSX 交给 `reconcileChildren`，与旧子链表比较并生成下一层 Fiber。
 
-`beginWork` 不创建真实 DOM，也不执行提交操作。它的产物只有两样：一棵继续向下的 WIP 子树，以及写在 Fiber 上的 `flags` / `lanes`。
+> [!TIP]
+> `beginWork` 不创建真实 DOM，也不执行提交操作。它的产物只有两样：一棵继续向下的 WIP 子树，以及写在 Fiber 上的 `flags` / `lanes`。
 
 ### 1.2 返回值约定
 
@@ -29,15 +28,15 @@ React 18.3.1 的 reconciler 同时保留 `.old.js` 与 `.new.js` 两套实现，
 | `Fiber` | 第一个子节点，深度优先遍历继续向下                      |
 | `null`  | 没有子节点，或子树无需处理，工作循环转入 `completeWork` |
 
-## 2. 入口：先判断能否 bailout，再按 tag 分发
-
-### 2.1 进入组件逻辑前的快速判断
+## 2. `beignWork` 入口：先判断能否 bailout，再按 tag 分发
 
 `beginWork` 的第一段代码并不急着执行组件，而是先判断这次更新能否被跳过。
 
 :::code-group
 
 ```ts [react-reconciler/src/ReactFiberBeginWork.old.js]
+//本次渲染有效更新的标志，但需要根据props,context以及更新优先级等多重因素判定
+let didReceiveUpdate
 function beginWork(
   current: Fiber | null,
   workInProgress: Fiber,
@@ -62,6 +61,8 @@ function beginWork(
         (workInProgress.flags & DidCapture) === NoFlags
       ) {
         didReceiveUpdate = false
+        // 当确认一个 Fiber 节点没有任何待处理的更新或 Context 变化时
+        // 直接跳过对其子树的常规协调（Diff）过程，从而大幅减少不必要的计算。
         return attemptEarlyBailoutIfNoScheduledUpdate(
           current,
           workInProgress,
@@ -206,13 +207,6 @@ export function includesSomeLane(a: Lanes | Lane, b: Lanes | Lane): boolean {
 
 :::
 
-这里有几个值得注意的细节：
-
-- `didReceiveUpdate` 是模块级变量。`beginWork` 先把“**是否需要更新**”的结论写进去，函数组件、`memo` 等分支会在后续读取它，决定是否跳过渲染。
-- `checkScheduledUpdateOrContext` 先看 `current.lanes` 是否包含本次 `renderLanes`；在懒传播 Context 的实现里，它还会检查 `current.dependencies` 中是否有变化的 Context。
-- `attemptEarlyBailoutIfNoScheduledUpdate` 并不是立刻返回 `null`。它仍然要完成 HostRoot、HostComponent、Provider 等节点的“**入栈**”工作，然后才调用 `bailoutOnAlreadyFinishedWork`。否则回溯阶段出栈时，Context 栈和 Host 容器栈会错位。
-- `workInProgress.lanes = NoLanes` 放在 `switch` 之前，表示这次 begin 阶段会消费掉当前 Fiber 上的待处理 lane。
-
 ## 3. 根节点：`updateHostRoot`
 
 HostRoot 没有自己的 UI，它的子节点就是 `root.render(element)` 写入更新队列的顶层元素。`updateHostRoot` 先处理更新队列，再让 `reconcileChildren` 生成子 Fiber。
@@ -221,13 +215,16 @@ HostRoot 没有自己的 UI，它的子节点就是 `root.render(element)` 写�
 
 ```ts [react-reconciler/src/ReactFiberBeginWork.old.js]
 function updateHostRoot(current, workInProgress, renderLanes) {
+  // 根节点的 Context 入栈，供子树读取。
   pushHostRootContext(workInProgress)
 
   // 省略 invariant：HostRoot 必然已有 current
   const nextProps = workInProgress.pendingProps
   const prevState = workInProgress.memoizedState
   const prevChildren = prevState.element
+  // 克隆更新队列，避免直接改动 current 上的队列。
   cloneUpdateQueue(current, workInProgress)
+  // 处理 root.render 入队的更新，合并出新的根状态。
   processUpdateQueue(workInProgress, nextProps, null, renderLanes)
 
   const nextState: RootState = workInProgress.memoizedState
@@ -238,8 +235,10 @@ function updateHostRoot(current, workInProgress, renderLanes) {
   // 省略 hydration 分支：复用现有 DOM，并给子节点打上 Hydrating 标记
   resetHydrationState()
   if (nextChildren === prevChildren) {
+    // 根元素引用没变，可以复用整棵子树。
     return bailoutOnAlreadyFinishedWork(current, workInProgress, renderLanes)
   }
+  // 协调顶层元素，生成下一层子 Fiber。
   reconcileChildren(current, workInProgress, nextChildren, renderLanes)
   return workInProgress.child
 }
@@ -248,8 +247,6 @@ function updateHostRoot(current, workInProgress, renderLanes) {
 :::
 
 `processUpdateQueue` 会把 `updateContainer` 入队的 `element` 合并进 `workInProgress.memoizedState`，因此 `nextState.element` 就是本次要渲染的根元素。如果它与上一轮的 `prevChildren` 引用相同，说明根元素没有变化，可以直接 bailout。
-
-hydration 是另一条分支：当 `prevState.isDehydrated` 为真时，React 不会重新创建 DOM，而是用 `mountChildFibers` 建立 Fiber 树，并把 `Placement` 替换成 `Hydrating` 标记，表示这些节点已经存在于页面中。
 
 ## 4. 宿主组件：`updateHostComponent`
 
@@ -265,14 +262,18 @@ function updateHostComponent(
   workInProgress: Fiber,
   renderLanes: Lanes,
 ) {
+  // Host 容器栈入栈，completeWork 时再出栈。
   pushHostContext(workInProgress)
 
   // 省略 hydration：current === null 时认领可复用的宿主节点
+  // 读取标签类型与新旧 props，用于判断 children 的变化。
   const type = workInProgress.type
   const nextProps = workInProgress.pendingProps
   const prevProps = current !== null ? current.memoizedProps : null
 
+  // children 决定是否需要创建子 Fiber。
   let nextChildren = nextProps.children
+  //判断子节点是否为单个纯文本
   const isDirectTextChild = shouldSetTextContent(type, nextProps)
 
   if (isDirectTextChild) {
@@ -283,6 +284,7 @@ function updateHostComponent(
     workInProgress.flags |= ContentReset
   }
 
+  // ref 变化时打上 Ref 标记，交给 Commit 阶段处理。
   markRef(current, workInProgress)
   reconcileChildren(current, workInProgress, nextChildren, renderLanes)
   return workInProgress.child
@@ -293,10 +295,13 @@ function updateHostComponent(
 // 纯文本子节点或 dangerouslySetInnerHTML 可以直接写 textContent/innerHTML，不必创建子 Fiber。
 export function shouldSetTextContent(type: string, props: Props): boolean {
   return (
+    // textarea / noscript 的内容由宿主节点直接持有。
     type === 'textarea' ||
     type === 'noscript' ||
+    // 字符串或数字子节点可以直接写 textContent。
     typeof props.children === 'string' ||
     typeof props.children === 'number' ||
+    // dangerouslySetInnerHTML 直接写 innerHTML，同样不需要子 Fiber。
     (typeof props.dangerouslySetInnerHTML === 'object' &&
       props.dangerouslySetInnerHTML !== null &&
       props.dangerouslySetInnerHTML.__html != null)
@@ -306,25 +311,13 @@ export function shouldSetTextContent(type: string, props: Props): boolean {
 
 :::
 
-`shouldSetTextContent` 覆盖了以下几类场景：
-
-[width(33,67)]
-
-| 场景                                   | 命中条件                           |
-| -------------------------------------- | ---------------------------------- |
-| `<div>hello</div>`                     | `children` 是字符串                |
-| `<div>{1}</div>`                       | `children` 是数字                  |
-| `<textarea>...</textarea>`             | 标签名是 `textarea`                |
-| `<noscript>...</noscript>`             | 标签名是 `noscript`                |
-| `dangerouslySetInnerHTML={{ __html }}` | `__html` 不为 `null` / `undefined` |
-
 如果仍然为纯文本创建 `HostText` Fiber，会多一层协调和一次 `appendChild`。直接写父节点的 `textContent` 更省内存，也更少一次遍历。
 
 ### 4.2 `ContentReset` 的意义
 
-`ContentReset` 是官方实现里很容易被忽略的一个标记。它处理的是“**上一轮是纯文本，这一轮变成了元素或空**”的情况：
+`ContentReset` 是一个标记。它处理的是“**上一轮是纯文本，这一轮变成了元素或空**”的情况：
 
-```text
+```markdown
 <div>hello</div>  →  <div><span>hello</span></div>
 ```
 
@@ -346,6 +339,7 @@ function updateFunctionComponent(
 ) {
   // 省略 __DEV__ 下的 propTypes 校验
 
+  // 准备 legacy context，函数组件也可能通过第二个参数读取它。
   let context
   if (!disableLegacyContext) {
     const unmaskedContext = getUnmaskedContext(workInProgress, Component, true)
@@ -353,10 +347,12 @@ function updateFunctionComponent(
   }
 
   let nextChildren
+  // 重置 Context 依赖，render 期间重新收集 useContext 的订阅。
   prepareToReadContext(workInProgress, renderLanes)
   // 省略调度分析器的 markComponentRenderStarted
 
   // 省略 __DEV__ 下的 owner 设置、StrictMode 双调用与渲染状态标记
+  // 执行函数组件，Hook 状态会挂到当前 WIP Fiber 上。
   nextChildren = renderWithHooks(
     current,
     workInProgress,
@@ -384,14 +380,6 @@ function updateFunctionComponent(
 
 :::
 
-这段代码里有三条关键路径：
-
-- `prepareToReadContext` 会重置当前 Fiber 的 Context 依赖，保证本次渲染重新收集 `useContext` 的订阅。
-- `renderWithHooks` 内部设置 `currentlyRenderingFiber`，把 `useState`、`useEffect` 等 Hook 挂到当前 WIP Fiber 上。
-- 如果 `current !== null` 且 `didReceiveUpdate` 为假，说明这次更新没有改变组件的输入。`bailoutHooks` 会把 WIP 上的 Hook 队列回滚，然后复用 `current` 的子树。这是 `memo` 和父组件重渲染时避免子组件重复执行的重要路径。
-
-Hook 链表和 `renderWithHooks` 的细节见 [Hooks 链表](/frameworks/react/advanced/source-code/hooks/hooksInternals)。
-
 ## 6. 类组件：`updateClassComponent`
 
 ### 6.1 实例的三种状态
@@ -418,8 +406,10 @@ function updateClassComponent(
   } else {
     hasContext = false
   }
+  // 重置 Context 依赖，准备在 render 中重新收集。
   prepareToReadContext(workInProgress, renderLanes)
 
+  // 实例为 null 表示首次挂载；current 为 null 表示从挂起状态恢复。
   const instance = workInProgress.stateNode
   let shouldUpdate
   if (instance === null) {
@@ -446,6 +436,7 @@ function updateClassComponent(
       renderLanes,
     )
   }
+  // 根据 shouldUpdate 决定执行 render 还是直接 bailout。
   const nextUnitOfWork = finishClassComponent(
     current,
     workInProgress,
@@ -459,16 +450,6 @@ function updateClassComponent(
 ```
 
 :::
-
-三个分支分别对应：
-
-[width(25,33,42)]
-
-| 条件                | 调用                                            | 含义                                 |
-| ------------------- | ----------------------------------------------- | ------------------------------------ |
-| `instance === null` | `constructClassInstance` + `mountClassInstance` | 首次渲染，创建实例并执行挂载生命周期 |
-| `current === null`  | `resumeMountClassInstance`                      | 实例已存在但当前树为空，属于恢复挂载 |
-| 其他                | `updateClassInstance`                           | 正常更新，计算 `shouldUpdate`        |
 
 ### 6.2 `finishClassComponent`
 
@@ -545,11 +526,6 @@ function finishClassComponent(
 
 :::
 
-`shouldUpdate` 为假时，`finishClassComponent` 不会调用 `instance.render()`，而是直接进入 `bailoutOnAlreadyFinishedWork`。但有两个例外：
-
-- `didCaptureError` 为真时，即使 `shouldComponentUpdate` 返回 false，也要渲染错误边界的内容。
-- 类组件本身是 legacy context provider 时，必须调用 `invalidateContextProvider`，把“**不更新**”的结论传递给下游消费者。
-
 ## 7. Context 的两个分支
 
 ### 7.1 `updateContextProvider`
@@ -564,9 +540,11 @@ function updateContextProvider(
   workInProgress: Fiber,
   renderLanes: Lanes,
 ) {
+  // Provider Fiber 的 type 上挂着对应的 context。
   const providerType: ReactProviderType<any> = workInProgress.type
   const context: ReactContext<any> = providerType._context
 
+  // 读取新旧 props，取出本次要生效的 value。
   const newProps = workInProgress.pendingProps
   const oldProps = workInProgress.memoizedProps
 
@@ -574,6 +552,7 @@ function updateContextProvider(
 
   // 省略 __DEV__ 下的 value 必填与 propTypes 校验
 
+  // 把新值压入 Context 栈，子树在遍历期间读到它。
   pushProvider(workInProgress, context, newValue)
 
   if (enableLazyContextPropagation) {
@@ -607,13 +586,6 @@ function updateContextProvider(
 ```
 
 :::
-
-几个容易混淆的点：
-
-- `pushProvider` 必须在 `reconcileChildren` 之前调用。这样子树里的消费者读取到的就是新值。
-- 判断值是否变化用的是 `Object.is` 语义的 `is(oldValue, newValue)`。`NaN` 与 `NaN` 被视为相等，`+0` 与 `-0` 被视为不同。
-- 值变化时调用 `propagateContextChange(workInProgress, context, renderLanes)`，它只会给真正依赖该 Context 的消费者打上 lane，而不是重渲染整棵子树。
-- 覆盖的值会在 `completeWork` 的 `popProvider` 中恢复，具体见 [completeWork](/frameworks/react/advanced/source-code/reconciler/completeWork)。
 
 ### 7.2 `updateContextConsumer`
 
@@ -667,6 +639,7 @@ export function reconcileChildren(
   nextChildren: any,
   renderLanes: Lanes,
 ) {
+  // 根据 current 是否为空选择挂载工厂或更新工厂。
   if (current === null) {
     // 首次挂载：不跟踪副作用，整棵 DOM 会在 completeWork 中一次性组装。
     workInProgress.child = mountChildFibers(
@@ -689,17 +662,6 @@ export function reconcileChildren(
 
 :::
 
-[width(15,18,33,34)]
-
-| 场景               | 使用的工厂             | `shouldTrackSideEffects` | 结果                                  |
-| ------------------ | ---------------------- | ------------------------ | ------------------------------------- |
-| `current === null` | `mountChildFibers`     | `false`                  | 复用旧 Fiber 但不标记插入/删除        |
-| `current !== null` | `reconcileChildFibers` | `true`                   | 精确标记 `Placement`、`ChildDeletion` |
-
-这里的 `current === null` 表示这个 Fiber 是全新的，没有旧节点可复用。此时不标记 `Placement`，因为整棵 DOM 子树会在 `completeWork` 的 `appendAllChildren` 中从下往上组装，只需要在 Commit 阶段插入最顶层的宿主节点。
-
-更新时则必须精确标记新增、删除和移动，具体算法见 [子节点 Diff](/frameworks/react/advanced/source-code/reconciler/childFiber)。
-
 ## 9. bailout：跳过整棵子树
 
 `bailoutOnAlreadyFinishedWork` 是“**跳过**”逻辑的最后一站。它既要判断子树里是否还有待处理的工作，也要在需要继续时克隆子 Fiber。
@@ -719,9 +681,11 @@ function bailoutOnAlreadyFinishedWork(
 
   // 省略 Profiler 计时停止
 
+  // 记录被跳过的 lane，避免后续重复处理。
   markSkippedUpdateLanes(workInProgress.lanes)
 
   // 子树没有待处理的工作，可以整棵跳过。
+  // 判断`childLanes` 与本次 `renderLanes`是否有交集，true：克隆子fiber false:返回null跳过
   if (!includesSomeLane(renderLanes, workInProgress.childLanes)) {
     if (enableLazyContextPropagation && current !== null) {
       // 懒传播模式下，bailout 前还要检查子树是否有 Context 变化。
@@ -738,18 +702,41 @@ function bailoutOnAlreadyFinishedWork(
   cloneChildFibers(current, workInProgress)
   return workInProgress.child
 }
+
+// 以旧 Fiber 为模板为整条子节点链创建 WIP 副本，返回后继续向下递。
+export function cloneChildFibers(
+  current: Fiber | null,
+  workInProgress: Fiber,
+): void {
+  if (workInProgress.child === null) {
+    // 没有子节点，无需克隆。
+    return
+  }
+
+  // 第一个子节点：克隆后直接挂到父节点的 child 上。
+  let currentChild = workInProgress.child
+  let newChild = createWorkInProgress(currentChild, currentChild.pendingProps)
+  workInProgress.child = newChild
+
+  // 从第二个子节点开始，沿 sibling 链逐个克隆并重新串起来。
+  newChild.return = workInProgress
+  while (currentChild.sibling !== null) {
+    currentChild = currentChild.sibling
+    newChild = newChild.sibling = createWorkInProgress(
+      currentChild,
+      currentChild.pendingProps,
+    )
+    // 每个克隆节点的 return 都指向新的父节点。
+    newChild.return = workInProgress
+  }
+  // 截断尾部，避免新链表残留旧 Fiber 的兄弟引用。
+  newChild.sibling = null
+}
 ```
 
 :::
 
-`childLanes` 是判断能否整棵跳过的关键。它在 `completeWork` 的 `bubbleProperties` 中从子节点向上冒泡，记录了整棵子树里所有待处理 lane 的并集：
-
-- 如果 `childLanes` 与本次 `renderLanes` 没有交集，说明子树里没有本次要处理的工作，直接返回 `null`。
-- 如果有交集，说明某个后代还有更新，必须克隆直接子 Fiber，让工作循环继续向下。
-
-`cloneChildFibers` 不会重新协调子节点，它只是为 `current.child` 创建对应的 WIP 副本，保留原有的 `key`、`type`、`stateNode` 等身份信息。
-
-## 10. 一次“**递**”的流程
+## 10. 完整流程图
 
 ```mermaid
 flowchart TD
@@ -780,31 +767,7 @@ flowchart TD
     R --> F
 ```
 
-## 11. 与简化实现的差异
-
-简化实现（mini-react / xunbei-react）保留了 `beginWork` 的“**按 tag 分派 + 协调子节点**”骨架，但为了可读性裁掉了官方实现里的调度与边界处理：
-
-- **没有 `renderLanes`**：函数签名只有 `current` 和 `workInProgress`，也不存在 `didReceiveUpdate`、`checkScheduledUpdateOrContext` 和 `attemptEarlyBailoutIfNoScheduledUpdate`。每次更新都会重新执行组件并重新协调子节点。
-- **HostRoot 直接同步两棵树**：简化实现读取 `workInProgress.memoizedState.element` 后调用 `reconcileChildren`，再把 `workInProgress.child` 赋给 `current.child`，以此维持双缓冲一致；官方实现依赖 `cloneChildFibers` 和 `alternate` 指针，不会在 `updateHostRoot` 里直接改 `current.child`。
-- **HostComponent 只保留文本优化**：同样实现了 `shouldSetTextContent` 的判断，但没有 `ContentReset`、hydration 和 ref 标记。
-- **类组件只做“新建或复用 + render”**：没有 `shouldComponentUpdate`、`getDerivedStateFromProps`、`getSnapshotBeforeUpdate`，也没有 `resumeMountClassInstance` 分支。
-- **Context 使用自己的 `pushProvide` / `popProvide`**：值变化时只刷新依赖快照，不参与 lane 调度；官方使用 `pushProvider` / `popProvider` 和 `propagateContextChange(workInProgress, context, renderLanes)`。
-- **支持的 tag 更少**：没有 `LazyComponent`、`MemoComponent`、`ForwardRef`、`SuspenseComponent`、`HostPortal`、`OffscreenComponent` 等分支。
-- **`reconcileChildren` 的双工厂思路一致**：挂载时关闭副作用跟踪，更新时开启，但内部 Diff 只覆盖常见的元素、文本和数组。
-
-[width(14,33,53)]
-
-| 关注点   | 简化实现                     | React 18.3.1                                      |
-| -------- | ---------------------------- | ------------------------------------------------- |
-| 入口判断 | 只检查 `current` 是否为空    | props、legacy context、lane、Context 依赖综合判断 |
-| 调度单位 | 固定优先级，无 lane          | `renderLanes` + `childLanes`                      |
-| HostRoot | 直接同步 `current.child`     | 更新队列 + `reconcileChildren` + bailout          |
-| 函数组件 | 直接调用 render 函数         | `renderWithHooks` + `bailoutHooks`                |
-| 类组件   | 构造/复用实例后直接 `render` | 完整生命周期与 `shouldComponentUpdate`            |
-| Context  | `pushProvide` / `popProvide` | `pushProvider` / `popProvider` + 依赖传播         |
-| 可中断性 | 无                           | 每个 Fiber 都是可中断的工作单元                   |
-
-## 12. 总结
+## 11. 总结
 
 [width(25,61,14)]
 

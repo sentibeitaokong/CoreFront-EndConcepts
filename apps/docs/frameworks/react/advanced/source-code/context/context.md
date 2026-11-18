@@ -747,21 +747,3 @@ sequenceDiagram
 | `scheduleContextWorkOnParentPath` | 把消费者的 Lane 冒泡到 Provider 和根，缩小更新范围  |
 
 Context 的实现可以浓缩成一句话：**用值栈管理覆盖，用依赖链表记录谁读过，用 Lane 把变化送到消费者**。值栈保证嵌套正确，依赖链表保证更新可追踪，Lane 保证更新范围可控。
-
-## 8. 与简化实现的差异
-
-教学用的简化实现通常只保留主干：一个 `_currentValue`、一个全局值栈、一份依赖链表，足以演示嵌套覆盖和消费关系，但不参与 Lane 调度。
-
-[width(15,34,51)]
-
-| 维度          | 简化实现                                  | React 18.3.1                                                         |
-| ------------- | ----------------------------------------- | -------------------------------------------------------------------- |
-| 值字段        | 只有 `_currentValue`                      | `_currentValue` / `_currentValue2` / `_threadCount`，支持多渲染器    |
-| 栈操作命名    | `pushProvide` / `popProvide`              | `pushProvider` / `popProvider`，并传入 `providerFiber` 做 DEV 校验   |
-| 依赖写入      | 头插到 `dependencies.firstContext`        | 尾插，维护 `lastContextDependency`，并记录 `dependencies.lanes`      |
-| 值变化传播    | 只把依赖节点的 `memoizedValue` 刷新为新值 | 给消费者合并 `lanes` / `childLanes`，由调度器精确重渲染              |
-| 调度          | 没有 Lane，通常整树重渲染                 | 结合 Lane 与 `childLanes`，只走受影响的子树                          |
-| Consumer 形态 | 始终 `context.Consumer = context`         | DEV 使用代理对象做误用警告，生产环境才自引用                         |
-| 类组件        | 一般不实现 `contextType` 的强制更新       | Context 变化时给类组件塞 `ForceUpdate`，绕过 `shouldComponentUpdate` |
-
-简化实现适合理解“**Context 为什么需要栈**”和“**依赖链表长什么样**”。阅读官方源码时，还需要补上多渲染器字段、Lane 传播、`ForceUpdate`、eager/lazy 两套传播路径，以及 `resetContextDependencies` 对模块级游标的清理。

@@ -699,8 +699,12 @@ export const REACT_CONTEXT_TYPE = Symbol.for('react.context')
 
 ## 7. 总结
 
-- `ReactElement` 是纯数据，`$$typeof` 用 Symbol 保证它无法被 JSON 伪造。
-- Element的`type`决定Fiber的`tag`，`key`决定Diff时能否复用，`props.children`决定下一层协调的输入。
-- `createElement`与`jsx`/`jsxs`只是两种创建Element的入口，最终都会调用同一个`ReactElement`工厂。
-- 普通函数组件先以 `IndeterminateComponent` 进入协调流程，挂载时才被定型。
-- 从 Element 到 Fiber 的入口是 `createFiberFromElement`，它不创建 DOM，只建立链表节点。
+[width(18,82)]
+
+| 维度     | React 18.3.1 的行为                                                                                   |
+| -------- | ----------------------------------------------------------------------------------------------------- |
+| 数据结构 | `ReactElement` 是纯数据，`$$typeof` 用 Symbol 保证它无法被 JSON 伪造                                  |
+| 字段作用 | `type` 决定 Fiber 的 `tag`，`key` 决定 Diff 时能否复用，`props.children` 决定下一层协调的输入         |
+| 创建入口 | `createElement` 与 `jsx` / `jsxs` 只是两种创建 Element 的入口，最终都会调用同一个 `ReactElement` 工厂 |
+| 函数组件 | 先以 `IndeterminateComponent` 进入协调流程，挂载时才被定型                                            |
+| 到 Fiber | 入口是 `createFiberFromElement`，它不创建 DOM，只建立链表节点                                         |

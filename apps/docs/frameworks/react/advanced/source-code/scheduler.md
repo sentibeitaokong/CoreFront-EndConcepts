@@ -4,7 +4,7 @@ outline: [2, 4]
 
 # 调度器
 
-React 的 `scheduler` 包是一个**独立于 React 的通用任务调度库**，负责按照优先级调度任务并在适当时机让出主线程。它是 React Concurrent Mode（并发模式）能够“**可中断渲染**”的基石。第 12 节补充简化实现如何把它接入 React 根调度，以及它与 React 18 的差异，作为对照阅读。
+React 的 `scheduler` 包是一个**独立于 React 的通用任务调度库**，负责按照优先级调度任务并在适当时机让出主线程。它是 React Concurrent Mode（并发模式）能够“**可中断渲染**”的基石。本文基于 React 18.3.1 的 `scheduler` 源码，拆解任务的排队、时间切片与执行循环。
 
 ## 1. React 调度器是什么？
 
@@ -793,7 +793,7 @@ function flushWork(initialTime: number) {
 
 ```ts [scheduler/src/SchedulerPriorities.ts]
 export type PriorityLevel = 0 | 1 | 2 | 3 | 4 | 5
-// 简化实现只使用 NormalPriority 这一级。
+// 默认优先级。
 export const NormalPriority = 3
 ```
 
@@ -1175,7 +1175,7 @@ import {
   IdlePriority,
 } from 'scheduler'
 
-// Lane → EventPriority → SchedulerPriority 映射（简化）
+// Lane → EventPriority → SchedulerPriority 映射（节选）
 function ensureRootIsScheduled(root) {
   const nextLanes = getNextLanes(root, NoLanes)
 
@@ -1308,97 +1308,3 @@ sequenceDiagram
 | **防重入保护** | `isPerformingWork` / `isHostCallbackScheduled` / `isMessageLoopRunning` / `isHostTimeoutScheduled` 四层标志位 | 确保 MessageChannel 循环、setTimeout 倒计时、任务执行三者互不冲突                          |
 | **异常安全**   | `flushWork` 的 `try...finally` 包裹 `workLoop`                                                                | 无论任务执行是否抛异常，全局状态 (`isPerformingWork`, `currentPriorityLevel`) 都能正确恢复 |
 | **框架无关**   | 独立 `scheduler` 包，依赖仅为 `performance.now()`                                                             | 可脱离 React 用于任何需要协作式调度的场景                                                  |
-
-## 12. 简化实现的调度对照
-
-前 11 节拆解的是 Scheduler 本身的队列、堆、时间切片与任务循环；这一节用一份按 React 18 架构裁剪的简化实现做对照，帮助理解 React 根调度如何接入 Scheduler，以及它省略了哪些优先级能力。
-
-### 12.1 根调度：两条路径
-
-:::code-group
-
-```ts [react-reconciler/src/ReactFiberRootScheduler.ts]
-export function ensureRootIsScheduled(root: FiberRoot) {
-  // 推迟到本轮事件循环结束，避免在 render 调用栈中同步执行
-  queueMicrotask(() => {
-    scheduleTaskForRootDuringMincrotask(root)
-  })
-}
-
-function scheduleTaskForRootDuringMincrotask(root: FiberRoot) {
-  scheduleCallback(NormalPriority, performConcurrentWorkOnroot.bind(null, root))
-}
-```
-
-```ts [react-reconciler/src/ReactFiberWorkLoop.ts]
-export function scheduleUpdateOnFiber(
-  root: FiberRoot,
-  fiber: Fiber,
-  isSync?: boolean,
-) {
-  workProgressRoot = root
-  workInProgress = fiber
-
-  if (isSync) {
-    // Hooks 更新：微任务中尽快渲染，绕过 Scheduler
-    queueMicrotask(() => performConcurrentWorkOnroot(root))
-  } else {
-    // 首次 render：交给 Scheduler 按优先级调度
-    ensureRootIsScheduled(root)
-  }
-}
-```
-
-:::
-
-两条路径的差异：
-
-[width(23,33,18,26)]
-
-| 路径            | 触发者                           | 执行时机                 | 是否经过 Scheduler |
-| --------------- | -------------------------------- | ------------------------ | ------------------ |
-| `isSync = true` | `dispatchReduceAction`           | 当前宏任务结束后的微任务 | 否                 |
-| `isSync` 为空   | `updateContainer`（首次 render） | Scheduler 分配的时间片   | 是                 |
-
-### 12.2 为什么 Hooks 更新绕过 Scheduler
-
-简化实现把 Hooks 更新视为“**必须尽快完成**”的同步更新，因此用 `queueMicrotask` 直接执行。官方 React 则会把更新放入 Lane 队列，再由 `ensureRootIsScheduled` 决定优先级：
-
-```text
-dispatchSetState
-  → 计算 lane
-  → enqueueConcurrentHookUpdate
-  → scheduleUpdateOnFiber(root, fiber, lane, eventTime)
-  → ensureRootIsScheduled
-  → getNextLanes
-  → scheduleCallback(优先级, performConcurrentWorkOnRoot)
-```
-
-### 12.3 与 React 18 的差异
-
-[width(15,32,53)]
-
-| 维度       | 简化实现                   | React 18                                     |
-| ---------- | -------------------------- | -------------------------------------------- |
-| 调度入口   | `scheduleCallback`         | `unstable_scheduleCallback`                  |
-| 优先级来源 | 固定 `NormalPriority`      | 由 Lane 映射到 Scheduler 优先级              |
-| 时间切片   | 已实现 `shouldYieldToHost` | 相同，配合 `workLoopConcurrent`              |
-| 任务续传   | 支持 continuation          | 相同                                         |
-| 延迟任务   | `timeQueue` + `setTimeout` | 相同                                         |
-| 过期处理   | 过期后不再让出             | 相同                                         |
-| 取消任务   | `cancelCallback`           | `cancelCallback` / `unstable_cancelCallback` |
-
-### 12.4 Lane 模型对照
-
-React 18 的根调度会先把更新归类到 Lane，再映射成 Scheduler 优先级：
-
-- `SyncLane = 1`、`InputContinuousLane = 4`、`DefaultLane = 16`；
-- `TransitionLanes` 共 16 条，`RetryLanes` 共 5 条；
-- `getHighestPriorityLane(lanes)` 的实现是 `lanes & -lanes`，只保留最低的非零位；
-- `getNextLanes` 负责排除挂起 Lane、优先非 idle 工作、取最高优先级组并扩展纠缠 Lane。
-
-完整的 Lane 位掩码、生命周期与 `getNextLanes` 规则见 [调度与优先级（Lanes）](/frameworks/react/advanced/core-design/schedulingAndLanes)。简化实现没有 `ReactFiberLane.old.js`，`ensureRootIsScheduled` 固定使用 `NormalPriority`，因此无法表达“**高优先级插队**”和“**Transition 可打断**”。
-
-### 12.5 小结
-
-Scheduler 是 React 并发能力的“**发动机**”，但发动机只有配上 Lane（决定什么时候点火）和可中断的 workLoop（决定什么时候熄火），才能真正实现并发渲染。简化实现提供了发动机和基础的时间切片，却把 Lane 与可中断的 workLoop 简化掉了，因此不能把它当成并发行为的完整参考。

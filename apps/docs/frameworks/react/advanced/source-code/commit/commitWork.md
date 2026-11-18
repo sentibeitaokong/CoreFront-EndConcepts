@@ -990,25 +990,11 @@ function commitPassiveUnmountOnFiber(finishedWork: Fiber): void {
 
 Commit 阶段的设计原则可以概括为“**Render 只算、Commit 只做**”：
 
-- Render 阶段负责比较、打标记、计算 Lane；
-- Mutation 阶段消费结构标记，完成 DOM 的插入、移动、删除；
-- Layout 阶段读取变更后的 DOM，执行同步副作用；
-- Passive 阶段在绘制后异步补齐 `useEffect`。
+[width(14,86)]
 
-## 8. 与简化实现的差异
-
-本节对照一个教学用的极简实现，帮助理解官方实现删掉了哪些东西。该实现的 `commitRoot` 只调用一次 `commitMutationEffects`，然后把 `useEffect` 交给 Scheduler；它保留了三件事：按 `flags` 处理 `Placement` / `ChildDeletion` / `Update`、用 `insertBefore` 维护顺序、删除时先跑清理再 `removeChild`。
-
-[width(13,35,52)]
-
-| 维度         | 简化实现                                               | React 18.3.1                                                        |
-| ------------ | ------------------------------------------------------ | ------------------------------------------------------------------- |
-| 子阶段       | 只有 Mutation，Layout Effect 在 Mutation 中同步 create | BeforeMutation、Mutation、Layout 三个同步阶段 + 异步 Passive        |
-| DOM 更新时机 | 部分属性更新提前到 `completeWork`                      | 结构变更集中在 Mutation，属性在 `completeWork` 生成标记后统一消费   |
-| 遍历方式     | 递归遍历整棵 Fiber 树                                  | `subtreeFlags & MutationMask` / `PassiveMask` 剪枝，Passive 用迭代  |
-| 删除         | 遍历 `deletions`，执行 cleanup + `removeChild`         | `hostParent` 游标 + `commitDeletionEffectsOnFiber`，区分宿主/组件   |
-| 节点类型     | 主要处理 `HostComponent`、`HostRoot`                   | 还处理 `HostPortal`、`HostText`、`Offscreen`、Suspense/Dehydrated   |
-| Effect 调度  | `useEffect` 统一交给 Scheduler                         | Insertion / Layout / Passive 三类标签，各自有独立的执行阶段         |
-| 错误处理     | 异常直接冒泡                                           | 每个副作用调用都包在 `try/catch` 中，交给 `captureCommitPhaseError` |
-
-简化实现适合用来理解“**Commit 在做什么**”，但阅读官方源码时要把这些裁剪掉的边界条件补回来：Portal 的容器、被删子树的 Passive 清理、`ContentReset`、Suspense 的隐藏子树，以及 Layout Effect destroy 与 create 的分离。
+| 阶段     | 职责                                      |
+| -------- | ----------------------------------------- |
+| Render   | 比较、打标记、计算 Lane                   |
+| Mutation | 消费结构标记，完成 DOM 的插入、移动、删除 |
+| Layout   | 读取变更后的 DOM，执行同步副作用          |
+| Passive  | 绘制后异步补齐 `useEffect`                |

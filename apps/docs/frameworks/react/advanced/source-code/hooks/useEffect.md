@@ -533,24 +533,7 @@ function commitPassiveUnmountInsideDeletedTreeOnFiber(
 
 对于仍在树上的组件，Passive unmount 先处理子节点，再处理父节点；对于被删除的子树，注释明确说明是 parent → child。两种遍历方向不同，但都保证“**清理函数在对应的 create 之后、下次 create 之前执行**”。
 
-## 11. 与简化实现的差异
-
-这里的“**简化实现**”指仓库中用于教学的 mini-react / xunbei-react 版本。它们通常把 Layout Effect 和 Passive Effect 都放在 Commit 阶段同步处理，并且只用一个 `finishedWork` 引用保存待执行的 Passive Effect。与 React 18.3.1 的差异如下：
-
-[width(19,40,41)]
-
-| 维度           | React 18.3.1                                                          | 简化实现                                |
-| -------------- | --------------------------------------------------------------------- | --------------------------------------- |
-| Effect 标记    | `HookHasEffect` + `HookPassive` / `HookLayout` / `HookInsertion` 组合 | 可能直接用 `HookPassive` / `HookLayout` |
-| 依赖未变化     | 仍 push 一个不带 `HookHasEffect` 的新 Effect，保留 destroy            | 可能直接复用旧 Effect                   |
-| Layout 清理    | Mutation 阶段统一执行 destroy                                         | 可能在同一个函数里先 destroy 再 create  |
-| Passive 调度   | `rootWithPendingPassiveEffects` + `pendingPassiveEffectsLanes`        | 只保存一个 `finishedWork`，直接后序遍历 |
-| 优先级         | 按 lanes 计算 Passive 回调优先级                                      | 没有优先级与批次概念                    |
-| Insertion Hook | 有完整实现                                                            | 可能只定义了标记，没有执行逻辑          |
-
-最关键的区别是 `HookHasEffect`：官方用它区分“**本次真的要执行**”和“**只是保留清理函数**”。没有这个位，就无法在不执行 create 的情况下安全地携带 destroy。
-
-## 12. 总结
+## 11. 总结
 
 `useEffect` 自身的关注点：
 

@@ -117,18 +117,7 @@ function Timer() {
 - DOM 引用：`<div ref={divRef} />`，Commit 阶段由 `commitAttachRef` 赋值。
 - 保存上一次的值：在 `useEffect` 中更新 `ref.current`。
 
-## 5. 与简化实现的差异
-
-这里的“**简化实现**”指仓库中用于教学的 mini-react / xunbei-react 版本。它们通常只创建普通对象，也不会在 Commit 阶段完整处理 ref 的挂载与卸载。与 React 18.3.1 的差异如下：
-
-[width(18,62,20)]
-
-| 维度         | React 18.3.1                                             | 简化实现                    |
-| ------------ | -------------------------------------------------------- | --------------------------- |
-| ref 对象     | 默认创建普通 `{current}`，可选 DEV 警告                  | 只创建普通对象              |
-| DOM ref 提交 | `commitAttachRef` / `commitDetachRef` 在 Commit 阶段处理 | 可能没有实现 ref 的提交逻辑 |
-
-## 6. 总结
+## 5. 总结
 
 [width(23,77)]
 

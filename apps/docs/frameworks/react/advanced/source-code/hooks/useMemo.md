@@ -166,21 +166,7 @@ useMemo(() => compute(a), flag ? [a] : [])
 
 依赖数组的长度和顺序在一组 Hook 调用中必须保持稳定，这与 Hooks 必须按顺序调用的规则是同一件事。
 
-## 7. 与简化实现的差异
-
-这里的“**简化实现**”指仓库中用于教学的 mini-react / xunbei-react 版本。它们通常把 Mount 与 Update 合并进一个函数，通过 `hook.memoizedState` 是否为 `null` 来判断阶段。与 React 18.3.1 的差异如下：
-
-[width(15,44,41)]
-
-| 维度       | React 18.3.1                                                        | 简化实现                                   |
-| ---------- | ------------------------------------------------------------------- | ------------------------------------------ |
-| 阶段拆分   | `mountMemo` / `updateMemo`、`mountCallback` / `updateCallback` 分开 | 合并为一个函数，运行时判断阶段             |
-| Dispatcher | Mount/Update 两套函数表                                             | 没有 Dispatcher，直接调用内部函数          |
-| 依赖比较   | `areHookInputsEqual` + `Object.is`                                  | 可能直接用 `===`，对 `NaN` / `-0` 语义不同 |
-
-`useCallback` 的实现与 `useMemo` 同构，阶段拆分与 Dispatcher 的差异也相同。
-
-## 8. 总结
+## 7. 总结
 
 [width(26,74)]
 
