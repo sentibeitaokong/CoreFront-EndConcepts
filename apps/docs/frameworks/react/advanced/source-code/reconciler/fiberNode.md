@@ -506,6 +506,16 @@ export function createWorkInProgress(current, pendingProps) {
 
   return workInProgress
 }
+
+// Fiber 的构造入口：所有 createFiberFrom* 最终都落到这里。
+const createFiber = function (
+  tag: WorkTag,
+  pendingProps: mixed,
+  key: null | string,
+  mode: TypeOfMode,
+): Fiber {
+  return new FiberNode(tag, pendingProps, key, mode)
+}
 ```
 
 :::

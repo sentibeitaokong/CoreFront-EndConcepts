@@ -4,25 +4,53 @@ outline: [2, 4]
 
 # useReducer
 
-`useReducer` 是状态 Hook 的通用形式：它把“**如何根据 action 计算新状态**”交给调用方传入的 reducer，自己只负责维护状态、收集更新并触发调度。`useState` 只是把 reducer 固定成 `basicStateReducer` 的特例，两者的底层实现高度重合。
+`useReducer` 是状态 Hook 的通用形式：它把“**如何根据 action 计算新状态**”交给调用方传入的 reducer，自己只负责维护状态、收集更新并触发调度。它接收 reducer、初始参数与可选的 init 函数，返回当前状态与稳定的 `dispatch`。`useState` 只是把 reducer 固定成 `basicStateReducer` 的特例。当状态转换逻辑复杂、action 种类多或需要集中管理状态变化时，优先使用 `useReducer`。
 
-`useReducer` 的实现位于 `packages/react-reconciler/src/ReactFiberHooks.old.js`，主要入口是 `mountReducer`、`updateReducer` 与 `dispatchReducerAction`。阅读前建议先了解 [Hooks 链表](/frameworks/react/advanced/source-code/hooks/hooksInternals) 中的 Dispatcher、Hook 节点和环形队列。
+## 1. 基础用法
 
-## 1. 三个入口
+`useReducer(reducer, initialArg, init?)` 的三个参数分别是：计算新状态的 reducer、初始参数，以及可选的惰性初始化函数。返回值是 `[state, dispatch]`；`dispatch(action)` 把 action 交给 reducer，并触发一次带 lane 的调度。
 
-[width(30,9,61)]
+```tsx
+import { useReducer } from 'react'
 
-| 函数                    | 阶段 | 职责                                     |
-| ----------------------- | ---- | ---------------------------------------- |
-| `mountReducer`          | 挂载 | 初始化状态与队列，绑定 `dispatch`        |
-| `updateReducer`         | 更新 | 合并队列、按 lane 应用更新、返回最新状态 |
-| `dispatchReducerAction` | 任意 | 创建 `Update`、入队并调度根节点          |
+type Action = { type: 'increment' } | { type: 'decrement' } | { type: 'reset' }
 
-`HooksDispatcherOnMount.useReducer` 指向 `mountReducer`，`HooksDispatcherOnUpdate.useReducer` 指向 `updateReducer`，组件里的 `useReducer` 调用最终落到这两个函数之一。
+function reducer(state: number, action: Action) {
+  switch (action.type) {
+    case 'increment':
+      return state + 1
+    case 'decrement':
+      return state - 1
+    case 'reset':
+      return 0
+    default:
+      return state
+  }
+}
 
-## 2. `mountReducer`
+function Counter() {
+  // 第二个参数是初始状态；dispatch 接收 action 并交给 reducer 计算新状态。
+  const [count, dispatch] = useReducer(reducer, 0)
+
+  return (
+    <div>
+      <p>{count}</p>
+      {/* dispatch 的函数身份稳定，可以直接传给子组件。 */}
+      <button onClick={() => dispatch({ type: 'increment' })}>加一</button>
+      <button onClick={() => dispatch({ type: 'reset' })}>重置</button>
+    </div>
+  )
+}
+```
+
+> [!TIP]
+> 常见写法是把 action 定义成可辨识联合类型，在 reducer 中分支计算新状态；如果初始状态需要惰性计算，可以传入第三个参数 `init`，写成 `useReducer(reducer, initialArg, init)`。`dispatch` 的身份在多次渲染间保持稳定，适合直接传给子组件。
+
+## 2. 挂载阶段
 
 挂载时创建状态、更新队列，并把 `dispatch` 预绑定到当前 Fiber 和队列：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function mountReducer<S, I, A>(
@@ -59,14 +87,33 @@ function mountReducer<S, I, A>(
 }
 ```
 
-几个细节：
+```ts [react-reconciler/src/ReactFiberHooks.old.js]
+function mountWorkInProgressHook(): Hook {
+  // 新建空节点，具体字段由调用方填充。
+  const hook: Hook = {
+    memoizedState: null,
 
-- `init` 存在时，初始状态是 `init(initialArg)`；否则直接使用 `initialArg`。
-- `memoizedState` 与 `baseState` 同时写入初始状态，后者用于记录“**尚未被低优先级跳过影响的状态基线**”。
-- `queue.lastRenderedReducer` 保存 reducer，供后续渲染和 eager 计算使用。
-- `dispatch` 通过 `bind` 预先绑定 `currentlyRenderingFiber` 与 `queue`，所以组件里拿到的 `dispatch` 身份稳定，不需要额外依赖。
+    baseState: null,
+    baseQueue: null,
+    queue: null,
 
-## 3. `updateReducer`：合并队列与按 lane 处理
+    next: null,
+  }
+
+  if (workInProgressHook === null) {
+    // 第一个 Hook，直接挂到 Fiber.memoizedState 上。
+    currentlyRenderingFiber.memoizedState = workInProgressHook = hook
+  } else {
+    // 追加到链表尾部。
+    workInProgressHook = workInProgressHook.next = hook
+  }
+  return workInProgressHook
+}
+```
+
+:::
+
+## 3. 更新阶段 {#\_3-updatereducer-合并队列与按-lane-处理}
 
 更新阶段先把 `pending` 队列合并进 `baseQueue`，再按 `renderLanes` 逐个处理：
 
@@ -154,16 +201,16 @@ function updateReducer<S, I, A>(
 
 这段代码解决四件事：
 
-1. **合并队列**：新调度的 `pending` 与上次没处理完的 `baseQueue` 拼成一个环。
-2. **按 lane 过滤**：优先级不足的 Update 不丢弃，而是克隆到 `newBaseQueue`，留到下一次渲染。
-3. **复用 eagerState**：如果 dispatch 时已经算过新状态，渲染阶段不再调用 reducer。
-4. **标记更新**：只有 `newState` 与旧状态不同（`Object.is` 比较）时，才通知 `beginWork` 本轮确实有更新。
+- **合并队列**：新调度的 `pending` 与上次没处理完的 `baseQueue` 拼成一个环。
+- **按 lane 过滤**：优先级不足的 Update 不丢弃，而是克隆到 `newBaseQueue`，留到下一次渲染。
+- **复用 eagerState**：如果 dispatch 时已经算过新状态，渲染阶段不再调用 reducer。
+- **标记更新**：只有 `newState` 与旧状态不同（`Object.is` 比较）时，才通知 `beginWork` 本轮确实有更新。
 
-### 3.1 优先级不足时会发生什么
+## 4. 优先级不足时会发生什么
 
 `updateReducer` 遍历环形队列时，并不是“**全部应用**”或“**全部丢弃**”，而是逐条判断：
 
-```text
+```tree
 update1 (高优先级) → update2 (低优先级) → update3 (高优先级)
                      ↑ 跳过，复制进 newBaseQueue
 ```
@@ -175,7 +222,7 @@ update1 (高优先级) → update2 (低优先级) → update3 (高优先级)
 
 这样既保证本次渲染只呈现高优先级结果，又不会丢失低优先级更新。队列因此需要同时维护 `baseState` / `baseQueue`（尚未应用的部分）和 `memoizedState`（已经呈现给用户的状态）。
 
-## 4. `dispatchReducerAction`
+## 5. `dispatchReducerAction`
 
 `useReducer` 的 dispatch 只负责“**入队 + 调度**”，不负责计算状态：
 
@@ -185,27 +232,28 @@ function dispatchReducerAction<S, A>(
   queue: UpdateQueue<S, A>,
   action: A,
 ) {
-  const lane = requestUpdateLane(fiber);
+  //根据当前事件优先级分配 lane。
+  const lane = requestUpdateLane(fiber)
 
   const update: Update<S, A> = {
     lane, // 该更新所属的 lane
     action, // 本次 dispatch 传入的 action
     hasEagerState: false, // useReducer 不做 eager 计算
     eagerState: null, // 未使用，恒为 null
-    next: (null: any), // 环形队列的下一个节点
-  };
+    next: null, // 环形队列的下一个节点
+  }
 
   if (isRenderPhaseUpdate(fiber)) {
     // 渲染期间产生的更新直接进入本次渲染的队列。
-    enqueueRenderPhaseUpdate(queue, update);
+    enqueueRenderPhaseUpdate(queue, update)
   } else {
     // 普通更新入队，返回需要调度的根节点。
-    const root = enqueueConcurrentHookUpdate(fiber, queue, update, lane);
+    const root = enqueueConcurrentHookUpdate(fiber, queue, update, lane)
     if (root !== null) {
-      const eventTime = requestEventTime();
+      const eventTime = requestEventTime()
       // 调度根节点，并处理 Transition 的 lane 纠缠。
-      scheduleUpdateOnFiber(root, fiber, lane, eventTime);
-      entangleTransitionUpdate(root, queue, lane);
+      scheduleUpdateOnFiber(root, fiber, lane, eventTime)
+      entangleTransitionUpdate(root, queue, lane)
     }
   }
 
@@ -213,17 +261,9 @@ function dispatchReducerAction<S, A>(
 }
 ```
 
-执行顺序：
-
-1. `requestUpdateLane` 根据当前事件优先级分配 lane。
-2. 渲染期间产生的更新走 `enqueueRenderPhaseUpdate`，在本次渲染内重试。
-3. 普通更新交给 `enqueueConcurrentHookUpdate` 入队，返回需要调度的根节点。
-4. `scheduleUpdateOnFiber` 标记根节点并安排调度；`entangleTransitionUpdate` 处理 Transition 的 lane 纠缠。
-5. `markUpdateInDevTools` 在开发构建中把 action 记录到 DevTools。
-
 真正把 Update 挂进环形队列的是 `enqueueConcurrentHookUpdate`。它和 `scheduleUpdateOnFiber` 一起，把“**状态变化**”转成“**根节点上有一条指定 lane 的待处理工作**”。
 
-## 5. `useReducer` 与 `useState` 的关系
+## 6. 与 `useState` 的关系
 
 `useState` 可以看作 `useReducer` 的一个特化版本：
 
@@ -237,9 +277,44 @@ function dispatchReducerAction<S, A>(
 | 更新语义 | `dispatch(action)`，由 reducer 决定新状态     | `setState(value)` 或 `setState(fn)`           |
 | 适用场景 | 状态转换逻辑复杂、action 种类多、需要集中管理 | 简单独立的状态字段                            |
 
-两者共享同一条 Hook 链表、同一套 `UpdateQueue` 与 `updateReducer` 处理逻辑。`useState` 的实现细节见 [useState](/frameworks/react/advanced/source-code/hooks/useState)。
+## 7. 完整流程图
 
-## 6. 总结
+```mermaid
+flowchart TD
+    A["组件调用 useReducer"] --> B{"首次挂载还是更新"}
+    B -->|"挂载"| C["mountReducer 创建 Hook 与初始状态"]
+    C --> C1{"是否传入 init"}
+    C1 -->|"是"| C2["initialState = init(initialArg)"]
+    C1 -->|"否"| C3["initialState = initialArg"]
+    C2 --> C4["创建 UpdateQueue，lastRenderedReducer = reducer"]
+    C3 --> C4
+    C4 --> C5["bind dispatchReducerAction"]
+    C5 --> Z["返回 state 与 dispatch"]
+    B -->|"更新"| D["updateReducer 取出队列"]
+    D --> D1["合并 pending 与 baseQueue"]
+    D1 --> D2["按 renderLanes 逐条应用 Update"]
+    D2 --> D3{"优先级是否足够"}
+    D3 -->|"是"| D4["复用 eagerState 或执行 reducer"]
+    D3 -->|"否"| D5["复制到 newBaseQueue，留到下次渲染"]
+    D4 --> D6["写回 memoizedState 与 baseState"]
+    D5 --> D6
+    D6 --> D7{"newState 是否变化"}
+    D7 -->|"是"| D8["markWorkInProgressReceivedUpdate"]
+    D7 -->|"否"| D9["不标记本轮更新"]
+    D8 --> Z2["返回最新 state 与稳定 dispatch"]
+    D9 --> Z2
+    P["事件中调用 dispatch"] --> Q["dispatchReducerAction 分配 lane"]
+    Q --> Q1{"是否处于渲染阶段"}
+    Q1 -->|"是"| Q2["enqueueRenderPhaseUpdate，本次渲染重试"]
+    Q1 -->|"否"| Q3["enqueueConcurrentHookUpdate 入队"]
+    Q3 --> Q4["scheduleUpdateOnFiber 调度根节点"]
+    Q4 --> D
+```
+
+> [!TIP]
+> 挂载时 `mountReducer` 初始化状态与队列并绑定 dispatch；`dispatchReducerAction` 把 action 包装成带 lane 的 Update 入队并调度根节点；更新时 `updateReducer` 合并队列、按 lane 应用 Update 并写回状态。
+
+## 8. 总结
 
 [width(36,64)]
 

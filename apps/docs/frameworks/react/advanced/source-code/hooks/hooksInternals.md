@@ -6,15 +6,17 @@ outline: [2, 4]
 
 Hooks 让函数组件拥有了跨渲染保存状态的能力。实现它的关键不是“**魔法**”，而是一条挂在 `Fiber.memoizedState` 上的单向链表，以及一套“**按调用顺序对齐**”的读取规则。
 
-Hooks 的实现集中在 `packages/react-reconciler/src/ReactFiberHooks.old.js`，核心函数包括 `renderWithHooks`、`mountWorkInProgressHook`、`updateWorkInProgressHook`、`enqueueConcurrentHookUpdate`。本篇讲所有 Hook 共用的底层机制；`useState`、`useReducer`、Effect 类 Hook 与缓存类 Hook 的完整实现见对应各篇。
+## 1. Hook 的作用
 
-## 1. 为什么 Hooks 必须按顺序调用
+函数组件的每次渲染都会重新执行，局部变量无法跨渲染保留。Hooks 把需要保留的数据挂到对应的 Fiber 上：每调用一次 Hook，就在 `Fiber.memoizedState` 上追加一个 Hook 节点，节点保存该 Hook 的状态、更新队列，以及指向下一个 Hook 的 `next`。多个 Hook 依次串成链表，链表的顺序就是调用顺序，不同 Hook 复用同一套节点结构，只是 `memoizedState` 里存的东西不同：状态、Effect、缓存或 ref。
 
-### 1.1 Hook 没有名字
+## 2. 调用顺序规则
+
+### 2.1 Hook 没有名字
 
 每次调用 `useState`、`useEffect`，React 并不会拿到一个叫 `count` 的变量名。它只能记录：
 
-```text
+```markdown
 第 1 个 Hook → 状态 A
 第 2 个 Hook → 状态 B
 第 3 个 Hook → Effect C
@@ -32,13 +34,11 @@ useEffect() // 这次变成第 1 个，读到了上次 useState 的状态
 
 链表就会错位，状态和副作用全部对不上。这就是 Hooks 规则“**只能在顶层调用**”的底层原因。
 
-React 18 在开发构建里会额外记录每次调用的 Hook 名称（`hookTypesDev`），一旦顺序变化就打印对比表；在生产构建里，则通过 `currentHook.next` 是否还有剩余节点来检测“**这次渲染的 Hook 变少了**”。
-
-### 1.2 Hook 链表长什么样
+### 2.2 Hook 链表的结构
 
 一个组件调用 `useReducer → useState → useEffect`，其 `Fiber.memoizedState` 指向：
 
-```text
+```markdown
 Hook(reducer) → Hook(state) → Hook(effect) → null
 ```
 
@@ -61,31 +61,27 @@ export type Hook = {|
 |};
 ```
 
-## 2. 渲染上下文与 Dispatcher
+## 3. 渲染：全局指针与 Dispatcher
 
-### 2.1 三个全局指针
+### 3.1 全局指针
 
 Hooks 的实现依赖模块级变量来维持“**当前正在渲染谁**”：
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 // 调用组件函数前设置，记录本次渲染的 lane。
 let renderLanes: Lanes = NoLanes;
-// 正在构建的 WIP Fiber，与 workInProgressHook 区分。
+// 当前正在执行 `renderWithHooks` 的函数组件 Fiber，Hook 通过它找到所属组件。
 let currentlyRenderingFiber: Fiber = (null: any);
 
-// Hook 以链表形式挂在 Fiber.memoizedState 上：currentHook 属于 current 树，
-// workInProgressHook 是本次渲染新建、将要挂到 WIP Fiber 上的那条链。
+// Hook 以链表形式挂在 Fiber.memoizedState 上：currentHook 属于 current 树上对应的旧 Hook，
+// workInProgressHook 是本次渲染正在构建的 Hook 链表尾指针、将要挂到 WIP Fiber 上的那条链。
 let currentHook: Hook | null = null;
 let workInProgressHook: Hook | null = null;
 ```
 
-- `currentlyRenderingFiber`：当前正在执行 `renderWithHooks` 的函数组件 Fiber，Hook 通过它找到所属组件。
-- `workInProgressHook`：本次渲染正在构建的 Hook 链表尾指针。
-- `currentHook`：`current` 树上对应的旧 Hook，更新阶段用它读取上一次的状态。
+### 3.2 `renderWithHooks`：统一入口
 
-### 2.2 `renderWithHooks`
-
-`renderWithHooks` 是函数组件的统一入口：设置全局指针、切换 Dispatcher、执行组件函数，最后清理现场。
+`renderWithHooks`是函数组件的统一入口：设置全局指针、切换 Dispatcher、执行组件函数，最后清理现场。
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 export function renderWithHooks<Props, SecondArg>(
@@ -97,55 +93,48 @@ export function renderWithHooks<Props, SecondArg>(
   nextRenderLanes: Lanes,
 ): any {
   // 记录本次渲染的全局上下文：lane 与正在渲染的 Fiber。
-  renderLanes = nextRenderLanes;
-  currentlyRenderingFiber = workInProgress;
-
-  workInProgress.memoizedState = null;
-  workInProgress.updateQueue = null;
-  workInProgress.lanes = NoLanes;
+  renderLanes = nextRenderLanes
+  currentlyRenderingFiber = workInProgress
+  //从零创建 Hook 链表
+  workInProgress.memoizedState = null
+  workInProgress.updateQueue = null
+  workInProgress.lanes = NoLanes
 
   // 省略 DEV 下带 Hook 顺序校验的 Dispatcher。
   // 没有旧 Hook 链表时用 mount 版 Dispatcher，否则用 update 版。
   ReactCurrentDispatcher.current =
     current === null || current.memoizedState === null
       ? HooksDispatcherOnMount
-      : HooksDispatcherOnUpdate;
+      : HooksDispatcherOnUpdate
 
-  let children = Component(props, secondArg);
+  let children = Component(props, secondArg)
 
   // 渲染阶段调用了更新时，在同一轮内反复重试组件函数。
   if (didScheduleRenderPhaseUpdateDuringThisPass) {
     // 省略 渲染期更新的重试循环。
   }
 
-  ReactCurrentDispatcher.current = ContextOnlyDispatcher;
+  ReactCurrentDispatcher.current = ContextOnlyDispatcher
 
   // 旧链表还有剩余节点，说明本次渲染的 Hook 比上一次少。
-  const didRenderTooFewHooks =
-    currentHook !== null && currentHook.next !== null;
+  const didRenderTooFewHooks = currentHook !== null && currentHook.next !== null
 
-  renderLanes = NoLanes;
-  currentlyRenderingFiber = (null: any);
+  renderLanes = NoLanes
+  currentlyRenderingFiber = null
 
-  currentHook = null;
-  workInProgressHook = null;
+  currentHook = null
+  workInProgressHook = null
 
   if (didRenderTooFewHooks) {
     // 本次渲染的 Hook 比上一次少。
-    throw new Error('Rendered fewer hooks than expected.');
+    throw new Error('Rendered fewer hooks than expected.')
   }
 
-  return children;
+  return children
 }
 ```
 
-为什么每次都要把 `memoizedState` 置空？
-
-- Mount 阶段：需要从零创建 Hook 链表。
-- Update 阶段：`updateWorkInProgressHook` 会从 `current.memoizedState` 逐项克隆，而不是复用 WIP 上可能残留的引用。
-- 清空 `updateQueue` 同理，Effect 循环链表会在本次渲染中重新构建。
-
-### 2.3 两套 Dispatcher
+### 3.3 内容分发
 
 React 18 用 `ReactCurrentDispatcher.current` 在 Mount 与 Update 之间切换整套 Hook 实现：
 
@@ -155,7 +144,6 @@ React 18 用 `ReactCurrentDispatcher.current` 在 Mount 与 Update 之间切换�
 // 挂载阶段：每个 Hook 都指向 mount 实现。
 const HooksDispatcherOnMount: Dispatcher = {
   readContext,
-
   useCallback: mountCallback,
   useContext: readContext,
   useEffect: mountEffect,
@@ -172,14 +160,12 @@ const HooksDispatcherOnMount: Dispatcher = {
   useMutableSource: mountMutableSource,
   useSyncExternalStore: mountSyncExternalStore,
   useId: mountId,
-
   unstable_isNewReconciler: enableNewReconciler,
 }
 
 // 更新阶段：整套切换到 update 实现，逐项对齐 current 链表。
 const HooksDispatcherOnUpdate: Dispatcher = {
   readContext,
-
   useCallback: updateCallback,
   useContext: readContext,
   useEffect: updateEffect,
@@ -196,7 +182,6 @@ const HooksDispatcherOnUpdate: Dispatcher = {
   useMutableSource: updateMutableSource,
   useSyncExternalStore: updateSyncExternalStore,
   useId: updateId,
-
   unstable_isNewReconciler: enableNewReconciler,
 }
 ```
@@ -205,9 +190,9 @@ const HooksDispatcherOnUpdate: Dispatcher = {
 
 这样每个 Hook 内部不需要再判断“**现在是挂载还是更新**”，分发成本被集中到一次 `ReactCurrentDispatcher.current` 赋值上。组件的 `useState` 调用最终会落到 `mountState` 或 `updateState`。
 
-## 3. 创建或复用 Hook 节点
+## 4. 挂载与更新：Hook 节点的创建与复用
 
-### 3.1 `mountWorkInProgressHook`
+### 4.1 挂载：`mountWorkInProgressHook`
 
 挂载阶段没有旧链表，直接创建新节点并追加到尾部：
 
@@ -235,9 +220,9 @@ function mountWorkInProgressHook(): Hook {
 }
 ```
 
-### 3.2 `updateWorkInProgressHook`
+### 4.2 更新：`updateWorkInProgressHook`
 
-更新阶段的核心是“**对齐**”：
+更新阶段不再从零建链表，而是按调用顺序遍历 `current` 树上的旧 Hook，逐项克隆到 WIP Fiber 上：`currentHook` 沿旧链表前进，`workInProgressHook` 沿新链表前进，两边位置一一对应。克隆只沿用旧节点的状态与队列，真正的状态合并留给 `updateReducer` 等具体 Hook。
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function updateWorkInProgressHook(): Hook {
@@ -246,6 +231,7 @@ function updateWorkInProgressHook(): Hook {
   // mount 版 Dispatcher。
   let nextCurrentHook: null | Hook
   if (currentHook === null) {
+    // 本次渲染还没对齐过 Hook：从 current 链表的表头开始。
     const current = currentlyRenderingFiber.alternate
     if (current !== null) {
       nextCurrentHook = current.memoizedState
@@ -253,32 +239,37 @@ function updateWorkInProgressHook(): Hook {
       nextCurrentHook = null
     }
   } else {
+    // 继续沿 current 链表向后取。
     nextCurrentHook = currentHook.next
   }
 
   let nextWorkInProgressHook: null | Hook
   if (workInProgressHook === null) {
+    // 本轮还没建过 Hook：检查 WIP Fiber 上是否已有重试留下的链表头。
     nextWorkInProgressHook = currentlyRenderingFiber.memoizedState
   } else {
+    // 继续沿本轮 WIP 链表向后取。
     nextWorkInProgressHook = workInProgressHook.next
   }
 
   if (nextWorkInProgressHook !== null) {
-    // 本轮 WIP 链表已有该位置的节点，直接复用。
+    // 本轮 WIP 链表已有该位置的节点（render phase update 重试），直接复用。
     workInProgressHook = nextWorkInProgressHook
     nextWorkInProgressHook = workInProgressHook.next
 
+    // 两条链表的游标同步前进。
     currentHook = nextCurrentHook
   } else {
-    // 从 current 树的对应节点克隆。
+    // WIP 链表没有对应节点：从 current 树的节点克隆。
 
     if (nextCurrentHook === null) {
-      // 本次渲染的 Hook 比上一次多。
+      // 旧链表已经走完：本次渲染的 Hook 比上一次多。
       throw new Error('Rendered more hooks than during the previous render.')
     }
 
     currentHook = nextCurrentHook
 
+    // 克隆节点：状态与队列沿用旧节点，next 重新串成 WIP 链表。
     const newHook: Hook = {
       memoizedState: currentHook.memoizedState,
 
@@ -301,12 +292,12 @@ function updateWorkInProgressHook(): Hook {
 }
 ```
 
-两个分支对应两种场景：
+函数先用 `nextCurrentHook` 和 `nextWorkInProgressHook` 对准两条链表的下一个位置，再按 WIP 链表上是否已有节点分叉：
 
-- `nextWorkInProgressHook !== null`：这是 render phase update 触发的重试，本轮 WIP 链表已经存在，直接复用。
-- 否则：从 `current` 树逐项克隆 Hook。克隆出的新节点共享 `memoizedState`、`baseState`、`baseQueue`、`queue`，但 `next` 重新串成一条属于 WIP 的新链表。
+- **有**：render phase update 触发的重试，本轮 WIP 链表已经建好，直接复用节点，两个游标同步前进。
+- **没有**：从 `current` 树按位置克隆。克隆节点共享旧节点的 `memoizedState`、`baseState`、`baseQueue`、`queue`，`next` 重新串成 WIP 链表。
 
-因此，WIP 与 current 并不是“**共享同一条链表**”，而是“**按节点位置对应、共享节点上的状态与队列**”。这样既能保留上一次的队列，又能让本次渲染安全地重建链表。
+所以 WIP 与 current 不是“**共享同一条链表**”，而是“**位置一一对应、状态与队列共享**”：旧队列因此保留，本次渲染也能安全地重建链表。
 
 [width(11,45,24,20)]
 
@@ -315,9 +306,9 @@ function updateWorkInProgressHook(): Hook {
 | Mount  | `workInProgress.memoizedState = null` | 是                 | 否             |
 | Update | `current.memoizedState`               | 是（克隆）         | 是             |
 
-## 4. 依赖数组的比较规则
+## 5. 依赖判断：依赖数组的比较 {#\_5-依赖判断-依赖数组的比较}
 
-`useEffect`、`useMemo`、`useCallback` 都用依赖数组决定“**要不要重新执行**”。React 为此提供了一个统一函数：
+`useEffect`、`useMemo`、`useCallback`用依赖数组决定**要不要重新执行**。React为此提供了一个统一函数：
 
 :::code-group
 
@@ -365,15 +356,6 @@ export default objectIs
 
 :::
 
-`is` 就是 `Object.is` 的语义，与 `===` 的差异如下：
-
-[width(19,12,69)]
-
-| 表达式        | `===`   | `Object.is` |
-| ------------- | ------- | ----------- |
-| `NaN === NaN` | `false` | `true`      |
-| `+0 === -0`   | `true`  | `false`     |
-
 React 的依赖比较以 `Object.is` 为准。依赖数组的三种常见写法：
 
 [width(26,26,48)]
@@ -384,11 +366,9 @@ React 的依赖比较以 `Object.is` 为准。依赖数组的三种常见写法�
 | `useEffect(fn, [])`  | `[]`                 | 只在挂载时执行一次      |
 | `useEffect(fn, [a])` | `[a]`                | 挂载时 + `a` 变化时执行 |
 
-`[]` 与不传 deps 完全不同：前者的 `prevDeps` 是空数组，循环一次都不执行，直接返回 `true`；后者 `prevDeps === null`，每次都会返回 `false`。`useMemo` / `useCallback` 复用同一套比较，只是比较结果决定“**复用缓存还是重新计算**”。
+## 6. 更新调度：Update 队列与环形链表
 
-## 5. 状态更新的载体：Update 与环形队列
-
-### 5.1 `Update` 与 `UpdateQueue`
+### 6.1 `Update` 与 `UpdateQueue`
 
 React 18 不在 dispatch 时立刻改状态，而是把每次更新包装成 `Update`：
 
@@ -422,11 +402,11 @@ export type UpdateQueue<S, A> = {|
 |};
 ```
 
-### 5.2 环形链表
+### 6.2 环形链表
 
 多个 `Update` 通过 `next` 组成环形链表，`queue.pending` 指向最后一个更新：
 
-```text
+```tree
 queue.pending ──▶ update3
                     │ next
                     ▼
@@ -435,13 +415,13 @@ queue.pending ──▶ update3
 
 `pending.next` 就是第一个更新。环形结构让“**取队首**”和“**追加队尾**”都能在 O(1) 内完成。
 
-### 5.3 入队与调度
+### 6.3 入队与调度
 
 `useState` 和 `useReducer` 的 `dispatch` 最终都会走 `enqueueConcurrentHookUpdate`：它把 `Update` 挂进队列，并返回需要调度的根节点。随后 `scheduleUpdateOnFiber` 把“**状态变化**”转成“**根节点上有一条指定 lane 的待处理工作**”。
 
 队列入队之后如何在渲染阶段被消费，见 [useReducer](/frameworks/react/advanced/source-code/hooks/useReducer#_3-updatereducer-合并队列与按-lane-处理)；`useState` 在入队前多走一条 eager bailout 快速路径，见 [useState](/frameworks/react/advanced/source-code/hooks/useState#_4-dispatchsetstate-与-eager-bailout)。
 
-## 6. 一次状态更新的完整流程
+## 7. 完整流程图
 
 ```mermaid
 sequenceDiagram
@@ -471,9 +451,7 @@ sequenceDiagram
 4. `updateReducer` 合并 `pending` 与 `baseQueue`，按 `renderLanes` 应用更新。
 5. 新状态写回 `hook.memoizedState`，后续 `beginWork` / `completeWork` / Commit 继续执行。
 
-这条链路上的调度与双缓冲细节，可以继续阅读 [WorkLoop 与调度](/frameworks/react/advanced/source-code/reconciler/workLoop) 和 [Fiber 节点](/frameworks/react/advanced/source-code/reconciler/fiberNode)。
-
-## 7. 总结
+## 8. 总结
 
 [width(33,67)]
 
@@ -486,15 +464,4 @@ sequenceDiagram
 | `updateWorkInProgressHook` | 更新阶段从 current 树逐项克隆并对齐  |
 | `UpdateQueue`              | 用环形链表保存待处理更新             |
 | `dispatch`                 | 创建 Update、入队并触发调度          |
-| Lane                       | 决定本次渲染能处理哪些更新           |
-
-理解了这条链表与队列，就可以分别阅读具体的 Hook 实现：
-
-- [useState](/frameworks/react/advanced/source-code/hooks/useState)
-- [useReducer](/frameworks/react/advanced/source-code/hooks/useReducer)
-- [useEffect](/frameworks/react/advanced/source-code/hooks/useEffect)
-- [useLayoutEffect](/frameworks/react/advanced/source-code/hooks/useLayoutEffect)
-- [useInsertionEffect](/frameworks/react/advanced/source-code/hooks/useInsertionEffect)
-- [useMemo](/frameworks/react/advanced/source-code/hooks/useMemo)
-- [useCallback](/frameworks/react/advanced/source-code/hooks/useCallback)
-- [useRef](/frameworks/react/advanced/source-code/hooks/useRef)
+| `Lane`                     | 决定本次渲染能处理哪些更新           |

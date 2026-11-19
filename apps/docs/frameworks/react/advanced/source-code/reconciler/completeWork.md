@@ -370,10 +370,6 @@ function markUpdate(workInProgress: Fiber) {
 
 :::
 
-`oldProps === newProps` 时直接返回，是因为 mutation 模式下 props 引用不变就不需要触碰这个 DOM；即使 `children` 变了，子节点也会在各自的 `completeWork` 中处理差异。
-
-这段代码体现了 React 的一条重要原则：**Render 阶段只计算差异，不产生 DOM 副作用**。`prepareUpdate` 只是比较 props，真正的写入发生在 Commit 阶段。
-
 ### 4.2 `prepareUpdate` 与 `commitUpdate`
 
 `prepareUpdate` 在 DOM 渲染器里最终调用 `diffProperties`。返回 `null` 表示没有差异，返回数组表示差异存在。数组的结构是 `[key1, value1, key2, value2, ...]`，具体格式由 `diffProperties` 决定。
@@ -417,19 +413,13 @@ export function commitUpdate(
 
 :::
 
-`updatePayload` 的设计带来三个好处：
-
-- Render 阶段可以被打断、丢弃、重做，而不会弄脏 DOM。
-- Commit 阶段拿到的是已经算好的差异，可以批量应用。
-- 差异结构可以被 DevTools、测试和性能分析工具复用。
-
 ## 5. 文本节点：`updateHostText`
 
 `HostText` 的处理非常直接。更新时只比较新旧文本，不同就标记 `Update`；挂载时直接创建文本节点。
 
 :::code-group
 
-```ts [react-reconciler/src/ReactFiberCompleteWork.old.js]
+```ts [react-reconciler/src/ReactFiberCompleteWork.js]
 updateHostText = function (
   current: Fiber,
   workInProgress: Fiber,
@@ -456,10 +446,6 @@ export function commitTextUpdate(
 
 :::
 
-这里的 `newProps` 就是文本内容本身。`createFiberFromText` 把字符串作为 `pendingProps`，文本节点没有属性，也没有子节点，创建完就结束。
-
-注意：纯文本子节点通常不会走到 `HostText` 分支。`beginWork` 的 `shouldSetTextContent` 会把它优化成父节点的 `textContent`，只有文本作为独立子节点（例如数组里的字符串、或 `HostText` Fiber 已经存在）时，才会进入这里的逻辑。
-
 ## 6. Context 的恢复
 
 Provider 的 `pushProvider` 发生在 `beginWork`，`popProvider` 发生在 `completeWork`：
@@ -477,8 +463,6 @@ sequenceDiagram
 ```
 
 因为深度优先遍历保证“**进入 Provider 一定先于子树、离开 Provider 一定晚于子树**”，所以 Context 的覆盖天生满足后进先出，可以用一个栈管理。
-
-`popProvider` 做的是“**出栈恢复**”：它从 Context 栈中弹出当前 Provider 保存的旧值，再把它写回 `context._currentValue`（非 primary renderer 写 `_currentValue2`）。这样离开 Provider 后，后续兄弟节点读到的又是外层 Provider 的值。消费者节点的 `dependencies` 不受影响，下一次 Provider 值变化时，`propagateContextChange` 仍然能顺着依赖链找到它们。
 
 ## 7. `bubbleProperties`：向上汇总 lane 与 flags
 
@@ -547,21 +531,15 @@ function bubbleProperties(completedWork: Fiber) {
 
 React 18 不再维护 `firstEffect` / `lastEffect` 的 effect list，而是让 Commit 阶段从根节点开始，沿着 `subtreeFlags` 判断哪些子树有副作用。这样可以避免在 Render 阶段维护一条额外的链表，也让中断和恢复更容易处理。
 
-`didBailout` 为真时，当前 Fiber 的 `child` 指针与 `alternate.child` 相同，说明这次没有重新协调子节点。此时不能把子节点的普通 `flags` 冒泡上来，因为它们属于上一轮渲染，只保留 `StaticMask` 中的静态标记。
-
 ## 8. 首屏 DOM 是如何出现的
 
 回顾 `beginWork` 的 `reconcileChildren`：首次挂载时 `current === null`，使用 `mountChildFibers`，不标记 `Placement`。那么顶层 DOM 是谁插入容器的？
-
-答案在 HostRoot 的特殊性：
 
 1. `updateContainer` 把 `element` 写入 HostRoot 的更新队列，并调度一次渲染。
 2. HostRoot 的 `current` 不是 `null`。`updateHostRoot` 调用的 `reconcileChildren` 会走 `reconcileChildFibers` 更新分支。
 3. 因此 HostRoot 的直接子节点（也就是 `root.render` 的顶层元素）会被标记 `Placement`。
 4. `completeWork` 自底向上执行，所有宿主节点通过 `appendAllChildren` 在内存中组装成一棵完整的 DOM 子树。
 5. Commit 阶段对顶层子节点执行 `commitPlacement`，把它插入 `containerInfo`。整棵已经组装好的 DOM 子树随之进入页面。
-
-可以用下面的顺序概括：
 
 ```mermaid
 sequenceDiagram
@@ -579,8 +557,6 @@ sequenceDiagram
 ```
 
 其余新节点没有 `Placement`，因为它们的父 DOM 已经在 `completeWork` 中通过 `appendAllChildren` 组装好了。只需要插入顶层节点，整棵 DOM 子树就会一起进入页面。
-
-`appendChildToContainer` 还处理了注释容器的情况：如果容器本身是注释节点，它会用 `insertBefore` 把子节点插到注释节点前面，而不是调用 `appendChild`。
 
 ## 9. 完整流程图
 
@@ -627,4 +603,4 @@ flowchart TD
 | 函数 / 类 / Fragment | 无 DOM 操作，必要时执行出栈逻辑                      | `childLanes` / `subtreeFlags`         |
 | 所有分支             | `bubbleProperties` 向上汇总 lane 与 flags            | 供 `beginWork` bailout 和 Commit 使用 |
 
-`completeWork` 结束后，整棵 WIP 树已经具备完整的 DOM 子树，属性差异也已经算好并挂在 Fiber 上。下一篇进入 Commit 阶段，看这些 DOM 如何被插入、移动、删除，以及 Effect 如何被执行，详见 [Commit 阶段](/frameworks/react/advanced/source-code/commit/commitWork)。
+`completeWork` 结束后，整棵 WIP 树已经具备完整的 DOM 子树，属性差异也已经算好并挂在 Fiber 上。

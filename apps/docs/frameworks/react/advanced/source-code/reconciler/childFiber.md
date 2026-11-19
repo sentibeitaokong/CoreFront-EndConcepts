@@ -4,38 +4,33 @@ outline: [2, 4]
 
 # 子节点 Diff
 
-Render 阶段最核心的工作之一，是把新的 JSX 子节点与旧的 Fiber 子链表做比较，尽可能复用旧 Fiber，并只标记真正需要变更的部分。这套逻辑位于 React 18.3.1 的 `packages/react-reconciler/src/ReactChildFiber.old.js`，入口是 `reconcileChildFibers` 与 `mountChildFibers`。
-
-它和 Vue 的 `patchKeyedChildren` 解决的问题相同，但策略不同：Vue 使用双端 Diff，React 使用“**按位置顺序扫描 + key 映射兜底**”的两段式算法。React 不追求任意两棵树的最小编辑距离，而是在同层、同类型、key 稳定的前提下，用线性复杂度完成复用与标记。
+Render 阶段最核心的工作之一，是把新的 JSX 子节点与旧的 Fiber 子链表做比较，尽可能复用旧 Fiber，并只标记真正需要变更的部分，它和 Vue 的 `patchKeyedChildren` 解决的问题相同，但策略不同：Vue 使用双端 Diff，React 使用“**按位置顺序扫描 + key 映射兜底**”的两段式算法。React 不追求任意两棵树的最小编辑距离，而是在同层、同类型、key 稳定的前提下，用线性复杂度完成复用与标记。
 
 ## 1. 设计目标与三条前提
 
 ### 1.1 目标
 
 - **复用**：类型和 `key` 相同的节点，复用其 `stateNode`（真实 DOM），避免删除重建。
-- **最小标记**：只给新增、删除、移动的节点打上 `Placement` / `ChildDeletion`，Commit 阶段据此操作 DOM。
+- **最小标记**：只给新增、删除、移动的节点打上`Placement`/`ChildDeletion`，Commit阶段据此操作DOM。
 - **线性复杂度**：在常见列表场景下接近 O(n)，避免 O(n²) 的两两比较。
 
 ### 1.2 三条启发式前提
 
 React 不会做“**任意两棵树的最小编辑距离**”，而是假设：
 
-1. **同层比较**：只比较同一父节点下的子节点，不跨层级移动。
-2. **类型相同才复用**：`div` 不能复用成 `span`，函数组件不能复用成类组件。
-3. **key 标识身份**：列表项应提供稳定的 `key`，否则按位置匹配。
+- **同层比较**：只比较同一父节点下的子节点，不跨层级移动。
+- **类型相同才复用**：`div` 不能复用成 `span`，函数组件不能复用成类组件。
+- **key 标识身份**：列表项应提供稳定的 `key`，否则按位置匹配。
 
-这三点牺牲了一部分理论最优性，换来了可预测的线性性能。理解这一点，才能理解后面为什么会出现 `lastPlacedIndex` 和 `Map` 两套机制。
+## 2. 挂载与更新
 
-## 2. 双工厂：mount 与 update
-
-### 2.1 `ChildReconciler`
-
-`ReactChildFiber.old.js` 没有把挂载和更新写成两份代码，而是用 `ChildReconciler(shouldTrackSideEffects)` 生成两个闭包。闭包内部共享同一套协调函数，只在“**是否记录副作用**”上分叉。
+`ReactChildFiber`没有把挂载和更新写成两份代码，而是用`ChildReconciler(shouldTrackSideEffects)`生成两个闭包。闭包内部共享同一套协调函数，只在“**是否记录副作用**”上分叉。
 
 :::code-group
 
 ```ts [react-reconciler/src/ReactChildFiber.old.js]
 function ChildReconciler(shouldTrackSideEffects) {
+  // 返回值：新子链表的第一个 Fiber；没有子节点时为 null。
   function reconcileChildFibers(
     returnFiber: Fiber,
     currentFirstChild: Fiber | null,
@@ -50,27 +45,15 @@ function ChildReconciler(shouldTrackSideEffects) {
 }
 
 // update 与 mount 共用同一套协调逻辑，只切换是否记录副作用。
+// 两者调用后都返回新子链表的第一个 Fiber，没有子节点时为 null。
 export const reconcileChildFibers = ChildReconciler(true)
 export const mountChildFibers = ChildReconciler(false)
 ```
 
 :::
 
-`shouldTrackSideEffects` 决定了两件事：
-
-[width(39,23,38)]
-
-| 行为                               | `false`（mount） | `true`（update） |
-| ---------------------------------- | ---------------- | ---------------- |
-| 新增节点标记 `Placement`           | 否               | 是               |
-| 删除旧节点标记 `ChildDeletion`     | 否               | 是               |
-| 判断复用节点是否需要移动           | 否               | 是               |
-| 复用旧 Fiber                       | 仍然会复用       | 复用             |
-| 给子节点标记 `Forked`（hydration） | 是               | 否               |
-
-首次挂载不标记副作用，是因为整棵 DOM 会在 `completeWork` 中通过 `appendAllChildren` 一次性组装，最后只需要插入顶层节点。更新时 DOM 已经存在，必须精确告诉 Commit 哪些节点要新增、删除或移动。
-
-`Forked` 是 hydration 专用的标记。即使 `shouldTrackSideEffects` 为 `false`，`placeChild` 仍会给子节点打上 `Forked`，供 `useId` 在服务端渲染与客户端 hydration 之间对齐 id。
+> [!TIP]
+> 首次挂载不标记副作用，是因为整棵 DOM 会在 `completeWork` 中通过 `appendAllChildren` 一次性组装，最后只需要插入顶层节点。更新时 DOM 已经存在，必须精确告诉 Commit 哪些节点要新增、删除或移动。
 
 ## 3. 子节点类型派发
 
@@ -176,8 +159,6 @@ function reconcileChildFibers(
 
 :::
 
-注意派发顺序：React 先处理对象类型，再处理文本；这与“**先看是不是 Element，再看是不是文本**”的直觉一致。空字符串不会创建文本 Fiber，而是走最后的删除分支。
-
 ## 4. 单节点 Diff
 
 ### 4.1 `reconcileSingleElement`
@@ -253,19 +234,49 @@ function reconcileSingleElement(
 }
 ```
 
+```ts [react-reconciler/src/ReactFiber.old.js]
+export function createFiberFromElement(
+  element: ReactElement,
+  mode: TypeOfMode,
+  lanes: Lanes,
+): Fiber {
+  // type/key/props 交给 createFiberFromTypeAndProps 决定 Fiber 的 tag。
+  const fiber = createFiberFromTypeAndProps(
+    element.type,
+    element.key,
+    element.props,
+    null, // owner 只在 __DEV__ 下取 element._owner
+    mode,
+    lanes,
+  )
+  // 省略 __DEV__ 下的 debugSource / debugOwner
+  return fiber
+}
+
+export function createFiberFromFragment(
+  elements: ReactFragment,
+  mode: TypeOfMode,
+  lanes: Lanes,
+  key: null | string,
+): Fiber {
+  // Fragment 没有对应的实例类型，直接用 createFiber 新建。
+  const fiber = createFiber(Fragment, elements, key, mode)
+  fiber.lanes = lanes
+  return fiber
+}
+```
+
 :::
 
 单节点 Diff 的判断顺序可以概括为：
 
-```text
+```tree
 key 相同？
   ├─ 否 → 删除当前旧节点，继续看下一个兄弟
   └─ 是 → 类型相同？
           ├─ 是 → 删除其余兄弟，复用当前节点并返回
           └─ 否 → 删除当前及之后所有旧节点，创建新 Fiber
 ```
-
-这里有一个容易忽略的细节：找到可复用节点后，调用的是 `deleteRemainingChildren(returnFiber, child.sibling)`，只删除“**当前节点之后的兄弟**”，不会误删被复用的节点本身。单节点场景下，旧链表里除了第一个匹配项，其余节点都不应该保留。
 
 ### 4.2 `reconcileSingleTextNode`
 
@@ -292,6 +303,19 @@ function reconcileSingleTextNode(
   const created = createFiberFromText(textContent, returnFiber.mode, lanes)
   created.return = returnFiber
   return created
+}
+```
+
+```ts [react-reconciler/src/ReactFiber.old.js]
+export function createFiberFromText(
+  content: string,
+  mode: TypeOfMode,
+  lanes: Lanes,
+): Fiber {
+  // 文本节点固定是 HostText，没有 type 和 key。
+  const fiber = createFiber(HostText, content, null, mode)
+  fiber.lanes = lanes
+  return fiber
 }
 ```
 
@@ -357,13 +381,73 @@ function useFiber(fiber: Fiber, pendingProps: mixed): Fiber {
 }
 ```
 
+```ts [react-reconciler/src/ReactFiber.old.js]
+export function createWorkInProgress(current, pendingProps) {
+  let workInProgress = current.alternate
+  if (workInProgress === null) {
+    // 首次为这个节点创建 WIP：新建并复制不变的实例信息
+    workInProgress = createFiber(
+      current.tag,
+      pendingProps,
+      current.key,
+      current.mode,
+    )
+    workInProgress.elementType = current.elementType
+    workInProgress.type = current.type
+    workInProgress.stateNode = current.stateNode
+
+    workInProgress.alternate = current
+    current.alternate = workInProgress
+  } else {
+    // 复用旧 WIP：更新本次变化的字段
+    workInProgress.pendingProps = pendingProps
+    workInProgress.type = current.type
+
+    workInProgress.flags = NoFlags
+    workInProgress.subtreeFlags = NoFlags
+    workInProgress.deletions = null
+  }
+
+  // 只保留跨 render 有效的静态标记
+  workInProgress.flags = current.flags & StaticMask
+  workInProgress.childLanes = current.childLanes
+  workInProgress.lanes = current.lanes
+
+  workInProgress.child = current.child
+  workInProgress.memoizedProps = current.memoizedProps
+  workInProgress.memoizedState = current.memoizedState
+  workInProgress.updateQueue = current.updateQueue
+
+  // dependencies 会在 Render 阶段被修改，不能与 current 共享
+  const currentDependencies = current.dependencies
+  workInProgress.dependencies =
+    currentDependencies === null
+      ? null
+      : {
+          lanes: currentDependencies.lanes,
+          firstContext: currentDependencies.firstContext,
+        }
+
+  // 这些字段会在父节点的协调过程中被覆盖
+  workInProgress.sibling = current.sibling
+  workInProgress.index = current.index
+  workInProgress.ref = current.ref
+
+  return workInProgress
+}
+
+// Fiber 的构造入口：所有 createFiberFrom* 最终都落到这里。
+const createFiber = function (
+  tag: WorkTag,
+  pendingProps: mixed,
+  key: null | string,
+  mode: TypeOfMode,
+): Fiber {
+  return new FiberNode(tag, pendingProps, key, mode)
+}
+```
+
 :::
-
-复用后有几个关键字段保持不变：
-
-- `stateNode` 被复制，真实 DOM 不会重建。
-- `alternate` 与旧 Fiber 建立双向引用，构成双缓冲。
-- `key`、`type`、`elementType` 保留，身份不变。
 
 ## 5. 多节点 Diff
 
@@ -378,140 +462,78 @@ function useFiber(fiber: Fiber, pendingProps: mixed): Fiber {
 </ul>
 ```
 
-它分三步完成：
+### 5.1 算法原理
 
-1. 从左到右逐个比较，遇到不匹配立即退出。
-2. 处理“**旧节点还有、新节点没了**”或“**新节点还有、旧节点没了**”的单边剩余。
-3. 把剩余旧节点放入 `Map`，用 key 继续匹配，最后删除未复用的旧节点。
+多节点 Diff 只做三件事：复用旧 Fiber、为缺失项新建 Fiber、把没被复用的旧节点收进删除列表。React 不做最小编辑距离，而是“**先按位置顺序扫描，走不动再用 key 兜底**”：
 
-### 5.1 完整算法
+[width(23,36,41)]
+
+| 阶段               | 匹配依据                          | 适用场景             |
+| ------------------ | --------------------------------- | -------------------- |
+| 位置扫描（第一轮） | 同位置且同 key                    | 前缀更新、末尾追加   |
+| `Map` 兜底         | 旧节点的 key（无 key 用旧 index） | 中间插入、删除、乱序 |
+
+带 key 的节点换了位置也能按 key 找回，没有 key 的节点只能按位置匹配。复用节点是否需要移动由 `lastPlacedIndex`（已复用节点中最大的旧 `index`）判断：旧 `index` 小于它就标记 `Placement`；它只负责标记，插入点由 Commit 阶段决定。删除同样只收进父节点的 `deletions`，mount 阶段不记录这些副作用。两段都是线性操作，整体 O(n) 时间、O(n) 空间。
+
+[width(30,70)]
+
+| 状态         | 处理           |
+| ------------ | -------------- |
+| 新节点遍历完 | 删除剩余旧节点 |
+| 旧节点遍历完 | 创建剩余新节点 |
+| 两边都有剩余 | `Map` 兜底     |
+
+### 5.2 初始化与第一轮顺序扫描
+
+第一轮只做“**同位置、同 key**”的快速匹配。循环每轮调用一次 `updateSlot`，把新节点与当前旧节点做比较；一旦返回 `null`，就立即退出，剩余节点交给后面的单边剩余或 `Map` 分支处理。这个“**快速失败**”很重要：如果列表只是末尾追加，第一轮就能走完，完全不需要创建 `Map`。
 
 :::code-group
 
 ```ts [react-reconciler/src/ReactChildFiber.old.js]
-function reconcileChildrenArray(
-  returnFiber: Fiber,
-  currentFirstChild: Fiber | null,
-  newChildren: Array<*>,
-  lanes: Lanes,
-): Fiber | null {
-  // 省略 __DEV__ 下的重复 key / 缺失 key 校验
+// 初始化：结果链表的头尾、两条链表的游标，以及移动判定基准。
+let resultingFirstChild: Fiber | null = null
+let previousNewFiber: Fiber | null = null
 
-  let resultingFirstChild: Fiber | null = null
-  let previousNewFiber: Fiber | null = null
+let oldFiber = currentFirstChild //旧链表
+let lastPlacedIndex = 0 //已复用节点中最大的旧 `index`，用于判断移动
+let newIdx = 0 //新数组的游标
+let nextOldFiber = null //暂存旧节点的下一个兄弟，避免匹配失败后断链
 
-  let oldFiber = currentFirstChild
-  let lastPlacedIndex = 0
-  let newIdx = 0
-  let nextOldFiber = null
-
-  // 第一轮：按位置顺序扫描。
-  for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
-    if (oldFiber.index > newIdx) {
-      // 旧链表出现跳跃，无法连续对应，退出第一轮。
-      nextOldFiber = oldFiber
-      oldFiber = null
-    } else {
-      nextOldFiber = oldFiber.sibling
-    }
-    const newFiber = updateSlot(
-      returnFiber,
-      oldFiber,
-      newChildren[newIdx],
-      lanes,
-    )
-    if (newFiber === null) {
-      // 无法复用，退出第一轮，转入 Map 匹配。
-      if (oldFiber === null) {
-        oldFiber = nextOldFiber
-      }
-      break
-    }
-    if (shouldTrackSideEffects) {
-      if (oldFiber && newFiber.alternate === null) {
-        // 槽位匹配上了，但新建了 Fiber，旧的同位置节点需要删除。
-        deleteChild(returnFiber, oldFiber)
-      }
-    }
-    lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx)
-    if (previousNewFiber === null) {
-      resultingFirstChild = newFiber
-    } else {
-      previousNewFiber.sibling = newFiber
-    }
-    previousNewFiber = newFiber
-    oldFiber = nextOldFiber
+// 第一轮：按位置顺序扫描。
+for (; oldFiber !== null && newIdx < newChildren.length; newIdx++) {
+  if (oldFiber.index > newIdx) {
+    // 旧链表出现跳跃：本槽位不参与匹配，旧节点留到 Map 阶段。
+    nextOldFiber = oldFiber
+    oldFiber = null
+  } else {
+    nextOldFiber = oldFiber.sibling
   }
-
-  if (newIdx === newChildren.length) {
-    // 新节点遍历完：删除剩余旧节点。
-    deleteRemainingChildren(returnFiber, oldFiber)
-    // 省略 hydration 下的 pushTreeFork
-    return resultingFirstChild
-  }
-
-  if (oldFiber === null) {
-    // 旧节点遍历完：剩余新节点全部创建并标记插入。
-    for (; newIdx < newChildren.length; newIdx++) {
-      const newFiber = createChild(returnFiber, newChildren[newIdx], lanes)
-      if (newFiber === null) {
-        continue
-      }
-      lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx)
-      if (previousNewFiber === null) {
-        resultingFirstChild = newFiber
-      } else {
-        previousNewFiber.sibling = newFiber
-      }
-      previousNewFiber = newFiber
+  const newFiber = updateSlot(returnFiber, oldFiber, newChildren[newIdx], lanes)
+  if (newFiber === null) {
+    // 无法复用，退出第一轮，转入 Map 匹配。
+    if (oldFiber === null) {
+      oldFiber = nextOldFiber
     }
-    // 省略 hydration 下的 pushTreeFork
-    return resultingFirstChild
+    break
   }
-
-  // 第三轮：把剩余旧节点放进 Map，用 key 继续匹配。
-  const existingChildren = mapRemainingChildren(returnFiber, oldFiber)
-
-  for (; newIdx < newChildren.length; newIdx++) {
-    const newFiber = updateFromMap(
-      existingChildren,
-      returnFiber,
-      newIdx,
-      newChildren[newIdx],
-      lanes,
-    )
-    if (newFiber !== null) {
-      if (shouldTrackSideEffects) {
-        if (newFiber.alternate !== null) {
-          // 复用了旧 Fiber，从 Map 中移除，避免被当成待删除节点。
-          existingChildren.delete(newFiber.key === null ? newIdx : newFiber.key)
-        }
-      }
-      lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx)
-      if (previousNewFiber === null) {
-        resultingFirstChild = newFiber
-      } else {
-        previousNewFiber.sibling = newFiber
-      }
-      previousNewFiber = newFiber
-    }
-  }
-
   if (shouldTrackSideEffects) {
-    // Map 中剩下的旧节点都没有被复用，全部删除。
-    existingChildren.forEach(child => deleteChild(returnFiber, child))
+    if (oldFiber && newFiber.alternate === null) {
+      // 槽位匹配上了，但新建了 Fiber，旧的同位置节点需要删除。
+      deleteChild(returnFiber, oldFiber)
+    }
   }
-
-  // 省略 hydration 下的 pushTreeFork
-  return resultingFirstChild
+  lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx)
+  if (previousNewFiber === null) {
+    resultingFirstChild = newFiber
+  } else {
+    previousNewFiber.sibling = newFiber
+  }
+  previousNewFiber = newFiber
+  oldFiber = nextOldFiber
 }
 ```
 
 :::
-
-第一轮只做“**同位置、同 key**”的快速匹配。一旦遇到不匹配，就立即退出，把剩余节点交给 `Map` 处理。这个“**快速失败**”很重要：如果列表只是末尾追加，第一轮就能走完，完全不需要创建 `Map`。
-
-### 5.2 第一轮：`updateSlot` 与 `placeChild`
 
 `updateSlot` 只比较 `key`，不比较 `elementType`。类型是否相同由 `updateElement` 判断。这样拆分的原因是：key 决定“**是不是同一个位置**”，类型决定“**能不能复用**”。
 
@@ -580,9 +602,13 @@ function updateSlot(
 
 `updateSlot` 的返回值有三种含义：
 
-- 返回 Fiber 且 `alternate !== null`：复用了旧节点。
-- 返回 Fiber 且 `alternate === null`：新建了节点，旧的同位置节点需要删除。
-- 返回 `null`：无法匹配，退出第一轮。
+[width(38,62)]
+
+| 返回值                      | 含义                               |
+| --------------------------- | ---------------------------------- |
+| Fiber，`alternate !== null` | 复用了旧节点                       |
+| Fiber，`alternate === null` | 新建了节点，旧的同位置节点需要删除 |
+| `null`                      | 无法匹配，退出第一轮               |
 
 `placeChild` 则负责维护 `lastPlacedIndex`，判断复用节点是否需要移动：
 
@@ -621,25 +647,55 @@ function placeChild(
 
 :::
 
-`lastPlacedIndex` 是算法的心脏，它记录“**已经遍历过的复用节点中，最大的旧 index**”。
+`placeChild` 的返回值就是下一轮的 `lastPlacedIndex`：命中移动时保持原值，相对顺序未变时更新为当前旧 `index`。
 
-- 如果当前旧 index **小于** `lastPlacedIndex`，说明这个节点在新序列中被排到了后面，需要移动。
-- 如果当前旧 index **大于等于** `lastPlacedIndex`，说明相对顺序没变，不需要移动。
+### 5.3 新节点遍历完：删除剩余旧节点
 
-### 5.3 单边剩余
+`newIdx === newChildren.length` 说明新列表已经全部处理完，旧链表里剩下的节点在新列表中不存在，调用 `deleteRemainingChildren(returnFiber, oldFiber)` 把它们一次性收进父节点的 `deletions`，然后返回结果链表。
 
-第一轮结束后，可能出现两种单边剩余：
+:::code-group
 
-[width(13,25,62)]
+```ts [react-reconciler/src/ReactChildFiber.old.js]
+if (newIdx === newChildren.length) {
+  // 新节点遍历完：删除剩余旧节点。
+  deleteRemainingChildren(returnFiber, oldFiber)
+  // 省略 hydration 下的 pushTreeFork
+  return resultingFirstChild
+}
+```
 
-| 情况     | 条件                            | 处理                                             |
-| -------- | ------------------------------- | ------------------------------------------------ |
-| 旧多新少 | `newIdx === newChildren.length` | `deleteRemainingChildren(returnFiber, oldFiber)` |
-| 旧少新多 | `oldFiber === null`             | 剩余新节点逐个 `createChild`，并标记 `Placement` |
+:::
 
-“**旧少新多**”的循环里仍然会调用 `placeChild`。新建 Fiber 的 `alternate` 为 `null`，所以 `placeChild` 会直接给它打上 `Placement`。
+### 5.4 旧节点遍历完：创建剩余新节点
 
-### 5.4 第三轮：`Map` 兜底
+`oldFiber === null` 说明旧节点已经用完，后面的新节点都是新增项。循环对每个新节点调用 `createChild`，再交给 `placeChild`：新建 Fiber 的 `alternate` 为 `null`，所以 `placeChild` 会直接给它打上 `Placement`。
+
+:::code-group
+
+```ts [react-reconciler/src/ReactChildFiber.old.js]
+if (oldFiber === null) {
+  // 旧节点遍历完：剩余新节点全部创建并标记插入。
+  for (; newIdx < newChildren.length; newIdx++) {
+    const newFiber = createChild(returnFiber, newChildren[newIdx], lanes)
+    if (newFiber === null) {
+      continue
+    }
+    lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx)
+    if (previousNewFiber === null) {
+      resultingFirstChild = newFiber
+    } else {
+      previousNewFiber.sibling = newFiber
+    }
+    previousNewFiber = newFiber
+  }
+  // 省略 hydration 下的 pushTreeFork
+  return resultingFirstChild
+}
+```
+
+:::
+
+### 5.5 `Map` 兜底
 
 当两边都还有剩余节点时，说明列表中间发生了插入、删除或乱序。React 把剩余旧节点按 key 放进 `Map`，再逐个查找。
 
@@ -668,14 +724,52 @@ function mapRemainingChildren(
 
 :::
 
-Map 的键规则：
+`Map` 的键规则：有 `key` 用 `key`，没有 `key` 用旧节点的 `index`。带 key 的节点在乱序中仍能按身份找回，无 key 的节点只能按位置匹配。
 
-- 有 `key`：用 `key`。
-- 无 `key`：用旧节点的 `index`。
+剩下的新节点逐个在 `Map` 中查找，复用的节点从 `Map` 里移除；循环结束后，`Map` 里剩下的就是“**新列表里不存在**”的旧节点，统一交给 `deleteChild` 标记删除：
 
-这样即使列表中间发生插入/删除，带 key 的节点仍能按身份找到对应旧节点。没有 key 的节点只能退回位置匹配，顺序一旦变化就可能被错误复用或重建。
+:::code-group
 
-### 5.5 `updateFromMap`
+```ts [react-reconciler/src/ReactChildFiber.old.js]
+const existingChildren = mapRemainingChildren(returnFiber, oldFiber)
+
+for (; newIdx < newChildren.length; newIdx++) {
+  const newFiber = updateFromMap(
+    existingChildren,
+    returnFiber,
+    newIdx,
+    newChildren[newIdx],
+    lanes,
+  )
+  if (newFiber !== null) {
+    if (shouldTrackSideEffects) {
+      if (newFiber.alternate !== null) {
+        // 复用了旧 Fiber，从 Map 中移除，避免被当成待删除节点。
+        existingChildren.delete(newFiber.key === null ? newIdx : newFiber.key)
+      }
+    }
+    lastPlacedIndex = placeChild(newFiber, lastPlacedIndex, newIdx)
+    if (previousNewFiber === null) {
+      resultingFirstChild = newFiber
+    } else {
+      previousNewFiber.sibling = newFiber
+    }
+    previousNewFiber = newFiber
+  }
+}
+
+if (shouldTrackSideEffects) {
+  // Map 中剩下的旧节点都没有被复用，全部删除。
+  existingChildren.forEach(child => deleteChild(returnFiber, child))
+}
+
+// 省略 hydration 下的 pushTreeFork
+return resultingFirstChild
+```
+
+:::
+
+### 5.6 `updateFromMap`
 
 `updateFromMap` 在 Map 中查找新节点对应的旧 Fiber。文本节点按 `newIdx` 查找；元素优先按 `key` 查找，没有 key 时退回 `newIdx`。
 
@@ -739,25 +833,6 @@ function updateFromMap(
 ```
 
 :::
-
-Map 中已经被复用的节点会从 `existingChildren` 中删除。第三轮结束后，Map 里剩下的就是“**新列表里不存在**”的旧节点，统一调用 `deleteChild` 标记删除。
-
-### 5.6 一个移动示例
-
-旧列表：`[A, B, C]`，新列表：`[B, A, C]`。
-
-[width(13,13,23,28,23)]
-
-| 步骤 | 新节点 | 匹配到的旧 index | `lastPlacedIndex` 变化 | 是否 `Placement` |
-| ---- | ------ | ---------------- | ---------------------- | ---------------- |
-| 1    | B      | 1                | 0 → 1                  | 否               |
-| 2    | A      | 0                | 0 < 1 → 保持 1         | 是（移动）       |
-| 3    | C      | 2                | 2 >= 1 → 变为 2        | 否               |
-
-最终只有 A 被标记 `Placement`。Commit 阶段会用 `insertBefore` 把 A 移动到正确位置，而不是删除重建 B、A、C。
-
-> [!NOTE]
-> 这里只标记“**需要移动**”，不计算最终插入点。真正的插入位置由 Commit 阶段的 `getHostSibling` 决定，见 [Commit 阶段](/frameworks/react/advanced/source-code/commit/commitWork)。
 
 ### 5.7 文本与元素的复用细节
 
@@ -828,7 +903,8 @@ function updateElement(
 
 :::
 
-注意：`updateSlot` 只检查 `key`，`updateElement` 才检查 `elementType`。因此 key 相同但类型不同的节点，会走“**新建 + 删除旧节点**”的路径。这也是为什么 `key` 必须稳定且唯一：它决定身份，类型只决定复用方式。
+> [!TIP] 注意
+> `updateSlot` 只检查 `key`，`updateElement` 才检查 `elementType`。因此 key 相同但类型不同的节点，会走“**新建 + 删除旧节点**”的路径。这也是为什么 `key` 必须稳定且唯一：它决定身份，类型只决定复用方式。
 
 ## 6. 多节点 Diff 的流程
 
@@ -854,14 +930,14 @@ flowchart TD
 
 ## 7. 总结
 
-[width(18,47,35)]
+[width(21,47,32)]
 
-| 阶段         | 关键函数                                 | 产物                               |
-| ------------ | ---------------------------------------- | ---------------------------------- |
-| 派发         | `reconcileChildFibers`                   | 按类型进入单节点、数组或迭代器协调 |
-| 单节点       | `reconcileSingleElement`、`useFiber`     | 复用或新建一个 Fiber               |
-| 多节点第一轮 | `updateSlot`、`placeChild`               | 顺序匹配，标记移动                 |
-| 多节点第二步 | `deleteRemainingChildren`、`createChild` | 处理单边剩余                       |
-| 多节点第三步 | `mapRemainingChildren`、`updateFromMap`  | 用 Map 处理乱序，删除未复用节点    |
+| 阶段            | 关键函数                                 | 产物                               |
+| --------------- | ---------------------------------------- | ---------------------------------- |
+| 派发            | `reconcileChildFibers`                   | 按类型进入单节点、数组或迭代器协调 |
+| 单节点          | `reconcileSingleElement`、`useFiber`     | 复用或新建一个 Fiber               |
+| 多节点第一轮    | `updateSlot`、`placeChild`               | 顺序匹配，标记移动                 |
+| 多节点单边剩余  | `deleteRemainingChildren`、`createChild` | 处理单边剩余                       |
+| 多节点 Map 兜底 | `mapRemainingChildren`、`updateFromMap`  | 用 Map 处理乱序，删除未复用节点    |
 
-React 的 Diff 不是“**找最小编辑距离**”，而是“**用 key 和位置做快速匹配，再用 Map 兜底**”。理解 `lastPlacedIndex` 与 Map 的配合，就理解了 React 列表协调的核心。协调阶段只负责生成 Fiber 链表和标记副作用，真正的 DOM 插入、移动与删除在 Commit 阶段完成。
+React 的 Diff 不是“**找最小编辑距离**”，而是“**用 key 和位置做快速匹配，再用 Map 兜底**”，协调阶段只负责生成 Fiber 链表和标记副作用，真正的 DOM 插入、移动与删除在 Commit 阶段完成。

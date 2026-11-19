@@ -4,42 +4,52 @@ outline: [2, 4]
 
 # useState
 
-`useState` 是日常使用频率最高的 Hook，但它的实现几乎没有独立逻辑：状态更新复用 `useReducer` 的队列，唯一的特化是“reducer 固定为 `basicStateReducer`”，以及 dispatch 上的一条 eager bailout 快速路径。
+`useState` 用于在函数组件中声明一个状态变量。它返回一个二元组：当前状态值与更新该状态的 `dispatch` 函数；挂载时用传入的初始值建立状态，更新时返回队列合并后的结果。适合管理相互独立、转换逻辑简单的状态字段；当状态转换复杂时改用 `useReducer`。
 
-实现位于 `packages/react-reconciler/src/ReactFiberHooks.old.js`，核心函数是 `mountState`、`updateState`、`basicStateReducer` 与 `dispatchSetState`。队列合并与 lane 处理的细节在 [useReducer](/frameworks/react/advanced/source-code/hooks/useReducer)；Hook 链表与 Dispatcher 的基础见 [Hooks 链表](/frameworks/react/advanced/source-code/hooks/hooksInternals)。
+## 1. 基础用法
 
-## 1. `useState` 是 `useReducer` 的特例
+`useState` 接收一个参数：初始值，或返回初始值的函数（惰性初始化）。返回值是一个二元组 `[state, setState]`，其中 `setState` 接收新值或 `(prevState) => nextState` 形式的更新函数。
 
-`useState` 的函数式更新最终由 `basicStateReducer` 处理：
+```tsx
+import { useState } from 'react'
 
-```ts [react-reconciler/src/ReactFiberHooks.old.js]
-function basicStateReducer<S>(state: S, action: BasicStateAction<S>): S {
-  // action 是函数时以当前 state 为参数调用，否则直接作为新状态。
-  return typeof action === 'function' ? action(state) : action
+function Profile() {
+  // 初始值只在挂载阶段写入，之后每次渲染返回队列合并后的当前状态。
+  const [name, setName] = useState('React')
+
+  // setName 接收新值；函数身份在多次渲染间保持稳定。
+  return <input value={name} onChange={event => setName(event.target.value)} />
 }
 ```
 
-它只区分两种 action：
+常见写法有两种：直接传入新值（如 `setName('Vue')`），或传入基于旧状态的更新函数（如 `setCount(c => c + 1)`）。当新状态依赖旧状态，尤其是连续调用多次时，应使用函数式更新：
 
-- `setState(value)`：`action` 不是函数，直接作为新状态。
-- `setState(fn)`：`action` 是函数，以当前状态为参数调用它，返回值作为新状态。
+```jsx
+function Counter() {
+  const [count, setCount] = useState(0)
 
-更新阶段的 `updateState` 因此只有一行：
+  function handleClick() {
+    // 函数式更新依次叠加，每次都能拿到上一次累加后的状态。
+    setCount(c => c + 1)
+    setCount(c => c + 1)
+    setCount(c => c + 1)
+  }
 
-```ts [react-reconciler/src/ReactFiberHooks.old.js]
-function updateState<S>(
-  initialState: (() => S) | S,
-): [S, Dispatch<BasicStateAction<S>>] {
-  // 更新阶段不使用 initialState，状态由 updateReducer 从 Hook 节点与队列中恢复。
-  return updateReducer(basicStateReducer, (initialState: any));
+  return <button onClick={handleClick}>{count}</button>
 }
 ```
 
-`initialState` 在更新阶段不会被使用，`useReducer` 会从 Hook 节点与队列中恢复状态。
+React 18 的自动批处理（automatic batching）会把同一事件循环中的多次 `dispatch` 合并为一次渲染：
 
-## 2. `mountState` 与惰性初始化
+- 同一次 dispatch 产生的多个 `Update` 按调用顺序排进环形队列。
+- 渲染阶段由 `updateReducer` 依次应用，只有最终状态与旧状态不同才提交。
+- 不同优先级的更新按 lane 分开处理，低优先级更新留到后续渲染。
 
-挂载阶段创建 Hook、初始化状态、建立队列，并绑定一个专用的 `dispatchSetState`：
+## 2. 挂载阶段
+
+挂载阶段创建 Hook、初始化状态、建立队列，并绑定一个专用的 `dispatchSetState`。`mountState` 首先通过 `mountWorkInProgressHook` 取得 Hook 节点：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function mountState<S>(
@@ -72,28 +82,77 @@ function mountState<S>(
 }
 ```
 
-关键点：
+```ts [react-reconciler/src/ReactFiberHooks.old.js]
+function mountWorkInProgressHook(): Hook {
+  // 新建空节点，具体字段由调用方填充。
+  const hook: Hook = {
+    memoizedState: null,
 
-- `initialState` 是函数时会被立即调用，这就是 `useState(() => createInitial())` 只在挂载时执行一次的原因。
-- 队列的 `lastRenderedReducer` 固定为 `basicStateReducer`。
-- `dispatchSetState` 通过 `bind` 预先绑定 Fiber 与队列，因此 `setState` 的函数身份在多次渲染间保持稳定。
+    baseState: null,
+    baseQueue: null,
+    queue: null,
 
-## 3. 更新阶段：`updateState`
+    next: null,
+  }
+
+  if (workInProgressHook === null) {
+    // 第一个 Hook，直接挂到 Fiber.memoizedState 上。
+    currentlyRenderingFiber.memoizedState = workInProgressHook = hook
+  } else {
+    // 追加到链表尾部。
+    workInProgressHook = workInProgressHook.next = hook
+  }
+  return workInProgressHook
+}
+```
+
+:::
+
+## 3. 更新阶段
 
 `updateState` 直接委托给 `updateReducer(basicStateReducer, ...)`，队列的合并、lane 过滤、eagerState 复用都由后者完成：
 
-```text
+:::code-group
+
+```ts [react-reconciler/src/ReactFiberHooks.old.js]
+function updateState<S>(
+  initialState: (() => S) | S,
+): [S, Dispatch<BasicStateAction<S>>] {
+  // 更新阶段不使用 initialState，状态由 updateReducer 从 Hook 节点与队列中恢复。
+  return updateReducer(basicStateReducer, (initialState: any));
+}
+```
+
+:::
+
+`initialState` 在更新阶段不会被使用，`useReducer` 会从 Hook 节点与队列中恢复状态。整体调用链如下：
+
+```markdown
 updateState
-  → updateReducer(basicStateReducer, initialState)
-      → updateWorkInProgressHook()
-      → 合并 queue.pending 与 current.baseQueue
-      → 按 renderLanes 应用 Update
-      → 写回 hook.memoizedState
+→ updateReducer(basicStateReducer, initialState)
+→ updateWorkInProgressHook()
+→ 合并 queue.pending 与 current.baseQueue
+→ 按 renderLanes 应用 Update
+→ 写回 hook.memoizedState
 ```
 
 因此 `useState` 在更新阶段没有额外的状态计算逻辑，所有“**这次渲染能否处理这条更新**”的判断都与 `useReducer` 一致。
 
-## 4. `dispatchSetState` 与 eager bailout
+## 4. `basicStateReducer`
+
+`useState` 是 `useReducer` 的特例：队列的 `lastRenderedReducer` 固定为 `basicStateReducer`，函数式更新最终由它处理：
+
+```ts [react-reconciler/src/ReactFiberHooks.old.js]
+function basicStateReducer<S>(state: S, action: BasicStateAction<S>): S {
+  // action 是函数时以当前 state 为参数调用，否则直接作为新状态。
+  return typeof action === 'function' ? action(state) : action
+}
+```
+
+- `setState(value)`：`action` 不是函数，直接作为新状态。
+- `setState(fn)`：`action` 是函数，以当前状态为参数调用它，返回值作为新状态。
+
+## 5. `dispatchSetState`
 
 `dispatchSetState` 比 `dispatchReducerAction` 多了一条快速路径：如果队列为空，可以提前算出新状态；若新旧状态相同，直接跳过渲染。
 
@@ -165,34 +224,42 @@ function dispatchSetState<S, A>(
 
 eager 计算只在“**队列为空**”时进行：一旦 `fiber.lanes` 或 `alternate.lanes` 非空，说明已有待处理更新，React 无法保证提前计算的结果与队列最终结果一致，于是放弃快速路径，交给渲染阶段处理。
 
-## 5. 函数式更新与批量
+## 6. 完整流程
 
-`setState(fn)` 的 action 会原样进入 `hook.queue`，因此多次调用可以基于最新状态累加：
-
-```jsx
-function Counter() {
-  const [count, setCount] = useState(0)
-
-  function handleClick() {
-    // 函数式更新依次叠加，每次都能拿到上一次累加后的状态。
-    setCount(c => c + 1)
-    setCount(c => c + 1)
-    setCount(c => c + 1)
-  }
-
-  return <button onClick={handleClick}>{count}</button>
-}
+```mermaid
+flowchart TD
+    A["组件调用 useState"] --> B{"首次挂载还是更新"}
+    B -->|"挂载"| C["mountState 创建 Hook 与初始状态"]
+    C --> C1{"initialState 是否为函数"}
+    C1 -->|"是"| C2["调用函数得到初始值"]
+    C1 -->|"否"| C3["直接使用传入值"]
+    C2 --> C4["创建 UpdateQueue，reducer 固定为 basicStateReducer"]
+    C3 --> C4
+    C4 --> C5["bind dispatchSetState"]
+    C5 --> Z["返回 state 与 dispatch"]
+    B -->|"更新"| D["updateState 委托 updateReducer"]
+    D --> D1["合并 pending 与 baseQueue"]
+    D1 --> D2["按 renderLanes 逐条应用 Update"]
+    D2 --> D3{"Update 是否带 eagerState"}
+    D3 -->|"是"| D4["复用 eagerState"]
+    D3 -->|"否"| D5["执行 basicStateReducer"]
+    D4 --> D6["写回 memoizedState"]
+    D5 --> D6
+    D6 --> Z2["返回最新 state 与稳定 dispatch"]
+    P["事件中调用 setState"] --> Q["dispatchSetState 分配 lane"]
+    Q --> R{"队列是否为空"}
+    R -->|"是"| R1["提前计算 eagerState"]
+    R1 --> R2{"新旧状态是否相同"}
+    R2 -->|"是"| R3["入队但不调度渲染"]
+    R2 -->|"否"| R4["入队并 scheduleUpdateOnFiber"]
+    R -->|"否"| R4
+    R4 --> D
 ```
 
-点击一次后 `count` 增加 3，而不是 1。如果写成 `setCount(count + 1)`，三次调用拿到的都是同一次渲染的 `count`，最终只增加 1。
+> [!TIP]
+> 挂载时 `mountState` 建立 Hook、队列与 dispatch；更新时 `updateState` 委托 `updateReducer` 合并队列并按 lane 应用 Update。`dispatchSetState` 在队列为空时额外尝试 eager 计算，相同值会入队但不调度渲染。
 
-React 18 的自动批处理（automatic batching）会把同一事件循环中的多次 `dispatch` 合并为一次渲染：
-
-- 同一次 dispatch 产生的多个 `Update` 按调用顺序排进环形队列。
-- 渲染阶段由 `updateReducer` 依次应用，只有最终状态与旧状态不同才提交。
-- 不同优先级的更新按 lane 分开处理，低优先级更新留到后续渲染。
-
-## 6. 总结
+## 7. 总结
 
 [width(25,75)]
 

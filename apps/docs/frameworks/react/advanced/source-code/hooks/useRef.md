@@ -4,11 +4,62 @@ outline: [2, 4]
 
 # useRef
 
-`useRef` 是缓存与引用类 Hook 中最简单的一个：挂载时创建一个 `{ current: initialValue }` 对象，之后每次渲染都返回同一个对象。它不参与依赖比较，修改 `ref.current` 也不会触发渲染。
+`useRef` 是缓存与引用类 Hook 中最简单的一个：挂载时创建一个 `{ current: initialValue }` 对象，之后每次渲染都返回同一个对象。修改 `ref.current` 不会触发渲染，适合保存 DOM 引用、定时器 ID、上一次的值等“可变但不参与渲染”的数据。
+
+`useRef(initialValue)` 返回一个可变的 `{ current }` 容器，并在组件多次渲染之间保持同一个对象。它不参与依赖比较，也不触发更新调度：写入 `ref.current` 只是修改一个普通对象，React 不会因此重新渲染。
+
+它适合保存“**渲染之外的可变数据**”：DOM 节点、定时器句柄、上一次的 props / state，或者任何需要跨渲染共享、但不需要驱动视图的值。
+
+## 1. 基础用法
+
+```tsx
+function AutoFocusInput() {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    // Commit 阶段已经把 DOM 写入 current，这里可以直接访问。
+    inputRef.current?.focus()
+  }, [])
+
+  return <input ref={inputRef} />
+}
+```
+
+- `initialValue` 只在挂载时使用，后续渲染传入的新值会被忽略。
+- 修改 `ref.current` 不会触发渲染。
+- `<input ref={inputRef} />` 这种对象 ref 由 Commit 阶段的 `commitAttachRef` 赋值。
+
+不需要驱动渲染的可变数据也可以放在 ref 里：
+
+```jsx
+function Timer() {
+  const timerRef = useRef(null)
+
+  useEffect(() => {
+    // 定时器 ID 存在 ref 中，修改它不会触发渲染。
+    timerRef.current = window.setInterval(() => {
+      console.log('tick')
+    }, 1000)
+
+    return () => {
+      // 清理函数在组件卸载时清除定时器。
+      if (timerRef.current !== null) {
+        clearInterval(timerRef.current)
+      }
+    }
+  }, [])
+
+  return null
+}
+```
+
+常见用法：
+
+- 定时器 ID：不需要触发渲染，放在 ref 里最合适。
+- DOM 引用：`<div ref={divRef} />`，Commit 阶段由 `commitAttachRef` 赋值。
+- 保存上一次的值：在 `useEffect` 中更新 `ref.current`。
 
 实现位于 `packages/react-reconciler/src/ReactFiberHooks.old.js`，DOM ref 的赋值则发生在 Commit 阶段的 `ReactFiberCommitWork.old.js`。Hook 链表的基础见 [Hooks 链表](/frameworks/react/advanced/source-code/hooks/hooksInternals)。
-
-## 1. `mountRef` 与 `updateRef`
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function mountRef<T>(initialValue: T): {|current: T|} {
@@ -27,21 +78,27 @@ function updateRef<T>(initialValue: T): {|current: T|} {
 }
 ```
 
-`useRef` 的行为可以概括为：
+## 2. 挂载阶段
+
+挂载阶段创建一个 `{ current: initialValue }` 对象，存进 `hook.memoizedState` 后返回。
+
+`enableUseRefAccessWarning` 是开发期的可选特性，开启后会返回一个带 `get current()` / `set current()` 的对象，用于警告“**在渲染期间读写 ref**”。默认构建返回的就是普通对象。
+
+## 3. 更新阶段
+
+更新阶段直接返回同一个对象，完全忽略新的 `initialValue`。因此 `useRef` 的行为可以概括为：
 
 - Mount 时创建一个 `{current: initialValue}` 对象，存进 `hook.memoizedState`。
 - Update 时直接返回同一个对象，完全忽略新的 `initialValue`。
 - 修改 `ref.current` 不会触发渲染，因为 React 不监听这个普通对象。
 
-`enableUseRefAccessWarning` 是开发期的可选特性，开启后会返回一个带 `get current()` / `set current()` 的对象，用于警告“**在渲染期间读写 ref**”。默认构建返回的就是普通对象。
-
-## 2. 为什么能跨渲染保持不变
+## 4. 为什么能跨渲染保持不变
 
 `updateWorkInProgressHook` 会从 current 树克隆 Hook 节点，但 `memoizedState` 是直接复制引用。因此只要 Hook 的调用顺序不变，`useRef` 每次拿到的都是同一个 `{current}` 对象。它不参与依赖比较，也不会因为父组件重新渲染而重置。
 
 这一点与 `useState` 不同：`useState` 的 `memoizedState` 会被 `updateReducer` 替换成新状态，而 `useRef` 的 `memoizedState` 始终是同一个对象的引用，状态由调用方直接修改。
 
-## 3. DOM ref 的提交
+## 5. DOM ref 的提交
 
 `useRef` 只负责创建对象，真正的 DOM 赋值发生在 Commit 阶段：
 
@@ -89,35 +146,22 @@ function commitDetachRef(current: Fiber) {
 - `commitDetachRef` 在卸载或 ref 变化时把 `ref.current` 置空。
 - 对普通 DOM 元素，`stateNode` 是真实 DOM；对类组件，是组件实例。
 
-## 4. 常见用途
+## 6. 完整流程
 
-```jsx
-function Timer() {
-  const timerRef = useRef(null)
-
-  useEffect(() => {
-    // 定时器 ID 存在 ref 中，修改它不会触发渲染。
-    timerRef.current = window.setInterval(() => {
-      console.log('tick')
-    }, 1000)
-
-    return () => {
-      // 清理函数在组件卸载时清除定时器。
-      if (timerRef.current !== null) {
-        clearInterval(timerRef.current)
-      }
-    }
-  }, [])
-
-  return null
-}
+```mermaid
+flowchart TD
+    A["调用 useRef(initialValue)"] --> B{"挂载还是更新"}
+    B -->|挂载| C["mountRef：创建 { current: initialValue } 对象"]
+    C --> D["存入 hook.memoizedState"]
+    D --> E["返回 ref 对象"]
+    B -->|更新| F["updateRef：直接返回 memoizedState"]
+    F --> E
+    E --> G["渲染期间读写 ref.current 不触发渲染"]
+    G --> H["Commit：commitAttachRef 写入 DOM / 组件实例"]
+    H --> I["卸载或 ref 变化：commitDetachRef 置空"]
 ```
 
-- 定时器 ID：不需要触发渲染，放在 ref 里最合适。
-- DOM 引用：`<div ref={divRef} />`，Commit 阶段由 `commitAttachRef` 赋值。
-- 保存上一次的值：在 `useEffect` 中更新 `ref.current`。
-
-## 5. 总结
+## 7. 总结
 
 [width(23,77)]
 
