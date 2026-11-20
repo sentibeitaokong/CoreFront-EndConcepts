@@ -89,7 +89,8 @@ function FiberNode(tag, pendingProps, key, mode) {
 
 :::
 
-`flags` 与 `subtreeFlags` 的分工是理解 React 18 提交优化的关键：`flags` 描述“**这个节点自己要不要做什么**”，`subtreeFlags` 描述“**这棵子树里有没有值得提交的事情**”。父节点在 `completeWork` 阶段把子节点的标记向上汇总，Commit 阶段就可以整棵跳过没有效果的子树。
+> [!TIP]
+> `flags` 与 `subtreeFlags` 的分工是理解 React 18 提交优化的关键：`flags` 描述“**这个节点自己要不要做什么**”，`subtreeFlags` 描述“**这棵子树里有没有值得提交的事情**”。父节点在 `completeWork` 阶段把子节点的标记向上汇总，Commit 阶段就可以整棵跳过没有效果的子树。
 
 ### 2.2 三个链表指针
 

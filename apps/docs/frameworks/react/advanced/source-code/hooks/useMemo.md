@@ -16,34 +16,6 @@ outline: [2, 4]
 | `useCallback` | 函数引用 | 返回新函数       | 稳定回调，配合 `memo`      |
 | `useRef`      | 可变对象 | 不参与依赖比较   | 保存 DOM、定时器、上一次值 |
 
-三者的 `memoizedState`：
-
-```text
-useMemo:      [value, deps]
-useCallback:  [callback, deps]
-useRef:       { current: initialValue }
-```
-
-`useMemo` / `useCallback` 把“**值 + 依赖**”一起存进 Hook 节点，因为下一次渲染必须知道上一次的依赖是什么；`useRef` 只存一个可变对象，不需要依赖数组。
-
-三个 Hook 都不参与更新调度，只决定“**本次渲染拿到什么**”：
-
-- `useMemo` / `useCallback` 决定返回旧值还是新值。
-- `useRef` 提供一个跨渲染保持稳定的可变容器。
-- 修改 `ref.current` 不会触发渲染，因为 React 不监听这个普通对象。
-
-三者的挂载与更新行为：
-
-[width(23,28,28,21)]
-
-| Hook          | Mount 行为                       | Update 行为                        | 是否触发渲染 |
-| ------------- | -------------------------------- | ---------------------------------- | ------------ |
-| `useMemo`     | 执行工厂函数，存 `[value, deps]` | 依赖相等返回旧值，否则重算         | 否           |
-| `useCallback` | 存 `[fn, deps]`                  | 依赖相等返回旧函数，否则返回新函数 | 否           |
-| `useRef`      | 创建 `{ current }`               | 返回同一个对象                     | 否           |
-
-实现位于 `packages/react-reconciler/src/ReactFiberHooks.old.js`，入口是 `mountMemo` 与 `updateMemo`。依赖比较规则见 [Hooks 链表](/frameworks/react/advanced/source-code/hooks/hooksInternals#_5-依赖判断-依赖数组的比较)。
-
 ## 1. 基础用法
 
 ```tsx
@@ -73,17 +45,14 @@ function ProductList() {
 }
 ```
 
-`useMemo(create, deps)` 接收一个工厂函数和依赖数组，返回工厂函数的计算结果。`deps` 省略时按 `null` 处理，每次渲染都会重新计算；传空数组则只在挂载时计算一次。依赖应使用引用稳定的值，内联对象或函数会让每次比较都失败。
+> [!TIP]
+> `useMemo(create, deps)` 接收一个工厂函数和依赖数组，返回工厂函数的计算结果。`deps` 省略时按 `null` 处理，每次渲染都会重新计算；传空数组则只在挂载时计算一次。依赖应使用引用稳定的值，内联对象或函数会让每次比较都失败。
 
-**语义边界**：React 官方明确说明 `useMemo` 是性能优化，不是语义保证，未来 React 可能丢弃缓存并重新计算。因此：
+## 2. 挂载阶段
 
-- 不要在 `useMemo` 里做有副作用的操作。
-- 不要依赖它“**只执行一次**”。
-- 需要“**只执行一次**”的初始化逻辑，用 `useRef` 或 `useState` 惰性初始化。
+`mountMemo` 先调用 `mountWorkInProgressHook` 在当前 Fiber 上挂载一个 Hook 节点，再处理依赖：`deps === undefined` 时记为 `null`，这样更新阶段不会命中复用，挂载阶段没有历史缓存，工厂函数 `nextCreate()` 必定执行一次，结果与依赖一起存成 `hook.memoizedState = [nextValue, nextDeps]`，最后把结果返回给组件。
 
-如果一段逻辑在缓存被丢弃后会产生错误结果，那么它就不应该放在 `useMemo` 里。
-
-两个入口的完整实现如下，挂载与更新共用同一套依赖比较逻辑：
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function mountMemo<T>(
@@ -98,7 +67,17 @@ function mountMemo<T>(
   hook.memoizedState = [nextValue, nextDeps]
   return nextValue
 }
+```
 
+:::
+
+## 3. 更新阶段
+
+`updateMemo` 通过 `updateWorkInProgressHook` 复用 current 树上对应的 Hook 节点，然后读取上次缓存 `prevState`。只有 `prevState` 存在且本次传入 `deps` 时，才会拿 `prevState[1]` 与 `nextDeps` 交给 `areHookInputsEqual` 逐项比较，比较命中时直接返回 `prevState[0]`，不执行工厂函数；未命中时执行 `nextCreate()`，用新结果和依赖覆盖 `memoizedState`，再返回新值。
+
+:::code-group
+
+```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function updateMemo<T>(
   nextCreate: () => T,
   deps: Array<mixed> | void | null,
@@ -122,30 +101,18 @@ function updateMemo<T>(
 }
 ```
 
-## 2. 挂载阶段
-
-`mountMemo` 先调用 `mountWorkInProgressHook` 在当前 Fiber 上挂载一个 Hook 节点，再处理依赖：`deps === undefined` 时记为 `null`，这样更新阶段不会命中复用。
-
-挂载阶段没有历史缓存，工厂函数 `nextCreate()` 必定执行一次，结果与依赖一起存成 `hook.memoizedState = [nextValue, nextDeps]`，最后把结果返回给组件。
-
-## 3. 更新阶段
-
-`updateMemo` 通过 `updateWorkInProgressHook` 复用 current 树上对应的 Hook 节点，然后读取上次缓存 `prevState`。只有 `prevState` 存在且本次传入 `deps` 时，才会拿 `prevState[1]` 与 `nextDeps` 交给 `areHookInputsEqual` 逐项比较。
-
-比较命中时直接返回 `prevState[0]`，不执行工厂函数；未命中时执行 `nextCreate()`，用新结果和依赖覆盖 `memoizedState`，再返回新值。
+:::
 
 ## 4. 复用决策
 
 `updateMemo` 的判断可以写成：
 
-```text
+```tree
 取 Hook
   → 有旧值、有 deps、且依赖相等？
       ├─ 是 → 返回 prevState[0]
       └─ 否 → 调用 nextCreate() → 存入 [value, deps] → 返回
 ```
-
-对应到流程图：
 
 ```mermaid
 flowchart TD
@@ -158,7 +125,7 @@ flowchart TD
     E -->|否| C
 ```
 
-`updateMemo` 里的 `prevState[1]` 就是上一次存的依赖数组。没有它，React 就无法判断本次是否应该重新计算。
+`updateMemo`里的`prevState[1]`就是上一次存的依赖数组。没有它，React就无法判断是否应该重新计算。
 
 ## 5. 为什么存依赖数组
 
@@ -173,7 +140,7 @@ hook.memoizedState = [nextValue, nextDeps]
 
 依赖数组本身也会被原样保存，因此下面两种写法的缓存行为完全不同：
 
-- `useMemo(fn, [])`：`nextDeps` 是空数组，`areHookInputsEqual` 直接返回 `true`，只在挂载时计算一次。
+- `useMemo(fn, [])`：`nextDeps`是空数组,`areHookInputsEqual`直接返回`true`，只在挂载时计算一次。
 - `useMemo(fn)`：`nextDeps` 是 `null`，不会进入复用分支，每次渲染都会重新执行 `nextCreate`。
 
 ## 6. 依赖数组的常见错误
@@ -203,7 +170,7 @@ useMemo(() => compute(a), flag ? [a] : [])
 
 依赖数组的长度和顺序在一组 Hook 调用中必须保持稳定，这与 Hooks 必须按顺序调用的规则是同一件事。
 
-## 7. 完整流程
+## 7. 完整流程图
 
 ```mermaid
 flowchart TD

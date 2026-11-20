@@ -154,6 +154,8 @@ React 18 的开发构建会额外写入几个不可枚举字段：
 
 `$$typeof` 设成 `Symbol.for('react.element')`。判断一个对象是不是元素时，只比较这个 Symbol：
 
+:::code-group
+
 ```ts [react/src/ReactElement.js]
 export function isValidElement(object) {
   // 只比较 $$typeof，形状相同的普通对象会被拒绝。
@@ -164,6 +166,8 @@ export function isValidElement(object) {
   )
 }
 ```
+
+:::
 
 - `JSON.stringify` 无法序列化 Symbol，服务端返回的 JSON 里不可能出现真正的 `$$typeof`。
 - 即便攻击者写字符串 `"react.element"`，它也只是字符串，不等于 `Symbol.for('react.element')`。
@@ -477,6 +481,8 @@ const element = {
 
 React 18 没有用 `instanceof` 判断类组件，而是检查原型上的标记：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiber.old.js]
 function shouldConstruct(Component: Function) {
   const prototype = Component.prototype
@@ -485,6 +491,8 @@ function shouldConstruct(Component: Function) {
   return !!(prototype && prototype.isReactComponent)
 }
 ```
+
+:::
 
 这个标记来自 `Component.prototype.isReactComponent`。`new` 出来的类组件实例会沿原型链找到它，而普通函数没有这个属性。表达式里的 `prototype &&` 还顺带处理了箭头函数没有 `prototype` 的情况。
 

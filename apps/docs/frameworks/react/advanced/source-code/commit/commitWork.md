@@ -14,6 +14,8 @@ React 18.3.1 的 `enableNewReconciler` 默认为 `false`，因此运行时走 `.
 
 Commit 的总入口是 `commitRootImpl`。它拿到 Render 阶段留下的 `root.finishedWork`，按固定顺序执行 BeforeMutation、Mutation、Layout 三个阶段，并在 Mutation 与 Layout 之间切换 `root.current`：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
 // 第一幕 BeforeMutation：在修改宿主树前读取状态，调用 getSnapshotBeforeUpdate。
 const shouldFireAfterActiveInstanceBlur = commitBeforeMutationEffects(
@@ -41,6 +43,8 @@ commitLayoutEffects(finishedWork, root, lanes)
 requestPaint()
 ```
 
+:::
+
 `root.current = finishedWork` 的位置很关键：
 
 - 放在 Mutation 之后，`componentWillUnmount` 执行时旧树仍然是 `current`；
@@ -60,6 +64,8 @@ requestPaint()
 | Passive        | `commitPassiveMountEffects` / `commitPassiveUnmountEffects` | 在绘制后异步执行 `useEffect` 的 create 与 destroy                    |
 
 前三个阶段在 `commitRootImpl` 中同步完成；Passive 阶段不在其中直接执行，而是通过 `scheduleCallback` 安排到后续任务：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
 // 子树或自身带 Passive 标记，说明有 useEffect 待执行。
@@ -82,7 +88,11 @@ if (
 }
 ```
 
+:::
+
 注意每轮 `commitRootImpl` 开头还会先清空上一轮遗留的 Passive Effect：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
 // 提交前先清空上一轮遗留的 Passive Effect。
@@ -92,6 +102,8 @@ do {
   flushPassiveEffects()
 } while (rootWithPendingPassiveEffects !== null)
 ```
+
+:::
 
 这保证了“上一次提交的 `useEffect` 清理”不会拖到下一次提交之后才执行。
 
@@ -116,6 +128,8 @@ Mutation 阶段负责“**把 Fiber 上的标记翻译成宿主操作**”。它
 
 ### 2.1 `commitMutationEffects`
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 export function commitMutationEffects(
   root: FiberRoot,
@@ -136,11 +150,15 @@ export function commitMutationEffects(
 }
 ```
 
+:::
+
 `inProgressLanes` / `inProgressRoot` 是模块级变量，供 `captureCommitPhaseError` 等错误处理逻辑使用；进入时保存、退出时清空。
 
 ### 2.2 `recursivelyTraverseMutationEffects`
 
 真正的递归发生在 `recursivelyTraverseMutationEffects`。它做两件事：先处理父节点收集到的删除队列，再按 `subtreeFlags` 决定是否继续遍历子节点。
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 function recursivelyTraverseMutationEffects(
@@ -172,12 +190,16 @@ function recursivelyTraverseMutationEffects(
 }
 ```
 
+:::
+
 两个顺序约定值得记住：
 
 1. **删除先于子节点副作用**。`deletions` 在遍历 `child` 之前处理，保证被删除子树的清理发生在兄弟节点插入之前。
 2. **`subtreeFlags & MutationMask` 剪枝**。如果整棵子树都没有 Mutation 相关标记，就不再向下遍历，这是 React 18 去掉 effect list 后仍能避免全树扫描的关键。
 
 `MutationMask` 由多个 flag 位或而成：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberFlags.js]
 // 每个标记独占一个二进制位，便于按位判断与组合。
@@ -212,9 +234,13 @@ export const LayoutMask = Update | Callback | Ref | Visibility
 export const PassiveMask = Passive | ChildDeletion
 ```
 
+:::
+
 ### 2.3 `commitMutationEffectsOnFiber`
 
 不同类型 Fiber 的副作用不同。以函数组件为例，`Update` 标记意味着需要处理 Hook Effect：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
     case FunctionComponent:
@@ -250,6 +276,8 @@ export const PassiveMask = Passive | ChildDeletion
     }
 ```
 
+:::
+
 可以看到三类 Effect 在 Mutation 阶段的分工：
 
 - `useInsertionEffect`：先卸载旧的，再同步挂载新的；
@@ -259,6 +287,8 @@ export const PassiveMask = Passive | ChildDeletion
 ### 2.4 `commitReconciliationEffects`
 
 所有“**结构变化**”的标记最终汇聚到 `commitReconciliationEffects`：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 function commitReconciliationEffects(finishedWork: Fiber) {
@@ -275,6 +305,8 @@ function commitReconciliationEffects(finishedWork: Fiber) {
   // 省略 Hydrating 标记的清位。
 }
 ```
+
+:::
 
 位掩码在这里体现得很直接：
 
@@ -303,6 +335,8 @@ parent.insertBefore(A, C) // 结果 [B, A, C]
 `getHostSibling` 的职责就是找这个锚点；找不到锚点时才退回 `appendChild`。
 
 ### 3.2 `commitPlacement`
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 function commitPlacement(finishedWork: Fiber): void {
@@ -343,6 +377,8 @@ function commitPlacement(finishedWork: Fiber): void {
 }
 ```
 
+:::
+
 几处细节：
 
 - `supportsMutation` 为 `false` 的渲染器（如部分自定义渲染器）直接跳过 DOM 操作；
@@ -350,6 +386,8 @@ function commitPlacement(finishedWork: Fiber): void {
 - 父节点带 `ContentReset` 时，先清空文本再插入，避免旧文本残留在新节点前面。
 
 ### 3.3 `getHostSibling`：向前找稳定锚点
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 function getHostSibling(fiber: Fiber): ?Instance {
@@ -392,6 +430,8 @@ function getHostSibling(fiber: Fiber): ?Instance {
 }
 ```
 
+:::
+
 查找规则：
 
 1. 没有兄弟就沿 `return` 向上，直到遇到有兄弟的祖先或宿主父节点；越过宿主父节点仍找不到就返回 `null`。
@@ -403,6 +443,8 @@ function getHostSibling(fiber: Fiber): ?Instance {
 注释里也坦白了代价：连续多次插入时，每次都要越过前面尚未插入的节点，最坏会退化成指数级搜索。
 
 ### 3.4 `insertOrAppendPlacementNode`
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 function insertOrAppendPlacementNode(
@@ -437,11 +479,15 @@ function insertOrAppendPlacementNode(
 }
 ```
 
+:::
+
 函数组件、Context Provider 等没有 DOM 的 Fiber，会继续向下递归，直到找到 `HostComponent` 或 `HostText`。Portal 则直接返回：它的子节点会由 Portal 自己的容器处理。
 
 对应的 `insertOrAppendPlacementNodeIntoContainer` 逻辑相同，只是把 `insertBefore` / `appendChild` 换成了容器版本。
 
 ### 3.5 `getHostParentFiber` 与 `isHostParent`
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 function getHostParentFiber(fiber: Fiber): Fiber {
@@ -468,6 +514,8 @@ function isHostParent(fiber: Fiber): boolean {
 }
 ```
 
+:::
+
 函数组件、Context Provider 等没有 DOM 的节点会被跳过，直到遇到 `HostComponent`、`HostRoot` 或 `HostPortal`。
 
 ## 4. 删除
@@ -475,6 +523,8 @@ function isHostParent(fiber: Fiber): boolean {
 ### 4.1 `commitDeletionEffects`
 
 删除的入口不是被删节点自己，而是它的父节点。`commitDeletionEffects` 先确定“**从哪个宿主节点里移除**”，再递归清理整棵被删子树。
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 // 递归遍历被删子树期间，用这两个变量记录该从哪个实例/容器中移除。
@@ -527,11 +577,15 @@ function commitDeletionEffects(
 }
 ```
 
+:::
+
 `hostParent` / `hostParentIsContainer` 是模块级变量，相当于“**删除遍历期间使用的游标**”。找到最近的宿主父节点后，`commitDeletionEffectsOnFiber` 递归处理子树；结束后清空游标，最后调用 `detachFiberMutation` 切断 `return` 指针，让已卸载组件上的 `setState` 能被检测出来。
 
 ### 4.2 `commitDeletionEffectsOnFiber`
 
 删除遍历会区分节点类型。宿主节点负责真正 `removeChild`，函数组件负责执行 Effect 的 destroy：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
     case HostComponent: {
@@ -579,6 +633,8 @@ function commitDeletionEffects(
     }
 ```
 
+:::
+
 有几个容易忽略的点：
 
 - 进入宿主节点后先把 `hostParent` 置为 `null`，再递归子节点。这样嵌套的子宿主节点不会重复执行 `removeChild`，只由最外层负责移除。
@@ -586,6 +642,8 @@ function commitDeletionEffects(
 - 递归清理完子节点后，才恢复 `hostParent` 并执行 `removeChild`，所以清理函数访问 DOM 时节点仍然存在。
 
 函数组件分支只处理 `useInsertionEffect` 和 `useLayoutEffect` 的 destroy：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
     case FunctionComponent:
@@ -636,6 +694,8 @@ function commitDeletionEffects(
       return;
     }
 ```
+
+:::
 
 `useEffect` 的 destroy 不在这里执行，而是留到 Passive Unmount 阶段。这样能保证所有同步清理先完成，再把异步副作用的清理推迟到绘制之后。
 
@@ -698,6 +758,8 @@ export const PassiveMask = Passive | ChildDeletion
 
 Effect 不是按“**类型**”直接存成 `useEffect` / `useLayoutEffect`，而是用位标记描述它属于哪个阶段、是否需要在本次提交执行：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactHookEffectTags.js]
 export type HookFlags = number
 
@@ -713,11 +775,15 @@ export const Layout = /*    */ 0b0100
 export const Passive = /*   */ 0b1000
 ```
 
+:::
+
 调用方通过组合标签筛选，例如 `HookLayout | HookHasEffect` 表示“**本次需要执行的 Layout Effect**”。
 
 ### 5.2 环形链表遍历
 
 每个函数组件的 `updateQueue.lastEffect` 指向 Hook Effect 环形链表的尾节点，`lastEffect.next` 才是头节点。挂载和卸载都按同一个环走一圈：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 function commitHookEffectListUnmount(
@@ -768,6 +834,8 @@ function commitHookEffectListMount(flags: HookFlags, finishedWork: Fiber) {
 }
 ```
 
+:::
+
 两个实现细节：
 
 - `(effect.tag & flags) === flags` 要求 `flags` 中的每一位都匹配，因此不会误执行其它阶段的 Effect。
@@ -792,6 +860,8 @@ Passive Effect 的调度在 `commitRootImpl` 前半段完成（见 [1.2](#12-三
 
 如果本次提交由同步 Lane 触发，`commitRootImpl` 末尾还会同步冲刷一次 Passive Effect：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
 // 同步 Lane 的提交要在函数内冲刷 Passive Effect；LegacyRoot 的例外判断已省略。
 if (includesSomeLane(pendingPassiveEffectsLanes, SyncLane)) {
@@ -799,11 +869,15 @@ if (includesSomeLane(pendingPassiveEffectsLanes, SyncLane)) {
 }
 ```
 
+:::
+
 这是为了兼容“**同步渲染的结果必须立即可观察**”的语义。
 
 ### 6.2 `commitPassiveMountEffects`
 
 Passive 遍历不使用递归，而是用模块级 `nextEffect` 做迭代，避免深树导致调用栈过深：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 export function commitPassiveMountEffects(
@@ -884,9 +958,13 @@ function commitPassiveMountEffects_complete(
 }
 ```
 
+:::
+
 `begin` 只负责向下找到叶子，`complete` 负责在回溯途中执行带 `Passive` 标记的 Fiber。`subtreeFlags & PassiveMask` 再次承担剪枝作用。
 
 真正执行 `useEffect` create 的是 `commitPassiveMountOnFiber` 的函数组件分支：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
     case FunctionComponent:
@@ -898,9 +976,13 @@ function commitPassiveMountEffects_complete(
     }
 ```
 
+:::
+
 ### 6.3 `commitPassiveUnmountEffects`
 
 卸载遍历比挂载多了一件事：遇到 `ChildDeletion` 时，要先清理被删除子树内部的 Passive Effect。
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 export function commitPassiveUnmountEffects(firstChild: Fiber): void {
@@ -943,9 +1025,13 @@ function commitPassiveUnmountEffects_begin() {
 }
 ```
 
+:::
+
 被删子树的清理走单独的遍历 `commitPassiveUnmountEffectsInsideOfDeletedTree_begin`，它按“**父 → 子**”的顺序执行 destroy。这一点与挂载阶段“**子 → 父**”的 create 顺序相反：清理应当先释放父级资源，再释放子级依赖。
 
 最终执行 `useEffect` destroy 的函数仍然是 `commitHookEffectListUnmount`：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 function commitPassiveUnmountOnFiber(finishedWork: Fiber): void {
@@ -965,6 +1051,8 @@ function commitPassiveUnmountOnFiber(finishedWork: Fiber): void {
   }
 }
 ```
+
+:::
 
 ### 6.4 为什么不在 Mutation 阶段直接执行
 

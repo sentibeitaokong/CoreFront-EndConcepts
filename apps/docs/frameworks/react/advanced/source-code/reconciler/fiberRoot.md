@@ -10,6 +10,8 @@ outline: [2, 4]
 
 `FiberRoot` 是应用的根管理器。它是一个普通对象，不参与 `child` / `sibling` 遍历，构造时一次性挂上容器、当前树、完成树以及调度与 Lane 状态：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiberRoot.old.js]
 function FiberRootNode(
   containerInfo,
@@ -55,7 +57,11 @@ function FiberRootNode(
 }
 ```
 
+:::
+
 `HostRoot` 是 Fiber 树里的根节点：`tag` 固定为 `HostRoot`，没有 `key` 与 `pendingProps`，`stateNode` 指回 `FiberRoot`。创建时只需要根据根类型确定 `mode`：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiber.old.js]
 export function createHostRootFiber(
@@ -86,6 +92,8 @@ export function createHostRootFiber(
   return createFiber(HostRoot, null, null, mode)
 }
 ```
+
+:::
 
 `FiberRoot` 与 `HostRoot Fiber` 都常被叫做“**根**”，但一个是普通对象，一个是 Fiber 节点：
 

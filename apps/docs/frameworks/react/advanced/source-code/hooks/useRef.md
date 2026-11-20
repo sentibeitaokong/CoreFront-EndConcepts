@@ -25,9 +25,11 @@ function AutoFocusInput() {
 }
 ```
 
-- `initialValue` 只在挂载时使用，后续渲染传入的新值会被忽略。
-- 修改 `ref.current` 不会触发渲染。
-- `<input ref={inputRef} />` 这种对象 ref 由 Commit 阶段的 `commitAttachRef` 赋值。
+> [!TIP]
+>
+> - `initialValue` 只在挂载时使用，后续渲染传入的新值会被忽略。
+> - 修改 `ref.current` 不会触发渲染。
+> - `<input ref={inputRef} />` 这种对象 ref 由 Commit 阶段的 `commitAttachRef` 赋值。
 
 不需要驱动渲染的可变数据也可以放在 ref 里：
 
@@ -53,13 +55,11 @@ function Timer() {
 }
 ```
 
-常见用法：
+## 2. 挂载阶段
 
-- 定时器 ID：不需要触发渲染，放在 ref 里最合适。
-- DOM 引用：`<div ref={divRef} />`，Commit 阶段由 `commitAttachRef` 赋值。
-- 保存上一次的值：在 `useEffect` 中更新 `ref.current`。
+挂载阶段创建一个 `{ current: initialValue }` 对象，存进 `hook.memoizedState` 后返回。
 
-实现位于 `packages/react-reconciler/src/ReactFiberHooks.old.js`，DOM ref 的赋值则发生在 Commit 阶段的 `ReactFiberCommitWork.old.js`。Hook 链表的基础见 [Hooks 链表](/frameworks/react/advanced/source-code/hooks/hooksInternals)。
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function mountRef<T>(initialValue: T): {|current: T|} {
@@ -70,19 +70,9 @@ function mountRef<T>(initialValue: T): {|current: T|} {
   hook.memoizedState = ref;
   return ref;
 }
-
-function updateRef<T>(initialValue: T): {|current: T|} {
-  const hook = updateWorkInProgressHook();
-  // 直接返回同一个对象，忽略新的 initialValue。
-  return hook.memoizedState;
-}
 ```
 
-## 2. 挂载阶段
-
-挂载阶段创建一个 `{ current: initialValue }` 对象，存进 `hook.memoizedState` 后返回。
-
-`enableUseRefAccessWarning` 是开发期的可选特性，开启后会返回一个带 `get current()` / `set current()` 的对象，用于警告“**在渲染期间读写 ref**”。默认构建返回的就是普通对象。
+:::
 
 ## 3. 更新阶段
 
@@ -92,15 +82,27 @@ function updateRef<T>(initialValue: T): {|current: T|} {
 - Update 时直接返回同一个对象，完全忽略新的 `initialValue`。
 - 修改 `ref.current` 不会触发渲染，因为 React 不监听这个普通对象。
 
+:::code-group
+
+```ts [react-reconciler/src/ReactFiberHooks.old.js]
+function updateRef<T>(initialValue: T): {|current: T|} {
+  const hook = updateWorkInProgressHook();
+  // 直接返回同一个对象，忽略新的 initialValue。
+  return hook.memoizedState;
+}
+```
+
+:::
+
 ## 4. 为什么能跨渲染保持不变
 
 `updateWorkInProgressHook` 会从 current 树克隆 Hook 节点，但 `memoizedState` 是直接复制引用。因此只要 Hook 的调用顺序不变，`useRef` 每次拿到的都是同一个 `{current}` 对象。它不参与依赖比较，也不会因为父组件重新渲染而重置。
 
-这一点与 `useState` 不同：`useState` 的 `memoizedState` 会被 `updateReducer` 替换成新状态，而 `useRef` 的 `memoizedState` 始终是同一个对象的引用，状态由调用方直接修改。
-
 ## 5. DOM ref 的提交
 
 `useRef` 只负责创建对象，真正的 DOM 赋值发生在 Commit 阶段：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
 function commitAttachRef(finishedWork: Fiber) {
@@ -142,11 +144,15 @@ function commitDetachRef(current: Fiber) {
 }
 ```
 
-- `commitAttachRef` 把 `fiber.stateNode` 写入 `ref.current`，或作为参数调用回调 ref。
-- `commitDetachRef` 在卸载或 ref 变化时把 `ref.current` 置空。
-- 对普通 DOM 元素，`stateNode` 是真实 DOM；对类组件，是组件实例。
+:::
 
-## 6. 完整流程
+> [!TIP]
+>
+> - `commitAttachRef` 把 `fiber.stateNode` 写入 `ref.current`，或作为参数调用回调 ref。
+> - `commitDetachRef` 在卸载或 ref 变化时把 `ref.current` 置空。
+> - 对普通 DOM 元素，`stateNode` 是真实 DOM；对类组件，是组件实例。
+
+## 6. 完整流程图
 
 ```mermaid
 flowchart TD
@@ -173,5 +179,3 @@ flowchart TD
 | `commitAttachRef` | Commit 阶段把 DOM / 组件实例写入 `ref.current`    |
 | `commitDetachRef` | 卸载或 ref 变化时把 `ref.current` 置空            |
 | 不触发渲染        | 修改 `ref.current` 不会通知 React                 |
-
-`useRef` 适合保存“**可变但不需要参与渲染**”的数据。如果需要缓存计算结果或函数引用，分别见 [useMemo](/frameworks/react/advanced/source-code/hooks/useMemo) 与 [useCallback](/frameworks/react/advanced/source-code/hooks/useCallback)。

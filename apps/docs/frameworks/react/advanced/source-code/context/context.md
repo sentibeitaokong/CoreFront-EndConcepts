@@ -141,6 +141,8 @@ const HooksDispatcherOnUpdate: Dispatcher = {
 
 Consumer 的元素 `type` 就是 `context`（DEV 下是带 `_context` 的代理）。`updateContextConsumer` 读取当前值，把值传给 `children` 函数：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiberBeginWork.old.js]
 function updateContextConsumer(
   current: Fiber | null,
@@ -169,11 +171,15 @@ function updateContextConsumer(
 }
 ```
 
+:::
+
 `children` 是一个函数，所以 Consumer 的更新粒度是“**重新执行这个函数**”，而不是重新渲染整个父组件。
 
 ### 2.3 类组件的 `static contextType`
 
 类组件在挂载时读取 `ctor.contextType`，把当前值写入 `instance.context`：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberClassComponent.old.js]
 const contextType = ctor.contextType
@@ -184,6 +190,8 @@ if (typeof contextType === 'object' && contextType !== null) {
 // 省略 else 分支的 legacy context 兜底：关闭 legacy 时取 emptyContextObject，
 // 否则按 contextTypes 掩码后挂到 instance.context。
 ```
+
+:::
 
 更新路径同样会在 `updateClassInstance` 中调用 `readContext(contextType)`。三种消费方式最终都落到 `readContext`，区别只在于“谁负责在读取前设置 `currentlyRenderingFiber`”。
 
@@ -206,6 +214,8 @@ if (typeof contextType === 'object' && contextType !== null) {
 `Context` 对象只有一个 `_currentValue`。遍历离开内层 Provider 时，必须把值恢复成 `light`。这天然是“**后进先出**”，因此 React 用栈保存每一层 Provider 进入前的旧值。
 
 ### 3.2 `ReactFiberStack`：共享的值栈
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberStack.old.js]
 // 所有游标共享同一个值栈，index 指向栈顶。
@@ -248,6 +258,8 @@ function push<T>(cursor: StackCursor<T>, value: T, fiber: Fiber): void {
 }
 ```
 
+:::
+
 设计要点：
 
 - 只有一个全局 `valueStack` 和一个 `index`，所有游标共享。
@@ -258,6 +270,8 @@ function push<T>(cursor: StackCursor<T>, value: T, fiber: Fiber): void {
 ### 3.3 `pushProvider` 与 `popProvider`
 
 Context 使用一个专门的 `valueCursor`：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberNewContext.old.js]
 // Context 专用游标，保存的是当前 Provider 外层的值。
@@ -299,11 +313,15 @@ export function popProvider(
 }
 ```
 
+:::
+
 `pushProvider` 调用 `push(valueCursor, context._currentValue, providerFiber)`：`push` 把 `valueCursor` 的旧值压栈，并把游标设为传入的“**Provider 外层值**”；随后 `context._currentValue` 才被覆盖为新值。`popProvider` 先保存游标当前值（也就是外层值），调用 `pop` 把游标恢复到压栈前的状态，再把保存的外层值写回 `context._currentValue`。`enableServerContext` 分支处理 ServerContext 的“**默认值尚未加载**”哨兵（代码中已省略）。
 
 ### 3.4 beginWork 推入、completeWork 弹出
 
 Provider 的推入发生在 `updateContextProvider` 的开头：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberBeginWork.old.js]
 function updateContextProvider(
@@ -355,7 +373,11 @@ function updateContextProvider(
 }
 ```
 
+:::
+
 弹出发生在 `completeWork` 的 `ContextProvider` 分支：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberCompleteWork.old.js]
     case ContextProvider:
@@ -366,7 +388,11 @@ function updateContextProvider(
       return null;
 ```
 
+:::
+
 即使 Provider 走的是“**跳过子树**”的 bailout 路径，也必须执行 push：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberBeginWork.old.js]
     case ContextProvider: {
@@ -377,6 +403,8 @@ function updateContextProvider(
       break;
     }
 ```
+
+:::
 
 这样 `beginWork` 的“**递**”和 `completeWork` 的“**归**”始终成对，栈不会失衡。
 
@@ -411,6 +439,8 @@ const oldValue = oldProps.value
 
 每次组件开始渲染前，React 会把 `currentlyRenderingFiber` 指向当前 Fiber，并清空上一轮的依赖链表：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiberNewContext.old.js]
 export function prepareToReadContext(
   workInProgress: Fiber,
@@ -442,9 +472,13 @@ export function prepareToReadContext(
 }
 ```
 
+:::
+
 `dependencies.lanes` 记录“**上一次传播 Context 变化时合并进来的 Lane**”。如果它与本轮 `renderLanes` 有交集，说明这个 Fiber 是因为 Context 变化而重新渲染的，需要标记 `didReceiveUpdate`。
 
 ### 4.2 `readContext`
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberNewContext.old.js]
 export function readContext<T>(context: ReactContext<T>): T {
@@ -489,11 +523,15 @@ export function readContext<T>(context: ReactContext<T>): T {
 }
 ```
 
+:::
+
 与“**头插法**”不同，官方实现是**尾插**：`lastContextDependency` 始终指向链表尾，新节点追加到 `next`。这样依赖顺序与读取顺序一致，遍历时也少一次反向。
 
 `lastFullyObservedContext` 是一个预留的优化分支：如果某个渲染器已经完整观察了该 Context 的变化，就可以跳过依赖记录。在 React 18.3.1 的 reconciler 中它始终为 `null`，所以实际都会记录依赖。
 
 ### 4.3 依赖链表结构
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactInternalTypes.js]
 // 依赖链表节点：记录读过哪个 Context 以及读取时的值。
@@ -511,6 +549,8 @@ export type Dependencies = {
   ...
 };
 ```
+
+:::
 
 ```text
 Fiber.dependencies
@@ -542,6 +582,8 @@ Fiber.dependencies
 
 Render 结束或异常中断时，必须清空模块级游标，防止在渲染阶段之外读取 Context：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiberNewContext.old.js]
 export function resetContextDependencies(): void {
   // 在 React 让出执行权前调用，保证 readContext 不会在渲染阶段之外被调用。
@@ -553,6 +595,8 @@ export function resetContextDependencies(): void {
 }
 ```
 
+:::
+
 `ReactFiberWorkLoop.old.js` 在同步渲染、并发渲染以及错误处理的收尾阶段都会调用它。
 
 ## 5. Provider 值变化时的传播
@@ -560,6 +604,8 @@ export function resetContextDependencies(): void {
 ### 5.1 `propagateContextChange` 的两条路径
 
 React 18.3.1 同时保留了两套传播实现，由 `enableLazyContextPropagation` 切换。该开关在 18.3.1 中默认为 `false`，因此默认走 eager 路径：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberNewContext.old.js]
 export function propagateContextChange<T>(
@@ -584,9 +630,13 @@ export function propagateContextChange<T>(
 }
 ```
 
+:::
+
 eager 路径会立即扫描 Provider 子树，找到所有依赖该 Context 的 Fiber 并标脏；lazy 路径则把检查推迟到消费者渲染时，通过 `checkIfContextChanged` 判断 `_currentValue` 是否与 `memoizedValue` 不同。
 
 ### 5.2 `propagateContextChange_eager`
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberNewContext.old.js]
       let dependency = list.firstContext;
@@ -639,6 +689,8 @@ eager 路径会立即扫描 Provider 子树，找到所有依赖该 Context 的 
       }
 ```
 
+:::
+
 匹配到依赖后，eager 路径做四件事：
 
 1. **类组件强制更新**：给 `fiber.updateQueue` 塞一个 `ForceUpdate`，因为类组件的 `shouldComponentUpdate` 可能返回 `false`，但 Context 变化必须绕过它。
@@ -652,6 +704,8 @@ eager 路径会立即扫描 Provider 子树，找到所有依赖该 Context 的 
 - 遇到 `DehydratedFragment` 时无法确定子树里是否有消费者，于是把父 Suspense 边界整体标脏。
 
 ### 5.3 `scheduleContextWorkOnParentPath`
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberNewContext.old.js]
 export function scheduleContextWorkOnParentPath(
@@ -687,6 +741,8 @@ export function scheduleContextWorkOnParentPath(
   // 省略 __DEV__ 下未找到 propagationRoot 的校验与错误提示。
 }
 ```
+
+:::
 
 `childLanes` 是“**这棵子树里有待处理工作**”的摘要。把消费者的 Lane 从祖先路径一路合并到 Provider（`propagationRoot`），本轮 Render 就能沿 `childLanes` 命中消费者所在的子树，跳过无关分支。
 

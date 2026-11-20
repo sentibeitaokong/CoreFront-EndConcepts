@@ -117,6 +117,8 @@ function mountWorkInProgressHook(): Hook {
 
 更新阶段先把 `pending` 队列合并进 `baseQueue`，再按 `renderLanes` 逐个处理：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function updateReducer<S, I, A>(
   reducer: (S, A) => S,
@@ -199,6 +201,8 @@ function updateReducer<S, I, A>(
 }
 ```
 
+:::
+
 这段代码解决四件事：
 
 - **合并队列**：新调度的 `pending` 与上次没处理完的 `baseQueue` 拼成一个环。
@@ -225,6 +229,8 @@ update1 (高优先级) → update2 (低优先级) → update3 (高优先级)
 ## 5. `dispatchReducerAction`
 
 `useReducer` 的 dispatch 只负责“**入队 + 调度**”，不负责计算状态：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function dispatchReducerAction<S, A>(
@@ -260,6 +266,8 @@ function dispatchReducerAction<S, A>(
   // 省略 __DEV__ 下的 DevTools 标记
 }
 ```
+
+:::
 
 真正把 Update 挂进环形队列的是 `enqueueConcurrentHookUpdate`。它和 `scheduleUpdateOnFiber` 一起，把“**状态变化**”转成“**根节点上有一条指定 lane 的待处理工作**”。
 

@@ -44,6 +44,8 @@ Hook(reducer) → Hook(state) → Hook(effect) → null
 
 React 18 的 Hook 节点不只有 `memoizedState` 和 `next`，还带有更新队列相关字段：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 export type Hook = {|
   // 状态值或 Hook 专属数据，语义随 Hook 类型变化：
@@ -61,11 +63,15 @@ export type Hook = {|
 |};
 ```
 
+:::
+
 ## 3. 渲染：全局指针与 Dispatcher
 
 ### 3.1 全局指针
 
 Hooks 的实现依赖模块级变量来维持“**当前正在渲染谁**”：
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 // 调用组件函数前设置，记录本次渲染的 lane。
@@ -79,9 +85,13 @@ let currentHook: Hook | null = null;
 let workInProgressHook: Hook | null = null;
 ```
 
+:::
+
 ### 3.2 `renderWithHooks`：统一入口
 
 `renderWithHooks`是函数组件的统一入口：设置全局指针、切换 Dispatcher、执行组件函数，最后清理现场。
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 export function renderWithHooks<Props, SecondArg>(
@@ -133,6 +143,8 @@ export function renderWithHooks<Props, SecondArg>(
   return children
 }
 ```
+
+:::
 
 ### 3.3 内容分发
 
@@ -196,6 +208,8 @@ const HooksDispatcherOnUpdate: Dispatcher = {
 
 挂载阶段没有旧链表，直接创建新节点并追加到尾部：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function mountWorkInProgressHook(): Hook {
   // 新建空节点，具体字段由调用方填充。
@@ -220,9 +234,13 @@ function mountWorkInProgressHook(): Hook {
 }
 ```
 
+:::
+
 ### 4.2 更新：`updateWorkInProgressHook`
 
 更新阶段不再从零建链表，而是按调用顺序遍历 `current` 树上的旧 Hook，逐项克隆到 WIP Fiber 上：`currentHook` 沿旧链表前进，`workInProgressHook` 沿新链表前进，两边位置一一对应。克隆只沿用旧节点的状态与队列，真正的状态合并留给 `updateReducer` 等具体 Hook。
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function updateWorkInProgressHook(): Hook {
@@ -291,6 +309,8 @@ function updateWorkInProgressHook(): Hook {
   return workInProgressHook
 }
 ```
+
+:::
 
 函数先用 `nextCurrentHook` 和 `nextWorkInProgressHook` 对准两条链表的下一个位置，再按 WIP 链表上是否已有节点分叉：
 
@@ -372,6 +392,8 @@ React 的依赖比较以 `Object.is` 为准。依赖数组的三种常见写法�
 
 React 18 不在 dispatch 时立刻改状态，而是把每次更新包装成 `Update`：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 export type Update<S, A> = {|
   // 该更新所属的优先级。
@@ -401,6 +423,8 @@ export type UpdateQueue<S, A> = {|
   lastRenderedState: S | null,
 |};
 ```
+
+:::
 
 ### 6.2 环形链表
 

@@ -142,6 +142,8 @@ updateState
 
 `useState` 是 `useReducer` 的特例：队列的 `lastRenderedReducer` 固定为 `basicStateReducer`，函数式更新最终由它处理：
 
+:::code-group
+
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function basicStateReducer<S>(state: S, action: BasicStateAction<S>): S {
   // action 是函数时以当前 state 为参数调用，否则直接作为新状态。
@@ -149,12 +151,16 @@ function basicStateReducer<S>(state: S, action: BasicStateAction<S>): S {
 }
 ```
 
+:::
+
 - `setState(value)`：`action` 不是函数，直接作为新状态。
 - `setState(fn)`：`action` 是函数，以当前状态为参数调用它，返回值作为新状态。
 
 ## 5. `dispatchSetState`
 
 `dispatchSetState` 比 `dispatchReducerAction` 多了一条快速路径：如果队列为空，可以提前算出新状态；若新旧状态相同，直接跳过渲染。
+
+:::code-group
 
 ```ts [react-reconciler/src/ReactFiberHooks.old.js]
 function dispatchSetState<S, A>(
@@ -216,6 +222,8 @@ function dispatchSetState<S, A>(
   // 省略 __DEV__ 下的 Dispatcher 恢复与 DevTools 标记
 }
 ```
+
+:::
 
 这里有两个重要结论：
 
