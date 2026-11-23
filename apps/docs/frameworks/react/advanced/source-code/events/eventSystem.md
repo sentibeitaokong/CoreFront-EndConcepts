@@ -936,10 +936,6 @@ export function invokeGuardedCallbackAndCatchFirstError(
 
 `currentTarget` 在执行前设置为当前监听器所在的 DOM 节点，执行后立即清空，因此合成事件在异步回调里读到的 `currentTarget` 是 `null`，这也是事件系统不再依赖池化仍要保留该字段的原因。
 
-### 5.4 受控组件的状态恢复
-
-`dispatchEventForPluginEventSystem` 用 `batchedUpdates` 包住整条派发链。批次结束后，React 会检查 `needsStateRestore()`，把受控输入框的value恢复成props中的值，避免用户输入与React状态短暂不一致。
-
 ## 6. 事件优先级如何变成 Lane
 
 事件包装器只设置了“**当前更新优先级**”，真正取 Lane 发生在 `requestUpdateLane`：

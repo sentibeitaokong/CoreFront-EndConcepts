@@ -17,6 +17,9 @@ hero:
       text: Vue 源码
       link: /frameworks/vue/advanced/source-code/vueCatalog
     - theme: alt
+      text: React 源码
+      link: /frameworks/react/advanced/source-code/sourceCodeCatalog
+    - theme: alt
       text: 工程化指南
       link: /frontEngineering/intro
     - theme: alt
@@ -53,6 +56,12 @@ features:
     title: Vue 源码实现
     details: 以 reactivity、runtime-core、runtime-dom、compiler-core 拆解响应式、渲染器、调度器和编译器。
     link: /frameworks/vue/advanced/source-code/vueCatalog
+
+  - icon:
+      src: /img/frameworks.svg
+    title: React 18 源码实现
+    details: 从 ReactElement、Fiber、工作循环到 Hooks、Scheduler、事件系统与 Lane 模型，按 18.3.1 源码顺序拆解。
+    link: /frameworks/react/advanced/source-code/sourceCodeCatalog
 
   - icon:
       src: /img/networkSafety.png

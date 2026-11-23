@@ -405,6 +405,7 @@ root.render(element)
 - **状态更新**：看 `dispatch` 如何把每次更新包装成 `Update`，放进 `UpdateQueue` 的**环状单向链表**（通过 `tail.next = head` 实现 `O(1)` 的队尾插入），以及 `baseState` 与 `pendingState` 分离如何保证低优先级任务被高优先级打断后，状态依然能正确计算。见 [useState](/frameworks/react/advanced/source-code/hooks/useState)、[useReducer](/frameworks/react/advanced/source-code/hooks/useReducer)。
 - **Effect 三件套**：[useEffect](/frameworks/react/advanced/source-code/hooks/useEffect)、[useLayoutEffect](/frameworks/react/advanced/source-code/hooks/useLayoutEffect)、[useInsertionEffect](/frameworks/react/advanced/source-code/hooks/useInsertionEffect)，重点是执行时机、清理顺序与 Effect 循环链表。
 - **缓存与引用**：[useMemo](/frameworks/react/advanced/source-code/hooks/useMemo)、[useCallback](/frameworks/react/advanced/source-code/hooks/useCallback)、[useRef](/frameworks/react/advanced/source-code/hooks/useRef)，理解依赖比较规则、闭包陷阱与“**引用稳定**”的边界。
+- **并发 Hook**：[useTransition](/frameworks/react/advanced/source-code/hooks/useTransition)、[useDeferredValue](/frameworks/react/advanced/source-code/hooks/useDeferredValue)，理解 transition 上下文、pending 状态与延迟值如何落到 TransitionLane。
 
 ### 4.7 Diff 与更新
 

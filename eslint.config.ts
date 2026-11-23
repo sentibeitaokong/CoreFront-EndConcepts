@@ -40,6 +40,15 @@ const config: ReturnType<typeof defineConfigWithVueTs> = defineConfigWithVueTs(
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },
+
+  // packages/react 下是 React 源码的摘录（用于文档讲解），
+  // 为保持与上游源码一致会保留暂时用不到的导入/变量，关闭未使用变量检查
+  {
+    files: ['packages/react/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': 'off',
+    },
+  },
 )
 
 export default config

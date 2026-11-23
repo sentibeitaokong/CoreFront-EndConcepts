@@ -4,17 +4,21 @@ outline: [2, 3]
 
 # 前端核心知识体系 (Core Front-End Concepts)
 
-`Core Front-End Concepts` 是一个基于 VitePress 的前端知识库与实践仓库。当前项目聚焦 Web 基础、JavaScript/TypeScript、浏览器与网络、安全、性能优化、Vue/React、工程化、设计模式、数据结构与算法，并通过 `packages/vue`、`packages/xbElement`、`packages/js`、`packages/html` 提供对应的源码实践。
+`Core Front-End Concepts` 是一个基于 VitePress 的前端知识库与实践仓库。当前项目聚焦 Web 基础、JavaScript/TypeScript、浏览器与网络、安全、性能优化、Vue/React、工程化、设计模式、数据结构与算法，并通过 `packages/vue`、`packages/react`、`packages/xbElement`、`packages/js`、`packages/html`、`packages/css` 提供对应的源码实践。React 方向还包含一套基于 React 18.3.1 的进阶源码解读。
 
 ## 1. 项目结构
+
+[width(26,15,59)]
 
 | 模块路径             | 定位            | 主要内容                                                                                               |
 | -------------------- | --------------- | ------------------------------------------------------------------------------------------------------ |
 | `apps/docs`          | 文档站          | VitePress 文档，覆盖前端基础、框架、工程化、安全、性能、算法与设计模式。                               |
 | `packages/vue`       | mini Vue 实现   | 响应式、运行时、渲染器、组件、调度器、编译器等 Vue 核心机制实践。                                      |
+| `packages/react`     | mini React 实现 | Scheduler、Fiber、工作循环、Render / Commit、Hooks、事件与 Lane 等 React 核心机制实践。                |
 | `packages/xbElement` | Vue 组件库      | Button、Input、Select、Switch、Collapse、Message、Tooltip、Form、Progress、Dropdown 等组件实现与测试。 |
 | `packages/js`        | JavaScript 实践 | Promise、执行上下文、函数、对象、数组、高阶函数、Web Worker、PWA 等示例。                              |
 | `packages/html`      | Web 平台示例    | HTML/CSS/Web API、Canvas、SVG、路由、存储、WebSocket、Worker、PWA 等原生示例。                         |
+| `packages/css`       | CSS 实践        | 布局、视觉样式与常用 CSS 能力的示例集合。                                                              |
 
 ## 2. Web 基础
 
@@ -232,7 +236,16 @@ outline: [2, 3]
 - [性能优化](/frameworks/react/basic/performanceOptimization)：memo、缓存和渲染优化。
 - [Hooks](/frameworks/react/basic/hooks/useState)：useState、useEffect、useMemo、useCallback、useReducer、useRef 等 Hook 文档入口。
 
-### 8.4 xb-element 组件库
+### 8.4 React 进阶与源码
+
+- 核心设计：[元素与 Fiber](/frameworks/react/advanced/core-design/elementAndFiber)、[Fiber 架构](/frameworks/react/advanced/core-design/fiberArchitecture)、[Render 与 Commit](/frameworks/react/advanced/core-design/renderCommit)、[协调](/frameworks/react/advanced/core-design/reconciliation)、[Hooks 内部机制](/frameworks/react/advanced/core-design/hooksInternals)、[调度与 Lane](/frameworks/react/advanced/core-design/schedulingAndLanes)、[更新批处理](/frameworks/react/advanced/core-design/updateBatching)、[Context 传播](/frameworks/react/advanced/core-design/contextPropagation)、[Effect](/frameworks/react/advanced/core-design/effects)、[Suspense / Offscreen / Hydration](/frameworks/react/advanced/core-design/suspenseOffscreenHydration)：React 18 的运行时架构。
+- 源码入口：[源码目录与阅读路线](/frameworks/react/advanced/source-code/sourceCodeCatalog)、[ReactElement](/frameworks/react/advanced/source-code/reactElement)、[Scheduler](/frameworks/react/advanced/source-code/scheduler)。
+- Renderer 与 Reconciler：[Fiber 节点](/frameworks/react/advanced/source-code/reconciler/fiberNode)、[FiberRoot](/frameworks/react/advanced/source-code/reconciler/fiberRoot)、[工作循环](/frameworks/react/advanced/source-code/reconciler/workLoop)、[beginWork](/frameworks/react/advanced/source-code/reconciler/beginWork)、[completeWork](/frameworks/react/advanced/source-code/reconciler/completeWork)、[子节点 Diff](/frameworks/react/advanced/source-code/reconciler/childFiber)、[Lane 模型](/frameworks/react/advanced/source-code/reconciler/laneModel)。
+- Hooks 与副作用：[Hooks 链表](/frameworks/react/advanced/source-code/hooks/hooksInternals)、[useState](/frameworks/react/advanced/source-code/hooks/useState)、[useReducer](/frameworks/react/advanced/source-code/hooks/useReducer)、[useEffect](/frameworks/react/advanced/source-code/hooks/useEffect)、[useLayoutEffect](/frameworks/react/advanced/source-code/hooks/useLayoutEffect)、[useInsertionEffect](/frameworks/react/advanced/source-code/hooks/useInsertionEffect)、[useMemo](/frameworks/react/advanced/source-code/hooks/useMemo)、[useCallback](/frameworks/react/advanced/source-code/hooks/useCallback)、[useRef](/frameworks/react/advanced/source-code/hooks/useRef)、[useTransition](/frameworks/react/advanced/source-code/hooks/useTransition)、[useDeferredValue](/frameworks/react/advanced/source-code/hooks/useDeferredValue)。
+- Commit、Context 与事件：[Commit 阶段](/frameworks/react/advanced/source-code/commit/commitWork)、[Context](/frameworks/react/advanced/source-code/context/context)、[合成事件系统](/frameworks/react/advanced/source-code/events/eventSystem)。
+- 与 Vue 对照：[框架对比总览](/frameworks/react/advanced/comparisons/overview)、[更新机制](/frameworks/react/advanced/comparisons/updateMechanism)、[调度](/frameworks/react/advanced/comparisons/scheduling)、[渲染器](/frameworks/react/advanced/comparisons/renderer)。
+
+### 8.5 xb-element 组件库
 
 - [快速开始](/frameworks/vue/components/quickStart)：组件库安装、引入和使用入口。
 - [Button](/frameworks/vue/components/button)、[Input](/frameworks/vue/components/input)、[Select](/frameworks/vue/components/select)、[Switch](/frameworks/vue/components/switch)：基础输入与选择组件。
@@ -289,6 +302,7 @@ outline: [2, 3]
 - 浏览器与网络：阅读 [浏览器渲染流程](/networkAndBrowsers/browser/renderingProcess)、[HTTP](/networkAndBrowsers/http/http)、[浏览器缓存](/networkAndBrowsers/caching/browserCache)、[Performance API](/networkAndBrowsers/browser/observerApi/performanceApi)。
 - 框架应用：选择 [Vue 介绍](/frameworks/vue/basic/intro) 或 [React 介绍](/frameworks/react/basic/intro) 进入框架基础，再补齐路由、状态管理和组件通信。
 - Vue 源码：从 [Vue 源码目录](/frameworks/vue/advanced/source-code/vueCatalog) 进入，按响应式、渲染器、调度器、编译器顺序阅读。
+- React 源码：从 [React 源码目录](/frameworks/react/advanced/source-code/sourceCodeCatalog) 进入，按 ReactElement、Fiber、工作循环、Hooks、Scheduler、事件与 Lane 的顺序阅读。
 - 工程化与性能：阅读 [工程化导览](/frontEngineering/intro)、[Vite](/frontEngineering/build-tools/bundlers/vite)、[Monorepo](/frontEngineering/architecture/monorepo)、[Core Web Vitals](/performanceOptimization/coreWebVitals)。
 - 抽象能力：阅读 [设计模式总结](/designPatterns/summary/patternSummarize)、[复杂度分析](/dataStructuresAndAlgorithms/algorithms/algorithmComplexity)、[树](/dataStructuresAndAlgorithms/data-structures/tree)、[动态规划](/dataStructuresAndAlgorithms/algorithms/dynamicProgramming)。
 
@@ -296,6 +310,7 @@ outline: [2, 3]
 
 - 组件库源码：`packages/xbElement`
 - mini Vue 源码：`packages/vue`
+- mini React 源码：`packages/react`
 - JS 手写示例：`packages/js`
 - HTML/Web API 示例：`packages/html`
 - 文档站入口：[首页](/) / [工程化导览](/frontEngineering/intro) / [Vue 源码目录](/frameworks/vue/advanced/source-code/vueCatalog) / [组件库快速开始](/frameworks/vue/components/quickStart)

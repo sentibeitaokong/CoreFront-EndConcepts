@@ -1691,6 +1691,14 @@ const config: UserConfigFn<DefaultTheme.Config> = async ({ mode }) => {
                               text: 'useRef',
                               link: '/frameworks/react/advanced/source-code/hooks/useRef',
                             },
+                            {
+                              text: 'useTransition',
+                              link: '/frameworks/react/advanced/source-code/hooks/useTransition',
+                            },
+                            {
+                              text: 'useDeferredValue',
+                              link: '/frameworks/react/advanced/source-code/hooks/useDeferredValue',
+                            },
                           ],
                         },
                         {
