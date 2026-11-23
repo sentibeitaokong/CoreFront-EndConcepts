@@ -4,16 +4,14 @@ outline: [2, 4]
 
 # Lane 模型
 
-React 18 用 31 位二进制整数表示更新优先级，每一位叫一条 Lane。位号越小优先级越高；多条更新就是多个位的组合，因此可以用与、或、非、子集判断来筛选和合并任务，而不必逐个比较时间戳。本文按 `ReactFiberLane.old.js` 的源码，拆解 Lane 的编码、分配、选批、过期与清理。
-
-实现位于 `react-reconciler/src/ReactFiberLane.old.js`，配合 `ReactFiberWorkLoop.old.js`、`ReactFiberConcurrentUpdates.old.js` 与 `ReactEventPriorities.old.js`。为什么放弃 `ExpirationTime` 的概念说明见 [调度与优先级](/frameworks/react/advanced/core-design/schedulingAndLanes)；事件如何产生优先级见 [事件处理](/frameworks/react/advanced/source-code/events/eventSystem)。
+React 18 用 31 位二进制整数表示更新优先级，每一位叫一条 Lane。位号越小优先级越高；多条更新就是多个位的组合，因此可以用与、或、非、子集判断来筛选和合并任务，而不必逐个比较时间戳。
 
 ## 1. 为什么用位掩码
 
 - 一条更新占一个二进制位，多条更新天然组成集合，`|` 合并、`&` 求交、`~` 去掉已完成的位。
 - 取最高优先级只需要 `lanes & -lanes`，不用遍历队列。
 - 不同来源（事件、Transition、Suspense 重试、水合）各占一段位区间，互不冲突。
-- 集合可以整体挂在 `fiber.lanes`、`fiber.childLanes`、`root.pendingLanes` 上，判断“子树有没有本次要处理的更新”只用一次位运算。
+- 集合可以整体挂在 `fiber.lanes`、`fiber.childLanes`、`root.pendingLanes` 上，判断“**子树有没有本次要处理的更新**”只用一次位运算。
 
 React 使用 bit 0 到 bit 30，共 31 条 Lane。JavaScript 位运算是 32 位有符号整数，最高位被符号占用，因此 `TotalLanes = 31`。
 
@@ -24,73 +22,58 @@ React 使用 bit 0 到 bit 30，共 31 条 Lane。JavaScript 位运算是 32 位
 ```ts [react-reconciler/src/ReactFiberLane.old.js]
 export const TotalLanes = 31
 
-export const NoLanes: Lanes = /*                        */ 0b0000000000000000000000000000000
-export const NoLane: Lane = /*                          */ 0b0000000000000000000000000000000
+export const NoLanes: Lanes = 0b0000000000000000000000000000000
+export const NoLane: Lane = 0b0000000000000000000000000000000
 
 // 同步更新：离散事件、flushSync、legacy root。
-export const SyncLane: Lane = /*                        */ 0b0000000000000000000000000000001
+export const SyncLane: Lane = 0b0000000000000000000000000000001
 
 // 连续事件与水合各有一条独立车道。
-export const InputContinuousHydrationLane: Lane = /*     */ 0b0000000000000000000000000000010
-export const InputContinuousLane: Lanes = /*            */ 0b0000000000000000000000000000100
+export const InputContinuousHydrationLane: Lane = 0b0000000000000000000000000000010
+export const InputContinuousLane: Lanes = 0b0000000000000000000000000000100
 
-export const DefaultHydrationLane: Lane = /*             */ 0b0000000000000000000000000001000
-export const DefaultLane: Lanes = /*                     */ 0b0000000000000000000000000010000
+export const DefaultHydrationLane: Lane = 0b0000000000000000000000000001000
+export const DefaultLane: Lanes = 0b0000000000000000000000000010000
 
 // Transition 使用 16 条车道的池，可轮流分配。
-export const TransitionHydrationLane: Lane = /*          */ 0b0000000000000000000000000100000
-export const TransitionLanes: Lanes = /*                 */ 0b0000000001111111111111111000000
-export const TransitionLane1: Lane = /*                  */ 0b0000000000000000000000001000000
-export const TransitionLane2: Lane = /*                  */ 0b0000000000000000000000010000000
-export const TransitionLane3: Lane = /*                  */ 0b0000000000000000000000100000000
-export const TransitionLane4: Lane = /*                  */ 0b0000000000000000000001000000000
-export const TransitionLane5: Lane = /*                  */ 0b0000000000000000000010000000000
-export const TransitionLane6: Lane = /*                  */ 0b0000000000000000000100000000000
-export const TransitionLane7: Lane = /*                  */ 0b0000000000000000001000000000000
-export const TransitionLane8: Lane = /*                  */ 0b0000000000000000010000000000000
-export const TransitionLane9: Lane = /*                  */ 0b0000000000000000100000000000000
-export const TransitionLane10: Lane = /*                 */ 0b0000000000000001000000000000000
-export const TransitionLane11: Lane = /*                 */ 0b0000000000000010000000000000000
-export const TransitionLane12: Lane = /*                 */ 0b0000000000000100000000000000000
-export const TransitionLane13: Lane = /*                 */ 0b0000000000001000000000000000000
-export const TransitionLane14: Lane = /*                 */ 0b0000000000010000000000000000000
-export const TransitionLane15: Lane = /*                 */ 0b0000000000100000000000000000000
-export const TransitionLane16: Lane = /*                 */ 0b0000000001000000000000000000000
+export const TransitionHydrationLane: Lane = 0b0000000000000000000000000100000
+export const TransitionLanes: Lanes = 0b0000000001111111111111111000000
+export const TransitionLane1: Lane = 0b0000000000000000000000001000000
+export const TransitionLane2: Lane = 0b0000000000000000000000010000000
+export const TransitionLane3: Lane = 0b0000000000000000000000100000000
+export const TransitionLane4: Lane = 0b0000000000000000000001000000000
+export const TransitionLane5: Lane = 0b0000000000000000000010000000000
+export const TransitionLane6: Lane = 0b0000000000000000000100000000000
+export const TransitionLane7: Lane = 0b0000000000000000001000000000000
+export const TransitionLane8: Lane = 0b0000000000000000010000000000000
+export const TransitionLane9: Lane = 0b0000000000000000100000000000000
+export const TransitionLane10: Lane = 0b0000000000000001000000000000000
+export const TransitionLane11: Lane = 0b0000000000000010000000000000000
+export const TransitionLane12: Lane = 0b0000000000000100000000000000000
+export const TransitionLane13: Lane = 0b0000000000001000000000000000000
+export const TransitionLane14: Lane = 0b0000000000010000000000000000000
+export const TransitionLane15: Lane = 0b0000000000100000000000000000000
+export const TransitionLane16: Lane = 0b0000000001000000000000000000000
 
 // Suspense 重试使用 5 条车道。
-export const RetryLanes: Lanes = /*                      */ 0b0000111110000000000000000000000
-export const RetryLane1: Lane = /*                       */ 0b0000000010000000000000000000000
-export const RetryLane2: Lane = /*                       */ 0b0000000100000000000000000000000
-export const RetryLane3: Lane = /*                       */ 0b0000001000000000000000000000000
-export const RetryLane4: Lane = /*                       */ 0b0000010000000000000000000000000
-export const RetryLane5: Lane = /*                       */ 0b0000100000000000000000000000000
+export const RetryLanes: Lanes = 0b0000111110000000000000000000000
+export const RetryLane1: Lane = 0b0000000010000000000000000000000
+export const RetryLane2: Lane = 0b0000000100000000000000000000000
+export const RetryLane3: Lane = 0b0000001000000000000000000000000
+export const RetryLane4: Lane = 0b0000010000000000000000000000000
+export const RetryLane5: Lane = 0b0000100000000000000000000000000
 
-export const SelectiveHydrationLane: Lane = /*           */ 0b0001000000000000000000000000000
+export const SelectiveHydrationLane: Lane = 0b0001000000000000000000000000000
 
 // bit 0 ~ bit 27：所有非 idle 工作。
-export const NonIdleLanes: Lanes = /*                    */ 0b0001111111111111111111111111111
+export const NonIdleLanes: Lanes = 0b0001111111111111111111111111111
 
-export const IdleHydrationLane: Lane = /*                */ 0b0010000000000000000000000000000
-export const IdleLane: Lane = /*                         */ 0b0100000000000000000000000000000
-export const OffscreenLane: Lane = /*                    */ 0b1000000000000000000000000000000
+export const IdleHydrationLane: Lane = 0b0010000000000000000000000000000
+export const IdleLane: Lane = 0b0100000000000000000000000000000
+export const OffscreenLane: Lane = 0b1000000000000000000000000000000
 ```
 
 :::
-
-[width(33,18,13,36)]
-
-| 车道组                       | 位范围      | 数量 | 用途                         |
-| ---------------------------- | ----------- | ---- | ---------------------------- |
-| `SyncLane`                   | bit 0       | 1    | 离散事件、`flushSync`        |
-| `InputContinuous*Lane`       | bit 1 ~ 2   | 2    | 连续事件与水合               |
-| `Default*Lane`               | bit 3 ~ 4   | 2    | 普通 `setState`、默认优先级  |
-| `Transition*Lane`            | bit 5 ~ 21  | 17   | Transition 池（16 条）与水合 |
-| `RetryLane1..5`              | bit 22 ~ 26 | 5    | Suspense 重试                |
-| `SelectiveHydrationLane`     | bit 27      | 1    | 选择性水合                   |
-| `IdleHydrationLane`          | bit 28      | 1    | 空闲水合                     |
-| `IdleLane` / `OffscreenLane` | bit 29 ~ 30 | 2    | 空闲工作、Offscreen 预渲染   |
-
-`TransitionLanes`、`RetryLanes`、`NonIdleLanes` 是掩码而不是单条 Lane，用来整组判断或选批。`NonIdleLanes` 覆盖 bit 0 ~ bit 27，只要它非零，`IdleLane` 与 `OffscreenLane` 就不会被选中。
 
 ## 3. 基础位运算
 
@@ -130,9 +113,9 @@ export function getHighestPriorityLane(lanes: Lanes): Lane {
 
 :::
 
-`lanes & -lanes` 依赖补码：对正整数取负等价于“按位取反再加一”，只有最低位的 `1` 会被保留。例如 `0b1100 & -0b1100 = 0b0100`。这个写法不需要循环，是整个 Lane 模型最高频的操作。
+`lanes & -lanes` 依赖补码：对正整数取负等价于“**按位取反再加一**”，只有最低位的 `1` 会被保留。例如 `0b1100 & -0b1100 = 0b0100`。
 
-`getHighestPriorityLanes` 在此基础上处理“整组返回”：如果最高位落在 Transition 或 Retry 区间，就把同一组的全部位一起返回，让它们在同一个批次里渲染：
+`getHighestPriorityLanes` 在此基础上处理“**整组返回**”：如果最高位落在 Transition 或 Retry 区间，就把同一组的全部位一起返回，让它们在同一个批次里渲染：
 
 :::code-group
 
@@ -188,7 +171,7 @@ export function getHighestPriorityLanes(lanes: Lanes | Lane): Lanes {
 
 :::code-group
 
-```ts [react-reconciler/src/ReactFiberConcurrentUpdates.old.js]
+```ts [react-reconciler/src/ReactFiberConcurrentUpdates.js]
 function markUpdateLaneFromFiberToRoot(sourceFiber, lane) {
   // 更新来源节点自己记一份。
   sourceFiber.lanes = mergeLanes(sourceFiber.lanes, lane)
@@ -214,6 +197,13 @@ function markUpdateLaneFromFiberToRoot(sourceFiber, lane) {
 
   // 走到 HostRoot 就返回对应的 FiberRoot。
   return node.tag === HostRoot ? node.stateNode : null
+}
+```
+
+```ts [react-reconciler/src/ReactFiberLane.js]
+// 合并两个 lane 集合：按位或。
+export function mergeLanes(a: Lanes | Lane, b: Lanes | Lane): Lanes {
+  return a | b
 }
 ```
 
@@ -310,9 +300,13 @@ function claimNextRetryLane(): Lane {
 :::code-group
 
 ```ts [react-reconciler/src/ReactEventPriorities.old.js]
+// 离散事件（click、input、keydown）：同步优先级。
 export const DiscreteEventPriority: EventPriority = SyncLane
+// 连续事件（scroll、mousemove、wheel）：连续优先级。
 export const ContinuousEventPriority: EventPriority = InputContinuousLane
+// 普通事件与 root 上未指定优先级的工作。
 export const DefaultEventPriority: EventPriority = DefaultLane
+// 空闲时段才能处理的工作。
 export const IdleEventPriority: EventPriority = IdleLane
 ```
 
@@ -568,7 +562,7 @@ flowchart TD
 
 一次更新的 Lane 生命周期可以写成：
 
-```text
+```tree
 分配：requestUpdateLane 选出单条 lane
   → 入队：update.lane = lane
   → 冒泡：fiber.lanes、祖先 childLanes 合并 lane
