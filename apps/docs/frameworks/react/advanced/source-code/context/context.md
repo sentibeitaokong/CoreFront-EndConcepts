@@ -4,13 +4,7 @@ outline: [2, 4]
 
 # Context
 
-Context 解决的是“**组件树太深，props 一层层传太麻烦**”的问题。它的实现看似简单：一个对象上挂一个 `_currentValue`。真正的难点在于：
-
-- 同一个 Context 在不同子树里可能有不同的值；
-- 嵌套 Provider 需要“**进入时覆盖、离开时恢复**”；
-- 消费者要能记录自己依赖了哪个 Context，值变化时只更新相关子树。
-
-React 18.3.1 的 `enableNewReconciler` 默认为 `false`，运行时使用 `.old.js` 分叉。Context 的核心实现位于 [react/src/ReactContext.js](https://github.com/facebook/react/blob/v18.3.1/packages/react/src/ReactContext.js)、`react-reconciler/src/ReactFiberNewContext.old.js` 和 `react-reconciler/src/ReactFiberStack.old.js`。Provider 的“**推入 / 弹出**”分别发生在 [beginWork](/frameworks/react/advanced/source-code/reconciler/beginWork) 与 [completeWork](/frameworks/react/advanced/source-code/reconciler/completeWork) 中。
+Context 解决的是“**组件树太深，props 一层层传递太麻烦**”的问题：`_currentValue` 保存当前值，值栈处理嵌套 Provider 的覆盖与恢复，依赖链表把值变化精确送达消费者。
 
 ## 1. Context 对象的结构
 
@@ -84,7 +78,7 @@ export type ReactContext<T> = {
 
 生产环境里 `context.Consumer = context`，消费者元素和 `useContext` 拿到的是同一个对象。开发环境则额外创建一个带 `_context` 的代理对象，用来在误用 `<Context>`、`<Context.Consumer.Provider>` 等写法时给出警告。
 
-### 1.2 三个角色与多渲染器字段
+### 1.2 角色与多渲染器字段
 
 [width(15,43,42)]
 
@@ -98,7 +92,7 @@ React 允许同一棵树上同时存在多个渲染器（例如 React DOM 与 Re
 
 `pushProvider` / `readContext` 都会根据 `isPrimaryRenderer` 决定读写哪一组字段。
 
-## 2. 三种消费方式
+## 2. 消费方式
 
 ### 2.1 `useContext`：dispatcher 直接指向 `readContext`
 
@@ -134,8 +128,6 @@ const HooksDispatcherOnUpdate: Dispatcher = {
 ```
 
 :::
-
-因此 `useContext(ThemeContext)` 最终就是 `readContext(ThemeContext)`，读取 `_currentValue` 并把依赖记录到当前 Fiber。
 
 ### 2.2 `<Context.Consumer>`：render props
 
@@ -193,7 +185,7 @@ if (typeof contextType === 'object' && contextType !== null) {
 
 :::
 
-更新路径同样会在 `updateClassInstance` 中调用 `readContext(contextType)`。三种消费方式最终都落到 `readContext`，区别只在于“谁负责在读取前设置 `currentlyRenderingFiber`”。
+更新路径同样会在 `updateClassInstance` 中调用 `readContext(contextType)`。三种消费方式最终都落到 `readContext`，区别只在于“**谁负责在读取前设置 `currentlyRenderingFiber`**”。
 
 ## 3. 嵌套 Provider 与值栈
 
@@ -260,16 +252,9 @@ function push<T>(cursor: StackCursor<T>, value: T, fiber: Fiber): void {
 
 :::
 
-设计要点：
-
-- 只有一个全局 `valueStack` 和一个 `index`，所有游标共享。
-- `push` 保存的是“游标当前的 `current`”，不是外部传入的 `value`。
-- `pop` 先读栈顶旧值回填游标，再清空栈顶、`index--`。
-- DEV 下额外维护 `fiberStack`（代码中已省略），`pop` 时校验传入的 Fiber 是否是压栈时的那个，防止 Provider 栈错配。
-
 ### 3.3 `pushProvider` 与 `popProvider`
 
-Context 使用一个专门的 `valueCursor`：
+Context 使用一个专门的 `valueCursor`：用于存储传入的“**Provider 外层值**”
 
 :::code-group
 
@@ -315,8 +300,6 @@ export function popProvider(
 
 :::
 
-`pushProvider` 调用 `push(valueCursor, context._currentValue, providerFiber)`：`push` 把 `valueCursor` 的旧值压栈，并把游标设为传入的“**Provider 外层值**”；随后 `context._currentValue` 才被覆盖为新值。`popProvider` 先保存游标当前值（也就是外层值），调用 `pop` 把游标恢复到压栈前的状态，再把保存的外层值写回 `context._currentValue`。`enableServerContext` 分支处理 ServerContext 的“**默认值尚未加载**”哨兵（代码中已省略）。
-
 ### 3.4 beginWork 推入、completeWork 弹出
 
 Provider 的推入发生在 `updateContextProvider` 的开头：
@@ -346,6 +329,7 @@ function updateContextProvider(
   } else {
     if (oldProps !== null) {
       // 比较的是这个 Provider 上一轮提供的值，而不是 context._currentValue。
+      // context._currentValue此时已经被PopProvide恢复成了外层的值
       const oldValue = oldProps.value
       if (is(oldValue, newValue)) {
         // 值没变，children 也没变时可以直接跳过子树。
@@ -414,24 +398,6 @@ function updateContextProvider(
 | ------------------------ | --------------------------------------------- |
 | `beginWork(Provider)`    | `pushProvider(providerFiber, context, value)` |
 | `completeWork(Provider)` | `popProvider(context, providerFiber)`         |
-
-因为 `beginWork` 是“**递**”、`completeWork` 是“**归**”，Provider 的覆盖一定先于子树中所有消费者，恢复一定晚于它们。
-
-### 3.5 为什么 `oldValue` 要取 `memoizedProps`
-
-`updateContextProvider` 判断“**这个 Provider 提供的值是否变化**”时，用的是：
-
-```js
-// 只有 memoizedProps 才是这个 Provider 上一轮提供的值。
-const oldValue = oldProps.value
-```
-
-而不是 `context._currentValue`。原因在于执行到 `beginWork(Provider)` 时，`_currentValue` 已经被上一轮的 `popProvider` 恢复成了 Provider 外层的值：
-
-- 它代表“**外层最近 Provider 的值**”，不是“**这个 Provider 上一轮提供的值**”；
-- 只有 `oldProps.value`（即这个 Provider 上一轮的 `memoizedProps.value`）才是它自己上一轮的值。
-
-用错字段会导致该更新的子树被误判为“**没有变化**”，从而跳过更新。
 
 ## 4. 依赖收集
 
@@ -525,10 +491,6 @@ export function readContext<T>(context: ReactContext<T>): T {
 
 :::
 
-与“**头插法**”不同，官方实现是**尾插**：`lastContextDependency` 始终指向链表尾，新节点追加到 `next`。这样依赖顺序与读取顺序一致，遍历时也少一次反向。
-
-`lastFullyObservedContext` 是一个预留的优化分支：如果某个渲染器已经完整观察了该 Context 的变化，就可以跳过依赖记录。在 React 18.3.1 的 reconciler 中它始终为 `null`，所以实际都会记录依赖。
-
 ### 4.3 依赖链表结构
 
 :::code-group
@@ -552,7 +514,7 @@ export type Dependencies = {
 
 :::
 
-```text
+```tree
 Fiber.dependencies
   ├─ lanes: Lanes
   └─ firstContext
@@ -560,15 +522,9 @@ Fiber.dependencies
        → { context: UserContext,  memoizedValue: {...},  next: null }
 ```
 
-每个节点记录：
-
-- `context`：依赖的是哪个 Context；
-- `memoizedValue`：读取时的快照值；
-- `next`：指向下一个依赖。
-
 ### 4.4 owner 的来源
 
-`readContext` 不接收 Fiber 参数，它依赖 `currentlyRenderingFiber`。不同调用方在读取前设置它的位置不同：
+`readContext`不接收 Fiber参数,它依赖`currentlyRenderingFiber`。不同调用方在读取前设置的位置不同：
 
 [width(19,81)]
 
@@ -636,72 +592,151 @@ eager 路径会立即扫描 Provider 子树，找到所有依赖该 Context 的 
 
 ### 5.2 `propagateContextChange_eager`
 
+它从 Provider 的子节点出发，对整棵子树做一次深度优先遍历：依赖链表命中就标脏，遇到会覆盖值或无法判断的子树就剪枝。
+
 :::code-group
 
 ```ts [react-reconciler/src/ReactFiberNewContext.old.js]
-      let dependency = list.firstContext;
+function propagateContextChange_eager<T>(
+  workInProgress: Fiber,
+  context: ReactContext<T>,
+  renderLanes: Lanes,
+): void {
+  // 只服务 eager 实现；懒传播开启时这条路径不参与。
+  if (enableLazyContextPropagation) {
+    return
+  }
+
+  // 从 Provider 的子节点开始遍历整棵子树。
+  let fiber = workInProgress.child
+  if (fiber !== null) {
+    // 先把子节点的 return 指向本次渲染中的 Provider。
+    fiber.return = workInProgress
+  }
+  while (fiber !== null) {
+    let nextFiber
+
+    // 检查当前 Fiber 是否记录了 Context 依赖。
+    const list = fiber.dependencies
+    if (list !== null) {
+      // 有依赖记录：继续向下遍历，同时逐项比对依赖链表。
+      nextFiber = fiber.child
+
+      let dependency = list.firstContext
       while (dependency !== null) {
         // 依赖链表按读取顺序排列，逐个比对 context。
         if (dependency.context === context) {
           // 命中：给这个 Fiber 调度更新。
           if (fiber.tag === ClassComponent) {
             // 类组件的 shouldComponentUpdate 可能返回 false，这里强制插入一次更新。
-            const lane = pickArbitraryLane(renderLanes);
-            const update = createUpdate(NoTimestamp, lane);
-            update.tag = ForceUpdate;
-            // 省略 ForceUpdate 的 payload 赋值，强制更新不会读取它。
-            const updateQueue = fiber.updateQueue;
+            const lane = pickArbitraryLane(renderLanes)
+            const update = createUpdate(NoTimestamp, lane)
+            update.tag = ForceUpdate
+            // 省略 TODO 注释：更新可能挂到 current 树上，本轮渲染被丢弃时也会残留。
+
+            // 内联 enqueueUpdate：只关心把 ForceUpdate 塞进更新队列。
+            const updateQueue = fiber.updateQueue
             if (updateQueue === null) {
               // 只有 Fiber 已卸载时才会为空。
             } else {
-              const sharedQueue: SharedQueue<any> = (updateQueue: any).shared;
-              const pending = sharedQueue.pending;
+              const sharedQueue: SharedQueue<any> = (updateQueue: any).shared
+              const pending = sharedQueue.pending
               if (pending === null) {
                 // 第一个更新：让它的 next 指向自己，形成循环链表。
-                update.next = update;
+                update.next = update
               } else {
-                update.next = pending.next;
-                pending.next = update;
+                update.next = pending.next
+                pending.next = update
               }
-              sharedQueue.pending = update;
+              sharedQueue.pending = update
             }
           }
 
           // Fiber 与 alternate 都要标脏，保证下一次渲染会重新处理。
-          fiber.lanes = mergeLanes(fiber.lanes, renderLanes);
-          const alternate = fiber.alternate;
+          fiber.lanes = mergeLanes(fiber.lanes, renderLanes)
+          const alternate = fiber.alternate
           if (alternate !== null) {
-            alternate.lanes = mergeLanes(alternate.lanes, renderLanes);
+            alternate.lanes = mergeLanes(alternate.lanes, renderLanes)
           }
           scheduleContextWorkOnParentPath(
             fiber.return,
             renderLanes,
             workInProgress,
-          );
+          )
 
           // 依赖链表也记录 lane，供 prepareToReadContext 判断渲染原因。
-          list.lanes = mergeLanes(list.lanes, renderLanes);
+          list.lanes = mergeLanes(list.lanes, renderLanes)
 
           // 已经命中依赖，可以停止遍历依赖链表。
-          break;
+          break
         }
-        dependency = dependency.next;
+        dependency = dependency.next
       }
+    } else if (fiber.tag === ContextProvider) {
+      // 遇到同一个 Context 的内层 Provider 时不再向下扫描，因为它会覆盖外层值。
+      nextFiber = fiber.type === workInProgress.type ? null : fiber.child
+    } else if (fiber.tag === DehydratedFragment) {
+      // 脱水子树里是否有消费者无法判断，直接把父 Suspense 边界标脏。
+      const parentSuspense = fiber.return
+      if (parentSuspense === null) {
+        throw new Error(
+          'We just came from a parent so we must have had a parent. This is a bug in React.',
+        )
+      }
+      parentSuspense.lanes = mergeLanes(parentSuspense.lanes, renderLanes)
+      const alternate = parentSuspense.alternate
+      if (alternate !== null) {
+        alternate.lanes = mergeLanes(alternate.lanes, renderLanes)
+      }
+      // 这些 Fiber 往往还没真正挂到树上，所以按父路径冒泡。
+      scheduleContextWorkOnParentPath(
+        parentSuspense,
+        renderLanes,
+        workInProgress,
+      )
+      // 跳过这棵脱水子树，转到它的兄弟节点。
+      nextFiber = fiber.sibling
+    } else {
+      // 普通节点：继续向下遍历。
+      nextFiber = fiber.child
+    }
+
+    if (nextFiber !== null) {
+      // 把子节点的 return 指向当前 Fiber，保证回溯时路径正确。
+      nextFiber.return = fiber
+    } else {
+      // 没有子节点：回溯，寻找下一个兄弟。
+      nextFiber = fiber
+      while (nextFiber !== null) {
+        if (nextFiber === workInProgress) {
+          // 回到子树根，遍历结束。
+          nextFiber = null
+          break
+        }
+        const sibling = nextFiber.sibling
+        if (sibling !== null) {
+          // 找到兄弟：让它继承当前节点的父节点。
+          sibling.return = nextFiber.return
+          nextFiber = sibling
+          break
+        }
+        // 没有兄弟，继续向上回溯。
+        nextFiber = nextFiber.return
+      }
+    }
+    fiber = nextFiber
+  }
+}
 ```
 
 :::
 
 匹配到依赖后，eager 路径做四件事：
 
-1. **类组件强制更新**：给 `fiber.updateQueue` 塞一个 `ForceUpdate`，因为类组件的 `shouldComponentUpdate` 可能返回 `false`，但 Context 变化必须绕过它。
-2. **合并 Fiber 的 `lanes`**：当前 Fiber 和它的 `alternate` 都要标记，保证下一次 Render 会重新处理。
-3. **沿父路径合并 `childLanes`**：调用 `scheduleContextWorkOnParentPath`。
-4. **合并依赖链表的 `lanes`**：让 `prepareToReadContext` 能判断“**这次渲染是否由 Context 变化触发**”。
-
-遍历时还有两个剪枝点：
-
-- 遇到同类型的 `ContextProvider` 时不再向下扫描，因为内层 Provider 会覆盖外层值；
-- 遇到 `DehydratedFragment` 时无法确定子树里是否有消费者，于是把父 Suspense 边界整体标脏。
+- **类组件强制更新**：给 `fiber.updateQueue` 塞一个 `ForceUpdate`，因为类组件的 `shouldComponentUpdate` 可能返回 `false`，但 Context 变化必须绕过它。
+- **合并 Fiber 的 `lanes`**：当前 Fiber 和它的 `alternate` 都要标记，保证下一次 Render 会重新处理。
+- **沿父路径合并 `childLanes`**：调用 `scheduleContextWorkOnParentPath`。
+- **合并依赖链表的 `lanes`**：让 `prepareToReadContext` 能判断“**这次渲染是否由 Context 变化触发**”。
 
 ### 5.3 `scheduleContextWorkOnParentPath`
 
@@ -750,7 +785,7 @@ export function scheduleContextWorkOnParentPath(
 
 一次 Context 更新中的传播链路可以概括为：
 
-```text
+```tree
 Provider 值变化
   → propagateContextChange_eager
     → 找到依赖该 Context 的 Fiber
@@ -759,7 +794,8 @@ Provider 值变化
         → 本轮 Render 从 Provider 继续向下，沿 childLanes 进入消费者子树
 ```
 
-触发 Provider 重新渲染的那次更新，已经通过根调度把整条祖先路径标记为有工作；传播函数只需要把新的 Lane 补充到“**Provider 到消费者**”这段路径上。与“**整树重渲染**”相比，Lane 让更新范围收敛到真正依赖该 Context 的子树，这也是 Context 在大型应用中仍然可用的关键。
+> [!TIP]
+> 触发 Provider 重新渲染的那次更新，已经通过根调度把整条祖先路径标记为有工作；传播函数只需要把新的 Lane 补充到“**Provider 到消费者**”这段路径上。与“**整树重渲染**”相比，Lane 让更新范围收敛到真正依赖该 Context 的子树，这也是 Context 在大型应用中仍然可用的关键。
 
 ## 6. 一次 Context 更新的时序
 

@@ -527,11 +527,11 @@ function commitDeletionEffects(
 
 ### 4.2 `commitDeletionEffectsOnFiber`
 
-按 Fiber 类型分派删除逻辑：宿主节点执行 `removeChild`，函数组件执行 Insertion / Layout Effect 的 `destroy`，最后递归清理子树。
+按 Fiber 类型分派删除逻辑：宿主节点执行 `removeChild`，函数组件执行 Insertion / Layout Effect 的 `destroy`，最后递归清理子树。递归本身由 `recursivelyTraverseDeletionEffects` 完成，它不关心节点类型，只沿 `child` / `sibling` 把每个孩子交回 `commitDeletionEffectsOnFiber`。
 
 :::code-group
 
-```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
+```ts [react-reconciler/src/ReactFiberCommitWork.js]
 function commitDeletionEffectsOnFiber(
   finishedRoot: FiberRoot,
   nearestMountedAncestor: Fiber | null,
@@ -609,9 +609,24 @@ function commitDeletionEffectsOnFiber(
 }
 ```
 
+```ts [react-reconciler/src/ReactFiberCommitWork.js]
+function recursivelyTraverseDeletionEffects(
+  finishedRoot: FiberRoot,
+  nearestMountedAncestor: Fiber | null,
+  parent: Fiber,
+): void {
+  // 沿 sibling 指针把每个被删孩子重新交回分派函数处理。
+  let child = parent.child
+  while (child !== null) {
+    commitDeletionEffectsOnFiber(finishedRoot, nearestMountedAncestor, child)
+    child = child.sibling
+  }
+}
+```
+
 :::
 
-进入宿主节点后先把 `hostParent` 置为 `null`，嵌套子节点就不会重复 `removeChild`；子节点清理完再恢复游标、移除节点。`useEffect` 的 destroy 不在这里执行，留到 Passive Unmount 阶段。
+进入宿主节点后先把 `hostParent` 置为 `null`，嵌套子节点就不会重复 `removeChild`；子节点清理完再恢复游标、移除节点。`recursivelyTraverseDeletionEffects` 本身不判断类型、也不动 `hostParent`，它只是把“**遍历**”和“**分派**”拆开，让 `commitDeletionEffectsOnFiber` 能对子树里的每个 Fiber 各自走一遍。`useEffect` 的 destroy 不在这里执行，留到 Passive Unmount 阶段。
 
 ### 4.3 删除标记为什么挂在父节点
 
@@ -656,11 +671,11 @@ export const PassiveMask = Passive | ChildDeletion
 
 :::
 
-待删除的 Fiber 被放进父节点的 `deletions` 数组，同时父节点被打上 `ChildDeletion`。好处是：
-
-- Commit 阶段只需要在父节点处处理一次 `deletions`，不必再遍历被删子树去找“**谁是根**”；
-- 被删子树的 Fiber 可能已经不再参与本轮协调，单独遍历容易遗漏；
-- `ChildDeletion` 同时出现在 `MutationMask` 和 `PassiveMask` 中，Mutation 阶段负责移除 DOM，Passive 阶段负责清理 `useEffect`。
+> [!TIP] 删除逻辑
+>
+> - Commit 阶段只需要在父节点处处理一次 `deletions`，不必再遍历被删子树去找“**谁是根**”；
+> - 被删子树的 Fiber 可能已经不再参与本轮协调，单独遍历容易遗漏；
+> - `ChildDeletion` 同时出现在 `MutationMask` 和 `PassiveMask` 中，Mutation 阶段负责移除 DOM，Passive 阶段负责清理 `useEffect`。
 
 ## 5. Hook Effect 的挂载与卸载
 
@@ -745,44 +760,152 @@ function commitHookEffectListMount(flags: HookFlags, finishedWork: Fiber) {
 
 :::
 
-两个实现细节：
-
-- `(effect.tag & flags) === flags` 要求 `flags` 中的每一位都匹配，因此不会误执行其它阶段的 Effect。
-- 卸载时先把 `effect.destroy` 置为 `undefined`，再调用旧 destroy，避免清理函数重入或重复执行。
-- 挂载时把 `create()` 的返回值写回 `effect.destroy`，供下一次卸载使用。
-
 ### 5.3 为什么 Layout Effect 的 destroy 在 Mutation 阶段
 
-`useLayoutEffect` 的 create 在 Layout 阶段执行，但 destroy 被提前到 Mutation 阶段。源码注释给出了原因：让所有组件的 destroy 都先于任何 create 执行。否则兄弟组件的副作用可能互相干扰——比如一个组件的 destroy 覆盖了另一个组件在 create 中设置的 ref。
-
-`useInsertionEffect` 更特殊：它在 Mutation 阶段先 destroy、再 create，因为它本来就是为“**在布局读取前插入样式**”设计的。
+`useLayoutEffect` 的 create 在 Layout 阶段执行，但 destroy 被提前到 Mutation 阶段。让所有组件的 destroy 都先于任何 create 执行。否则兄弟组件的副作用可能互相干扰——比如一个组件的 destroy 覆盖了另一个组件在 create 中设置的 ref。
 
 ## 6. Passive Effects
 
-### 6.1 调度时机
-
-Passive Effect 的调度在 `commitRootImpl` 前半段完成（见 [1.1](#_1-1-commitrootimpl)）。它使用 `NormalSchedulerPriority`，因此：
-
-- 不会阻塞当前 Commit；
-- 浏览器先完成绘制；
-- Scheduler 在后续任务中调用 `flushPassiveEffects`。
-
-如果本次提交由同步 Lane 触发，`commitRootImpl` 末尾还会同步冲刷一次 Passive Effect：
+### 6.1 flushPassiveEffects
 
 :::code-group
 
 ```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
-// 同步 Lane 的提交要在函数内冲刷 Passive Effect；LegacyRoot 的例外判断已省略。
-if (includesSomeLane(pendingPassiveEffectsLanes, SyncLane)) {
-  flushPassiveEffects()
+function flushPassiveEffects(): boolean {
+  // 没有待处理的树就直接返回，避免空跑。
+  if (rootWithPendingPassiveEffects === null) {
+    return false
+  }
+
+  // 把待处理的 lanes 换算成事件优先级，并保证不高于 DefaultEventPriority。
+  const renderPriority = lanesToEventPriority(pendingPassiveEffectsLanes)
+  const priority = lowerEventPriority(DefaultEventPriority, renderPriority)
+
+  // 执行期间临时切换更新优先级，结束后恢复。
+  const previousPriority = getCurrentUpdatePriority()
+  try {
+    setCurrentUpdatePriority(priority)
+    return flushPassiveEffectsImpl()
+  } finally {
+    setCurrentUpdatePriority(previousPriority)
+  }
+}
+```
+
+```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
+function flushPassiveEffectsImpl(): boolean {
+  // 没有待处理的树就直接返回，避免空跑。
+  if (rootWithPendingPassiveEffects === null) {
+    return false
+  }
+
+  // 取出并清空本轮待处理的状态，回调结束后这些记录就失效了。
+  const transitions = pendingPassiveTransitions
+  pendingPassiveTransitions = null
+  const root = rootWithPendingPassiveEffects
+  const lanes = pendingPassiveEffectsLanes
+  rootWithPendingPassiveEffects = null
+  pendingPassiveEffectsLanes = NoLanes
+
+  // 临时进入 Commit 上下文，防止执行 Effect 期间再次提交。
+  const prevExecutionContext = executionContext
+  executionContext |= CommitContext
+
+  // 先清理旧的 useEffect，再执行新的 useEffect。
+  commitPassiveUnmountEffects(root.current)
+  commitPassiveMountEffects(root, root.current, lanes, transitions)
+
+  executionContext = prevExecutionContext
+
+  // Effect 里产生的同步更新立即冲刷。
+  flushSyncCallbacks()
+
+  return true
 }
 ```
 
 :::
 
-这是为了兼容“**同步渲染的结果必须立即可观察**”的语义。
+> [!TIP]
+> 异步执行保证不阻塞 commit 与绘制，但同步渲染的结果必须立即可观察，所以同步 Lane 在 commit 末尾直接冲刷。
 
-### 6.2 `commitPassiveMountEffects`
+### 6.2 `commitPassiveUnmountEffects`
+
+卸载遍历除了常规的 Effect destroy，还要处理被删除的子树：遇到 `ChildDeletion` 时，先清理被删子树内部的 Passive Effect。
+
+:::code-group
+
+```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
+export function commitPassiveUnmountEffects(firstChild: Fiber): void {
+  // 与挂载一致，用 nextEffect 迭代遍历整棵树。
+  nextEffect = firstChild
+  commitPassiveUnmountEffects_begin()
+}
+
+function commitPassiveUnmountEffects_begin() {
+  while (nextEffect !== null) {
+    const fiber = nextEffect
+    const child = fiber.child
+
+    // 遇到删除标记，先清理被删子树内部的 Passive Effect。
+    if ((nextEffect.flags & ChildDeletion) !== NoFlags) {
+      const deletions = fiber.deletions
+      if (deletions !== null) {
+        for (let i = 0; i < deletions.length; i++) {
+          const fiberToDelete = deletions[i]
+          nextEffect = fiberToDelete
+          commitPassiveUnmountEffectsInsideOfDeletedTree_begin(
+            fiberToDelete,
+            fiber,
+          )
+        }
+
+        // ...
+        nextEffect = fiber
+      }
+    }
+
+    // 其余节点照常下潜或回溯。
+    if ((fiber.subtreeFlags & PassiveMask) !== NoFlags && child !== null) {
+      child.return = fiber
+      nextEffect = child
+    } else {
+      commitPassiveUnmountEffects_complete()
+    }
+  }
+}
+```
+
+:::
+
+被删子树的清理走单独的遍历 `commitPassiveUnmountEffectsInsideOfDeletedTree_begin`，它按“**父 → 子**”的顺序执行 destroy。与挂载阶段“**子 → 父**”的 create 顺序相反：清理应当先释放父级资源，再释放子级依赖。
+
+最终执行 `useEffect` destroy 的函数仍然是 `commitHookEffectListUnmount`：
+
+:::code-group
+
+```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
+function commitPassiveUnmountOnFiber(finishedWork: Fiber): void {
+  // Passive 阶段执行 useEffect 的 destroy。
+  switch (finishedWork.tag) {
+    case FunctionComponent:
+    case ForwardRef:
+    case SimpleMemoComponent: {
+      // Passive 阶段执行 useEffect 的 destroy。
+      commitHookEffectListUnmount(
+        HookPassive | HookHasEffect,
+        finishedWork,
+        finishedWork.return,
+      )
+      break
+    }
+  }
+}
+```
+
+:::
+
+### 6.3 `commitPassiveMountEffects`
 
 Passive 遍历不使用递归，而是用模块级 `nextEffect` 做迭代，避免深树导致调用栈过深：
 
@@ -898,90 +1021,12 @@ function commitPassiveMountOnFiber(
 
 :::
 
-### 6.3 `commitPassiveUnmountEffects`
-
-卸载遍历比挂载多了一件事：遇到 `ChildDeletion` 时，要先清理被删除子树内部的 Passive Effect。
-
-:::code-group
-
-```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
-export function commitPassiveUnmountEffects(firstChild: Fiber): void {
-  // 与挂载一致，用 nextEffect 迭代遍历整棵树。
-  nextEffect = firstChild
-  commitPassiveUnmountEffects_begin()
-}
-
-function commitPassiveUnmountEffects_begin() {
-  while (nextEffect !== null) {
-    const fiber = nextEffect
-    const child = fiber.child
-
-    // 遇到删除标记，先清理被删子树内部的 Passive Effect。
-    if ((nextEffect.flags & ChildDeletion) !== NoFlags) {
-      const deletions = fiber.deletions
-      if (deletions !== null) {
-        for (let i = 0; i < deletions.length; i++) {
-          const fiberToDelete = deletions[i]
-          nextEffect = fiberToDelete
-          commitPassiveUnmountEffectsInsideOfDeletedTree_begin(
-            fiberToDelete,
-            fiber,
-          )
-        }
-
-        // ...
-        nextEffect = fiber
-      }
-    }
-
-    // 其余节点照常下潜或回溯。
-    if ((fiber.subtreeFlags & PassiveMask) !== NoFlags && child !== null) {
-      child.return = fiber
-      nextEffect = child
-    } else {
-      commitPassiveUnmountEffects_complete()
-    }
-  }
-}
-```
-
-:::
-
-被删子树的清理走单独的遍历 `commitPassiveUnmountEffectsInsideOfDeletedTree_begin`，它按“**父 → 子**”的顺序执行 destroy。这一点与挂载阶段“**子 → 父**”的 create 顺序相反：清理应当先释放父级资源，再释放子级依赖。
-
-最终执行 `useEffect` destroy 的函数仍然是 `commitHookEffectListUnmount`：
-
-:::code-group
-
-```ts [react-reconciler/src/ReactFiberCommitWork.old.js]
-function commitPassiveUnmountOnFiber(finishedWork: Fiber): void {
-  // Passive 阶段执行 useEffect 的 destroy。
-  switch (finishedWork.tag) {
-    case FunctionComponent:
-    case ForwardRef:
-    case SimpleMemoComponent: {
-      // Passive 阶段执行 useEffect 的 destroy。
-      commitHookEffectListUnmount(
-        HookPassive | HookHasEffect,
-        finishedWork,
-        finishedWork.return,
-      )
-      break
-    }
-  }
-}
-```
-
-:::
-
 ### 6.4 为什么不在 Mutation 阶段直接执行
 
 - `useEffect` 的语义是“**浏览器绘制之后**”，此时布局已经稳定，读取布局不会触发额外的强制同步。
 - 如果同步执行，耗时副作用会阻塞绘制，用户看到首屏的时间变长。
 - 交给 Scheduler 后，React 可以在浏览器空闲时执行，必要时还能继续让出主线程。
 - 卸载时的 `useEffect` destroy 也要等 DOM 移除完成后再执行，避免清理函数访问已经不在文档中的节点。
-
-需要“**DOM 已更新、绘制之前**”执行副作用时，应该使用 `useLayoutEffect`；两者的调度差异可参考 [useEffect](/frameworks/react/advanced/source-code/hooks/useEffect) 与 [useLayoutEffect](/frameworks/react/advanced/source-code/hooks/useLayoutEffect)。
 
 ## 7. 总结
 
@@ -995,14 +1040,3 @@ function commitPassiveUnmountOnFiber(finishedWork: Fiber): void {
 | Insertion Effect | `Insertion`     | `commitHookEffectListUnmount` / `commitHookEffectListMount`                | Mutation 阶段先 destroy 再 create    |
 | Layout Effect    | `Layout`        | Mutation 阶段 destroy，Layout 阶段 `commitHookEffectListMount` 执行 create | DOM 已变、绘制前同步执行             |
 | Passive Effect   | `Passive`       | `commitPassiveMountEffects`、`commitPassiveUnmountEffects`                 | 绘制后异步执行；删除子树单独清理     |
-
-Commit 阶段的设计原则可以概括为“**Render 只算、Commit 只做**”：
-
-[width(14,86)]
-
-| 阶段     | 职责                                      |
-| -------- | ----------------------------------------- |
-| Render   | 比较、打标记、计算 Lane                   |
-| Mutation | 消费结构标记，完成 DOM 的插入、移动、删除 |
-| Layout   | 读取变更后的 DOM，执行同步副作用          |
-| Passive  | 绘制后异步补齐 `useEffect`                |

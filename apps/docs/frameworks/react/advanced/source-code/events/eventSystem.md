@@ -6,8 +6,6 @@ outline: [2, 4]
 
 React 不会把 `onClick` 直接绑到 DOM 节点上，而是在根容器上为每种原生事件注册一次监听；事件触发后，沿 Fiber 树的 `return` 指针收集监听函数，构造 `SyntheticEvent`，再按捕获、冒泡顺序统一执行。事件入口还会按原生事件类型设置更新优先级，最终映射成不同的 Lane。
 
-实现位于 `react-dom/src/events/`：`ReactDOMEventListener.js` 负责注册与入口包装，`DOMPluginEventSystem.js` 负责派发与监听收集，`SyntheticEvent.js` 定义事件对象，`plugins/SimpleEventPlugin.js` 负责绝大多数事件的提取。事件优先级到 Lane 的映射在 `react-reconciler/src/ReactEventPriorities.old.js`，Lane 本身见 [Lane 模型](/frameworks/react/advanced/source-code/reconciler/laneModel)。
-
 ## 1. 基础用法
 
 ```tsx
@@ -28,7 +26,7 @@ function Toolbar() {
 }
 ```
 
-`onClick` 不会追加到 `<button>` 上：`createRoot(container)` 只在容器上为 `click` 注册捕获、冒泡两个原生监听，点击时从目标 DOM 找到对应 Fiber，再沿 `return` 向上收集所有 `onClick`。捕获阶段的监听收集 `onClickCapture`，冒泡阶段的监听收集 `onClick`，两者靠 `IS_CAPTURE_PHASE` 区分。`event` 是包装后的 `SyntheticEvent`，`stopPropagation` 与 `preventDefault` 都会同步作用到原生事件；事件池在 React 17 之后已被移除，`persist()` 只是空实现。
+`onClick` 不会追加到 `<button>` 上：`createRoot(container)` 只在容器上为 `click` 注册捕获、冒泡两个原生监听，点击时从目标 DOM 找到对应 Fiber，再沿 `return` 向上收集所有 `onClick`。捕获阶段的监听收集 `onClickCapture`，冒泡阶段的监听收集 `onClick`，两者靠 `IS_CAPTURE_PHASE` 区分。`event` 是包装后的 `SyntheticEvent`，`stopPropagation` 与 `preventDefault` 都会同步作用到原生事件。
 
 ## 2. 核心结构
 
@@ -123,15 +121,13 @@ Object.assign(SyntheticBaseEvent.prototype, {
 | `keydown`    | `onKeyDown`    | `keydown`    | `SyntheticKeyboardEvent` |
 | `touchstart` | `onTouchStart` | `touchstart` | `SyntheticTouchEvent`    |
 
-映射在 `SimpleEventPlugin.extractEvents` 开头的 switch 中完成，完整代码见 4.4 节。
-
 ### 2.3 事件优先级
 
 原生事件先映射成一个更新优先级，再通过 `ReactEventPriorities.old.js` 换成 Lane：
 
 :::code-group
 
-```ts [react-reconciler/src/ReactEventPriorities.old.js]
+```ts [react-reconciler/src/ReactEventPriorities.js]
 // 事件优先级直接复用 Lane 的位，不再单独定义一套数值。
 export const DiscreteEventPriority: EventPriority = SyncLane
 export const ContinuousEventPriority: EventPriority = InputContinuousLane
@@ -198,7 +194,7 @@ function getEventPriority(domEventName) {
 
 :::code-group
 
-```ts [react-dom/src/events/ReactDOMEventListener.js]
+```ts [events/ReactDOMEventListener.js]
 export function listenToAllSupportedEvents(rootContainerElement) {
   const container = rootContainerElement
   // 每个根容器只注册一次，marker 随容器实例保存。
@@ -226,9 +222,48 @@ export function listenToAllSupportedEvents(rootContainerElement) {
 }
 ```
 
+```ts [events/DOMPluginEventSystem.js]
+export function listenToNativeEvent(
+  domEventName: DOMEventName,
+  isCapturePhaseListener: boolean,
+  target: EventTarget,
+): void {
+  // 省略 __DEV__ 下把不冒泡事件错误注册到冒泡阶段的告警。
+
+  let eventSystemFlags = 0
+  if (isCapturePhaseListener) {
+    // 捕获阶段的监听器用 flag 标记，派发时据此进入捕获队列。
+    eventSystemFlags |= IS_CAPTURE_PHASE
+  }
+  addTrappedEventListener(
+    target,
+    domEventName,
+    eventSystemFlags,
+    isCapturePhaseListener,
+  )
+}
+```
+
+```ts [events/EventRegistry.js]
+// 所有需要挂载原生监听的事件名，由各事件的注册函数填充。
+export const allNativeEvents: Set<DOMEventName> = new Set()
+
+export function registerDirectEvent(
+  registrationName: string,
+  dependencies: Array<DOMEventName>,
+) {
+  // 省略 __DEV__ 下重复注册的告警与 registrationNameDependencies 记录。
+
+  // React 事件的每个依赖原生事件都进入集合，注册监听时统一遍历。
+  for (let i = 0; i < dependencies.length; i++) {
+    allNativeEvents.add(dependencies[i])
+  }
+}
+```
+
 :::
 
-`nonDelegatedEvents` 里的 `load`、`scroll`、媒体事件等不会冒泡，委托到根容器会漏事件，因此由 `completeWork` 阶段直接绑在对应元素上。
+`allNativeEvents` 由 `registerSimpleEvents` 等注册函数经 `registerDirectEvent` 填充，收集的是所有插件声明过的原生事件；`listenToNativeEvent` 只负责按阶段补上 `IS_CAPTURE_PHASE` flag，再交给 `addTrappedEventListener` 创建监听器。
 
 ### 3.2 `addTrappedEventListener`
 
@@ -379,7 +414,7 @@ function dispatchEventForPluginEventSystem(
 
 ### 4.2 `dispatchEventsForPlugins`
 
-这里建立本次事件的派发队列。插件只负责把 `{ event, listeners }` 放进队列，真正的执行留到队列处理阶段：
+建立本次事件的派发队列。插件只负责把`{ event, listeners }`放进队列，真正的执行留到队列处理阶段：
 
 :::code-group
 
@@ -619,7 +654,7 @@ function accumulateSinglePhaseListeners(
 
 :::
 
-数组顺序固定为“目标 → 根”：捕获阶段执行时需要反向遍历，冒泡阶段正序执行。
+数组顺序固定为“**目标 → 根**”：捕获阶段执行时需要反向遍历，冒泡阶段正序执行。
 
 ### 5.3 `processDispatchQueue`
 
@@ -690,11 +725,11 @@ function executeDispatch(event, listener, currentTarget) {
 
 ### 5.4 受控组件的状态恢复
 
-`dispatchEventForPluginEventSystem` 用 `batchedUpdates` 包住整条派发链。批次结束后，React 会检查 `needsStateRestore()`，把受控输入框的 value 恢复成 props 中的值，避免用户输入与 React 状态短暂不一致。
+`dispatchEventForPluginEventSystem` 用 `batchedUpdates` 包住整条派发链。批次结束后，React 会检查 `needsStateRestore()`，把受控输入框的value恢复成props中的值，避免用户输入与React状态短暂不一致。
 
 ## 6. 事件优先级如何变成 Lane
 
-事件包装器只设置了“当前更新优先级”，真正取 Lane 发生在 `requestUpdateLane`：
+事件包装器只设置了“**当前更新优先级**”，真正取 Lane 发生在 `requestUpdateLane`：
 
 :::code-group
 
@@ -708,7 +743,7 @@ export function getCurrentEventPriority() {
 }
 ```
 
-```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
+```ts [react-reconciler/src/ReactFiberWorkLoopjs]
 function requestUpdateLane(fiber) {
   // 省略 legacy、render 阶段更新与 transition 分支。
 
@@ -745,9 +780,7 @@ flowchart TD
     J --> K[batchedUpdates 结束<br/>恢复受控组件状态]
 ```
 
-一次点击的时序可以写成：
-
-```text
+```tree
 原生 click 冒泡到 root container
   → dispatchDiscreteEvent：保存并设置当前更新优先级
       → dispatchEvent → dispatchEventForPluginEventSystem
