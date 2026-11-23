@@ -797,7 +797,7 @@ Provider 值变化
 > [!TIP]
 > 触发 Provider 重新渲染的那次更新，已经通过根调度把整条祖先路径标记为有工作；传播函数只需要把新的 Lane 补充到“**Provider 到消费者**”这段路径上。与“**整树重渲染**”相比，Lane 让更新范围收敛到真正依赖该 Context 的子树，这也是 Context 在大型应用中仍然可用的关键。
 
-## 6. 一次 Context 更新的时序
+## 6. 完整流程图
 
 ```mermaid
 sequenceDiagram

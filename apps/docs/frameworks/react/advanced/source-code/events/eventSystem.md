@@ -195,6 +195,7 @@ function getEventPriority(domEventName) {
 :::code-group
 
 ```ts [events/ReactDOMEventListener.js]
+//一次性委托所有事件
 export function listenToAllSupportedEvents(rootContainerElement) {
   const container = rootContainerElement
   // 每个根容器只注册一次，marker 随容器实例保存。
@@ -223,6 +224,7 @@ export function listenToAllSupportedEvents(rootContainerElement) {
 ```
 
 ```ts [events/DOMPluginEventSystem.js]
+//监听原生事件
 export function listenToNativeEvent(
   domEventName: DOMEventName,
   isCapturePhaseListener: boolean,
@@ -336,6 +338,7 @@ function createEventListenerWrapperWithPriority(
 ) {
   const eventPriority = getEventPriority(domEventName)
 
+  // 按优先级选出这个事件专用的包装函数，后面再绑定其余参数。
   let listenerWrapper
   switch (eventPriority) {
     case DiscreteEventPriority:
@@ -374,15 +377,169 @@ function dispatchDiscreteEvent(
 }
 ```
 
+```ts [react-reconciler/src/ReactEventPriorities.js]
+// 当前更新优先级：默认 NoLane，表示没有事件正在派发。
+let currentUpdatePriority: EventPriority = NoLane
+
+// 进入事件入口时先读出旧值，用于 finally 里恢复。
+export function getCurrentUpdatePriority(): EventPriority {
+  return currentUpdatePriority
+}
+
+// 设置本次派发的优先级，期间产生的 setState 会读取它来决定 Lane。
+export function setCurrentUpdatePriority(newPriority: EventPriority) {
+  currentUpdatePriority = newPriority
+}
+```
+
 :::
 
-`dispatchContinuousEvent` 的结构完全相同，只是把优先级换成 `ContinuousEventPriority`；默认事件则直接进入 `dispatchEvent`，不额外抬高优先级。
+`dispatchContinuousEvent` 的结构完全相同，只是把优先级换成 `ContinuousEventPriority`；默认事件则直接进入 `dispatchEvent`，不额外抬高优先级。`currentUpdatePriority` 是模块级变量，`getCurrentUpdatePriority` / `setCurrentUpdatePriority` 负责在入口前后成对保存与恢复，避免一次事件派发的优先级泄漏到下一次。
 
 ## 4. 派发阶段
 
-### 4.1 `dispatchEventForPluginEventSystem`
+### 4.1 `dispatchEvent`
 
-原生事件到达根容器后，React 需要把 DOM 目标换成 Fiber，并找到与当前根匹配的祖先。完整实现还要处理 Portal 与 hydration，这里只保留主路径：
+`dispatchEvent` 是所有原生事件的统一入口：包装器最终都调用它。它先确认事件系统可用，再把原生事件的目标解析成 Fiber；如果目标落在还没水合完成的 Suspense 边界上，就把事件排队等待重放，否则直接进入插件事件系统：
+
+:::code-group
+
+```ts [ReactDOMEventListener.js]
+export function dispatchEvent(
+  domEventName,
+  eventSystemFlags,
+  targetContainer,
+  nativeEvent,
+) {
+  // 事件系统被卸载后不再处理。
+  if (!_enabled) return
+
+  // 省略开关分支：默认走 dispatchEventOriginal。
+  dispatchEventOriginal(
+    domEventName,
+    eventSystemFlags,
+    targetContainer,
+    nativeEvent,
+  )
+}
+
+function dispatchEventOriginal(
+  domEventName,
+  eventSystemFlags,
+  targetContainer,
+  nativeEvent,
+) {
+  // 省略 allowReplay 与离散 / 连续事件的排队、重放分支。
+
+  // 找到阻塞派发的边界，同时把事件目标解析成 Fiber。
+  const blockedOn = findInstanceBlockingEvent(
+    domEventName,
+    eventSystemFlags,
+    targetContainer,
+    nativeEvent,
+  )
+  if (blockedOn === null) {
+    // 没有阻塞：用解析出的目标 Fiber 进入插件事件系统。
+    dispatchEventForPluginEventSystem(
+      domEventName,
+      eventSystemFlags,
+      nativeEvent,
+      return_targetInst,
+      targetContainer,
+    )
+    return
+  }
+
+  // 被尚未水合的边界挡住：按 allowReplay 排队重放，或带空目标派发（已省略）。
+}
+
+// 概念上是 findInstanceBlockingEvent 的返回值：没有阻塞时的目标 Fiber。
+export let return_targetInst = null
+
+export function findInstanceBlockingEvent(
+  domEventName,
+  eventSystemFlags,
+  targetContainer,
+  nativeEvent,
+) {
+  return_targetInst = null
+
+  // 从原生事件取出真实 DOM，再找到它对应的 Fiber。
+  const nativeEventTarget = getEventTarget(nativeEvent)
+  let targetInst = getClosestInstanceFromNode(nativeEventTarget)
+
+  if (targetInst !== null) {
+    const nearestMounted = getNearestMountedFiber(targetInst)
+    if (nearestMounted === null) {
+      // 树已经卸载，按“无目标”派发。
+      targetInst = null
+    } else if (nearestMounted.tag === SuspenseComponent) {
+      const instance = getSuspenseInstanceFromFiber(nearestMounted)
+      if (instance !== null) {
+        // 边界还在水合：返回阻塞点，事件稍后重放。
+        return instance
+      }
+      targetInst = null
+    } else {
+      // 省略 HostRoot 脱水与“尚未提交挂载”的判定。
+    }
+  }
+
+  return_targetInst = targetInst
+  // 没有阻塞，调用方可以继续派发。
+  return null
+}
+```
+
+```ts [getEventTarget.js]
+function getEventTarget(nativeEvent) {
+  // 老浏览器没有 target 时退回 srcElement，再兜底到 window。
+  let target = nativeEvent.target || nativeEvent.srcElement || window
+
+  // SVG <use> 的事件统一指向对应的 use 元素。
+  if (target.correspondingUseElement) {
+    target = target.correspondingUseElement
+  }
+
+  // Safari 可能把事件派发到文本节点，统一上溯到它的父元素。
+  return target.nodeType === TEXT_NODE ? target.parentNode : target
+}
+```
+
+```ts [ReactDOMComponentTree.js]
+export function getClosestInstanceFromNode(targetNode) {
+  // React 管理的节点上直接挂着 Fiber 引用（__reactFiber$ + 随机串）。
+  let targetInst = targetNode[internalInstanceKey]
+  if (targetInst) {
+    return targetInst
+  }
+
+  // 目标不是 React 节点：沿父链向上找最近的 React 节点或容器。
+  let parentNode = targetNode.parentNode
+  while (parentNode) {
+    targetInst =
+      parentNode[internalContainerInstanceKey] ||
+      parentNode[internalInstanceKey]
+    if (targetInst) {
+      // 省略：跨过未水合节点时，优先返回内层 Suspense 的 Fiber。
+      return targetInst
+    }
+    targetNode = parentNode
+    parentNode = targetNode.parentNode
+  }
+
+  // 整条父链都没有 React 节点。
+  return null
+}
+```
+
+:::
+
+`getEventTarget` 负责从原生事件取出真实 DOM，`getClosestInstanceFromNode` 再沿父链找到最近的 React 节点；整条父链都没有 React 节点时返回 null。
+
+### 4.2 `dispatchEventForPluginEventSystem`
+
+拿到目标 Fiber 后，`dispatchEventForPluginEventSystem` 负责找到与当前根匹配的祖先，再用 `batchedUpdates` 进入插件事件系统。完整实现还要处理 Portal 与 hydration，这里只保留主路径：
 
 :::code-group
 
@@ -412,7 +569,7 @@ function dispatchEventForPluginEventSystem(
 
 :::
 
-### 4.2 `dispatchEventsForPlugins`
+### 4.3 `dispatchEventsForPlugins`
 
 建立本次事件的派发队列。插件只负责把`{ event, listeners }`放进队列，真正的执行留到队列处理阶段：
 
@@ -443,9 +600,24 @@ function dispatchEventsForPlugins(
 }
 ```
 
+```ts [react-dom/src/events/getEventTarget.js]
+function getEventTarget(nativeEvent) {
+  // 老浏览器没有 target 时退回 srcElement，再兜底到 window。
+  let target = nativeEvent.target || nativeEvent.srcElement || window
+
+  // SVG <use> 的事件统一指向对应的 use 元素。
+  if (target.correspondingUseElement) {
+    target = target.correspondingUseElement
+  }
+
+  // Safari 可能把事件派发到文本节点，统一上溯到它的父元素。
+  return target.nodeType === TEXT_NODE ? target.parentNode : target
+}
+```
+
 :::
 
-### 4.3 `extractEvents`：插件聚合
+### 4.4 `extractEvents`：插件聚合
 
 `SimpleEventPlugin` 负责基础事件；其余插件本质上是兼容层，只在冒泡阶段运行：
 
@@ -511,7 +683,7 @@ export function extractEvents(
 
 :::
 
-### 4.4 `SimpleEventPlugin.extractEvents`
+### 4.5 `SimpleEventPlugin.extractEvents`
 
 `SimpleEventPlugin` 先选好事件构造类，再收集监听器；只有找到监听器时才创建 `SyntheticEvent`：
 
@@ -581,33 +753,7 @@ function extractEvents(
 
 ## 5. 监听收集与执行顺序
 
-### 5.1 `getListener`
-
-监听器不在 Fiber 上，而在 DOM 节点的 props 里。`getListener` 通过 `getFiberCurrentPropsFromNode` 取回当前 props，再按 `onClick` 这类名字读取：
-
-:::code-group
-
-```ts [react-dom/src/events/DOMPluginEventSystem.js]
-function getListener(inst, registrationName) {
-  const stateNode = inst.stateNode
-  // 尚未挂载完成的 Fiber 没有可读取的 DOM。
-  if (stateNode === null) return null
-
-  const props = getFiberCurrentPropsFromNode(stateNode)
-  if (props === null) return null
-
-  const listener = props[registrationName]
-  // 禁用元素上的鼠标事件不再触发。
-  if (shouldPreventMouseEvent(registrationName, inst.type, props)) {
-    return null
-  }
-  return listener
-}
-```
-
-:::
-
-### 5.2 `accumulateSinglePhaseListeners`
+### 5.1 `accumulateSinglePhaseListeners`
 
 捕获与冒泡共用同一段收集逻辑，区别只在读取 `onClickCapture` 还是 `onClick`：
 
@@ -650,11 +796,59 @@ function accumulateSinglePhaseListeners(
 
   return listeners
 }
+
+// 同一个 DOM 节点上的监听器连同它的 Fiber 与 currentTarget 一起入队。
+function createDispatchListener(
+  instance: null | Fiber,
+  listener: Function,
+  currentTarget: EventTarget,
+): DispatchListener {
+  return {
+    instance,
+    listener,
+    currentTarget,
+  }
+}
 ```
 
 :::
 
 数组顺序固定为“**目标 → 根**”：捕获阶段执行时需要反向遍历，冒泡阶段正序执行。
+
+### 5.2 `getListener`
+
+监听器不在 Fiber 上，而在 DOM 节点的 props 里。`getListener` 通过 `getFiberCurrentPropsFromNode` 取回当前 props，再按 `onClick` 这类名字读取：
+
+:::code-group
+
+```ts [events/DOMPluginEventSystem.js]
+function getListener(inst, registrationName) {
+  const stateNode = inst.stateNode
+  // 尚未挂载完成的 Fiber 没有可读取的 DOM。
+  if (stateNode === null) return null
+
+  const props = getFiberCurrentPropsFromNode(stateNode)
+  if (props === null) return null
+
+  const listener = props[registrationName]
+  // 禁用元素上的鼠标事件不再触发。
+  if (shouldPreventMouseEvent(registrationName, inst.type, props)) {
+    return null
+  }
+  return listener
+}
+```
+
+```ts [client/ReactDOMComponentTree.js]
+export function getFiberCurrentPropsFromNode(
+  node: Instance | TextInstance | SuspenseInstance,
+): Props {
+  // props 挂在 DOM 节点的 __reactProps$ 属性上，没有则为 null。
+  return (node: any)[internalPropsKey] || null
+}
+```
+
+:::
 
 ### 5.3 `processDispatchQueue`
 
@@ -719,6 +913,25 @@ function executeDispatch(event, listener, currentTarget) {
 }
 ```
 
+```ts [shared/ReactErrorUtils.js]
+export function invokeGuardedCallbackAndCatchFirstError(
+  name: string,
+  func: (event: SyntheticEvent) => void,
+  context: any,
+  event: SyntheticEvent,
+): void {
+  try {
+    func.call(context, event)
+  } catch (error) {
+    // 只记录第一个错误；后续错误不再覆盖，保证「首错优先」
+    if (!hasCaughtError) {
+      hasCaughtError = true
+      firstCaughtError = error
+    }
+  }
+}
+```
+
 :::
 
 `currentTarget` 在执行前设置为当前监听器所在的 DOM 节点，执行后立即清空，因此合成事件在异步回调里读到的 `currentTarget` 是 `null`，这也是事件系统不再依赖池化仍要保留该字段的原因。
@@ -762,35 +975,41 @@ function requestUpdateLane(fiber) {
 
 因此点击事件里的 `setState` 拿到 `SyncLane`，滚动等连续事件拿到 `InputContinuousLane`，其余更新落到 `DefaultLane`。这些 Lane 如何参与选批、打断与过期，见 [Lane 模型](/frameworks/react/advanced/source-code/reconciler/laneModel)。
 
-## 7. 完整流程
+## 7. 完整流程图
 
 ```mermaid
-flowchart TD
-    A[原生事件到达根容器] --> B{事件优先级}
-    B -->|Discrete| C[dispatchDiscreteEvent<br/>设置 SyncLane]
-    B -->|Continuous| D[dispatchContinuousEvent<br/>设置 InputContinuousLane]
-    B -->|Default| E[dispatchEvent<br/>DefaultLane]
-    C --> F[dispatchEventForPluginEventSystem]
-    D --> F
-    E --> F
-    F --> G[dispatchEventsForPlugins]
-    G --> H[extractEvents<br/>SimpleEventPlugin + 兼容插件]
-    H --> I[accumulateSinglePhaseListeners<br/>目标 → 根]
-    I --> J[processDispatchQueue<br/>捕获反向 / 冒泡正向]
-    J --> K[batchedUpdates 结束<br/>恢复受控组件状态]
-```
+flowchart TB
+    subgraph init["① 初始化：一次注册"]
+        A["createRoot(container)"] --> B["listenToAllSupportedEvents<br/>遍历 allNativeEvents"]
+        B --> C["addTrappedEventListener<br/>按捕获 / 冒泡创建包装器"]
+        C --> D["addEventBubbleListener / addEventCaptureListener<br/>rootContainer.addEventListener"]
+    end
 
-```tree
-原生 click 冒泡到 root container
-  → dispatchDiscreteEvent：保存并设置当前更新优先级
-      → dispatchEvent → dispatchEventForPluginEventSystem
-          → 从 target DOM 取 Fiber，找到所属 root
-          → batchedUpdates
-              → extractEvents：SimpleEventPlugin 选中 SyntheticMouseEvent
-              → accumulateSinglePhaseListeners：从目标 Fiber 走到根
-              → processDispatchQueue：按捕获 / 冒泡顺序执行
-  → 恢复更新优先级
-  → 批次结束，restoreStateIfNeeded
+    subgraph run["② 运行时：原生事件到达根容器"]
+        E["原生 DOM 事件触发<br/>捕获 / 冒泡到根容器"] --> F{"事件优先级"}
+        F -->|Discrete| G["dispatchDiscreteEvent<br/>设置 SyncLane"]
+        F -->|Continuous| H["dispatchContinuousEvent<br/>设置 InputContinuousLane"]
+        F -->|Default| J
+        G --> J["dispatchEvent<br/>统一入口"]
+        H --> J
+        J --> K["findInstanceBlockingEvent<br/>解析目标 Fiber"]
+        K --> L["getEventTarget(nativeEvent)<br/>取真实 DOM"]
+        K --> M["getClosestInstanceFromNode<br/>DOM → Fiber"]
+        L --> N["dispatchEventForPluginEventSystem"]
+        M --> N
+        N --> O["batchedUpdates<br/>包裹批处理"]
+        O --> P["dispatchEventsForPlugins"]
+        P --> Q["extractEvents<br/>插件聚合"]
+        Q --> R["SimpleEventPlugin.extractEvents"]
+        R --> S["创建 SyntheticEvent"]
+        R --> T["accumulateSinglePhaseListeners<br/>沿 Fiber 树收集回调"]
+        S --> U["processDispatchQueue<br/>队列化执行"]
+        T --> U
+        U --> V["processDispatchQueueItemsInOrder<br/>捕获倒序 / 冒泡正序"]
+        V --> W["batchedUpdates 结束<br/>恢复受控组件状态"]
+    end
+
+    D -.->|"事件触发"| E
 ```
 
 ## 8. 总结

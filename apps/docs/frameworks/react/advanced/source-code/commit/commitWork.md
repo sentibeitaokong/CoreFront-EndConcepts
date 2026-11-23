@@ -91,7 +91,7 @@ function commitRootImpl(root, transitions) {
 | Layout         | `commitLayoutEffects`                                       | 执行 Layout Effect 的 create、`componentDidMount`、挂载 ref          |
 | Passive        | `commitPassiveMountEffects` / `commitPassiveUnmountEffects` | 在绘制后异步执行 `useEffect` 的 create 与 destroy                    |
 
-### 1.3 整体流程
+### 1.3 完整流程图
 
 ```mermaid
 flowchart TD
