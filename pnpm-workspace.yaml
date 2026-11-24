@@ -23,4 +23,5 @@ minimumReleaseAge: 0
 packages:
   - 'packages/*'
   - 'packages/vue/*'
+  - 'packages/react/*'
   - 'apps/*'

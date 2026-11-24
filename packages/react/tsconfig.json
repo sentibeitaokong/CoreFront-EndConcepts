@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.app.json",
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["**/node_modules/**", "**/dist/**"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "types": ["vitest/globals"],
+    "tsBuildInfoFile": "../../node_modules/.tmp/tsconfig.react.tsbuildinfo",
+    "paths": {
+      "shared/*": ["./shared/*"],
+      "react-reconciler/*": ["./react-reconciler/*"],
+      "react-dom/*": ["./react-dom/*"],
+      "scheduler/*": ["./scheduler/*"]
+    }
+  }
+}

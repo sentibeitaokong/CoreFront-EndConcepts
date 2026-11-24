@@ -244,6 +244,41 @@ importers:
         specifier: ^2.0.3
         version: 2.0.3(sharp@0.34.5)(svgo@4.0.1)(vite@8.0.16(@types/node@24.13.2)(esbuild@0.28.0)(jiti@2.7.0)(yaml@2.9.0))
 
+  packages/react/react:
+    dependencies:
+      react-reconciler:
+        specifier: workspace:*
+        version: link:../react-reconciler
+      shared:
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/react/react-dom:
+    dependencies:
+      react-reconciler:
+        specifier: workspace:*
+        version: link:../react-reconciler
+      shared:
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/react/react-reconciler:
+    dependencies:
+      scheduler:
+        specifier: workspace:*
+        version: link:../scheduler
+      shared:
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/react/scheduler:
+    dependencies:
+      shared:
+        specifier: workspace:*
+        version: link:../shared
+
+  packages/react/shared: {}
+
   packages/vue/compiler-core:
     dependencies:
       '@xunbei-vue/shared':
