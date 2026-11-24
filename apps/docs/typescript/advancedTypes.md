@@ -24,7 +24,7 @@ type B = IsString<123> // false
 条件类型的语法类似于三元表达式：`T extends U ? X : Y`。
 它的核心不在于简单的判断，而在于结合泛型时触发的**分配律（Distributive）**。
 
-#### 2.1 联合类型的分配律 (Distributive Conditional Types)
+### 2.1 联合类型的分配律 (Distributive Conditional Types)
 
 当条件类型左侧是**裸泛型参数 (Naked Type Parameter)**，且传入的是**联合类型**时，TS 会自动将联合类型拆开，逐项代入判断，最后将结果重新联合。
 
@@ -49,7 +49,7 @@ type AvailableStatus = MyExclude<'success' | 'failed' | 'pending', 'failed'>
 // 最终联合：'success' | 'pending'
 ```
 
-#### 2.2 打断分配律的黑魔法
+### 2.2 打断分配律的黑魔法
 
 有时候你不需要它自动分配，你希望把 `string | number` 当作一个完整的实体去对比。解决方法是**用方括号包裹**起来。
 
@@ -62,7 +62,7 @@ type IsStrictlyEqual<T, U> = [T] extends [U] ? true : false
 
 `infer` 是类型世界里的“**声明变量**”。它只能出现在条件类型的 `extends` 子句中，用于在模式匹配的过程中，临时捕获并提取局部类型。
 
-#### 3.1 剥离外壳，提取内核 (如 Promise 解包)
+### 3.1 剥离外壳，提取内核 (如 Promise 解包)
 
 Vue 3 的 `await` 解包和异步状态管理大量使用了这种机制。
 
@@ -75,7 +75,7 @@ type RawData = DeepUnwrapPromise<Promise<Promise<string[]>>>
 // 推导结果：string[]
 ```
 
-#### 3.2 提取函数的参数与返回值
+### 3.2 提取函数的参数与返回值
 
 这是构建高阶函数（HOC）或 AIGC Agent 工具链拦截器时的必备技能。
 
@@ -105,7 +105,7 @@ type PromptType = GetFirstArg<typeof chat>
 | `[K in keyof T]` | 遍历上述联合类型，每次迭代时变量设为 `K`。 |
 | `T[K]`           | 索引访问，获取原对象在该键下的**值类型**。 |
 
-#### 4.1 基础映射与修饰符控制
+### 4.1 基础映射与修饰符控制
 
 你可以通过前缀 `-` 或 `+` 来剥离或添加 `readonly` 和 `?`（可选）修饰符。
 
@@ -127,7 +127,7 @@ type PerfectUser = MutableAndRequired<User>
 // 推导结果：{ id: number; name: string; age: number; }
 ```
 
-#### 4.2 键名重映射 —— `as` 关键字
+### 4.2 键名重映射 —— `as` 关键字
 
 结合映射类型，我们可以对对象的修饰符（只读、可选）进行极其精细的增删，甚至重命名或过滤键名。
 

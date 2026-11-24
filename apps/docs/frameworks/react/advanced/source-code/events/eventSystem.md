@@ -177,20 +177,22 @@ function getEventPriority(domEventName) {
 
 :::
 
-[width(32,39,29)]
+[width(32,48,20)]
 
 | 事件优先级                | 典型原生事件                                                   | 对应 Lane             |
 | ------------------------- | -------------------------------------------------------------- | --------------------- |
 | `DiscreteEventPriority`   | `click`、`input`、`keydown`、`focusin`、`submit`、`touchstart` | `SyncLane`            |
 | `ContinuousEventPriority` | `scroll`、`mousemove`、`drag`、`wheel`、`touchmove`            | `InputContinuousLane` |
-| `DefaultEventPriority`    | `message` 及其余未列出的原生事件                               | `DefaultLane`         |
+| `DefaultEventPriority`    | 其余未列出的原生事件（如 `load`、`error`、动画结束）           | `DefaultLane`         |
 | `IdleEventPriority`       | 调度器处于 Idle 时的 `message`                                 | `IdleLane`            |
+
+> `message` 不是固定映射：Scheduler 为 Immediate / UserBlocking / Normal / Low / Idle 时，分别落到 Discrete / Continuous / Default / Idle。`mouseover`、`mouseout`、`pointerover`、`pointerout`、`mouseenter`、`mouseleave`、`pointerenter`、`pointerleave`、`dragenter`、`dragleave`、`dragover` 等也属于 Continuous，不是“**其余**”。
 
 ## 3. 注册阶段
 
 ### 3.1 `listenToAllSupportedEvents`
 
-`createRoot` 创建根容器后会调用 `listenToAllSupportedEvents`。它给每个根容器打一个随机 marker，保证只注册一次；随后遍历 `allNativeEvents`，为每种事件同时注册捕获与冒泡监听：
+`createRoot` 创建根容器后会调用 `listenToAllSupportedEvents`。它给每个根容器打一个随机 marker，保证只注册一次；随后遍历 `allNativeEvents`：可委托的事件在根容器上同时注册捕获与冒泡监听，`nonDelegatedEvents` 只在根容器注册捕获监听（冒泡监听由目标元素自己注册）：
 
 :::code-group
 
@@ -326,7 +328,7 @@ function addTrappedEventListener(
 
 ### 3.3 `createEventListenerWrapperWithPriority`
 
-同一个原生事件只会创建一个包装函数，它根据事件优先级选择不同的入口。入口的职责很单一：设置更新上下文，然后调用真正的 `dispatchEvent`：
+捕获和冒泡会各自创建一个包装函数——`listenToNativeEvent` 每被调用一次，就调用一次 `createEventListenerWrapperWithPriority`。包装函数根据事件优先级选择不同的入口。入口的职责很单一：设置更新上下文，然后调用真正的 `dispatchEvent`：
 
 :::code-group
 
@@ -631,6 +633,7 @@ export function extractEvents(
   nativeEvent,
   nativeEventTarget,
   eventSystemFlags,
+  targetContainer,
 ) {
   // 基础事件：click、input、键盘、焦点、指针等。
   SimpleEventPlugin.extractEvents(
@@ -640,6 +643,7 @@ export function extractEvents(
     nativeEvent,
     nativeEventTarget,
     eventSystemFlags,
+    targetContainer,
   )
 
   const shouldProcessPolyfillPlugins =
@@ -654,6 +658,7 @@ export function extractEvents(
       nativeEvent,
       nativeEventTarget,
       eventSystemFlags,
+      targetContainer,
     )
     ChangeEventPlugin.extractEvents(
       dispatchQueue,
@@ -661,6 +666,8 @@ export function extractEvents(
       targetInst,
       nativeEvent,
       nativeEventTarget,
+      eventSystemFlags,
+      targetContainer,
     )
     SelectEventPlugin.extractEvents(
       dispatchQueue,
@@ -669,6 +676,7 @@ export function extractEvents(
       nativeEvent,
       nativeEventTarget,
       eventSystemFlags,
+      targetContainer,
     )
     BeforeInputEventPlugin.extractEvents(
       dispatchQueue,
@@ -676,6 +684,8 @@ export function extractEvents(
       targetInst,
       nativeEvent,
       nativeEventTarget,
+      eventSystemFlags,
+      targetContainer,
     )
   }
 }

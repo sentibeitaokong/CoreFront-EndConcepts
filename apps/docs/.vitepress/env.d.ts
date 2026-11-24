@@ -10,6 +10,10 @@ declare module 'rollup-plugin-visualizer' {
   export function visualizer(options?: Record<string, unknown>): any
 }
 
+// 这两个 markdown-it 插件没有自带类型声明，也没有对应的 @types 包
+declare module 'markdown-it-footnote'
+declare module 'markdown-it-task-lists'
+
 // markdown-it-any-block 的 package.json 里 types 指向的文件不存在，且 exports 没有声明类型入口，
 // TS 解析不到它自带的 .ts 声明，这里补一条环境声明（用法见 config.mts）
 declare module 'markdown-it-any-block/node' {

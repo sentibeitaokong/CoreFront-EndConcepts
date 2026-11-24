@@ -116,7 +116,7 @@
 
 利用 `pnpm workspace`，在一个 Git 仓库内将“**业务代码**”和“**底层基建**”进行物理隔离与拓扑关联：
 
-```markdown
+```tree
 CoreFront-EndConcepts/ # 仓库根目录
 ├── applications/ # 业务应用层 (Apps)
 │ └── basicSOP/ # 具体的业务系统 (Vite + Vue 3)

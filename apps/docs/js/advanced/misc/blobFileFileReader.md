@@ -17,7 +17,7 @@
 
 ## 2. 二进制数据家族关系
 
-```markdown
+```tree
 ArrayBuffer（纯字节）
 ├── TypedArray / DataView（操作字节的视图）
 └── Blob（二进制数据块，面向应用层）
@@ -235,9 +235,9 @@ btoa(binary) // 注意：大数组这样转既慢又占内存，优先用 FileRe
 
 ### 3.7 Blob 的内存与性能
 
-- 浏览器**不会**把 Blob 数据一直压在 JS 堆里：以 Chromium 为例，超过阈值后数据落到磁盘 blob storage（单进程上限约 2 GB），“创建大 Blob”通常比“创建等长字符串”便宜。
+- 浏览器**不会**把 Blob 数据一直压在 JS 堆里：以 Chromium 为例，超过阈值后数据落到磁盘 blob storage（单进程上限约 2 GB），“**创建大 Blob**”通常比“**创建等长字符串**”便宜。
 - 内存峰值来自**读取**：`blob.text()`、`blob.arrayBuffer()`、`new Response(blob).blob()` 都把全部内容复制进 JS 堆。
-- `blob.slice()` 与 `URL.createObjectURL()` 都很廉价，可放心循环使用；不要为了“省内存”先把大文件读成 `ArrayBuffer`。
+- `blob.slice()` 与 `URL.createObjectURL()` 都很廉价，可放心循环使用；不要为了“**省内存**”先把大文件读成 `ArrayBuffer`。
 - 忘记 `revokeObjectURL` 属于典型的[内存泄漏](/js/advanced/misc/gcMemoryLeak)：Blob 数据因 URL 引用无法回收，DevTools 里搜 `blob:` 能找到。
 
 ## 4. `File`：带元信息的 Blob

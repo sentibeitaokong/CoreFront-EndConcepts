@@ -180,7 +180,7 @@ Activity 允许隐藏的 UI 在后台以**低优先级**准备：
 
 ### 2.4 与手写 `display: none` 的区别
 
-`<Activity mode="hidden">` 底层也会给宿主节点设置 `display: none`，所以“DOM 是否保留”不是它与手写 CSS 的核心区别。关键差异在于：
+`<Activity mode="hidden">` 底层也会给宿主节点设置 `display: none`，所以“**DOM 是否保留**”不是它与手写 CSS 的核心区别。关键差异在于：
 
 - Activity 隐藏时会销毁 effect（执行 cleanup），恢复可见时重新执行 setup；手写 `display: none` 的组件 effect 仍在运行。
 - React 知道这棵子树处于 hidden 状态，可以把它排除在正常渲染之外，并以低优先级在后台预渲染。

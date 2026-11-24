@@ -211,7 +211,7 @@ for await (const chunk of res.body) {
 
 **三个回调的调用顺序（理解了就懂了整条流）：**
 
-```markdown
+```tree
 new ReadableStream(source)
 └─ ① 立刻调用 start(controller)，只调一次
 reader.read()

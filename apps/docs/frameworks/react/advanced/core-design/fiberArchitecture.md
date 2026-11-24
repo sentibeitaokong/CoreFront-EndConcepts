@@ -232,7 +232,7 @@ type FiberRootNode = {
 // FiberRootNode.current → rootFiber
 ```
 
-```markdown [根节点信息]
+```tree [根节点信息]
 FiberRootNode（全局唯一）
 ├── current ──→ current 树的根 Fiber（HostRoot）
 │ ├── child → App
@@ -349,7 +349,7 @@ React 在 `beginWork` 阶段对每个 Fiber 做一次“**是否需要工作**�
 - `hasLegacyContextChanged() === false`（相关 context 未变）
 - 当前 Fiber 自身没有挂起的 `lanes`（`fiber.lanes` 与本次 `renderLanes` 无交集）
 
-这里看的是 `fiber.lanes` 而不是 `childLanes`：`childLanes` 只用于 `bailoutOnAlreadyFinishedWork` 判断“子树里还有没有工作”。函数组件也没有 `oldState === newState` 这一条——state 更新同样记录在 `lanes` 和更新队列里。
+这里看的是 `fiber.lanes` 而不是 `childLanes`：`childLanes` 只用于 `bailoutOnAlreadyFinishedWork` 判断“**子树里还有没有工作**”。函数组件也没有 `oldState === newState` 这一条——state 更新同样记录在 `lanes` 和更新队列里。
 
 ### 9.2 架构如何让 Bailout 廉价化
 

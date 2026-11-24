@@ -58,7 +58,7 @@ features:
     link: /frameworks/vue/advanced/source-code/vueCatalog
 
   - icon:
-      src: /img/frameworks.svg
+      src: /img/React.svg
     title: React 18 源码实现
     details: 从 ReactElement、Fiber、工作循环到 Hooks、Scheduler、事件系统与 Lane 模型，按 18.3.1 源码顺序拆解。
     link: /frameworks/react/advanced/source-code/sourceCodeCatalog

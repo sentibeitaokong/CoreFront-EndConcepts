@@ -437,7 +437,7 @@
 | `git grep -n <pattern>`                       | 搜索并显示行号。                                       |
 | `git ls-files`                                | 列出所有已被跟踪的文件。                               |
 | `git archive --format=zip HEAD -o <name>.zip` | 将当前版本打包为 zip 文件（不包含 `.git` 目录）。      |
-| `git fsck`                                    | 检查仓库的完整性和连通性，可找回“丢失”的对象。         |
+| `git fsck`                                    | 检查仓库的完整性和连通性，可找回“**丢失**”的对象。     |
 | `git fsck --lost-found`                       | 找回悬空（dangling）的 commit 对象。                   |
 | `git gc`                                      | 执行垃圾回收，压缩仓库，优化性能。                     |
 

@@ -19,7 +19,7 @@ Git 的分支模型决定了团队如何协作、代码如何集成、版本如�
 
 Git Flow 用一组**长期分支**和**临时分支**明确职责：
 
-```markdown
+```tree
 main ──●───────────────●─────●── 正式发布，只合并 release/hotfix
 \ / /
 develop ●──●──●──●──●──●──●── 开发主线，所有 feature 合并到这里
@@ -74,7 +74,7 @@ git merge hotfix/payment-crash
 
 GitHub Flow 只保留一条主干 `main`，所有改动走**短命 feature 分支 + Pull Request**：
 
-```markdown
+```tree
 main ──●──────●──────●──────●── 任何分支合并即代表「可发布」
 \ / \ /
 feature/a ●──● ●──● 功能分支，合入 main 后立即删除
@@ -104,7 +104,7 @@ git branch -d feature/xxx
 
 在 GitHub Flow 基础上，增加 `staging`、`production` 等**环境分支**，让代码按环境逐级流动：
 
-```markdown
+```tree
 main ──●──●──●──●──
 \ \
 staging ─────●──────●──── 测试/预发环境
@@ -118,7 +118,7 @@ production ──────────●──── 生产环境
 
 所有开发者**直接在主干 `main` 上小步、高频提交**，用 **特性开关（Feature Flag）** 隔离未完成的功能，而非用长命分支隔离。
 
-```markdown
+```tree
 main ●──●──●──●──●──●──●── 所有人直接提交到主干，每次提交都自动部署
 ```
 

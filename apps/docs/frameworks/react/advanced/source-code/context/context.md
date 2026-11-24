@@ -329,7 +329,8 @@ function updateContextProvider(
   } else {
     if (oldProps !== null) {
       // 比较的是这个 Provider 上一轮提供的值，而不是 context._currentValue。
-      // context._currentValue此时已经被PopProvide恢复成了外层的值
+      // 上一行的 pushProvider 已把 _currentValue 覆盖成 newValue；
+      // 外层值是上一轮 completeWork 里的 popProvider 恢复的。
       const oldValue = oldProps.value
       if (is(oldValue, newValue)) {
         // 值没变，children 也没变时可以直接跳过子树。

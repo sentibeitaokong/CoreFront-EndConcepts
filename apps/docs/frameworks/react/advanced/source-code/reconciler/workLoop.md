@@ -462,7 +462,7 @@ function prepareFreshStack(root, lanes) {
 
 :::code-group
 
-```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
+```ts [ReactFiberWorkLoop.old.js]
 /** @noinline */
 function workLoopSync() {
   // 已超时，持续执行到整棵树完成，不再检查是否让出。
@@ -480,7 +480,7 @@ function workLoopConcurrent() {
 }
 ```
 
-```ts [scheduler/src/Scheduler.js]
+```ts [Scheduler.js]
 // 本次时间切片的起点；默认帧间隔为 5ms。
 let startTime = -1
 let frameInterval = 5
@@ -499,9 +499,19 @@ function shouldYieldToHost(): boolean {
 export { shouldYieldToHost as unstable_shouldYield }
 ```
 
-```ts [shared/utils.ts]
-// 当前时间获取，底层依赖 performance.now()。
-export const getCurrentTime = (): number => performance.now()
+```ts [Scheduler.js]
+// 官方 18.3.1 的时间源：优先 performance.now()，不可用时退回 Date.now()。
+const localDate = Date
+const initialTime = localDate.now()
+let getCurrentTime
+const hasPerformanceNow =
+  typeof performance === 'object' && typeof performance.now === 'function'
+if (hasPerformanceNow) {
+  const localPerformance = performance
+  getCurrentTime = () => localPerformance.now()
+} else {
+  getCurrentTime = () => localDate.now() - initialTime
+}
 ```
 
 :::
@@ -591,7 +601,7 @@ function completeUnitOfWork(unitOfWork) {
 
 - 从当前 `workInProgress` 沿 `return` 向上查找最近的有错误处理能力的 Fiber。
 - 找到错误边界后，给它打上 `ShouldCapture` / `DidCapture`，并安排一次重新渲染。
-- 找不到边界时，把根标记为 `RootFatalErrored`，整棵树渲染失败。
+- 找不到边界时，回退到 `HostRoot` 捕获：给它打上 `ShouldCapture`、入队一条 root error update，重新渲染时卸载整棵树。`RootFatalErrored` 只在 `handleError` 遇到 `erroredWork === null`（错误发生在根自身、没有可回退的 Fiber）时设置。
 - 中途失败的节点会带上 `Incomplete`，`completeUnitOfWork` 通过 `unwindWork` 弹出上下文而不是执行正常的完成逻辑。
 
 ### 3.8 `RootExitStatus`

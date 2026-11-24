@@ -54,8 +54,9 @@
     "release:build": "pnpm --filter xb-element run build",
     "changeset:publish": "changeset publish",
     "preview": "vite preview",
-    "test": "run-s test:vue test:xb",
+    "test": "run-s test:vue test:react test:xb",
     "test:vue": "vitest run packages/vue",
+    "test:react": "vitest run packages/react",
     "test:xb": "vitest run packages/xbElement",
     "prepare": "husky"
   },

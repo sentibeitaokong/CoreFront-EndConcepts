@@ -365,7 +365,7 @@ fetch(url, { credentials: 'include' })
 
 ### 4.4 为什么 `fetch` 遇到 404 或 500 不走 `catch`？
 
-**机制**: `fetch` 的 Promise 只有在**网络断开**或**DNS 解析失败**时才会 Reject (走 catch)。HTTP 状态码错误（如 404 Not Found）被认为是请求“成功”完成了。
+**机制**: `fetch` 的 Promise 只有在**网络断开**或**DNS 解析失败**时才会 Reject (走 catch)。HTTP 状态码错误（如 404 Not Found）被认为是请求“**成功**”完成了。
 
 **解法**: 必须在 `then` 或 `await` 之后手动判断 `if (!response.ok)`.
 

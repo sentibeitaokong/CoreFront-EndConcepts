@@ -36,7 +36,7 @@ const promise = new Promise(function(resolve, reject) {
 
 `Promise`构造函数接受一个函数作为参数，该函数的两个参数分别是`resolve`和`reject`。这两个函数由 JavaScript 引擎提供，不用自己部署。
 
-`resolve`函数将`Promise`对象的状态从“未完成”**变为**“**成功**”（即从 pending 变为 resolved），在异步操作成功时调用，并把结果作为参数传递出去；`reject`函数将状态从“**未完成**”变为“**失败**”（即从 pending 变为 rejected），在异步操作失败时调用，并把报出的错误作为参数传递出去。
+`resolve`函数将`Promise`对象的状态从“**未完成**”**变为**“**成功**”（即从 pending 变为 resolved），在异步操作成功时调用，并把结果作为参数传递出去；`reject`函数将状态从“**未完成**”变为“**失败**”（即从 pending 变为 rejected），在异步操作失败时调用，并把报出的错误作为参数传递出去。
 
 `Promise`实例生成以后，可以用`then`方法分别指定`resolved`状态和`rejected`状态的回调函数。
 
@@ -1229,7 +1229,7 @@ myPromise
 | `Promise.reject(reason)`                | 返回一个以给定 `reason` **立即 `reject`** 的 `Promise` 对象。                                                                                                       | 一个 `rejected` 的 `Promise`                                                                                                                                                   |
 | `Promise.all(iterable)`                 | **“与”逻辑**。接收一个 `Promise` 数组。当**所有** `Promise` 都 `fulfilled` 时，它才会 `fulfilled`。只要有**一个** `Promise` `rejected`，它就会立即 `rejected`。     | `fulfilled` 时，返回一个包含所有 `Promise` 结果的**数组**（顺序与输入一致）。<br>`rejected` 时，返回第一个 `rejected` 的 `Promise` 的原因。                                    |
 | `Promise.race(iterable)`                | **“赛跑”逻辑**。接收一个 `Promise` 数组。只要**第一个** `Promise` 改变状态（无论是 `fulfilled` 还是 `rejected`），它就会立即以相同的状态和值/原因改变。             | 第一个改变状态的 `Promise` 的结果或原因。                                                                                                                                      |
-| `Promise.allSettled(iterable)` (ES2020) | 接收一个 `Promise` 数组。**永远不会 `rejected`**。它会**等待所有** `Promise` 都“尘埃落定”（`fulfilled` 或 `rejected`）。                                            | 一个 `fulfilled` 的 `Promise`，其值为一个对象数组，每个对象描述了对应 `Promise` 的最终状态：<br>`{ status: 'fulfilled', value: ... }` 或 `{ status: 'rejected', reason: ... }` |
+| `Promise.allSettled(iterable)` (ES2020) | 接收一个 `Promise` 数组。**永远不会 `rejected`**。它会**等待所有** `Promise` 都“**尘埃落定**”（`fulfilled` 或 `rejected`）。                                        | 一个 `fulfilled` 的 `Promise`，其值为一个对象数组，每个对象描述了对应 `Promise` 的最终状态：<br>`{ status: 'fulfilled', value: ... }` 或 `{ status: 'rejected', reason: ... }` |
 | `Promise.any(iterable)` (ES2021)        | **“或”逻辑**。接收一个 `Promise` 数组。只要有**一个** `Promise` `fulfilled`，它就会立即 `fulfilled`。只有当**所有** `Promise` 都 `rejected` 时，它才会 `rejected`。 | `fulfilled` 时，返回第一个 `fulfilled` 的 `Promise` 的值。<br>`rejected` 时，返回一个包含所有 `reason` 的 `AggregateError`。                                                   |
 
 ### **4.5 `Promise` 总结**

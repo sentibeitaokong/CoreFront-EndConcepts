@@ -441,9 +441,9 @@ queue.pending ──▶ update3
 
 ### 6.3 入队与调度
 
-`useState` 和 `useReducer` 的 `dispatch` 最终都会走 `enqueueConcurrentHookUpdate`：它把 `Update` 挂进队列，并返回需要调度的根节点。随后 `scheduleUpdateOnFiber` 把“**状态变化**”转成“**根节点上有一条指定 lane 的待处理工作**”。
+非渲染阶段的 `dispatch` 会走 `enqueueConcurrentHookUpdate`：它把 `Update` 挂进队列，并返回需要调度的根节点，随后 `scheduleUpdateOnFiber` 把“**状态变化**”转成“**根节点上有一条指定 lane 的待处理工作**”。渲染阶段产生的更新不同，会走 `enqueueRenderPhaseUpdate`，只进入本次渲染队列，不调度根节点。
 
-队列入队之后如何在渲染阶段被消费，见 [useReducer](/frameworks/react/advanced/source-code/hooks/useReducer#_3-updatereducer-合并队列与按-lane-处理)；`useState` 在入队前多走一条 eager bailout 快速路径，见 [useState](/frameworks/react/advanced/source-code/hooks/useState#_4-dispatchsetstate-与-eager-bailout)。
+队列入队之后如何在渲染阶段被消费，见 [useReducer](/frameworks/react/advanced/source-code/hooks/useReducer#_3-updatereducer-合并队列与按-lane-处理)；`useState` 在入队前多走一条 eager bailout 快速路径，见 [useState](/frameworks/react/advanced/source-code/hooks/useState#_5-dispatchsetstate)。
 
 ## 7. 完整流程图
 

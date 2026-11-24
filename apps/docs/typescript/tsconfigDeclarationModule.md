@@ -96,7 +96,7 @@ tsc -p ./tsconfig.json --noEmit --strict false
 
 [width(13,34,53)]
 
-| 配置项   | 决定“产物长什么样”                                        | 决定“类型系统认识什么”                                          |
+| 配置项   | 决定“**产物长什么样**”                                    | 决定“**类型系统认识什么**”                                      |
 | :------- | :-------------------------------------------------------- | :-------------------------------------------------------------- |
 | `target` | 产物 JS 的语法版本（是否降级箭头函数、可选链、类字段）    | **不写 `lib` 时，由它推导默认的库类型**（默认还会带上 `DOM`）   |
 | `lib`    | ❌ 完全不影响产物                                         | 能认识哪些内置全局类型：`Promise`、`Map`、`document` 都来自这里 |
@@ -360,7 +360,7 @@ declare module 'vue-router' {
 **对照实验（实测）**，两条规则的差别非常关键：
 
 - 写在模块文件里 → 原库的声明**完好保留**，新加的字段能被识别。✅ 这是增强。
-- 写在**没有** `import` / `export` 的 script 文件里 → 原库的声明被**整个顶掉**，只剩下你写的那点内容（原来 `Foo.a` 会直接消失）。❌ 这不是增强，是“重新声明”。
+- 写在**没有** `import` / `export` 的 script 文件里 → 原库的声明被**整个顶掉**，只剩下你写的那点内容（原来 `Foo.a` 会直接消失）。❌ 这不是增强，是“**重新声明**”。
 
 **硬性限制**：模块增强里只能写声明，不能出现 `export` / `export default`，否则报 `error TS2666`。
 
@@ -373,7 +373,7 @@ declare module 'vue-router' {
 | `declare const` / `let` / `var` | 声明全局变量，如 `declare const __DEV__: boolean`                                 |
 | `declare function`              | 声明全局函数                                                                      |
 | `declare class`                 | 声明类的结构（不含实现）                                                          |
-| `declare namespace`             | 声明命名空间，常用于描述“函数对象上的静态成员”                                    |
+| `declare namespace`             | 声明命名空间，常用于描述“**函数对象上的静态成员**”                                |
 | `declare module 'x'`            | script 文件里 = **新建**一个模块声明；module 文件里 = **增强**已有模块            |
 | `declare global`                | 在 **module 文件**里扩展全局作用域                                                |
 | `declare enum`                  | 声明一个环境枚举（只描述形状，产物里不存在）                                      |
@@ -388,7 +388,7 @@ declare module 'vue-router' {
 ```
 
 - `/// <reference types="..." />` 只作用于**当前这一个文件**，等价于给这个文件单独打开某个全局类型包；要全局生效，还是应该写在 `tsconfig.json` 的 `types` 里。
-- 现在还在用它的典型场景：一个 `.d.ts` 需要引用另一份声明，但**不能加 `import`**（加了就不再是全局脚本了）。这时三斜线指令是唯一不破坏“脚本”语义的写法。
+- 现在还在用它的典型场景：一个 `.d.ts` 需要引用另一份声明，但**不能加 `import`**（加了就不再是全局脚本了）。这时三斜线指令是唯一不破坏“**脚本**”语义的写法。
 - `@types/*` 是社区维护的类型包（DefinitelyTyped）。**不写 `types` 时，`@types` 下的所有包都会被自动加载**；写了 `types` 就只加载列出的那些。
 
 ## 4. 现代工程化典型配置模板 (Vite + Vue3/React)
@@ -513,7 +513,7 @@ declare module '*.vue' {
 
 不同运行环境支持的全局变量、模块系统完全不同（例如 Node 环境有 `process`，浏览器有 `window`）。因此，最佳实践是采用“**基础配置 + 按需扩展**”的模式。
 
-```markdown
+```tree
 project-root/
 ├── tsconfig.base.json # 核心基础规范（全公司/全项目通用）
 ├── tsconfig.app.json # 浏览器端业务代码配置
@@ -774,7 +774,7 @@ specifying option 'declaration' or option 'composite'.
 | `tsc --watch`                | 监听文件变化，增量重查                                           |
 | `tsc --showConfig`           | 打印继承与默认值合并后的**最终配置**，排查继承问题的第一手段     |
 | `tsc --listFilesOnly`        | 列出参与编译的文件，排查 `include` / `exclude` 写错              |
-| `tsc --extendedDiagnostics`  | 输出各阶段耗时统计，回答“为什么类型检查这么慢”                   |
+| `tsc --extendedDiagnostics`  | 输出各阶段耗时统计，回答“**为什么类型检查这么慢**”               |
 | `tsc --generateTrace <目录>` | 生成性能 trace 文件，可在 Chrome 的 `about:tracing` 里可视化分析 |
 | `tsc --noErrorTruncation`    | 长类型不被 `...` 省略，排查复杂泛型报错时必开                    |
 

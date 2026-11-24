@@ -419,7 +419,7 @@ export function start(options = {}) {
 - **`prefetch`**：`true` 表示首个子应用挂载后再预加载其余应用；`'all'` 表示 `start` 后立即预加载全部；传数组只预加载指定 name。预加载会和首屏抢带宽，首屏敏感的后台建议用数组圈定高频应用。
 - **`excludeAssetFilter`**：有些第三方脚本不希望经过 qiankun 的 `fetch` + `new Function` 执行（例如自带 JSONP、依赖 `document.currentScript` 的 SDK），命中后 qiankun 会按原生方式加载。
 - **`fetch`**：适合给资源请求统一加签名、鉴权头，或让资源请求走内部网关。它只影响 qiankun 拉取子应用资源的请求，不影响子应用自己的业务请求。
-- **`getPublicPath`**：用于修正 `__INJECTED_PUBLIC_PATH_BY_QIANKUN__`。子应用产物部署在 CDN 或非入口目录时，靠它告诉子应用“静态资源的真实基址”。
+- **`getPublicPath`**：用于修正 `__INJECTED_PUBLIC_PATH_BY_QIANKUN__`。子应用产物部署在 CDN 或非入口目录时，靠它告诉子应用“**静态资源的真实基址**”。
 - **`getTemplate`**：拿到的是入口 HTML 字符串，可以在解析前做替换，例如剔除不需要的埋点脚本、注入环境变量。
 
 :::details 部分配置项(源码位置)

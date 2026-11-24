@@ -88,28 +88,29 @@ pnpm docs:preview
 
 ## 常用脚本
 
-| 命令                       | 说明                                         |
-| -------------------------- | -------------------------------------------- |
-| `pnpm dev`                 | 通过 Turbo 执行各 workspace 的开发命令       |
-| `pnpm build`               | 通过 Turbo 执行各 workspace 的构建命令       |
-| `pnpm docs:dev`            | 先构建 `xb-element`，再启动 VitePress 文档站 |
-| `pnpm docs:dev-only`       | 直接启动 VitePress 文档站                    |
-| `pnpm docs:build`          | 先构建 `xb-element`，再构建 VitePress 文档站 |
-| `pnpm docs:build-only`     | 直接构建 VitePress 文档站                    |
-| `pnpm docs:build-analyze`  | 构建文档站并生成 bundle 分析报告             |
-| `pnpm docs:preview`        | 本地预览 VitePress 构建产物                  |
-| `pnpm docs:preview:ci`     | 以固定地址和端口预览文档站构建产物           |
-| `pnpm docs:clean`          | 清理文档站缓存                               |
-| `pnpm docs:rebuild`        | 清理缓存后重新构建文档站                     |
-| `pnpm docs:lint`           | 检查 Markdown 文档格式                       |
-| `pnpm test`                | 执行 mini Vue 与 `xb-element` 测试           |
-| `pnpm test:vue`            | 执行 `packages/vue` 相关测试                 |
-| `pnpm test:xb`             | 执行 `packages/xbElement` 测试               |
-| `pnpm type-check`          | 通过 Turbo 执行类型检查                      |
-| `pnpm type-check:tsconfig` | 用 `vue-tsc` 校验 TS 项目引用                |
-| `pnpm xb:build`            | 构建 `xb-element`                            |
-| `pnpm xb:test`             | 测试 `xb-element`                            |
-| `pnpm monitor:lh`          | 使用 Unlighthouse 检查线上/预览站点质量      |
+| 命令                       | 说明                                           |
+| -------------------------- | ---------------------------------------------- |
+| `pnpm dev`                 | 通过 Turbo 执行各 workspace 的开发命令         |
+| `pnpm build`               | 通过 Turbo 执行各 workspace 的构建命令         |
+| `pnpm docs:dev`            | 先构建 `xb-element`，再启动 VitePress 文档站   |
+| `pnpm docs:dev-only`       | 直接启动 VitePress 文档站                      |
+| `pnpm docs:build`          | 先构建 `xb-element`，再构建 VitePress 文档站   |
+| `pnpm docs:build-only`     | 直接构建 VitePress 文档站                      |
+| `pnpm docs:build-analyze`  | 构建文档站并生成 bundle 分析报告               |
+| `pnpm docs:preview`        | 本地预览 VitePress 构建产物                    |
+| `pnpm docs:preview:ci`     | 以固定地址和端口预览文档站构建产物             |
+| `pnpm docs:clean`          | 清理文档站缓存                                 |
+| `pnpm docs:rebuild`        | 清理缓存后重新构建文档站                       |
+| `pnpm docs:lint`           | 检查 Markdown 文档格式                         |
+| `pnpm test`                | 执行 mini Vue、mini React 与 `xb-element` 测试 |
+| `pnpm test:vue`            | 执行 `packages/vue` 相关测试                   |
+| `pnpm test:react`          | 执行 `packages/react` 相关测试                 |
+| `pnpm test:xb`             | 执行 `packages/xbElement` 测试                 |
+| `pnpm type-check`          | 通过 Turbo 执行类型检查                        |
+| `pnpm type-check:tsconfig` | 用 `vue-tsc` 校验 TS 项目引用                  |
+| `pnpm xb:build`            | 构建 `xb-element`                              |
+| `pnpm xb:test`             | 测试 `xb-element`                              |
+| `pnpm monitor:lh`          | 使用 Unlighthouse 检查线上/预览站点质量        |
 
 ## 组件库开发
 
@@ -149,7 +150,7 @@ pnpm --filter xb-element type-check
 - `react-reconciler`：Fiber、工作循环、Render / Commit、Hooks、事件优先级与 Lane
 - `shared`：跨包共享类型与工具
 
-测试位于 `packages/react/**/__tests__`，可配合文档站「源码剖析：调度、协调与渲染」专题阅读。
+测试位于 `packages/react/**/__tests__`，可通过 `pnpm test:react` 执行，配合文档站「源码剖析：调度、协调与渲染」专题阅读。
 
 ## 文档编写约定
 

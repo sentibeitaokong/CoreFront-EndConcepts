@@ -185,11 +185,11 @@ lastEffect ──▶ effect3 ──next──▶ effect1 ──next──▶ eff
 
 [width(26,33,17,24)]
 
-| Hook                 | Fiber 标记                                            | Effect 标记     | 执行阶段                           |
-| -------------------- | ----------------------------------------------------- | --------------- | ---------------------------------- |
-| `useEffect`          | `PassiveEffect \| PassiveStaticEffect`                | `HookPassive`   | Commit 之后，Scheduler 异步回调    |
-| `useLayoutEffect`    | `UpdateEffect`（满足条件时再加 `LayoutStaticEffect`） | `HookLayout`    | Mutation 之后、浏览器绘制之前同步  |
-| `useInsertionEffect` | `UpdateEffect`                                        | `HookInsertion` | Mutation 阶段早期，早于 Layout同步 |
+| Hook                 | Fiber 标记                                                        | Effect 标记     | 执行阶段                           |
+| -------------------- | ----------------------------------------------------------------- | --------------- | ---------------------------------- |
+| `useEffect`          | 挂载 `PassiveEffect \| PassiveStaticEffect`；更新 `PassiveEffect` | `HookPassive`   | Commit 之后，Scheduler 异步回调    |
+| `useLayoutEffect`    | `UpdateEffect`（满足条件时再加 `LayoutStaticEffect`）             | `HookLayout`    | Mutation 之后、浏览器绘制之前同步  |
+| `useInsertionEffect` | `UpdateEffect`                                                    | `HookInsertion` | Mutation 阶段早期，早于 Layout同步 |
 
 ## 3. 实现原理
 
@@ -548,8 +548,8 @@ React 18 的 Effect 顺序有四条规则：
 flowchart LR
     A["Render：执行组件函数"] --> B["Mutation：Insertion destroy/create"]
     B --> C["Mutation：Layout destroy"]
-    C --> D["Layout：Layout create"]
-    D --> E["root.current = finishedWork"]
+    C --> D["root.current = finishedWork"]
+    D --> E["Layout：Layout create"]
     E --> F["浏览器绘制"]
     F --> G["Scheduler：Passive unmount/mount"]
 ```

@@ -45,7 +45,8 @@ export default {
         if ('requestIdleCallback' in window) {
           window.requestIdleCallback(initSentry, { timeout: 3000 })
         } else {
-          window.setTimeout(initSentry, 3000)
+          // `in` 收窄会把 window 推到 never，这里直接用全局 setTimeout
+          setTimeout(initSentry, 3000)
         }
       } else {
         console.info('Sentry disabled in development')

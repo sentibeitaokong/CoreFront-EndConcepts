@@ -17,7 +17,11 @@ Commit 的总入口是 `commitRootImpl`。它拿到 Render 阶段留下的 `root
 ```ts [react-reconciler/src/ReactFiberWorkLoop.old.js]
 function commitRootImpl(root, transitions) {
   // 上一轮挂起的 Passive Effect 先清完，避免本次提交与旧副作用交错。
-  flushPassiveEffects()
+  // flushPassiveEffects 末尾的 flushSyncCallbacks 可能又产生新的 Passive Effect，
+  // 所以要循环清空。
+  do {
+    flushPassiveEffects()
+  } while (rootWithPendingPassiveEffects !== null)
 
   const finishedWork = root.finishedWork
   const lanes = root.finishedLanes
@@ -1025,7 +1029,7 @@ function commitPassiveMountOnFiber(
 
 - `useEffect` 的语义是“**浏览器绘制之后**”，此时布局已经稳定，读取布局不会触发额外的强制同步。
 - 如果同步执行，耗时副作用会阻塞绘制，用户看到首屏的时间变长。
-- 交给 Scheduler 后，React 可以在浏览器空闲时执行，必要时还能继续让出主线程。
+- 交给 Scheduler 后，React 可以在浏览器空闲时执行；但一次 `flushPassiveEffects` 会在同一个 Scheduler 回调内同步跑完，执行中途不会让出，只能在多次回调之间让出。
 - 卸载时的 `useEffect` destroy 也要等 DOM 移除完成后再执行，避免清理函数访问已经不在文档中的节点。
 
 ## 7. 总结

@@ -98,14 +98,14 @@ Fiber 放弃了传统的 `children: []` 数组，改用 **“第一个子节点 
 
 ```mermaid
 graph TD
-    Root[FiberRoot<br/>容器根] -->|child| A[Fiber A<br/>HostRoot]
+    Root[FiberRoot<br/>容器根] -->|current| A[Fiber A<br/>HostRoot]
     A -->|child| B[Fiber B<br/>div]
     B -->|child| C[Fiber C<br/>span]
     C -->|sibling| D[Fiber D<br/>text]
     B -->|sibling| E[Fiber E<br/>button]
     E -->|child| F[Fiber F<br/>text]
 
-    A -->|return| Root
+    A -->|return| Null[null]
     B -->|return| A
     C -->|return| B
     D -->|return| B
@@ -137,7 +137,7 @@ export const HostComponent = 5 // 原生宿主组件，如 div、span
 export const HostText = 6 // 文本节点
 export const Fragment = 7 // Fragment，<></>
 export const Mode = 8 // 子树模式节点，如 StrictMode
-export const ContextConsumer = 9 // <Context.Consumer> / useContext
+export const ContextConsumer = 9 // <Context.Consumer>
 export const ContextProvider = 10 // <Context.Provider>
 export const ForwardRef = 11 // forwardRef 包装的组件
 export const Profiler = 12 // <Profiler>
@@ -430,7 +430,7 @@ const createFiber = function (
 - `workInProgress`：内存中正在构建的新树。
 - 两棵树的对应节点通过 `alternate` 互相引用。
 
-Render 阶段只修改 `workInProgress`，Commit 完成后一次性切换 `root.current`，屏幕不会闪烁。
+Render 阶段只修改 `workInProgress`；Mutation 之后、Layout 之前切换 `root.current`，屏幕不会闪烁。
 
 ```mermaid
 flowchart LR

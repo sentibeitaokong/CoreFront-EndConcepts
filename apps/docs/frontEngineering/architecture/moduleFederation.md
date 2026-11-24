@@ -12,7 +12,7 @@ Module Federation（模块联邦）是近年来前端工程化领域**最具颠�
 
 传统打包工具（Webpack、Rollup 等）在构建阶段就把所有依赖关系确定下来，产出闭合的静态 Bundle。Module Federation 打破了这一范式：**它将一部分模块依赖推迟到运行时动态解析**，让不同构建产物之间可以互相“**import**”。
 
-```markdown
+```tree
 传统打包模型（构建时闭合）:
 App A → node_modules/vue → [Bundle A] (vue 被打进 A)
 App B → node_modules/vue → [Bundle B] (vue 被打进 B)
@@ -554,7 +554,7 @@ Vite 的模块联邦实现与 Webpack 5 存在一些关键差异，落地时必�
 
 ### 5.2 技术选型
 
-```markdown
+```tree
 你的技术栈是 Webpack / Rspack？
 ├── 是 → 直接用 Webpack 5 / Rspack 内置 ModuleFederationPlugin
 │ 成熟稳定，生态完善，生产验证充分
@@ -899,7 +899,7 @@ Module Federation 不是“**替代**”其他微前端方案，它们可以**�
 
 ## 10. 落地建议
 
-```markdown
+```tree
 阶段 1：基础设施搭建（1-2 周）
 ├── 统一所有应用的 shared 依赖版本（pnpm overrides）
 ├── 搭建 Remote 应用的 CI/CD 流水线（版本化部署 + CDN 上传）

@@ -83,7 +83,7 @@ sandbox.start() 在 iframe 中按 sync → defer → async 执行 JS
 ```
 
 - **iframe 只负责执行 JS**：它被设置为 `display: none`，不承载可见 DOM；子应用 DOM 实际渲染在主应用的 Shadow DOM 中。
-- **Proxy 是桥接层**：`proxyDocument` 把 `querySelector`、`createElement`、`body` 等访问重定向到 ShadowRoot，让子应用“以为”自己操作的是独立 document。
+- **Proxy 是桥接层**：`proxyDocument` 把 `querySelector`、`createElement`、`body` 等访问重定向到 ShadowRoot，让子应用“**以为**”自己操作的是独立 document。
 - **ESM 是例外**：非 ESM 脚本会被 IIFE 包装，`window` / `document` / `location` 都替换成 Proxy；ESM 脚本无法包装，只能依赖 `Object.defineProperty` 做有限修正。
 
 ### 1.5 资源加载与脚本执行

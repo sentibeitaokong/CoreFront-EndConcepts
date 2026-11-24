@@ -318,7 +318,7 @@ const res = await cache.match('/api/data')
 
 ### 6.1 选型决策
 
-```markdown
+```tree
 需要随请求自动发送（身份凭证）？ ──是──▶ Cookie（HttpOnly + Secure + SameSite）
 │ 否
 需要跨标签页实时同步？ ──是──▶ localStorage + storage 事件

@@ -1,6 +1,6 @@
 # 装饰器
 
-[说明] Decorator 提案仍处于第三阶段，定案前可能还有变化。本章属于草稿阶段：标注“新语法”的章节基于当前语法，未标注的“旧语法”章节是遗留稿子。保留旧内容有两个原因：TypeScript 装饰器会用到这些语法，且其中不少内容仍有价值。标准定案后本章将彻底重写。（2022年6月）
+[说明] Decorator 提案仍处于第三阶段，定案前可能还有变化。本章属于草稿阶段：标注“**新语法**”的章节基于当前语法，未标注的“**旧语法**”章节是遗留稿子。保留旧内容有两个原因：TypeScript 装饰器会用到这些语法，且其中不少内容仍有价值。标准定案后本章将彻底重写。（2022年6月）
 
 ## 简介（新语法）
 
@@ -31,7 +31,7 @@ class Foo {
 
 ## 为什么需要装饰器
 
-很多能力是“横切”在多个方法上的：日志、耗时统计、权限检查、缓存、参数校验、自动绑定`this`。它们与业务逻辑无关，却要挤进每个方法体。不用装饰器时有三种写法：
+很多能力是“**横切**”在多个方法上的：日志、耗时统计、权限检查、缓存、参数校验、自动绑定`this`。它们与业务逻辑无关，却要挤进每个方法体。不用装饰器时有三种写法：
 
 **（1）把逻辑抄进方法体**：重复，噪音大，业务代码被淹没。
 
@@ -77,7 +77,7 @@ class OrderService {
 }
 ```
 
-装饰器是一种**元编程**手段：不改变方法做什么，而改变它的“身份”——被谁包了一层、暴露成什么名字、是否登记进某个注册表。它把能力就近声明、可叠加、一眼可见，运行时只是一次普通函数调用。
+装饰器是一种**元编程**手段：不改变方法做什么，而改变它的“**身份**”——被谁包了一层、暴露成什么名字、是否登记进某个注册表。它把能力就近声明、可叠加、一眼可见，运行时只是一次普通函数调用。
 
 ## 装饰器 API（新语法）
 
@@ -178,7 +178,7 @@ function autobind(
 - 字段装饰器不再只能旁观：返回`(initialValue) => newValue`即可改初始值，要对实例做事就用`addInitializer()`。
 - 参数装饰器没有对应写法。依赖它的库（NestJS、TypeORM、class-validator 等）仍停在 legacy，这也是不少项目继续开着`experimentalDecorators`的原因。
 
-两套语法**不能混用**：同一个类里混写会直接报错，配置也只能二选一。选择依据通常是“框架生态用哪套”，而非“哪套更新”。
+两套语法**不能混用**：同一个类里混写会直接报错，配置也只能二选一。选择依据通常是“**框架生态用哪套**”，而非“**哪套更新**”。
 
 ## 装饰器的求值与执行顺序
 
@@ -188,7 +188,7 @@ function autobind(
 - **调用**：同一目标上的多个装饰器**从下往上**调用，最靠近目标的先执行；写成嵌套即`@a @b m() {}`等价于`a(b(m))`。
 - **类装饰器在所有成员装饰器之后运行**。
 
-下文“方法的装饰”一节用`dec(1)`/`dec(2)`打印了这个顺序。新语法的例子如下。
+下文“**方法的装饰**”一节用`dec(1)`/`dec(2)`打印了这个顺序。新语法的例子如下。
 
 ```js
 const order = []
@@ -214,7 +214,7 @@ console.log(order)
 
 - **叠在外层的能力看到的是内层处理过的结果。** 上面`outer`拿到的`value`已是`inner`包装后的函数，所以`@log`叠在`@memoize`外面时，被缓存挡掉的调用也会打日志；对调则不会。
 - **方法装饰器先于类装饰器执行**，所以类装饰器里检查或登记方法时看到的是装饰完的版本；反过来它也无法干预成员装饰器。
-- **不要假设类装饰器运行时类已完全就绪。** 想依赖“类定义完成”这一刻，用`context.addInitializer()`注册回调，别写在类装饰器函数体里（详见后文`addInitializer()`一节）。
+- **不要假设类装饰器运行时类已完全就绪。** 想依赖“**类定义完成**”这一刻，用`context.addInitializer()`注册回调，别写在类装饰器函数体里（详见后文`addInitializer()`一节）。
 
 ## 类的装饰
 
@@ -532,7 +532,7 @@ readonly(Person.prototype, 'name', descriptor)
 Object.defineProperty(Person.prototype, 'name', descriptor)
 ```
 
-三个参数依次是：类的原型对象（上例的`Person.prototype`）、属性名、属性描述对象。装饰器的本意是要“装饰”类的实例，但此时实例尚未生成，只能装饰原型——这一点不同于类装饰，那里`target`指的是类本身。
+三个参数依次是：类的原型对象（上例的`Person.prototype`）、属性名、属性描述对象。装饰器的本意是要“**装饰**”类的实例，但此时实例尚未生成，只能装饰原型——这一点不同于类装饰，那里`target`指的是类本身。
 
 装饰器修改`descriptor`，改后的描述对象用来定义属性。
 
@@ -1218,7 +1218,7 @@ export default function publish(topic, channel) {
 }
 ```
 
-`publish`装饰器改写`descriptor.value`，使原方法被调用时自动发出一个事件；它使用的“发布/订阅”库是 [Postal.js](https://github.com/postaljs/postal.js)。
+`publish`装饰器改写`descriptor.value`，使原方法被调用时自动发出一个事件；它使用的“**发布/订阅**”库是 [Postal.js](https://github.com/postaljs/postal.js)。
 
 它的用法如下。
 
@@ -1258,7 +1258,7 @@ $ bash-node index.js
 
 ## Mixin
 
-在装饰器的基础上可以实现`Mixin`模式：对象继承的一种替代方案，中文译为“混入”（mix in），即在一个对象中混入另一个对象的方法。
+在装饰器的基础上可以实现`Mixin`模式：对象继承的一种替代方案，中文译为“**混入**”（mix in），即在一个对象中混入另一个对象的方法。
 
 例子：
 
@@ -1277,7 +1277,7 @@ let obj = new MyClass()
 obj.foo() // 'foo'
 ```
 
-`Foo`的`foo`方法经`Object.assign`“混入”`MyClass`，实例`obj`便有了`foo`方法——这就是“混入”的简单实现。
+`Foo`的`foo`方法经`Object.assign`“**混入**”`MyClass`，实例`obj`便有了`foo`方法——这就是“**混入**”的简单实现。
 
 把 Mixin 写成一个装饰器：
 
@@ -1289,7 +1289,7 @@ export function mixins(...list) {
 }
 ```
 
-用它就能为类“混入”各种方法。
+用它就能为类“**混入**”各种方法。
 
 ```js
 import { mixins } from './mixins.js'
@@ -1307,7 +1307,7 @@ let obj = new MyClass()
 obj.foo() // "foo"
 ```
 
-这样就在`MyClass`上“混入”了`Foo`的`foo`方法，但会改写`MyClass.prototype`；不想这样，也可以用类的继承实现 Mixin。
+这样就在`MyClass`上“**混入**”了`Foo`的`foo`方法，但会改写`MyClass.prototype`；不想这样，也可以用类的继承实现 Mixin。
 
 ```js
 class MyClass extends MyBaseClass {
@@ -1315,7 +1315,7 @@ class MyClass extends MyBaseClass {
 }
 ```
 
-要在`MyClass`里“混入”一个`foo`方法，可以在它和`MyBaseClass`之间插入一个混入类：带`foo`方法，又继承`MyBaseClass`的全部方法，再由`MyClass`继承。
+要在`MyClass`里“**混入**”一个`foo`方法，可以在它和`MyBaseClass`之间插入一个混入类：带`foo`方法，又继承`MyBaseClass`的全部方法，再由`MyClass`继承。
 
 ```js
 let MyMixin = superclass =>
@@ -1328,7 +1328,7 @@ let MyMixin = superclass =>
 
 `MyMixin`是混入类生成器：接受`superclass`，返回一个带`foo`方法的子类。
 
-目标类再继承它，就“混入”了`foo`方法。
+目标类再继承它，就“**混入**”了`foo`方法。
 
 ```js
 class MyClass extends MyMixin(MyBaseClass) {
@@ -1339,7 +1339,7 @@ let c = new MyClass()
 c.foo() // "foo from MyMixin"
 ```
 
-如果需要“混入”多个方法，就生成多个混入类。
+如果需要“**混入**”多个方法，就生成多个混入类。
 
 ```js
 class MyClass extends Mixin1(Mixin2(MyBaseClass)) {
@@ -1347,7 +1347,7 @@ class MyClass extends Mixin1(Mixin2(MyBaseClass)) {
 }
 ```
 
-这种写法的好处是可以调用`super`，避免“混入”时覆盖父类的同名方法。
+这种写法的好处是可以调用`super`，避免“**混入**”时覆盖父类的同名方法。
 
 ```js
 let Mixin1 = superclass =>
@@ -1417,9 +1417,9 @@ obj.foo() // foo
 obj.bar() // bar
 ```
 
-`traits`装饰器把`TFoo`的`foo`和`TBar`的`bar`都“混入”了`MyClass`。
+`traits`装饰器把`TFoo`的`foo`和`TBar`的`bar`都“**混入**”了`MyClass`。
 
-Trait 不允许“混入”同名方法。
+Trait 不允许“**混入**”同名方法。
 
 ```js
 import { traits } from 'traits-decorator'
@@ -1577,7 +1577,7 @@ if (!Symbol.metadata) {
 
 ## 装饰器与元数据、反射
 
-装饰器除了包装行为，另一个主要用途是“贴标签”：把路由表、ORM 映射、依赖注入的 token 等数据挂到类上，运行时统一读出。常见做法有三种。
+装饰器除了包装行为，另一个主要用途是“**贴标签**”：把路由表、ORM 映射、依赖注入的 token 等数据挂到类上，运行时统一读出。常见做法有三种。
 
 **（1）直接挂在类或原型上。** 前文`@testable`就是这种，简单直接，但要注意命名冲突；TypeScript 下还需声明合并才能让类型认识它。
 
@@ -1644,7 +1644,7 @@ function route(method: string, path: string) {
 关于元数据有三点要记住。
 
 - **写入的时机是类定义时，只写一次**，运行时读取只是一次普通的属性访问，不构成性能问题；开销在包体积（`reflect-metadata`的 polyfill 加上`emitDecoratorMetadata`产出的元数据表）。
-- **存和取必须在同一个地方。** 挂在`target.prototype`上的数据从`Constructor`读不到，反之亦然。这类“读不到元数据”的 bug 几乎都是两边不对称造成的。
+- **存和取必须在同一个地方。** 挂在`target.prototype`上的数据从`Constructor`读不到，反之亦然。这类“**读不到元数据**”的 bug 几乎都是两边不对称造成的。
 - **私有成员的访问方式不同。** 私有成员的`context.name`是`"#x"`这样的描述字符串，`context.private`为`true`，不能用方括号访问，需借助`context.access`。
 
 ## 装饰器与继承的相互作用
@@ -1842,7 +1842,7 @@ class AdminPanel {
 
 ### 依赖注入
 
-框架通过装饰器收集“谁依赖谁”，启动时统一组装对象。legacy 配合`emitDecoratorMetadata`能拿到构造参数类型，这是 NestJS、Angular 依赖注入的基石；标准语法拿不到类型信息，只能显式传 token。
+框架通过装饰器收集“**谁依赖谁**”，启动时统一组装对象。legacy 配合`emitDecoratorMetadata`能拿到构造参数类型，这是 NestJS、Angular 依赖注入的基石；标准语法拿不到类型信息，只能显式传 token。
 
 ```ts
 @injectable()
@@ -1941,12 +1941,12 @@ function fast(value, context) {
 
 ## 小结
 
-- 装饰器是`@ + 函数`的语法糖，本质是“用函数包装类或类的成员”，运行时没有额外魔法。
+- 装饰器是`@ + 函数`的语法糖，本质是“**用函数包装类或类的成员**”，运行时没有额外魔法。
 - 存在两套语法：标准（stage 3）的`(value, context)`与 legacy 的`(target, name, descriptor)`，由`experimentalDecorators`决定用哪套，不能混用。
 - 装饰器表达式按源码顺序从上到下求值，同一目标上的装饰器从下往上调用，类装饰器最后运行。
 - 装饰器可返回新值取代原值，也可不返回；返回其它类型会报错。属性装饰器另有约定：第一个参数是`undefined`，返回初始化函数。
 - 装饰器不能用于函数（函数提升导致装饰器执行时函数还不存在），也不能用于对象字面量的成员。
-- 标准装饰器里，`addInitializer()`是做“每实例一次性初始化”的正道，`context.metadata`用来收集元数据。
+- 标准装饰器里，`addInitializer()`是做“**每实例一次性初始化**”的正道，`context.metadata`用来收集元数据。
 - 用得好，装饰器让横切关注点就近声明、可叠加；用得滥就成了隐式魔法——阅读时看不出实际执行路径，调试和类型推断都会变难。
 
 ## 常见问题 (FAQ)

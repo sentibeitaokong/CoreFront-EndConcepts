@@ -82,7 +82,7 @@ td {
   - `bottom` (置于表格下方)
 - **`empty-cells`**: 是否显示空单元格的边框。**仅在** `border-collapse: separate` 时有效。
   - `show` (默认)
-  - `hide` (隐藏，表格会出现“缺牙”)
+  - `hide` (隐藏，表格会出现“**缺牙**”)
 
 ```css
 table {

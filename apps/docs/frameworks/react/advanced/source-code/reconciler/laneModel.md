@@ -453,7 +453,7 @@ export function scheduleUpdateOnFiber(root, fiber, lane, eventTime) {
   markRootUpdated(root, lane, eventTime)
 
   if (
-    (executionContext & RenderContext) !== NoLanes &&
+    (executionContext & RenderContext) !== NoContext &&
     root === workInProgressRoot
   ) {
     // 渲染阶段产生的更新：记到本轮，稍后一起处理。
@@ -666,7 +666,7 @@ function computeExpirationTime(lane, currentTime) {
 :::
 
 > [!TIP]
-> `markStarvedLanesAsExpired` 在 `ensureRootIsScheduled` 里、以及并发渲染每次让出主线程时都会调用。过期不是新优先级，而是“**不能再等**”的标记：`renderRootConcurrent` 一旦发现 `includesExpiredLane`，就会立即完成当前工作，不再让出。
+> `markStarvedLanesAsExpired` 只在 `ensureRootIsScheduled` 里调用。并发渲染让出主线程后恢复执行时，走的是 `getNextLanes`，不会再次标记过期。过期不是新优先级，而是“**不能再等**”的标记：`renderRootConcurrent` 一旦发现 `includesExpiredLane`，就会立即完成当前工作，不再让出。
 
 ### 6.5 选批：`getNextLanes`
 
@@ -905,7 +905,7 @@ export function mergeLanes(a: Lanes | Lane, b: Lanes | Lane): Lanes {
 
 ## 8. 挂起、恢复与完成
 
-渲染过程中如果 Suspense 边界没有就绪，这些 lane 会从 pending 转入 suspended；恢复后转为 pinged；提交结束时再统一清理。
+渲染过程中如果 Suspense 边界没有就绪，这些 lane 会被标记为 suspended；`pendingLanes` 要到 `markRootFinished` 时才移除，恢复后转为 pinged。
 
 :::code-group
 

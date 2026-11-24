@@ -46,7 +46,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.22.3' # 生产环境建议使用更稳定的 LTS 版本（如 20），也可以保持 24
-          cache: pnpm      # 将依赖缓存机制明确指定为 pnpm
+          cache: pnpm # 将依赖缓存机制明确指定为 pnpm
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -54,6 +54,16 @@ jobs:
       # 严禁使用 npm ci，改用 pnpm 的全量锁定安装命令
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # 质量门禁：文档格式、类型、测试任一失败都不部署
+      - name: Lint docs
+        run: pnpm docs:lint
+
+      - name: Type check
+        run: pnpm type-check
+
+      - name: Test
+        run: pnpm test
 
       # 调用工作区配置好的 turbo 调度命令进行极速构建
       # 新增 Sentry 注入：在这里配置 env 环境变量
@@ -64,26 +74,26 @@ jobs:
           # 只有手动触发 workflow_dispatch 时才开启上传
           SENTRY_UPLOAD: ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
           #  告诉 Node 尽情使用内存，限制在 6GB 左右，防止把 GitHub Runner 彻底卡死
-          NODE_OPTIONS: "--max-old-space-size=6144"
+          NODE_OPTIONS: '--max-old-space-size=6144'
         run: pnpm run docs:build
 
-#      - name: Start preview server
-#        run: pnpm run docs:preview:ci > /tmp/vitepress-preview.log 2>&1 &
-#
-#      - name: Wait for preview server
-#        run: |
-#          for i in {1..30}; do
-#            if curl -fsS http://127.0.0.1:4173/CoreFront-EndConcepts/ > /dev/null; then
-#              exit 0
-#            fi
-#            sleep 2
-#          done
-#          cat /tmp/vitepress-preview.log
-#          exit 1
-#
-#      - name: Run Unlighthouse performance gate
-#        continue-on-error: true
-#        run: pnpm run monitor:lh
+      #      - name: Start preview server
+      #        run: pnpm run docs:preview:ci > /tmp/vitepress-preview.log 2>&1 &
+      #
+      #      - name: Wait for preview server
+      #        run: |
+      #          for i in {1..30}; do
+      #            if curl -fsS http://127.0.0.1:4173/CoreFront-EndConcepts/ > /dev/null; then
+      #              exit 0
+      #            fi
+      #            sleep 2
+      #          done
+      #          cat /tmp/vitepress-preview.log
+      #          exit 1
+      #
+      #      - name: Run Unlighthouse performance gate
+      #        continue-on-error: true
+      #        run: pnpm run monitor:lh
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

@@ -113,7 +113,7 @@ function mountWorkInProgressHook(): Hook {
 
 :::
 
-## 3. 更新阶段 {#\_3-updatereducer-合并队列与按-lane-处理}
+## 3. 更新阶段
 
 更新阶段先把 `pending` 队列合并进 `baseQueue`，再按 `renderLanes` 逐个处理：
 
@@ -281,7 +281,7 @@ function dispatchReducerAction<S, A>(
 | -------- | --------------------------------------------- | --------------------------------------------- |
 | reducer  | 调用方传入                                    | 固定为 `basicStateReducer`                    |
 | 初始化   | `initialArg` + 可选 `init`                    | 直接传值，函数参数视为惰性初始化              |
-| dispatch | `dispatchReducerAction`，总是入队并调度       | `dispatchSetState`，队列为空时先做 eager 比较 |
+| dispatch | `dispatchReducerAction`，非渲染阶段入队并调度 | `dispatchSetState`，队列为空时先做 eager 比较 |
 | 更新语义 | `dispatch(action)`，由 reducer 决定新状态     | `setState(value)` 或 `setState(fn)`           |
 | 适用场景 | 状态转换逻辑复杂、action 种类多、需要集中管理 | 简单独立的状态字段                            |
 

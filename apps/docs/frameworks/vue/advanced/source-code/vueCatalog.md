@@ -6,7 +6,7 @@ Vue 3 源码采用 **monorepo** 架构管理，所有核心模块都放在 `pack
 
 ## 1. 根目录结构概览
 
-```markdown
+```tree
 vue-core/
 ├── packages/ # 核心模块（monorepo 子包）
 ├── scripts/ # 构建、开发、发布等脚本
@@ -30,7 +30,7 @@ vue-core/
 
 `packages/` 是 Vue 3 源码的核心，每个子目录对应一个独立的 npm 包（可通过 `@vue/xxx` 安装）。
 
-```markdown
+```tree
 packages/
 ├── reactivity/ # 响应式系统（独立使用）
 ├── runtime-core/ # 运行时核心（平台无关）

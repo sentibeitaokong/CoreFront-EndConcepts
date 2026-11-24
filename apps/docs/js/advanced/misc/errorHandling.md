@@ -1012,7 +1012,7 @@ function getErrorCode(error) {
 }
 ```
 
-> TypeScript 中 `catch (err)` 的 `err` 是 `unknown`（4.4 起为默认行为），必须先收窄再访问属性——这与运行时“先判断再取值”一致。
+> TypeScript 中 `catch (err)` 的 `err` 是 `unknown`（4.4 起为默认行为），必须先收窄再访问属性——这与运行时“**先判断再取值**”一致。
 
 ## **6. 最佳实践**
 

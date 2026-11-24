@@ -41,7 +41,7 @@ function Counter() {
 
 React 18 的自动批处理（automatic batching）会把同一事件循环中的多次 `dispatch` 合并为一次渲染：
 
-- 同一次 dispatch 产生的多个 `Update` 按调用顺序排进环形队列。
+- 每次 dispatch 产生一个 `Update`，多次 dispatch 的 `Update` 按调用顺序排进环形队列。
 - 渲染阶段由 `updateReducer` 依次应用，只有最终状态与旧状态不同才提交。
 - 不同优先级的更新按 lane 分开处理，低优先级更新留到后续渲染。
 

@@ -73,7 +73,7 @@ const IMMEDIATE_PRIORITY_TIMEOUT = -1 // 立即过期
 const USER_BLOCKING_PRIORITY_TIMEOUT = 250 // 250ms
 const NORMAL_PRIORITY_TIMEOUT = 5000 // 5s
 const LOW_PRIORITY_TIMEOUT = 10000 // 10s
-const IDLE_PRIORITY_TIMEOUT = 1073741823 // 最大 32 位整数，永不过期
+const IDLE_PRIORITY_TIMEOUT = 1073741823 // 2^30 - 1（最大 31 位有符号整数），永不过期
 ```
 
 :::
@@ -381,7 +381,6 @@ function compare(a: Node, b: Node) {
 :::code-group
 
 ```ts [scheduler/src/Scheduler.ts]
-import { getCurrentTime } from 'shared/utils'
 import { peek, pop, push } from './SchedulerMinHeap'
 import {
   ImmediatePriority,
@@ -490,7 +489,7 @@ export function scheduleCallback(
     // isPerformingWork：是否正在执行任务（防重入）
     if (!isPerformingWork && !isHostCallbackScheduled) {
       isHostCallbackScheduled = true
-      requestHostCallback() // ★ 触发 MessageChannel
+      requestHostCallback(flushWork) // ★ 触发 MessageChannel
     }
   }
 
@@ -498,9 +497,19 @@ export function scheduleCallback(
 }
 ```
 
-```ts [shared/utils.ts]
-// 当前时间获取 —— 底层依赖 performance.now()
-export const getCurrentTime = (): number => performance.now()
+```ts [scheduler/src/Scheduler.js]
+// 官方 18.3.1 的时间源：优先 performance.now()，不可用时退回 Date.now()。
+const localDate = Date
+const initialTime = localDate.now()
+let getCurrentTime
+const hasPerformanceNow =
+  typeof performance === 'object' && typeof performance.now === 'function'
+if (hasPerformanceNow) {
+  const localPerformance = performance
+  getCurrentTime = () => localPerformance.now()
+} else {
+  getCurrentTime = () => localDate.now() - initialTime
+}
 ```
 
 ```ts [scheduler/src/SchedulerMinHeap.ts]
@@ -664,9 +673,12 @@ channel.port1.onmessage = performWorkUntilDeadline
 ```ts [scheduler/src/Scheduler.ts]
 // 宏任务消息循环是否已启动
 let isMessageLoopRunning = false
+// 当前挂起的 host 回调。官方 18.3.1 由 requestHostCallback 把 flushWork 存进来。
+let scheduledHostCallback = null
 
 /** 启动主线程回调（若消息循环未启动） */
-function requestHostCallback() {
+function requestHostCallback(callback) {
+  scheduledHostCallback = callback
   if (!isMessageLoopRunning) {
     isMessageLoopRunning = true
     schedulePerformWorkUntilDeadline()
@@ -688,8 +700,6 @@ function schedulePerformWorkUntilDeadline() {
 :::code-group
 
 ```ts [scheduler/src/Scheduler.ts]
-import { getCurrentTime } from 'shared/utils'
-
 // 当前时间切片的起始时间戳
 let startTime = -1
 // 时间切片长度（ms）
@@ -697,13 +707,15 @@ let frameInterval = 5
 
 /** 每个宏任务的入口：记录切片起点 → flushWork → 有剩余则继续调度 */
 function performWorkUntilDeadline() {
-  if (isMessageLoopRunning) {
+  if (scheduledHostCallback !== null) {
     const currentTime = getCurrentTime()
     // ★ 记录本次切片起始时间
     startTime = currentTime
+    // 浏览器环境每轮都从“还有剩余时间”开始，由 workLoop 内部决定是否让出
+    const hasTimeRemaining = true
     let hasMoreWork = true
     try {
-      hasMoreWork = flushWork(currentTime)
+      hasMoreWork = scheduledHostCallback(hasTimeRemaining, currentTime)
     } finally {
       if (hasMoreWork) {
         // 还有任务，再发起一个宏任务继续执行
@@ -711,15 +723,28 @@ function performWorkUntilDeadline() {
       } else {
         // 队列清空，停止消息循环
         isMessageLoopRunning = false
+        scheduledHostCallback = null
       }
     }
+  } else {
+    isMessageLoopRunning = false
   }
 }
 ```
 
-```ts [shared/utils.ts]
-// 当前时间获取，底层依赖 performance.now()。
-export const getCurrentTime = (): number => performance.now()
+```ts [scheduler/src/Scheduler.js]
+// 官方 18.3.1 的时间源：优先 performance.now()，不可用时退回 Date.now()。
+const localDate = Date
+const initialTime = localDate.now()
+let getCurrentTime
+const hasPerformanceNow =
+  typeof performance === 'object' && typeof performance.now === 'function'
+if (hasPerformanceNow) {
+  const localPerformance = performance
+  getCurrentTime = () => localPerformance.now()
+} else {
+  getCurrentTime = () => localDate.now() - initialTime
+}
 ```
 
 :::
@@ -729,8 +754,6 @@ export const getCurrentTime = (): number => performance.now()
 :::code-group
 
 ```ts [scheduler/src/Scheduler.ts]
-import { getCurrentTime } from 'shared/utils'
-
 // 当前时间切片的起始时间戳
 let startTime = -1
 // 时间切片长度（ms）
@@ -747,9 +770,19 @@ export function shouldYieldToHost(): boolean {
 }
 ```
 
-```ts [shared/utils.ts]
-// 当前时间获取，底层依赖 performance.now()。
-export const getCurrentTime = (): number => performance.now()
+```ts [scheduler/src/Scheduler.js]
+// 官方 18.3.1 的时间源：优先 performance.now()，不可用时退回 Date.now()。
+const localDate = Date
+const initialTime = localDate.now()
+let getCurrentTime
+const hasPerformanceNow =
+  typeof performance === 'object' && typeof performance.now === 'function'
+if (hasPerformanceNow) {
+  const localPerformance = performance
+  getCurrentTime = () => localPerformance.now()
+} else {
+  getCurrentTime = () => localDate.now() - initialTime
+}
 ```
 
 :::
@@ -769,17 +802,22 @@ let currentPriorityLevel: PriorityLevel = NormalPriority
 
 /**
  * 启动一轮工作循环：
+ * - 清理 host 回调 / 延时定时器状态
  * - 置锁 isPerformingWork（防重入）
  * - 保存上一轮优先级
  * - 在 finally 中恢复状态，确保异常安全
  * @returns workLoop 返回值：是否还有剩余任务
  */
-function flushWork(initialTime: number) {
+function flushWork(hasTimeRemaining: boolean, initialTime: number) {
   isHostCallbackScheduled = false
+  if (isHostTimeoutScheduled) {
+    isHostTimeoutScheduled = false
+    cancelHostTimeout()
+  }
   isPerformingWork = true
   const previousPriorityLevel = currentPriorityLevel
   try {
-    return workLoop(initialTime)
+    return workLoop(hasTimeRemaining, initialTime)
   } finally {
     // 无论正常/异常退出，都恢复状态
     currentTask = null
@@ -806,7 +844,6 @@ export const NormalPriority = 3
 :::code-group
 
 ```ts [scheduler/src/Scheduler.ts]
-import { getCurrentTime } from 'shared/utils'
 import { peek, pop } from './SchedulerMinHeap'
 import { NormalPriority } from './SchedulerPriorities'
 import type { PriorityLevel } from './SchedulerPriorities'
@@ -832,7 +869,7 @@ let frameInterval = 5
  *
  * @returns true: 还有任务未完成  false: 队列清空
  */
-function workLoop(initialTime: number): boolean {
+function workLoop(hasTimeRemaining: boolean, initialTime: number): boolean {
   let currentTime = initialTime
 
   // ── 阶段 A：将刚到期/到期的延时任务转入 taskQueue ──
@@ -844,8 +881,11 @@ function workLoop(initialTime: number): boolean {
   // ── 阶段 C：主循环 ──
   while (currentTask !== null) {
     // ★ 决策点 1：是否应该暂停（让出主线程）？
-    //    条件：任务未过期 AND 已用完 5ms 时间片
-    if (currentTask.expirationTime > currentTime && shouldYieldToHost()) {
+    //    条件：任务未过期 AND（本轮已没有剩余时间 OR 已用完 5ms 时间片）
+    if (
+      currentTask.expirationTime > currentTime &&
+      (!hasTimeRemaining || shouldYieldToHost())
+    ) {
       break // 让出 → 返回 true，等待下一轮 postMessage
     }
 
@@ -901,9 +941,19 @@ function workLoop(initialTime: number): boolean {
 }
 ```
 
-```ts [shared/utils.ts]
-// 当前时间获取，底层依赖 performance.now()。
-export const getCurrentTime = (): number => performance.now()
+```ts [scheduler/src/Scheduler.js]
+// 官方 18.3.1 的时间源：优先 performance.now()，不可用时退回 Date.now()。
+const localDate = Date
+const initialTime = localDate.now()
+let getCurrentTime
+const hasPerformanceNow =
+  typeof performance === 'object' && typeof performance.now === 'function'
+if (hasPerformanceNow) {
+  const localPerformance = performance
+  getCurrentTime = () => localPerformance.now()
+} else {
+  getCurrentTime = () => localDate.now() - initialTime
+}
 ```
 
 :::
@@ -950,8 +1000,6 @@ flowchart TD
 :::code-group
 
 ```ts [scheduler/src/Scheduler.ts]
-import { getCurrentTime } from 'shared/utils'
-
 // setTimeout 返回的 ID，用于取消
 let taskTimeoutID = -1
 
@@ -969,9 +1017,19 @@ function requestHostTimeout(callback: Callback, ms: number) {
 }
 ```
 
-```ts [shared/utils.ts]
-// 当前时间获取，底层依赖 performance.now()。
-export const getCurrentTime = (): number => performance.now()
+```ts [scheduler/src/Scheduler.js]
+// 官方 18.3.1 的时间源：优先 performance.now()，不可用时退回 Date.now()。
+const localDate = Date
+const initialTime = localDate.now()
+let getCurrentTime
+const hasPerformanceNow =
+  typeof performance === 'object' && typeof performance.now === 'function'
+if (hasPerformanceNow) {
+  const localPerformance = performance
+  getCurrentTime = () => localPerformance.now()
+} else {
+  getCurrentTime = () => localDate.now() - initialTime
+}
 ```
 
 :::
@@ -999,7 +1057,7 @@ function handleTimeout(currentTime: number) {
     if (peek(taskQueue) !== null) {
       // ② 有就绪任务了 → 启动工作循环
       isHostCallbackScheduled = true
-      requestHostCallback()
+      requestHostCallback(flushWork)
     } else {
       // ③ 还没有任务到期 → 重新计算最早的延时任务，设置新的定时器
       const firstTimer = peek(timeQueue)
@@ -1133,7 +1191,7 @@ sequenceDiagram
     ST-->>ST: handleTimeout 触发
     ST->>TMQ: advanceTimers → 延时任务转就绪
     TMQ->>TQ: push(task, sortIndex=expirationTime)
-    ST->>MC: requestHostCallback()
+    ST->>MC: requestHostCallback(flushWork)
     MC-->>MC: workLoop 开始执行
 ```
 
@@ -1142,15 +1200,12 @@ sequenceDiagram
 :::code-group
 
 ```ts [scheduler/src/Scheduler.ts]
-// 当前正在执行的任务
-let currentTask: Task | null = null
-
 /**
- * 取消当前任务：将 callback 置 null
- * 最小堆不支持随机删除，workLoop 在消费时发现 null 则自动丢弃
+ * 取消传入的任务：将 callback 置 null。
+ * 最小堆不支持随机删除，workLoop 在消费时发现 null 则自动丢弃。
  */
-export function cancelCallback(): void {
-  currentTask!.callback = null
+export function cancelCallback(task: Task): void {
+  task.callback = null
 }
 ```
 

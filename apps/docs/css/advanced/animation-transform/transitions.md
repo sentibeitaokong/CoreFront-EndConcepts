@@ -198,7 +198,7 @@ transition: background-position 1s steps(10);
 /* 当鼠标移开，回到默认状态，因为默认状态没写 transition，所以瞬间变回红色 */
 ```
 
-_反之，如果想“移入”快，“移出”慢，可以在默认状态和 hover 状态分别写不同的 `transition-duration`。_
+_反之，如果想“**移入**”快，“**移出**”慢，可以在默认状态和 hover 状态分别写不同的 `transition-duration`。_
 
 ### 5.5 性能优化？
 

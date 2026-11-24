@@ -553,6 +553,8 @@ export function createFiberFromTypeAndProps(
         return createFiberFromSuspense(pendingProps, mode, lanes, key)
       case REACT_OFFSCREEN_TYPE: // OffscreenComponent
         return createFiberFromOffscreen(pendingProps, mode, lanes, key)
+      // 省略同一 switch 中的 StrictMode、Profiler、SuspenseList、
+      // LegacyHidden、Cache、TracingMarker 等内置类型。
       default: {
         if (typeof type === 'object' && type !== null) {
           switch (type.$$typeof) {

@@ -19,7 +19,7 @@ React 16 使用 expiration-time（时间戳）表示优先级，越小的过期�
 
 - 优先级只是一个数字，无法表示“**这几条更新属于同一批、那几条可以跳过**”。
 - 一个 Fiber 只有有限的优先级字段，很难同时维护多组互不相邻的待处理更新。
-- 无法表达“这两条更新必须一起渲染”这类关系。
+- 无法表达“**这两条更新必须一起渲染**”这类关系。
 
 Lane 用**位掩码**代替时间戳：一条更新占一个二进制位，多条更新就是多个位的组合。这样就能对“**待处理的优先级集合**”做与、或、非和子集判断，而不用遍历队列。
 
@@ -286,12 +286,12 @@ function workLoop(hasTimeRemaining, initialTime) {
 
 - **时间切片**：`shouldYieldToHost` 默认以 5ms 为片长，超过就让出主线程，让浏览器处理输入和绘制。
 - **过期任务不切片**：如果任务已经过期，上面的 `shouldYieldToHost` 分支不生效，任务会一直执行到完成，避免低优先级任务被永久饿死。
-- **continuation callback**：回调可以返回一个新函数表示“还没做完”，Scheduler 会把它放回任务里，等下一个时间片继续。
+- **continuation callback**：回调可以返回一个新函数表示“**还没做完**”，Scheduler 会把它放回任务里，等下一个时间片继续。
 - **`MessageChannel` 调度宏任务**：Scheduler 优先使用 `MessageChannel`，避免 `setTimeout` 约 4ms 的最小延迟钳制。
 
 ### 4.3 打断发生在哪里
 
-Scheduler 不能抢占正在执行的 JavaScript，所谓“高优先级打断低优先级”是**协作式**的：
+Scheduler 不能抢占正在执行的 JavaScript，所谓“**高优先级打断低优先级**”是**协作式**的：
 
 - 高优先级更新进入 `root.pendingLanes`，`ensureRootIsScheduled` 发现新的批次优先级更高，取消旧的 `root.callbackNode`，调度新任务。
 - 低优先级渲染不会在任意一行被切断，只会在下一次 `shouldYieldToHost` 返回 `true` 时退出 work loop。

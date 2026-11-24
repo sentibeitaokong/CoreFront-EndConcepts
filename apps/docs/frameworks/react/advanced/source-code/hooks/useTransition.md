@@ -4,7 +4,7 @@ outline: [2, 4]
 
 # useTransition
 
-`useTransition` 把一次更新标记成“**transition**”：更新仍会执行，但优先级降到 TransitionLane，可以被更紧急的渲染打断；同时返回 `isPending`，让界面在过渡期间显示加载状态。React 18 的返回顺序是 `[isPending, startTransition]`，与 React 19 相反。
+`useTransition` 把一次更新标记成“**transition**”：更新仍会执行，但优先级降到 TransitionLane，可以被更紧急的渲染打断；同时返回 `isPending`，让界面在过渡期间显示加载状态。
 
 ## 1. 基础用法
 

@@ -289,7 +289,7 @@ function bubbleProperties(completedWork) {
 
 这个冒泡机制是**Commit 阶段性能的关键**。它使得 Commit 遍历时可以快速判断一个子树是否“**干净**”，决定子节点及后代是否可以跳过更新；同时聚合出的 `childLanes` 也是后续 `beginWork` 判断子树是否还有工作的依据。
 
-```markdown
+```tree
           App (subtreeFlags = Update | Placement)
            │
     ┌──────┴──────┐

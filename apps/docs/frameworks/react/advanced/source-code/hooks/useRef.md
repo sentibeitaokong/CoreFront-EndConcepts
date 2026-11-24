@@ -4,7 +4,7 @@ outline: [2, 4]
 
 # useRef
 
-`useRef` 是缓存与引用类 Hook 中最简单的一个：挂载时创建一个 `{ current: initialValue }` 对象，之后每次渲染都返回同一个对象。修改 `ref.current` 不会触发渲染，适合保存 DOM 引用、定时器 ID、上一次的值等“可变但不参与渲染”的数据。
+`useRef` 是缓存与引用类 Hook 中最简单的一个：挂载时创建一个 `{ current: initialValue }` 对象，之后每次渲染都返回同一个对象。修改 `ref.current` 不会触发渲染，适合保存 DOM 引用、定时器 ID、上一次的值等“**可变但不参与渲染**”的数据。
 
 `useRef(initialValue)` 返回一个可变的 `{ current }` 容器，并在组件多次渲染之间保持同一个对象。它不参与依赖比较，也不触发更新调度：写入 `ref.current` 只是修改一个普通对象，React 不会因此重新渲染。
 

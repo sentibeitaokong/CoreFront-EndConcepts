@@ -175,7 +175,7 @@ const appController = new CounterController(appModel, appView)
 
 ### 2.4 关键语言特性与易错点
 
-- **ES6 `class`**：类方法默认是非绑定的，把 `this.view.render` 直接当回调传出去会丢失 `this`，所以代码里写成 `this.view.render.bind(this.view)`。
+- **ES6 `class`**：实例方法默认是非绑定的，把 `this.view.render` 直接当回调传出去会丢失 `this`，所以代码里写成 `this.view.render.bind(this.view)`。
 - **`Function.prototype.bind`**：用来固定回调执行时的 `this`，是事件委托里最容易被忽略的坑。
 - **发布-订阅（观察者）**：Model 用一个 `listeners` 数组加 `forEach` 手动广播，这正是 Vue 响应式里 `Dep` 与 `Watcher` 的雏形。
 - **`addEventListener` 与事件委托**：View 只暴露 `bindIncrement(handler)`，把“**点击后干什么**”交给 Controller，避免 View 里混入业务逻辑。

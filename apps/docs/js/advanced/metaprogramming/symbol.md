@@ -941,7 +941,7 @@ with (MyClass.prototype) {
 
 下表汇总了 11 个 ES6 内置 Symbol 常量，另含 ES2018 新增的 `Symbol.asyncIterator`。
 
-#### **5.1 迭代与展开**
+### **5.1 迭代与展开**
 
 [width(17,30,22,31)]
 
@@ -950,7 +950,7 @@ with (MyClass.prototype) {
 | **`Symbol.iterator`**      | 指向一个方法，该方法返回对象的**默认迭代器**。     | `for...of`, `...` (扩展运算符), `Array.from()` | 自定义对象如何被遍历。例如让一个普通对象 `obj` 可以像数组一样被遍历。 |
 | **`Symbol.asyncIterator`** | 指向一个方法，该方法返回对象的**默认异步迭代器**。 | `for await...of`                               | 处理异步数据流（如 Node.js 的 Readable Stream）。                     |
 
-#### **5.2 类型检测与转换**
+### **5.2 类型检测与转换**
 
 [width(13,24,21,42)]
 
@@ -960,7 +960,7 @@ with (MyClass.prototype) {
 | **`Symbol.toPrimitive`** | 指向一个方法，将对象转换为**原始值**。               | `+obj`, `${obj}`, `obj == 1` (类型转换) | 替代 `toString` 和 `valueOf`，更精细地控制对象在转为 `number`、`string` 或 `default` 时的表现。            |
 | **`Symbol.toStringTag`** | 指向一个字符串值，用于创建对象的默认字符串描述。     | `Object.prototype.toString.call(obj)`   | 自定义对象的类型标签。例如：`[object MyCustomType]`。                                                      |
 
-#### **5.3 正则表达式操作**
+### **5.3 正则表达式操作**
 
 这些 Symbol 允许任何对象模拟正则表达式的行为。
 
@@ -973,7 +973,7 @@ with (MyClass.prototype) {
 | **`Symbol.search`**  | 指向一个方法，返回匹配项的索引。 | `str.search(obj)`                | 让自定义对象支持字符串的 `search` 方法。  |
 | **`Symbol.split`**   | 指向一个方法，执行分割操作。     | `str.split(obj)`                 | 让自定义对象支持字符串的 `split` 方法。   |
 
-#### **5.4 其他行为控制**
+### **5.4 其他行为控制**
 
 [width(16,24,22,38)]
 
@@ -993,7 +993,7 @@ with (MyClass.prototype) {
 
 - 这是规范设计的。JSON 是一种数据交换格式，而 Symbol 是语言内部的标识符，通常没有对应的字符串表示，也不适合跨语言传输。
 
-### 6.3: 什么时候应该使用 Symbol？
+### 6.3 什么时候应该使用 Symbol？
 
 - 当你需要给对象添加属性，但又不想与现有属性名冲突（特别是对于第三方库的对象）。
 - 当你需要自定义对象的迭代行为 (`Symbol.iterator`)。

@@ -35,7 +35,7 @@
 
 拿到 IP 后，客户端与服务器通过**三次握手**建立可靠连接：
 
-```markdown
+```tree
 客户端 ──SYN──▶ 服务器
 客户端 ◀─SYN+ACK─ 服务器
 客户端 ──ACK──▶ 服务器 （连接建立）
@@ -72,7 +72,7 @@ HTML/JS -> DOM -> CSSOM -> Render Tree -> Layout -> Paint -> Composite
 
 会形成类似结构：
 
-```markdown
+```tree
 Document
 └── html
 └── body
