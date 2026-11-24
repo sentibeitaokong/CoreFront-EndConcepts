@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest'
-import { HostComponent } from 'react-reconciler/src/ReactWorkTags'
+import { HostComponent } from '../../react-reconciler/src/ReactWorkTags'
 import {
   precacheFiberNode,
   updateFiberProps,

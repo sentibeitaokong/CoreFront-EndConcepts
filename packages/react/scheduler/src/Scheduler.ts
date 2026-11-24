@@ -25,7 +25,7 @@ import {
   LOW_PRIORITY_TIMEOUT,
   IDLE_PRIORITY_TIMEOUT,
 } from './SchedulerFeatureFlags'
-import { getCurrentTime } from 'shared/utils'
+import { getCurrentTime } from '../../shared/utils'
 import { peek, pop, push } from './SchedulerMinHeap'
 
 // ─── 类型定义 ───────────────────────────────────────────
